@@ -20,7 +20,7 @@ This is the *target blueprint*, not a list of completed functions.
 ## Development status and phase plan
 The seven-phase execution plan is in [PHASE_INDEX](docs/PHASE_INDEX.md) with individual P0–P6 specifications and [kickoff report (2026-10-26)](docs/REPORT_2026-10-26.md). Eight architecture decisions are documented as proposals in [ADR_REGISTER](docs/ADR_REGISTER.md), alongside [THREAT_MODEL](docs/THREAT_MODEL.md) and [TEST_STRATEGY](docs/TEST_STRATEGY.md).
 
-**Implementation has started in an isolated DRAFT branch only:** [PR #13: loopback-only Go liveness prototype](https://github.com/parmtech/Tong-Panel/pull/13). This prototype is not a hosting panel or installer; review and CI are pending.
+**Implementation has started in an isolated DRAFT branch only:** [PR #13: loopback-only Go liveness prototype](https://github.com/parmtech/Tong-Panel/pull/13). This prototype is not a hosting panel or installer; Go CI checks have passed; review and merge remain pending.
 
 ## Documentation — start here
 | File | What it contains |
