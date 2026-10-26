@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -50,7 +51,7 @@ func ServeConn(c *net.UnixConn, uid uint32) error {
 	}
 	// Exactly one newline-delimited JSON frame, capped at 512 bytes.
 	// Requiring framing avoids waiting for EOF while clients await a reply.
-	frame, err := bufio.NewReaderSize(c, 513).ReadBytes('\n')
+	frame, err := bufio.NewReaderSize(io.LimitReader(c, 513), 513).ReadBytes('\n')
 	if err != nil {
 		return err
 	}
