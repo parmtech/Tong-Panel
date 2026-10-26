@@ -1,0 +1,19 @@
+name: SQLite schema checks
+on:
+  push:
+    paths:
+      - 'db/**'
+      - '.github/workflows/schema-checks.yml'
+  pull_request:
+    paths:
+      - 'db/**'
+      - '.github/workflows/schema-checks.yml'
+permissions:
+  contents: read
+jobs:
+  sqlite-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify SQLite migration constraints
+        run: python3 -m unittest discover -s db -p 'test_*.py' -v
