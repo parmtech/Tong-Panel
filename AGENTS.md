@@ -29,7 +29,7 @@
 - Original Tong Panel architecture proposed, with strong host-agent privilege separation.
 - Single-server classic hosting MVP planned before modern apps, full hosting and multi-server.
 - The user authorized work to start after blueprint drafting; small non-privileged P1 prototypes may be proposed in draft PRs. **Privileged server mutations, installer shipping and production claims remain blocked by architecture/security review.**
-- Draft PR #13 contains a basic Go localhost liveness handler and tests, not merged; no deployable hosting panel, root agent, installer, or released binary yet. Never describe planned features as working.
+- Draft PR #13 contains a basic Go localhost liveness handler and tests (Go CI checks passing), not merged; no deployable hosting panel, root agent, installer, or released binary yet. Never describe planned features as working.
 
 ## Workstream boundaries
 - A: UX/UI, accessibility, tours, documentation.
