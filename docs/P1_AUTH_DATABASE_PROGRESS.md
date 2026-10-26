@@ -13,7 +13,7 @@
 - Local `go test -race ./internal/auth` passed.
 - Local `go test ./...` and `go vet ./...` passed on the developer-preview base.
 - Local Python 3 `python -m unittest discover -s db -p 'test_*.py' -v` passed (4 tests).
-- GitHub Actions CI status must be verified on the new branch before claims are updated.
+- GitHub Actions verified: [Go checks #40310453646](https://github.com/parmtech/Tong-Panel/actions/runs/40310453646) passed (gofmt, go test -race, go vet); [SQLite schema checks #40310453620](https://github.com/parmtech/Tong-Panel/actions/runs/40310453620) passed (all 4 schema tests). PR remains draft/unmerged.
 
 ## Essential limitations and next steps
 - There is **no login endpoint**, password verifier/Argon2id integration, TOTP enrollment/replay protection, session persistence, token rotation, CSRF/origin middleware or multi-factor enforcement. Session manager is an independent primitive **not wired to HTTP**; no cookies are being issued to users yet.
