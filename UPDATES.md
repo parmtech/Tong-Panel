@@ -13,6 +13,15 @@
 - **Not done:** production install, VM distro certification, kernel/cloud firewall verification, installer rollback, host agent security audit, secure auth, SQL data store and work queues. **Phase 1 remains IN PROGRESS.**
 - **Next one action:** implement reviewed production auth/session architecture (#6) or continue safe installer diagnostics (#11), then update this file with tests and commits. Read AGENTS.md and open PR #14 before starting.
 
+### 2026-10-26 — P1 agent socket hardening (additional update)
+- **Branch:** `feature/p1-core-foundation`, unmerged [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14).
+- **Files:** `internal/agent/agent_linux.go` and `internal/agent/agent_linux_test.go`.
+- **Changes:** removed process-global umask mutation, require an owned private non-symlink socket parent, retain socket permission 0600, bounded newline-delimited ping-only JSON requests with malformed/concatenated JSON rejection.
+- **Local evidence:** `go test -race ./...` and `go vet ./...` passed; agent tests cover denied UIDs, disallowed ops, shared/symlink parents, malformed requests and valid ping.
+- **Remote GitHub CI:** result of latest agent hardening commit to be verified before merge. Previous preflight commit Go Actions [run 40262321339](https://github.com/parmtech/Tong-Panel/actions/runs/40262321339) passed.
+- **Safety:** agent still no privileged verb, not a root service and not approved for server mutations; phase P1 NOT COMPLETE.
+- **Next:** review latest PR #14 CI, then security review of agent boundaries and development authentication limitations (#6/#8).
+
 ## CURRENT CHECKPOINT — READ FIRST
 
 **Phase:** P0 architecture/security review pending; P1 core development IN PROGRESS (draft code).  
