@@ -4,6 +4,11 @@
 **License:** GNU AGPL-3.0 for original code  
 **Current checkpoint (2026-10-26):** P0 review pending, P1 experimental code in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14), Go CI passed. Phase 1 is NOT complete. No runnable real-hosting panel exists.
 
+## CURRENT P1 RESUME DELTA (2026-10-26)
+Read [UPDATES.md](UPDATES.md) FIRST, then inspect [parent draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14) and [stacked draft PR #15](https://github.com/parmtech/Tong-Panel/pull/15) (base `feature/p1-core-foundation`, head `feature/p1-auth-sessions-sqlite`). The stacked PR contains an **in-memory sessions primitive** and a **SQLite migration schema/tests**, NOT integrated production login or a Go SQL job queue. Remote GitHub CI: [Go #40310453646](https://github.com/parmtech/Tong-Panel/actions/runs/40310453646) PASS and [SQLite #40310453620](https://github.com/parmtech/Tong-Panel/actions/runs/40310453620) PASS. P1 is IN PROGRESS; do not merge as production-ready, and merge/review parent #14 before retargeting/merging #15.
+
+**Exact next work item:** decide vetted Argon2id/auth login design and SQLite Go adapter/migration runner after ADR/threat reviews (#1/#2/#6/#7); integrate tests for persistent sessions, tenant scope and job transitions. Do not expose a login endpoint without rate limiting, CSRF/Origin checks, TLS and MFA/recovery design.
+
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action; also read docs/PHASE_INDEX.md and docs/REPORT_2026-10-26.md.
 2. docs/ROADMAP.md — phase gates and scope.
