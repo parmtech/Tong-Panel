@@ -1,5 +1,5 @@
 # Tong Panel — Development Roadmap
-**Date:** 2026-10-26 | **Current phase:** 0 — documentation/planning.  
+**Date:** 2026-10-26 | **Current phases:** P0 design review open; P1 experimental developer prototype in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14), **not completed**.  
 All durations are intentionally uncommitted; phases are gated by evidence rather than time estimates.
 
 ## Operational phase documents
@@ -11,7 +11,7 @@ See [PHASE_INDEX.md](PHASE_INDEX.md) for the current seven-phase execution index
 **Deliverables:** README, blueprint, feature matrix, architecture, upstream/licensing research, security model, UI/UX spec, install strategy, roadmap, UPDATES, AGENTS.
 **Exit:** maintainers review and approve top-level architecture ADRs; scope of P1 and distro matrix fixed; explicit go/no-go for code.
 
-### P1 — Core platform foundation
+### P1 — Core platform foundation (IN PROGRESS — not accepted)
 **Scope:** monorepo organization, Go API, local privileged agent, TS UI shell, safe session/MFA/RBAC, server instance identity, metadata migrations, durable jobs, audit ledger, CLI skeleton, OpenAPI, CI/release signing, test harness and simulated ops.
 **Exit:** malicious API inputs cannot run arbitrary privileged commands; tenant boundary and auth tests green; UI accessible and recoverable; bootstrapping and revert smoke tested in clean VMs.
 **Dependencies:** approved ADRs and threat model.
@@ -64,4 +64,4 @@ Multiple agents may work in independent branches. Use CODEOWNERS later; never si
 0.0.x planning/prototypes (not installable); 0.1.x experimental; 0.5.x beta only with explicit caution; 1.0.0 stable only after P6. A tagged release is not a compatibility promise by itself.
 
 ## Next concrete implementation action — NOT STARTED
-Write and review ADR-001 through ADR-008 and a threat model, then select P1 task boundaries. Do not produce installer scripts or alter real servers before approval. See UPDATES.md and AGENTS.md for current checkpoint.
+Review ADR-001 through ADR-008, threat model and P1 report. Draft PR #14 has experimental UI/API/journal/agent-proof and passing Go CI but production auth, storage, agent and VM installer gates are still pending. Do not run installer scripts or alter real servers before approval. See UPDATES.md and AGENTS.md for current checkpoint.
