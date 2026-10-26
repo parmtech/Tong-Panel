@@ -70,3 +70,22 @@ Read [AGENTS.md](../AGENTS.md), [UPDATES.md](../UPDATES.md), [P1 specification](
 Source in `feature/p1-core-foundation`. With Go 1.23+ in a disposable local developer machine: `go test -race ./...`, `go run ./cmd/tongd` and browse `http://127.0.0.1:8090/`. Protected API remains disabled unless a strong temporary developer token is explicitly set. **Do not expose the port on a public server.** No production installer or stable release exists.
 
 **Verdict:** meaningful P1 progress delivered in a reviewed source branch; **full Phase 1 NOT complete** and production use prohibited until acceptance gates pass.
+
+
+## Follow-on P1 development update — 2026-10-26
+
+### P1-07: read-only installer preflight — improved, still incomplete
+- `tongctl doctor` reports 4 checks: tentative OS matrix, available RAM, root filesystem free disk, occupied TCP 80/443 listener snapshot. OS Debian 12 / Ubuntu 24.04 x86_64 are **candidate targets only**.
+- The implementation opens read-only OS/proc files, uses read-only statfs, and does not bind ports, change packages or touch firewall rules.
+- Tests cover simulated port collision, unsupported distro, unknown memory/disk/port data, parsing and fixture immutability.
+- Local `go test -race ./...`, `go vet ./...`, and `go build ./...` **passed**. Remote [GitHub Actions #40262321339](https://github.com/parmtech/Tong-Panel/actions/runs/40262321339) **passed** (gofmt, Go race tests, vet).
+- [Doctor developer guidance](https://github.com/parmtech/Tong-Panel/blob/feature/p1-core-foundation/docs/READ_ONLY_DOCTOR.md) is in unmerged PR #14.
+
+### P1-04: restricted Unix agent — additional hardening, still a proof of concept
+- Removed global umask mutation, require owned 0700-style private socket parent and reject symlink parent, retain 0600 Unix socket.
+- Parse newline-framed JSON only, with stream byte cap, reject unknown operations and concatenated JSON, validate Linux SO_PEERCRED.
+- Validates **ping only**, performs zero host mutations, is not a root service and has no production security approval.
+- Local `go test -race ./...`, `go vet ./...`, `go build ./...`, `tsc --noEmit -p web/tsconfig.json` **passed** after latest changes.
+- [GitHub Actions #40262665382](https://github.com/parmtech/Tong-Panel/actions/runs/40262665382) **passed** for initial agent hardening. Final stream-bound commit has a separate Go CI run to verify, so do not claim it passed until checked.
+
+**Delivery state:** all new source changes are on unmerged `feature/p1-core-foundation` within draft PR #14. `main` is still documentation/early foundation. **Phase 1 remains IN PROGRESS**: secure auth/MFA, SQL migrations/queue, agent privilege review, installer VM matrix and signed release are not implemented/tested. Do not run on a live host.
