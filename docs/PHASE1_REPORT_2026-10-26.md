@@ -86,6 +86,6 @@ Source in `feature/p1-core-foundation`. With Go 1.23+ in a disposable local deve
 - Parse newline-framed JSON only, with stream byte cap, reject unknown operations and concatenated JSON, validate Linux SO_PEERCRED.
 - Validates **ping only**, performs zero host mutations, is not a root service and has no production security approval.
 - Local `go test -race ./...`, `go vet ./...`, `go build ./...`, `tsc --noEmit -p web/tsconfig.json` **passed** after latest changes.
-- [GitHub Actions #40262665382](https://github.com/parmtech/Tong-Panel/actions/runs/40262665382) **passed** for initial agent hardening. Final stream-bound commit has a separate Go CI run to verify, so do not claim it passed until checked.
+- [GitHub Actions #40262665382](https://github.com/parmtech/Tong-Panel/actions/runs/40262665382) **passed** for initial agent hardening. Final stream-bound commit also passed GitHub Actions [run #40262754298](https://github.com/parmtech/Tong-Panel/actions/runs/40262754298), including gofmt, Go race tests and vet.
 
 **Delivery state:** all new source changes are on unmerged `feature/p1-core-foundation` within draft PR #14. `main` is still documentation/early foundation. **Phase 1 remains IN PROGRESS**: secure auth/MFA, SQL migrations/queue, agent privilege review, installer VM matrix and signed release are not implemented/tested. Do not run on a live host.
