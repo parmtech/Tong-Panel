@@ -2,6 +2,9 @@
 **Date:** 2026-10-26 | **Current phase:** 0 — documentation/planning.  
 All durations are intentionally uncommitted; phases are gated by evidence rather than time estimates.
 
+## Operational phase documents
+See [PHASE_INDEX.md](PHASE_INDEX.md) for the current seven-phase execution index, per-phase task lists and gate acceptance. The [kickoff report](REPORT_2026-10-26.md) and [UPDATES.md](../UPDATES.md) distinguish drafted planning from implemented code. The first non-privileged local health API is in draft PR #13; it is not merged or a production installer.
+
 ## Milestone definitions
 
 ### P0 — Planning, product and trust boundary (ACTIVE)
