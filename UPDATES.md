@@ -13,17 +13,18 @@
 - **Not done:** production install, VM distro certification, kernel/cloud firewall verification, installer rollback, host agent security audit, secure auth, SQL data store and work queues. **Phase 1 remains IN PROGRESS.**
 - **Next one action:** implement reviewed production auth/session architecture (#6) or continue safe installer diagnostics (#11), then update this file with tests and commits. Read AGENTS.md and open PR #14 before starting.
 
-## LATEST SESSION — 2026-10-27 10:51 Australia/Sydney, P1 SQLite queue slice
-- **Branch:** `feature/p1-sqlite-transactional-queue`, created from the head of draft PR #15 (`feature/p1-auth-sessions-sqlite`); stacked above draft PR #14. This branch has not yet been pushed or opened as a PR.
+## LATEST SESSION — 2026-10-27, P1 SQLite queue slice
+- **Branch/PR:** `feature/p1-sqlite-transactional-queue`, draft [PR #16](https://github.com/parmtech/Tong-Panel/pull/16), stacked on draft PR #15 (`feature/p1-auth-sessions-sqlite`), then #14. Initial branch commit `e7e72119b25ab4202444426867c2d83df9cf4ead`; a compatible driver update is now being prepared.
 - **Scope:** issue #7, a Go SQLite migration runner and non-executing transactional queue prototype; no changes to the live VPS.
 - **Code:** schema moved to `internal/database/migrations/0001_initial.sql` and embedded in a Go opener; added a pinned cgo-free SQLite driver, connection pragmas, single-connection pool, transactional enqueue and validated transition prototype, tenant-filtered reads, and Windows-compatible directory sync for the existing JSON journal tests.
-- **Tests actually run:** Go 1.25.14 Windows/amd64 focused tests passed for `internal/database`, `internal/jobs`, `internal/api`, `internal/auth`, `internal/health`, `cmd/tongd` and `internal/rbac`; `go vet` passed for those packages; `go build ./cmd/tongd` passed.
-- **Not passed/not run:** full `go test ./...` is blocked on existing Linux-only `internal/preflight` syscall usage on Windows; `go test -race ./...` cannot run because the Windows environment lacks CGO; Python schema tests were not run because Python is unavailable. The repository's Linux CI must validate full race tests and Python schema workflow after push. No remote checks have run for this branch yet.
+- **Tests actually run:** Go 1.25.14 Windows/amd64 focused tests passed for `internal/database`, `internal/jobs`, `internal/api`, `internal/auth`, `internal/health`, `cmd/tongd` and `internal/rbac`; `go vet` passed for those packages; `go build ./cmd/tongd` passed. The same database/jobs tests passed again after moving the SQLite pin to v1.38.2.
+- **Remote checks on initial driver commit:** GitHub Actions [Go run #40422954895](https://github.com/parmtech/Tong-Panel/actions/runs/40422954895) and [SQLite schema run #40422954974](https://github.com/parmtech/Tong-Panel/actions/runs/40422954974) passed. They were run before the driver bump; rerun results for the current head are pending.
+- **Not passed/not run locally:** full `go test ./...` is blocked on existing Linux-only `internal/preflight` syscall usage on Windows; `go test -race ./...` cannot run because the Windows environment lacks CGO; Python schema tests were not run because Python is unavailable. The repository's Linux CI must validate the updated branch.
 - **Auth limitations:** no production login, Argon2id verifier, durable sessions, TOTP enrollment/replay protection, CSRF/Origin middleware, rate limiting or authenticated API wiring. Existing session manager is still memory-only; API remains on the JSON journal.
 - **Queue limitations:** only `validation.noop` is accepted; no worker, lease/retry loop, audit event integration, locking, recovery or host operation exists. The SQLite store is not wired into `tongd` pending actor identity and ADR/threat review.
-- **Dependency/security:** `modernc.org/sqlite` v1.34.5 is pinned; upstream package metadata identifies BSD-3-Clause and SQLite public domain. Full transitive licence inventory and ADR-003 review remain open.
+- **Dependency/security:** `modernc.org/sqlite` v1.38.2 is pinned to retain Go 1.23 compatibility; upstream package metadata identifies BSD-3-Clause and SQLite public domain. Full transitive licence inventory and ADR-003 review remain open.
 - **Phase:** P1 remains IN PROGRESS. No Phase 1 acceptance or production-readiness claim.
-- **Next one action:** push this isolated branch and open a draft PR based on PR #15, then inspect the actual GitHub Actions results and update this entry with the PR/commit/check run evidence.
+- **Next one action:** publish the Go 1.23-compatible driver bump on PR #16 and inspect the resulting GitHub Actions runs before handing off.
 
 ### 2026-10-26 — P1 agent socket hardening (additional update)
 - **Branch:** `feature/p1-core-foundation`, unmerged [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14).
@@ -83,7 +84,7 @@
 - [ ] External security audit and install/restore compatibility evidence.
 - [ ] Stable product release.
 
-**Next ONE action for a new agent:** finish reviewing and validating the stacked PR #15 queue slice against ADR-003 and tenant/security requirements; check the draft PR #14 parent before any merge. No live VPS changes.
+**Next ONE action for a new agent:** check current PR #16 Actions and continue ADR-003/auth-session review; check the draft PR #14 parent before any merge. No live VPS changes.
 
 ## GitHub work queue (OPEN — not assigned or completed)
 - [#1 P0 architecture ADRs and upstream licences](https://github.com/parmtech/Tong-Panel/issues/1)
@@ -111,14 +112,14 @@
 PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code exists. TESTED = test results recorded. VERIFIED = acceptance passed. RELEASED = signed, documented artifact available and validated.
 
 ## Work journal
-### 2026-10-27 10:51 Australia/Sydney — P1 SQLite queue slice
+### 2026-10-27 — P1 SQLite queue slice
 - **Worker:** Codex, workstream C (storage/jobs) with read-only parallel review.
 - **Task:** issue #7, incremental Go SQLite migration and transactional queue prototype.
-- **Branch / commit / PR:** `feature/p1-sqlite-transactional-queue`, based on PR #15; commit and PR pending push.
+- **Branch / commit / PR:** `feature/p1-sqlite-transactional-queue`, draft PR #16 based on PR #15; initial commit `e7e72119b25ab4202444426867c2d83df9cf4ead`, followed by a Go 1.23-compatible driver update in progress.
 - **Changes:** one canonical embedded SQLite migration; database opener with per-connection foreign-key enforcement and single-writer settings; transactional insert and state transitions; tenant-scoped reads and idempotency; Windows-specific JSON journal test portability; auth/session proposal and exact limitations documented in `docs/P1_AUTH_DATABASE_PROGRESS.md`.
 - **Tests:** on Go 1.25.14 Windows/amd64, focused tests passed for `internal/database` and `internal/jobs`, plus `cmd/tongd`, `internal/api`, `internal/auth`, `internal/health`, and `internal/rbac`; `go vet` passed for these packages; `go build ./cmd/tongd` passed. Full `go test ./...` and race tests are blocked by Windows host/toolchain limitations recorded above. Python tests not run.
 - **Security/licence:** only the no-op job kind is accepted; no worker or host mutation. SQLite driver is pinned; transitive licence inventory and ADR-003/threat review remain open. No production identity or session path added.
-- **Next one step:** push the branch and open a draft PR stacked on #15; verify Linux Go race and Python schema checks before making any stronger test claim.
+- **Next one step:** verify Linux Go race and Python schema checks after the driver update, then review ADR-003 before any API wiring.
 
 ### 2026-10-26 — P0 documentation foundation
 - **Worker:** ChatGPT, repo documentation session.
@@ -169,3 +170,4 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Security and third-party licence impact:
 - Blockers / constraints:
 - Next ONE step for handoff:
+
