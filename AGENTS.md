@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-10-26):** P0 PLANNING in review; a P1 liveness-only Go prototype is in DRAFT PR #13, not merged. NO runnable hosting panel exists.
+**Current checkpoint (2026-10-26):** P0 review pending, P1 experimental code in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14), Go CI passed. Phase 1 is NOT complete. No runnable real-hosting panel exists.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action; also read docs/PHASE_INDEX.md and docs/REPORT_2026-10-26.md.
@@ -29,7 +29,7 @@
 - Original Tong Panel architecture proposed, with strong host-agent privilege separation.
 - Single-server classic hosting MVP planned before modern apps, full hosting and multi-server.
 - The user authorized work to start after blueprint drafting; small non-privileged P1 prototypes may be proposed in draft PRs. **Privileged server mutations, installer shipping and production claims remain blocked by architecture/security review.**
-- Draft PR #13 contains a basic Go localhost liveness handler and tests (Go CI checks passing), not merged; no deployable hosting panel, root agent, installer, or released binary yet. Never describe planned features as working.
+- Draft PR #14 contains experimental Go API, dev-only token auth/RBAC, JSON job journal, TOTP primitive, peer-checked non-root agent ping and dashboard UI, plus tests. Go Actions passed; NOT merged, NO production sessions/root actions/installer/releases. Read docs/PHASE1_REPORT_2026-10-26.md. Never describe planned features as working.
 
 ## Workstream boundaries
 - A: UX/UI, accessibility, tours, documentation.
@@ -79,7 +79,7 @@ Edit UPDATES.md CURRENT CHECKPOINT and append a journal entry; link exact commit
 
 ## Relevant current GitHub links
 - [Phases](docs/PHASE_INDEX.md), [project report](docs/REPORT_2026-10-26.md), [ADR register](docs/ADR_REGISTER.md), [threat model](docs/THREAT_MODEL.md), [test plan](docs/TEST_STRATEGY.md).
-- [P1 issue #5](https://github.com/parmtech/Tong-Panel/issues/5) and [draft PR #13](https://github.com/parmtech/Tong-Panel/pull/13) for unprivileged prototype.
+- [P1 work issues #5–#12](https://github.com/parmtech/Tong-Panel/issues/5) and [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14) for expanded dev prototype; original [draft PR #13](https://github.com/parmtech/Tong-Panel/pull/13) is its ancestor. Read [P1 report](docs/PHASE1_REPORT_2026-10-26.md) for blockers.
 
 ## Immediate next task
 P0 architecture decisions: review/record ADR-001 (original code/provenance), ADR-002 (control-plane tech), ADR-003 (metadata/queue), ADR-004 (sandbox model), ADR-005 (OS support), ADR-006 (mail/DNS), ADR-007 (secrets/privilege), ADR-008 (installer signing). Then create evidence-based P1 GitHub issues.
