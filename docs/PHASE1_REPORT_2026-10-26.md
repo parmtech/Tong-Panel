@@ -35,7 +35,7 @@ Environment: container Linux amd64, Go 1.23.2, Node 22.16.0 with system TypeScri
 - `go build ./...` — **PASS**.
 - `tsc -p web/tsconfig.json` and `tsc --noEmit -p web/tsconfig.json` — **PASS**.
 - HTTP smoke: `HEAD /` returned 200 and security headers; `GET /api/v1/version` returned 200 and experimental stage. 
-- GitHub PR #14 workflow [run 40260348235](https://github.com/parmtech/Tong-Panel/actions/runs/40260348235): check final result in GitHub; it was **in progress** at the initial report-writing checkpoint. Do not infer success until confirmed.
+- GitHub PR #14 workflow [run 40260348235](https://github.com/parmtech/Tong-Panel/actions/runs/40260348235): **COMPLETED SUCCESSFULLY** — Go checks passed on the feature branch. Full frontend CI, security review and VM installs are not covered by this workflow.
 
 These checks validate the small prototype only, **not** a real VPS install, authentication security audit or hosting capability.
 
