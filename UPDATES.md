@@ -6,9 +6,9 @@
 
 ## CURRENT CHECKPOINT — READ FIRST
 
-**Phase:** P0 — PLANNING (documentation foundation)  
+**Phase:** P0 architecture/security review pending; P1 core development IN PROGRESS (draft code).  
 **Phase state:** Seven phase plans, draft architecture ADR register, threat model, test strategy and report published; approval and deeper threat review still pending.  
-**Implementation state:** P1-01 local liveness-only Go code in feature branch and draft PR #13 (not merged). No functioning Tong Panel hosting app, installer or release has been built.  
+**Implementation state:** P1 expanded dev prototype on `feature/p1-core-foundation` in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14), including local API, developer bearer auth, tenant RBAC, local journal, TOTP primitive, non-root Unix socket agent POC, read-only doctor and interactive preview. **P1 NOT COMPLETE**, not merged/released. No hosting app or installer exists.  
 **Production/release state:** NOT RELEASED.  
 **Primary branch:** main (verify live branch HEAD before work).  
 **Owner:** ParmTech.
@@ -33,7 +33,7 @@
 - [x] 8 P1 implementation issues (#5–#12) created with deliverables/acceptance.
 - [x] Draft PR #13 contains loopback-only Go health API and tests; local Go 1.23.2 test/vet passed and GitHub Actions Go 1.27.3 gofmt/test-race/vet PASSED (branch only).
 
-### Pending / unverified
+- [x] P1 developer prototype branch and [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14) pushed, with successful Go workflow run [40260348235](https://github.com/parmtech/Tong-Panel/actions/runs/40260348235).\n- [x] Detailed [Phase 1 report](docs/PHASE1_REPORT_2026-10-26.md) written.\n\n### Pending / unverified
 - [ ] Architecture and licensing ADRs **reviewed and approved** (currently drafted only).
 - [ ] Explicit P1 MVP scope and initial supported Linux matrix locked.
 - [ ] Detailed adversarial threat model, signed-artifact/installer design reviewed.
@@ -43,7 +43,7 @@
 - [ ] External security audit and install/restore compatibility evidence.
 - [ ] Stable product release.
 
-**Next ONE action for a new agent:** Review/record decisions for [architecture issue #1](https://github.com/parmtech/Tong-Panel/issues/1); [draft PR #13](https://github.com/parmtech/Tong-Panel/pull/13) has passing Go CI but requires code/design review before merge. Coordinate threat review #2 and P1 scope #3. No production VPS changes.
+**Next ONE action for a new agent:** Read [Phase 1 report](docs/PHASE1_REPORT_2026-10-26.md), review [ADR issue #1](https://github.com/parmtech/Tong-Panel/issues/1) and threat model #2; [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14) has passed Go CI but lacks production auth/jobs/security/installer and requires review. No production VPS changes.
 
 ## GitHub work queue (OPEN — not assigned or completed)
 - [#1 P0 architecture ADRs and upstream licences](https://github.com/parmtech/Tong-Panel/issues/1)
@@ -60,6 +60,12 @@
 - [P1-06 Tenant model #10](https://github.com/parmtech/Tong-Panel/issues/10) — planned.
 - [P1-07 Installer preflight #11](https://github.com/parmtech/Tong-Panel/issues/11) — planned, no live-host changes.
 - [P1-08 CI/supply chain #12](https://github.com/parmtech/Tong-Panel/issues/12) — planned.
+
+## P1 Core Dev Report (2026-10-26)
+- Report: [docs/PHASE1_REPORT_2026-10-26.md](docs/PHASE1_REPORT_2026-10-26.md).
+- Source: [feature/p1-core-foundation](https://github.com/parmtech/Tong-Panel/tree/feature/p1-core-foundation), [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14).
+- Verified Go Actions [run 40260348235](https://github.com/parmtech/Tong-Panel/actions/runs/40260348235): **success**. Local `go test -race ./...`, `go vet ./...`, `go build ./...`, TypeScript tsc and HTTP smoke passed.
+- P1 acceptance is NOT passed: production password/sessions/MFA, SQL metadata/queue, root-agent review, signing, install VM tests and accessibility need engineering and review.
 
 ## Status definitions
 PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code exists. TESTED = test results recorded. VERIFIED = acceptance passed. RELEASED = signed, documented artifact available and validated.
@@ -92,6 +98,17 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - **Security:** no public-root API, no installer or live-server modifications; design controls are unreviewed.
 - **Blockers:** architecture ADRs need review, CI/PR approval, real distro support tests, security model acceptance.
 - **Next step:** handle architecture review #1 and human code review of draft PR #13; do not call hosting features implemented.
+
+### 2026-10-26 — Expanded P1 prototype and report
+- **Worker:** ChatGPT, scoped P1 implementation in disposable local environment.
+- **Phase/state:** P1 IN PROGRESS, not completed; P0 architecture/security review pending.
+- **Branch/PR:** `feature/p1-core-foundation` → [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14). Earlier [draft PR #13](https://github.com/parmtech/Tong-Panel/pull/13) is superseded by inclusion in new PR and must be coordinated before merge.
+- **Changes:** Go local API + tests, temporary token gate and RBAC, JSON journal and tests, TOTP primitive and tests, Unix-socket ping/peer-check agent and tests, tongctl doctor, responsive TypeScript UI with HTML/CSS/static assets, developer preview.
+- **Evidence:** [P1 report](docs/PHASE1_REPORT_2026-10-26.md) and [GitHub Go checks success](https://github.com/parmtech/Tong-Panel/actions/runs/40260348235).
+- **Tests:** local Go race/vet/build; TypeScript compiler; HTTP UI/API smoke. Remote GitHub Go CI PASSED. Not tested on clean VPS, no security penetration tests or full UI E2E.
+- **Security:** intentionally no root operations; never expose experimental dev bearer API publicly. No production credentials or installer.
+- **Blockers:** ADR/threat signoff, real production auth/MFA/session, DB/migrations and durable SQL queue, audited root agent, signer/installer and VM testing, full a11y review.
+- **Next step:** Review architecture #1/#2, then implement production identity/migrations in reviewed PR; keep P1 gate open.
 
 ## Agent session template (copy into new journal entry)
 ### YYYY-MM-DD HH:MM TZ — ID / workstream
