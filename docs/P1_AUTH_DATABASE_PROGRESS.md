@@ -43,6 +43,7 @@ Before any production login route, the design must specify a vetted Argon2id pas
 ### Validation on this branch
 
 - Go 1.25.14 Windows/amd64: focused package tests for database/jobs, plus tests for API/auth/health/daemon/RBAC, passed; `go vet` for those packages passed; `go build ./cmd/tongd` passed.
+- GitHub Actions on driver update commit `cc7608349e0f6f56ed3c85eec37d7869f0456b8c`: [Go checks #40423199616](https://github.com/parmtech/Tong-Panel/actions/runs/40423199616) passed, including gofmt, full `go test -race ./...`, and `go vet ./...`; [SQLite schema checks #40423199639](https://github.com/parmtech/Tong-Panel/actions/runs/40423199639) passed.
 - `go test ./...` could not build the existing Linux-only `internal/preflight` package on Windows (`syscall.Statfs_t`/`syscall.Statfs` unavailable).
 - `go test -race ./...` could not run on the Windows toolchain because CGO is unavailable. Linux CI must provide the full race result.
 - Python schema tests were not run locally because Python is unavailable. The updated schema workflow is expected to run in GitHub Actions after push; no result is claimed here.
