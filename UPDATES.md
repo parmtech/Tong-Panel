@@ -37,7 +37,13 @@
 - [ ] External security audit and install/restore compatibility evidence.
 - [ ] Stable product release.
 
-**Next ONE action for a new agent:** Review documentation for consistency, then prepare ADR-001 through ADR-008 and P1 work items. Respect the explicit blueprint-before-code requirement.
+**Next ONE action for a new agent:** Start with [P0-01 architecture ADR review](https://github.com/parmtech/Tong-Panel/issues/1). Coordinate [P0-02 threat model](https://github.com/parmtech/Tong-Panel/issues/2) and [P0-04 UX flows](https://github.com/parmtech/Tong-Panel/issues/4), then [P0-03 P1 scope](https://github.com/parmtech/Tong-Panel/issues/3). Respect the blueprint-before-code requirement.
+
+## GitHub work queue (OPEN — not assigned or completed)
+- [#1 P0 architecture ADRs and upstream licences](https://github.com/parmtech/Tong-Panel/issues/1)
+- [#2 P0 threat model and security validation](https://github.com/parmtech/Tong-Panel/issues/2)
+- [#3 P0 finalize P1 MVP/distro scope](https://github.com/parmtech/Tong-Panel/issues/3)
+- [#4 P0 UX flows and file-explorer design](https://github.com/parmtech/Tong-Panel/issues/4)
 
 ## Status definitions
 PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code exists. TESTED = test results recorded. VERIFIED = acceptance passed. RELEASED = signed, documented artifact available and validated.
@@ -54,6 +60,12 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - **Known limitations:** design is not implementation, proposed technology stack is not approved, up-to-date licence review needed before source reuse, unsupported distros not guaranteed.
 - **Security/third party:** original AGPL code preferred; upstream references are research until independent licence/security review.
 - **Next handoff:** read AGENTS.md, draft ADRs, create scoped P1 GitHub issues, seek maintainers' design review before coding.
+
+### 2026-10-26 — P0 backlog handoff update
+- **State:** planning issues recorded, not executed or assigned.
+- **Created GitHub Issues:** #1 architecture ADRs, #2 threat model, #3 P1 scope, #4 UX flows.
+- **Tests:** no implementation tests; issue/workflow-only updates.
+- **Handoff:** start issue #1; check current branch/PRs and AGENTS.md before working.
 
 ## Agent session template (copy into new journal entry)
 ### YYYY-MM-DD HH:MM TZ — ID / workstream
