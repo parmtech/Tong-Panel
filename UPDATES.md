@@ -1,8 +1,17 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-10-26  
+**Updated:** 2026-10-26 (Sydney)  
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## LATEST VERIFIED WORK — 2026-10-26, Phase 1 (P1-07 partial)
+- **PR:** [Draft #14 — P1 Core Foundation](https://github.com/parmtech/Tong-Panel/pull/14), branch `feature/p1-core-foundation` (not merged).
+- **Changed files:** `internal/preflight/doctor.go`, `internal/preflight/doctor_test.go`, new `docs/READ_ONLY_DOCTOR.md` on PR branch.
+- **Working functionality:** `tongctl doctor` now reads candidate OS, available RAM, root filesystem free space, and TCP LISTEN 80/443 from /proc, returning explicit pass/warn/block JSON. Does not modify server or bind ports.
+- **Local tests:** `go test -race ./...`, `go vet ./...`, `go build ./...` passed; container Debian 13 report correctly blocked unsupported initial distro candidate.
+- **GitHub Actions verified:** [Go checks run #40262321339](https://github.com/parmtech/Tong-Panel/actions/runs/40262321339) **success**, gofmt + go test -race + go vet.
+- **Not done:** production install, VM distro certification, kernel/cloud firewall verification, installer rollback, host agent security audit, secure auth, SQL data store and work queues. **Phase 1 remains IN PROGRESS.**
+- **Next one action:** implement reviewed production auth/session architecture (#6) or continue safe installer diagnostics (#11), then update this file with tests and commits. Read AGENTS.md and open PR #14 before starting.
 
 ## CURRENT CHECKPOINT — READ FIRST
 
