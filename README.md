@@ -17,9 +17,19 @@ A capable but easy-to-use hosting dashboard for self-managed supported Linux VPS
 
 This is the *target blueprint*, not a list of completed functions.
 
+## Development status and phase plan
+The seven-phase execution plan is in [PHASE_INDEX](docs/PHASE_INDEX.md) with individual P0–P6 specifications and [kickoff report (2026-10-26)](docs/REPORT_2026-10-26.md). Eight architecture decisions are documented as proposals in [ADR_REGISTER](docs/ADR_REGISTER.md), alongside [THREAT_MODEL](docs/THREAT_MODEL.md) and [TEST_STRATEGY](docs/TEST_STRATEGY.md).
+
+**Implementation has started in an isolated DRAFT branch only:** [PR #13: loopback-only Go liveness prototype](https://github.com/parmtech/Tong-Panel/pull/13). This prototype is not a hosting panel or installer; review and CI are pending.
+
 ## Documentation — start here
 | File | What it contains |
 |---|---|
+| [Detailed phase plan](docs/PHASE_INDEX.md) | Execution sequence, dependencies and gates for P0–P6 |
+| [Kickoff report](docs/REPORT_2026-10-26.md) | Actual GitHub actions, evidence, blockers and next action |
+| [Architecture decisions](docs/ADR_REGISTER.md) | Proposed ADR-001 to ADR-008, awaiting review |
+| [Threat model](docs/THREAT_MODEL.md) | Attack surfaces, mitigations and tests mapped to phases |
+| [Test strategy](docs/TEST_STRATEGY.md) | CI, OS matrix and release evidence plan |
 | [Master Blueprint](docs/BLUEPRINT.md) | Product vision, end-to-end feature definition, user journeys and differentiators |
 | [Feature Matrix](docs/FEATURE_MATRIX.md) | Detailed functional modules, priorities and acceptance criteria |
 | [Architecture](docs/ARCHITECTURE.md) | Proposed control plane, privileged agent, database/jobs, security boundaries |
@@ -33,7 +43,7 @@ This is the *target blueprint*, not a list of completed functions.
 | [Contributing](CONTRIBUTING.md) | Pull request, testing and review expectations |
 
 ## Current milestone
-**P0 Planning:** Initial specification and source research recorded. **Next:** review proposed architecture/licensing decisions (ADRs), threat model and P1 backlog before implementation. See [UPDATES.md](UPDATES.md) for the authoritative checkpoint. There are currently no tested production installers, binaries or release artifacts.
+**P0 Planning:** Initial specification, source research and phased execution docs recorded. **Next:** review ADRs and threat model, and verify experimental draft PR #13 before merging any code. See [UPDATES.md](UPDATES.md) for the authoritative checkpoint. There are currently no tested production installers, binaries or release artifacts.
 
 ## Installation
 **Not available yet.** Please do not run unofficial install scripts claiming to be Tong Panel. A signed, versioned one-command installer for a tested OS matrix is a future requirement, not a current feature. Existing third-party shared hosting does not permit replacement of the provider's cPanel without root-level server administration.
