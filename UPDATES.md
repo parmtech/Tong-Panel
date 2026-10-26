@@ -31,19 +31,19 @@
 - [x] docs/ADR_REGISTER.md, docs/THREAT_MODEL.md, docs/TEST_STRATEGY.md: draft decisions, threats and QA framework.
 - [x] docs/REPORT_2026-10-26.md: actual phase kickoff report.
 - [x] 8 P1 implementation issues (#5–#12) created with deliverables/acceptance.
-- [x] Draft PR #13 contains loopback-only Go health API and tests; local Go 1.23.2 test/vet passed (branch only).
+- [x] Draft PR #13 contains loopback-only Go health API and tests; local Go 1.23.2 test/vet passed and GitHub Actions Go 1.27.3 gofmt/test-race/vet PASSED (branch only).
 
 ### Pending / unverified
 - [ ] Architecture and licensing ADRs **reviewed and approved** (currently drafted only).
 - [ ] Explicit P1 MVP scope and initial supported Linux matrix locked.
 - [ ] Detailed adversarial threat model, signed-artifact/installer design reviewed.
 - [x] P1 issues created (#5–#12).
-- [ ] P1 issues assigned and ownership/reviews confirmed; draft PR #13 CI verified/approved/merged.
+- [ ] P1 issues assigned and ownership/reviews confirmed; draft PR #13 approved/merged; CI checks now VERIFIED passing, but PR remains draft and unmerged.
 - [ ] Full implementation backend/frontend/agent, installer, CI run evidence, auth/security tests, app recipes.
 - [ ] External security audit and install/restore compatibility evidence.
 - [ ] Stable product release.
 
-**Next ONE action for a new agent:** Review/record decisions for [architecture issue #1](https://github.com/parmtech/Tong-Panel/issues/1); inspect [draft PR #13](https://github.com/parmtech/Tong-Panel/pull/13) and verify CI before merge. Coordinate threat review #2 and P1 scope #3. No production VPS changes.
+**Next ONE action for a new agent:** Review/record decisions for [architecture issue #1](https://github.com/parmtech/Tong-Panel/issues/1); [draft PR #13](https://github.com/parmtech/Tong-Panel/pull/13) has passing Go CI but requires code/design review before merge. Coordinate threat review #2 and P1 scope #3. No production VPS changes.
 
 ## GitHub work queue (OPEN — not assigned or completed)
 - [#1 P0 architecture ADRs and upstream licences](https://github.com/parmtech/Tong-Panel/issues/1)
@@ -52,7 +52,7 @@
 - [#4 P0 UX flows and file-explorer design](https://github.com/parmtech/Tong-Panel/issues/4)
 
 ## Added implementation work queue
-- [P1-01 API liveness #5](https://github.com/parmtech/Tong-Panel/issues/5) — prototype PR #13 draft, local tests only.
+- [P1-01 API liveness #5](https://github.com/parmtech/Tong-Panel/issues/5) — prototype PR #13 draft; local tests and GitHub Actions Go checks pass; review pending.
 - [P1-02 Auth/MFA #6](https://github.com/parmtech/Tong-Panel/issues/6) — planned.
 - [P1-03 Durable jobs #7](https://github.com/parmtech/Tong-Panel/issues/7) — planned.
 - [P1-04 Host agent #8](https://github.com/parmtech/Tong-Panel/issues/8) — planned, security gated.
@@ -88,10 +88,10 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - **Phase/state:** P0 documents prepared but security/ADR signoff pending; P1-01 prototype committed only to draft branch.
 - **Repo:** parmtech/Tong-Panel; default main; feature branch feature/p1-01-loopback-health; [Draft PR #13](https://github.com/parmtech/Tong-Panel/pull/13), related issue #5.
 - **Files:** docs/phases/P0..P6, docs/PHASE_INDEX.md, ADR_REGISTER.md, THREAT_MODEL.md, TEST_STRATEGY.md, REPORT_2026-10-26.md; branch: go.mod, cmd/tongd/main.go, internal/health/handler.go and handler_test.go, .github/workflows/go-checks.yml.
-- **Tests:** local Go 1.23.2 `go test ./...` passed; `go vet ./...` passed; locally formatted with gofmt. Remote GitHub Actions Go 1.27.3 workflow status NOT verified. Docs-only files received GitHub commit SHAs and references.
+- **Tests:** local Go 1.23.2 `go test ./...` passed; `go vet ./...` passed; locally formatted with gofmt. GitHub Actions Go checks run [#40256258155](https://github.com/parmtech/Tong-Panel/actions/runs/40256258155) completed successfully: setup, gofmt, go test -race, go vet all green. Docs-only files received GitHub commit SHAs and references.
 - **Security:** no public-root API, no installer or live-server modifications; design controls are unreviewed.
 - **Blockers:** architecture ADRs need review, CI/PR approval, real distro support tests, security model acceptance.
-- **Next step:** handle architecture review #1, inspect draft PR #13 checks, update this log with outcome; do not call hosting features implemented.
+- **Next step:** handle architecture review #1 and human code review of draft PR #13; do not call hosting features implemented.
 
 ## Agent session template (copy into new journal entry)
 ### YYYY-MM-DD HH:MM TZ — ID / workstream
