@@ -14,17 +14,17 @@
 - **Next one action:** implement reviewed production auth/session architecture (#6) or continue safe installer diagnostics (#11), then update this file with tests and commits. Read AGENTS.md and open PR #14 before starting.
 
 ## LATEST SESSION — 2026-10-27, P1 SQLite queue slice
-- **Branch/PR:** `feature/p1-sqlite-transactional-queue`, draft [PR #16](https://github.com/parmtech/Tong-Panel/pull/16), stacked on draft PR #15 (`feature/p1-auth-sessions-sqlite`), then #14. SQLite driver update commit `cc7608349e0f6f56ed3c85eec37d7869f0456b8c`.
+- **Branch/PR:** `feature/p1-sqlite-transactional-queue`, draft [PR #16](https://github.com/parmtech/Tong-Panel/pull/16), stacked on draft PR #15 (`feature/p1-auth-sessions-sqlite`), then #14. SQLite/session implementation commit `6795148c39404f653f57d8936670f2d29595345f`.
 - **Scope:** issue #7, a Go SQLite migration runner and non-executing transactional queue prototype; no changes to the live VPS.
 - **Code:** schema moved to `internal/database/migrations/0001_initial.sql` and embedded in a Go opener; added a pinned cgo-free SQLite driver, transactional job store, and independent SQLite-backed session registry that stores only session/CSRF hashes and rechecks live membership. Neither is wired into the API/daemon.
 - **Tests actually run:** Go 1.25.14 Windows/amd64 focused tests passed for `internal/database`, `internal/jobs`, `internal/api`, `internal/auth`, `internal/health`, `cmd/tongd` and `internal/rbac`; `go vet` passed for those packages; `go build ./cmd/tongd` passed. This includes the new session persistence, expiry, revocation, tenant-membership and disabled-identity tests.
 - **Remote checks on driver update commit:** GitHub Actions [Go run #40423199616](https://github.com/parmtech/Tong-Panel/actions/runs/40423199616) passed (gofmt, `go test -race ./...`, `go vet ./...`); [SQLite schema run #40423199639](https://github.com/parmtech/Tong-Panel/actions/runs/40423199639) passed.
-- **Not passed/not run locally:** full `go test ./...` is blocked on existing Linux-only `internal/preflight` syscall usage on Windows; `go test -race ./...` cannot run because the Windows environment lacks CGO; Python schema tests were not run because Python is unavailable. Linux race checks passed before this session-store extension; new auth code is pending another remote CI run.
+- **Not passed/not run locally:** full `go test ./...` is blocked on existing Linux-only `internal/preflight` syscall usage on Windows; `go test -race ./...` cannot run because the Windows environment lacks CGO; Python schema tests were not run because Python is unavailable. GitHub Actions on the session-store commit passed: Go checks [#40423834545](https://github.com/parmtech/Tong-Panel/actions/runs/40423834545) (`gofmt`, full `go test -race ./...`, `go vet ./...`) and SQLite schema checks [#40423834542](https://github.com/parmtech/Tong-Panel/actions/runs/40423834542).
 - **Auth limitations:** the SQLite session store is not production login and is not wired to the API. No Argon2id verifier, TOTP enrollment/replay protection, CSRF/Origin middleware, rate limiting or browser session route exists. The original in-memory manager remains in the codebase.
 - **Queue limitations:** only `validation.noop` is accepted; no worker, lease/retry loop, audit event integration, locking, recovery or host operation exists. The SQLite store is not wired into `tongd` pending actor identity and ADR/threat review.
 - **Dependency/security:** `modernc.org/sqlite` v1.38.2 is pinned to retain Go 1.23 compatibility; upstream package metadata identifies BSD-3-Clause and SQLite public domain. Full transitive licence inventory and ADR-003 review remain open.
 - **Phase:** P1 remains IN PROGRESS. No Phase 1 acceptance or production-readiness claim.
-- **Next one action:** publish and verify Linux race checks for the SQLite session extension; then request maintainer review of ADR-003, auth design and the transitive licence inventory before API wiring or merge.
+- **Next one action:** request maintainer review of ADR-003, auth/session design, dependency licences and the #14/#15 parent chain before any API wiring or merge.
 
 ### 2026-10-26 — P1 agent socket hardening (additional update)
 - **Branch:** `feature/p1-core-foundation`, unmerged [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14).
@@ -115,11 +115,11 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 ### 2026-10-27 — P1 SQLite queue slice
 - **Worker:** Codex, workstream C (storage/jobs) with read-only parallel review.
 - **Task:** issue #7, incremental Go SQLite migration and transactional queue prototype.
-- **Branch / commit / PR:** `feature/p1-sqlite-transactional-queue`, draft PR #16 based on PR #15; driver update commit `cc7608349e0f6f56ed3c85eec37d7869f0456b8c`.
+- **Branch / commit / PR:** `feature/p1-sqlite-transactional-queue`, draft PR #16 based on PR #15; SQLite/session implementation commit `6795148c39404f653f57d8936670f2d29595345f`.
 - **Changes:** one canonical embedded SQLite migration; database opener with per-connection foreign-key enforcement and single-writer settings; transactional job insert/transitions; tenant-scoped reads and idempotency; persistent hashed session/CSRF tokens with expiry, revocation and live membership revalidation; Windows-specific JSON journal test portability.
 - **Tests:** on Go 1.25.14 Windows/amd64, focused tests passed for `internal/database` and `internal/jobs`, plus `cmd/tongd`, `internal/api`, `internal/auth`, `internal/health`, and `internal/rbac`; `go vet` passed for these packages; `go build ./cmd/tongd` passed. Full `go test ./...` and local race tests are blocked by Windows host/toolchain limitations recorded above. Python tests not run.
 - **Security/licence:** queue accepts only no-op work and has no worker; session registry stores hashes only and is not wired to login/API. No host mutation. SQLite driver is pinned; transitive licence inventory and ADR-003/threat review remain open.
-- **Next one step:** publish the session-store extension, verify Linux race CI, then review ADR-003, auth/session design and the full transitive dependency licence set before API wiring.
+- **Next one step:** request ADR-003 and auth/session design review; keep the SQLite stores out of production API wiring until approval.
 
 ### 2026-10-26 — P0 documentation foundation
 - **Worker:** ChatGPT, repo documentation session.

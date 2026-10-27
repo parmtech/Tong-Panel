@@ -46,9 +46,9 @@ Before any production login route, the design must specify a vetted Argon2id pas
 
 - Go 1.25.14 Windows/amd64: focused package tests for database/jobs, plus tests for API/auth/health/daemon/RBAC, passed; `go vet` for those packages passed; `go build ./cmd/tongd` passed.
 - GitHub Actions on driver update commit `cc7608349e0f6f56ed3c85eec37d7869f0456b8c`: [Go checks #40423199616](https://github.com/parmtech/Tong-Panel/actions/runs/40423199616) passed, including gofmt, full `go test -race ./...`, and `go vet ./...`; [SQLite schema checks #40423199639](https://github.com/parmtech/Tong-Panel/actions/runs/40423199639) passed.
-- The session-store code and tests added after that CI run have passed their focused local Go tests; they still require a new Linux Go race CI run.
+- GitHub Actions on session-store commit `6795148c39404f653f57d8936670f2d29595345f`: [Go checks #40423834545](https://github.com/parmtech/Tong-Panel/actions/runs/40423834545) passed, including gofmt, full `go test -race ./...`, and `go vet ./...`; [SQLite schema checks #40423834542](https://github.com/parmtech/Tong-Panel/actions/runs/40423834542) passed.
 - `go test ./...` could not build the existing Linux-only `internal/preflight` package on Windows (`syscall.Statfs_t`/`syscall.Statfs` unavailable).
-- `go test -race ./...` could not run on the Windows toolchain because CGO is unavailable. Linux CI must provide the full race result.
-- Python schema tests were not run locally because Python is unavailable. The updated schema workflow is expected to run in GitHub Actions after push; no result is claimed here.
+- `go test -race ./...` could not run on the Windows toolchain because CGO is unavailable; the Linux Actions race run above passed.
+- Python schema tests were not run locally because Python is unavailable; the updated schema workflow passed in GitHub Actions above.
 - No API login wiring, Argon2id, MFA, lease/retry worker, audit trail for jobs, privileged operations, installer or VPS change was added.
 
