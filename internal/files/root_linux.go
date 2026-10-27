@@ -32,6 +32,7 @@ var (
 type Root struct {
 	mu sync.RWMutex
 	fd int
+	open bool
 }
 
 // OpenRoot opens a directory without following a symlink at its final path
@@ -44,7 +45,7 @@ func OpenRoot(name string) (*Root, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Root{fd: fd}, nil
+	return &Root{fd: fd, open: true}, nil
 }
 
 // Close releases the pinned directory descriptor. Repeated calls are safe.
@@ -54,11 +55,11 @@ func (r *Root) Close() error {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.fd < 0 {
+	if !r.open {
 		return nil
 	}
 	fd := r.fd
-	r.fd = -1
+	r.open = false
 	return unix.Close(fd)
 }
 
@@ -66,7 +67,10 @@ func (r *Root) Close() error {
 // flags prevent traversal outside the root, symlink traversal, and procfs
 // magic-link traversal. Kernels without openat2 support fail closed.
 func (r *Root) ReadFile(relative string, maxBytes int64) ([]byte, error) {
-	if r == nil || !validRelativePath(relative) {
+	if r == nil {
+		return nil, ErrClosed
+	}
+	if !validRelativePath(relative) {
 		return nil, ErrInvalidPath
 	}
 	if maxBytes < 0 || maxBytes > MaxReadBytes {
@@ -74,12 +78,12 @@ func (r *Root) ReadFile(relative string, maxBytes int64) ([]byte, error) {
 	}
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	if r.fd < 0 {
+	if !r.open {
 		return nil, ErrClosed
 	}
 	fd, err := unix.Openat2(r.fd, relative, &unix.OpenHow{
 		Flags:   uint64(unix.O_RDONLY | unix.O_CLOEXEC | unix.O_NONBLOCK | unix.O_NOCTTY),
-		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
 	})
 	if err != nil {
 		return nil, err
