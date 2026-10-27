@@ -441,3 +441,44 @@ func TestListDirSymlinkSwapNeverListsOutsideEntries(t *testing.T) {
 	close(stop)
 	wg.Wait()
 }
+
+func TestTenantRootsKeepDirectoryListingsWithinAssignedRoot(t *testing.T) {
+	rootAPath := t.TempDir()
+	rootBPath := t.TempDir()
+	if err := os.WriteFile(filepath.Join(rootAPath, "tenant-a.txt"), []byte("a"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rootBPath, "tenant-b-secret.txt"), []byte("b"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	rootA, err := OpenRoot(rootAPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootA.Close()
+	rootB, err := OpenRoot(rootBPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootB.Close()
+	roots, err := NewTenantRoots(map[string]*Root{"tenant-a": rootA, "tenant-b": rootB})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries, err := roots.ListDirForTenant("tenant-a", "", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name != "tenant-a.txt" {
+		t.Fatalf("tenant A listing = %#v", entries)
+	}
+	for _, tenant := range []string{"", "unknown-tenant"} {
+		if entries, err := roots.ListDirForTenant(tenant, "", 10); !errors.Is(err, ErrTenantDenied) {
+			t.Fatalf("tenant %q unexpectedly listed %#v, err=%v", tenant, entries, err)
+		}
+	}
+	if _, err := roots.ListDirForTenant("tenant-a", "../tenant-b", 10); !errors.Is(err, ErrInvalidPath) {
+		t.Fatalf("tenant traversal listing error = %v", err)
+	}
+}
+
