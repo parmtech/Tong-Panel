@@ -32,7 +32,9 @@ func TestMFAEnrollmentEncryptedPendingConfirmationAndReplay(t *testing.T) {
 	}
 	var envelope, status string
 	if err := db.QueryRow("SELECT secret_envelope,status FROM mfa_totp_enrollments WHERE identity_id='user-a'").
-		Scan(&envelope, &status); err != nil { t.Fatal(err) }
+		Scan(&envelope, &status); err != nil {
+		t.Fatal(err)
+	}
 	if status != "pending" || !strings.HasPrefix(envelope, "v1:key_2026:") || bytes.Contains([]byte(envelope), secret) {
 		t.Fatal("plaintext MFA material leaked to SQL or pending state invalid")
 	}
