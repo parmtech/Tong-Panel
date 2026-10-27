@@ -1,0 +1,36 @@
+name: P1 developer smoke (non-destructive)
+on:
+  push:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'scripts/smoke_p1.py'
+      - '.github/workflows/p1-smoke.yml'
+  pull_request:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'scripts/smoke_p1.py'
+      - '.github/workflows/p1-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  daemon-dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.3'
+          cache: false
+      - name: Compile real daemon
+        run: go build -trimpath -o "$RUNNER_TEMP/tongd" ./cmd/tongd
+      - name: Safe localhost API and SQLite process dry run
+        run: python3 scripts/smoke_p1.py "$RUNNER_TEMP/tongd"
+      - name: Read-only doctor smoke on CI runner
+        run: |
+          go run ./cmd/tongctl doctor > "$RUNNER_TEMP/tong-doctor.json"
+          python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/tong-doctor.json")); assert len(d["checks"])==4; assert any("certified" in x.lower() for x in d["Warnings"]); print("doctor read-only JSON validated; distro is NOT certified")'
