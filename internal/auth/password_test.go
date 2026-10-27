@@ -88,6 +88,8 @@ func TestPasswordPHCRejectsMalformedAndUnboundedParameters(t *testing.T) {
 		"$argon2id$v=19$m=65536,t=3,p=4,x=1$" + validSalt + "$" + validHash,
 		"$argon2id$v=19$m=65536,t=3,p=4$short$" + validHash,
 		"$argon2id$v=19$m=65536,t=3,p=4$" + validSalt + "$short",
+		"$argon2id$v=19$m=65536,t=3,p=4$" + validSalt[:8] + "\n" + validSalt[8:] + "$" + validHash,
+		"$argon2id$v=19$m=65536,t=3,p=4$" + validSalt + "$" + validHash[:8] + "\r\n" + validHash[8:],
 	} {
 		if VerifyPassword([]byte("irrelevant"), encoded) {
 			t.Fatalf("accepted malformed PHC string %q", encoded)
@@ -134,3 +136,4 @@ func FuzzParseArgon2PHC(f *testing.F) {
 		_, _ = parseArgon2PHC(encoded)
 	})
 }
+
