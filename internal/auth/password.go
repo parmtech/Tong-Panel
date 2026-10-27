@@ -134,4 +134,3 @@ func parseArgon2PHC(encoded string) (argon2Params, bool) {
 	}
 	return argon2Params{memory: uint32(memory), time: uint32(iterations), threads: uint8(parallelism), salt: salt, hash: hash}, true
 }
-
