@@ -107,5 +107,32 @@ class SchemaTests(unittest.TestCase):
 
 
 
+    def test_mfa_enrollment_never_has_plaintext_and_validates_state(self):
+        sql = (
+            "INSERT INTO mfa_totp_enrollments(identity_id,secret_envelope,status,pending_expires_at) "
+            "VALUES(?,?,?,?)"
+        )
+        expiry = "2026-10-29T00:00:00Z"
+        self.con.execute(sql, ("u1", "v1:master-01:encrypted-payload-01234567890123456789", "pending", expiry))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(sql, ("u2", "plaintext", "pending", expiry))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(sql, ("u2", "v1:master-01:encrypted-payload-01234567890123456789", "active", expiry))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(sql, ("nonexistent", "v1:master-01:encrypted-payload-01234567890123456789", "pending", expiry))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(
+                "UPDATE mfa_totp_enrollments SET status='active' WHERE identity_id='u1'"
+            )
+        self.con.execute(
+            "UPDATE mfa_totp_enrollments SET status='active',activated_at='2026-10-28T00:00:00Z' "
+            "WHERE identity_id='u1'"
+        )
+        self.assertEqual(
+            self.con.execute("SELECT status FROM mfa_totp_enrollments WHERE identity_id='u1'").fetchone(),
+            ("active",)
+        )
+
+
 if __name__ == '__main__':
     unittest.main()
