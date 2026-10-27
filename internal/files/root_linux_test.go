@@ -109,6 +109,13 @@ func TestReadFileSymlinkSwapNeverReadsOutside(t *testing.T) {
 }
 
 func TestOpenRootRefusesFinalSymlinkAndCloseIsSafe(t *testing.T) {
+	var zero Root
+	if err := zero.Close(); err != nil {
+		t.Fatalf("closing zero value failed: %v", err)
+	}
+	if _, err := zero.ReadFile("file", 1); !errors.Is(err, ErrClosed) {
+		t.Fatalf("zero-value root read error = %v", err)
+	}
 	dir := t.TempDir()
 	link := filepath.Join(t.TempDir(), "root-link")
 	if err := os.Symlink(dir, link); err != nil {
