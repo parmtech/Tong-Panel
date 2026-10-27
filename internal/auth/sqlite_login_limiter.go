@@ -16,9 +16,9 @@ import (
 // peer IP (never an arbitrary X-Forwarded-For header supplied by a browser).
 // Keys are HMACed with a separately provisioned, stable 32-byte secret.
 type SQLiteLoginLimiter struct {
-	db     *sql.DB
-	key    [32]byte
-	now    func() time.Time
+	db  *sql.DB
+	key [32]byte
+	now func() time.Time
 }
 
 const loginWindow = 15 * time.Minute
@@ -121,7 +121,7 @@ func (l *SQLiteLoginLimiter) Admit(ctx context.Context, tenant, username, truste
 	}
 	type current struct {
 		attempts int
-		start int64
+		start    int64
 	}
 	state := []current{{start: now}, {start: now}}
 	for i, key := range keys {
