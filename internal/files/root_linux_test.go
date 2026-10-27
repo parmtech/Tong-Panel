@@ -517,3 +517,131 @@ func TestTenantRootsScopeCreateOnlyWrites(t *testing.T) {
 		t.Fatalf("tenant traversal write error = %v", err)
 	}
 }
+
+func TestRemoveFileUnlinksEntriesWithoutFollowingSymlinks(t *testing.T) {
+	r, root := newTestRoot(t)
+	if err := os.WriteFile(filepath.Join(root, "remove.txt"), []byte("remove"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RemoveFile("remove.txt"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "remove.txt")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("removed file still exists: %v", err)
+	}
+
+	outside := t.TempDir()
+	outsideFile := filepath.Join(outside, "secret.txt")
+	if err := os.WriteFile(outsideFile, []byte("outside secret"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outsideFile, filepath.Join(root, "link")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RemoveFile("link"); err != nil {
+		t.Fatal(err)
+	}
+	if data, err := os.ReadFile(outsideFile); err != nil || string(data) != "outside secret" {
+		t.Fatalf("outside target changed to %q, %v", data, err)
+	}
+	if err := os.Mkdir(filepath.Join(root, "directory"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RemoveFile("directory"); !errors.Is(err, ErrNotRegular) {
+		t.Fatalf("directory removal error = %v", err)
+	}
+	if err := unix.Mkfifo(filepath.Join(root, "pipe"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RemoveFile("pipe"); !errors.Is(err, ErrNotRegular) {
+		t.Fatalf("FIFO removal error = %v", err)
+	}
+	if err := r.RemoveFile("../escape"); !errors.Is(err, ErrInvalidPath) {
+		t.Fatalf("traversal removal error = %v", err)
+	}
+}
+
+func TestRemoveFileSymlinkSwapNeverChangesOutsideTarget(t *testing.T) {
+	r, root := newTestRoot(t)
+	outside := t.TempDir()
+	outsideFile := filepath.Join(outside, "secret.txt")
+	if err := os.WriteFile(outsideFile, []byte("outside secret"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, "changing-link")
+	stop := make(chan struct{})
+	ready := make(chan struct{}, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			_ = os.Remove(target)
+			if err := os.Symlink(outsideFile, target); err == nil {
+				select {
+				case ready <- struct{}{}:
+				default:
+				}
+			}
+		}
+	}()
+	<-ready
+	for i := 0; i < 500; i++ {
+		err := r.RemoveFile("changing-link")
+		if err != nil && !errors.Is(err, unix.ENOENT) {
+			close(stop)
+			wg.Wait()
+			t.Fatalf("remove during symlink swap returned %v", err)
+		}
+	}
+	close(stop)
+	wg.Wait()
+	if data, err := os.ReadFile(outsideFile); err != nil || string(data) != "outside secret" {
+		t.Fatalf("outside target changed to %q, %v", data, err)
+	}
+}
+
+func TestTenantRootsScopeFileRemoval(t *testing.T) {
+	rootAPath := t.TempDir()
+	rootBPath := t.TempDir()
+	if err := os.WriteFile(filepath.Join(rootAPath, "a.txt"), []byte("a"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rootBPath, "b.txt"), []byte("b"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	rootA, err := OpenRoot(rootAPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootA.Close()
+	rootB, err := OpenRoot(rootBPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootB.Close()
+	roots, err := NewTenantRoots(map[string]*Root{"tenant-a": rootA, "tenant-b": rootB})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := roots.RemoveFileForTenant("tenant-a", "a.txt"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(filepath.Join(rootAPath, "a.txt")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("tenant A file remains: %v", err)
+	}
+	if data, err := os.ReadFile(filepath.Join(rootBPath, "b.txt")); err != nil || string(data) != "b" {
+		t.Fatalf("tenant B file changed to %q, %v", data, err)
+	}
+	if err := roots.RemoveFileForTenant("unknown-tenant", "b.txt"); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("unknown tenant removal error = %v", err)
+	}
+	if err := roots.RemoveFileForTenant("tenant-a", "../tenant-b/b.txt"); !errors.Is(err, ErrInvalidPath) {
+		t.Fatalf("tenant traversal removal error = %v", err)
+	}
+}
