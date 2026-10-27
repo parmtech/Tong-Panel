@@ -16,16 +16,16 @@
 ## CURRENT P2 SLICE — isolated safe file-read primitive
 - **Branch:** `feature/p2-safe-tenant-file-read`, stacked on draft PR #34. PR #34's cookie-origin change remains a draft; its latest exact-head Go/race/vet, daemon smoke, and archive workflows passed (see prior entry).
 - **Scope:** Linux-only `internal/files.Root` uses a pinned directory descriptor and `openat2` resolution constraints for a bounded, read-only file access proof. It rejects traversal and all symlinks; it is not wired to HTTP or privileged operations and is not tenant authorization.
-- **Validation:** code and adversarial/race tests are authored; GitHub Actions verification is pending. Local Go executable is unavailable, though the pinned `golang.org/x/sys v0.35.0` module source is cached and confirms `Openat2` API availability.
+- **Validation:** code head `15dd7c412bbdfe34fa884d935c49cadf950750b7` passed Go checks [#40601259497](https://github.com/parmtech/Tong-Panel/actions/runs/40601259497) (gofmt, full `go test -race ./...`, vet), daemon smoke [#40601259446](https://github.com/parmtech/Tong-Panel/actions/runs/40601259446), and unsigned archive lab [#40601259524](https://github.com/parmtech/Tong-Panel/actions/runs/40601259524). Local Go executable is unavailable.
 - **P2 status:** PLANNED/IN PROGRESS only. No UI/API, file writes/uploads, ACL/quotas, two-tenant E2E, site/domain/database/SSL lifecycle, installer, or restore drill exists. P1 approvals and host-agent/installer prerequisites remain open.
-- **Next action:** run exact-head Linux Go CI, repair any failures, then choose the next narrowly scoped P2 acceptance slice without enabling host mutation.
+- **Next action:** update this report with exact-head workflow results after read-back, then continue with P2 Files API authorization contracts only after the P1 dependency boundary is reviewed.
 
 ### 2026-10-28 — P2 safe file-read foundation
-- **Branch/PR:** `feature/p2-safe-tenant-file-read`, intended draft PR stacked on #34.
+- **Branch/PR:** `feature/p2-safe-tenant-file-read`, draft [PR #35](https://github.com/parmtech/Tong-Panel/pull/35), stacked on #34.
 - **Change:** add a Linux-only, unprivileged `openat2`-based descriptor-rooted regular-file reader with 16 MiB cap and no symlink fallback. Add malicious path/symlink, size/type, close, and concurrent symlink-swap tests.
-- **Validation:** pending hosted Go formatting, full race tests and vet. No local Go test claim.
+- **Validation:** code commit `15dd7c412bbdfe34fa884d935c49cadf950750b7` passed hosted Go/race/vet [#40601259497](https://github.com/parmtech/Tong-Panel/actions/runs/40601259497), daemon smoke [#40601259446](https://github.com/parmtech/Tong-Panel/actions/runs/40601259446), and unsigned archive lab [#40601259524](https://github.com/parmtech/Tong-Panel/actions/runs/40601259524). An initial gofmt failure from field alignment was corrected before this passing run.
 - **Limitations:** does not implement files API/UI, tenant identity/ACL, writes, archive extraction or integration with host agent. P2 alpha remains gated by P1, installer, service adapters, two-tenant isolation, and full recovery evidence.
-- **Next:** read hosted CI, fix issues, and record results before further slices.
+- **Next:** draft Files API contract with tenant identity supplied only by server-side authorization; keep this primitive isolated until P1 trust boundaries receive review.
 
 ### 2026-10-28 — Cookie Origin ambiguity guard
 - **Branch:** `feature/p1-cookie-origin-duplicate-guard`, based on #33. A local author identity and Git HTTPS credentials are unavailable, so the working tree patch could not be committed or pushed from this checkout; the same changes are being published through the connected GitHub repository integration.
