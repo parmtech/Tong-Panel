@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
 import { loadPanelStatus } from '../../cmd/tongd/ui/panel-status.mjs';
 
 const healthy = { status: 'ok' };
@@ -26,6 +27,7 @@ test('reports only panel-process availability and version on success', async () 
 test('reports unavailable when the process health endpoint fails', async () => {
     const result = await loadPanelStatus(async (path) => response(path === '/healthz' ? {} : version, path !== '/healthz'));
     assert.equal(result.state, 'unavailable');
+    assert.equal(result.message, 'Panel health check failed. Retry to check again.');
 });
 
 test('reports unknown when the health response is malformed or unexpected', async () => {
@@ -87,4 +89,72 @@ test('keeps navigation names and refresh control available at phone widths', asy
     assert.match(css, /\.sidebar nav a:nth-child\(2\),\.sidebar nav a:nth-child\(3\)\{display:flex\}/);
     assert.match(css, /\.sidebar nav\{[^}]*overflow-x:auto/);
     assert.match(app, /refreshStatusButton\?\.addEventListener\('click'/);
+});
+
+test('Refresh button announces a result, blocks duplicate clicks, then retries', async () => {
+    class FakeElement {
+        constructor() {
+            this.attributes = new Map();
+            this.children = [];
+            this.dataset = {};
+            this.listeners = new Map();
+            this.classList = { add() {} };
+            this.disabled = false;
+            this.textContent = '';
+        }
+        addEventListener(type, callback) { this.listeners.set(type, callback); }
+        setAttribute(name, value) { this.attributes.set(name, value); }
+        removeAttribute(name) { this.attributes.delete(name); }
+        replaceChildren(...children) { this.children = children; }
+        append(...children) { this.children.push(...children); }
+        appendChild(child) { this.children.push(child); }
+        click() {
+            if (!this.disabled)
+                this.listeners.get('click')?.();
+        }
+        showModal() {}
+        close() {}
+    }
+    const ids = ['#tiles', '#search', '#status', '#status-version', '#status-checked', '#refresh-status', '#theme', '#intro', '#tour', '#close-tour', '#count'];
+    const elements = new Map(ids.map(id => [id, new FakeElement()]));
+    const document = {
+        querySelector: (selector) => elements.get(selector) ?? null,
+        createElement: () => new FakeElement(),
+        documentElement: { dataset: {} },
+    };
+    const pending = [];
+    const calls = [];
+    const fetcher = (path) => {
+        calls.push(path);
+        if (calls.length <= 2)
+            return new Promise(resolve => pending.push({ path, resolve }));
+        return Promise.resolve(response(path === '/healthz' ? healthy : version));
+    };
+    const source = (await readFile(new URL('../../cmd/tongd/ui/app.js', import.meta.url), 'utf8'))
+        .replace("import { loadPanelStatus } from './panel-status.mjs';", 'const loadPanelStatus = globalThis.testLoadPanelStatus;')
+        .replace(/\nexport \{\};\s*$/, '\n');
+    runInNewContext(source, {
+        document,
+        testLoadPanelStatus: () => loadPanelStatus(fetcher),
+    });
+
+    const status = elements.get('#status');
+    const refresh = elements.get('#refresh-status');
+    assert.equal(refresh.disabled, true);
+    assert.equal(refresh.attributes.get('aria-busy'), 'true');
+    refresh.click();
+    assert.equal(calls.length, 2, 'disabled button must suppress overlapping checks');
+
+    for (const item of pending)
+        item.resolve(response(item.path === '/healthz' ? healthy : version));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(status.textContent, 'Panel process is responding.');
+    assert.equal(refresh.disabled, false);
+    assert.equal(refresh.attributes.has('aria-busy'), false);
+
+    refresh.click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(calls.length, 4, 'retry should request both read-only endpoints again');
+    assert.equal(status.dataset.state, 'available');
+    assert.equal(elements.get('#status-version').textContent, 'Tong Panel · experimental-core');
 });

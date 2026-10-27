@@ -49,7 +49,7 @@ export async function loadPanelStatus(fetcher = fetch, timeoutMs = requestTimeou
             state: isInvalid ? 'unknown' : 'unavailable',
             message: isInvalid
                 ? 'Panel response could not be verified. Retry to check again.'
-                : 'Panel process could not be reached. Retry to check again.',
+                : 'Panel health check failed. Retry to check again.',
             checkedAt,
         };
     }
