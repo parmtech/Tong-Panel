@@ -27,6 +27,7 @@ var ErrNotFound = errors.New("job not found")
 type Job struct {
 	ID             string    `json:"id"`
 	TenantID       string    `json:"tenant_id"`
+	RequestedBy    string    `json:"requested_by,omitempty"`
 	Kind           string    `json:"kind"`
 	State          string    `json:"state"`
 	IdempotencyKey string    `json:"idempotency_key"`
@@ -94,12 +95,7 @@ func (s *Store) save(items []Job) error {
 	if err = os.Rename(name, s.path); err != nil {
 		return err
 	}
-	d, err := os.Open(dir)
-	if err != nil {
-		return err
-	}
-	defer d.Close()
-	return d.Sync()
+	return syncDir(dir)
 }
 func (s *Store) Create(tenant, kind, key string) (Job, error) {
 	s.mu.Lock()

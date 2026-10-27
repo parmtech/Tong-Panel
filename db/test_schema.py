@@ -4,7 +4,7 @@ import sqlite3
 import tempfile
 import unittest
 
-MIGRATION = (pathlib.Path(__file__).parent / "migrations" / "0001_initial.sql").read_text()
+MIGRATION = (pathlib.Path(__file__).parents[1] / "internal" / "database" / "migrations" / "0001_initial.sql").read_text()
 
 
 class SchemaTests(unittest.TestCase):

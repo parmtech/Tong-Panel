@@ -24,3 +24,35 @@
 
 ## Workflow
 Stacked from `feature/p1-core-foundation` in new review branch; merge its parent PR first to avoid duplicating changes. Do not deploy this branch to a live VPS.
+
+## 2026-10-27 follow-on — Go SQLite and queue prototype
+
+On `feature/p1-sqlite-transactional-queue`, stacked on PR #15:
+
+- Moved the canonical schema to `internal/database/migrations/0001_initial.sql` and embed it in the Go binary. The Python schema tests now read that same source file.
+- Added `internal/database.Open`: creates a private parent directory, configures `foreign_keys`, a bounded busy timeout, WAL and FULL synchronous mode through per-connection driver pragmas, applies the schema to a new database, rejects a newer `user_version`, and limits the Go connection pool to one connection for this single-process prototype.
+- Added an opt-in `jobs.SQLiteStore` prototype. New job creation is a SQL transaction tied to an active tenant membership and enabled identity; idempotent retries return the same job, cross-tenant reads are scoped, and transitions are validated and committed with a state predicate.
+- Added `auth.SQLiteSessionStore` as an alternative to the in-memory session primitive. It stores only SHA-256 session and CSRF token hashes, persists expiry and revocation, supports user-wide revocation, and re-reads current membership role and disabled identity state for each check. It is not connected to the login flow or API.
+- Added tests for migration persistence, foreign-key enforcement, tenant isolation, idempotency, failed-insert rollback, concurrent retries and state transitions. The current queue accepts only `validation.noop`; no worker executes jobs.
+- Added session tests for process-style database reopen, hash-only persistence, tenant membership enforcement, current role changes, disabled identity denial, expiry, CSRF mismatch, and individual/user-wide revocation.
+- Follow-up review tightened session issuance/checks to deny suspended tenants, made schema startup fail closed on a future schema version, and blocked new queue rows for suspended tenants or disabled identities. Added regression coverage for those cases.
+- Pinned the cgo-free `modernc.org/sqlite` driver at v1.38.2, the newest version checked that retains the repository's Go 1.23 compatibility baseline, to avoid a platform C compiler requirement. The upstream package is BSD-3-Clause and includes SQLite (public domain); transitive dependency licence inventory remains to be completed before release.
+- The Go queue and SQLite session store are intentionally **not wired into the HTTP API or daemon**. Dev-token identity is not a production identity system, and schema/ADR-003/threat review remain unapproved. The existing JSON journal remains the running prototype's store, and the login path has no persistent session support yet.
+
+### Auth/session direction remains proposed
+
+Before any production login route, the design must specify a vetted Argon2id password verifier and parameter review, generic failure behavior and rate limits, MFA enrollment/recovery and replay handling, TLS-only `__Host-` cookies, server-side hashed session/CSRF token storage, expiry/rotation/revocation, Origin/CSRF checks, and tenant membership revalidation on authenticated requests and jobs. `SessionManager` remains memory-only; `SQLiteSessionStore` is an isolated persistence primitive, not a login flow. No Argon2id verifier, MFA flow, cookie issuance route, CSRF/Origin middleware or rate limiting has been implemented. ADR-003 and the threat model still require maintainer review.
+
+### Validation on this branch
+
+- Go 1.25.14 Windows/amd64: focused package tests for database/jobs, plus tests for API/auth/health/daemon/RBAC, passed; `go vet` for those packages passed; `go build ./cmd/tongd` passed.
+- GitHub Actions on driver update commit `cc7608349e0f6f56ed3c85eec37d7869f0456b8c`: [Go checks #40423199616](https://github.com/parmtech/Tong-Panel/actions/runs/40423199616) passed, including gofmt, full `go test -race ./...`, and `go vet ./...`; [SQLite schema checks #40423199639](https://github.com/parmtech/Tong-Panel/actions/runs/40423199639) passed.
+- GitHub Actions on session-store commit `6795148c39404f653f57d8936670f2d29595345f`: [Go checks #40423834545](https://github.com/parmtech/Tong-Panel/actions/runs/40423834545) passed, including gofmt, full `go test -race ./...`, and `go vet ./...`; [SQLite schema checks #40423834542](https://github.com/parmtech/Tong-Panel/actions/runs/40423834542) passed.
+- GitHub Actions on tenant-suspension session fix `bb617eaed9dc2b6e8e10e1b8380d85987feb1408`: [Go checks #40424296948](https://github.com/parmtech/Tong-Panel/actions/runs/40424296948) and [SQLite schema checks #40424296939](https://github.com/parmtech/Tong-Panel/actions/runs/40424296939) passed.
+- GitHub Actions on migration-version and queue-eligibility fixes `252c53127a9606835b9c43af298d5bb958519f6f`: [Go checks #40424600275](https://github.com/parmtech/Tong-Panel/actions/runs/40424600275), including full `go test -race ./...` and `go vet ./...`, and [SQLite schema checks #40424600243](https://github.com/parmtech/Tong-Panel/actions/runs/40424600243) passed.
+- Local Go 1.25.14 Windows/amd64: `go test ./internal/database ./internal/jobs ./internal/auth` and `go vet ./internal/database ./internal/jobs ./internal/auth` passed after the latest follow-ups. The repository-wide Windows limitation remains as documented below.
+- `go test ./...` could not build the existing Linux-only `internal/preflight` package on Windows (`syscall.Statfs_t`/`syscall.Statfs` unavailable).
+- `go test -race ./...` could not run on the Windows toolchain because CGO is unavailable; the Linux Actions race run above passed.
+- Python schema tests were not run locally because Python is unavailable; the updated schema workflow passed in GitHub Actions above.
+- No API login wiring, Argon2id, MFA, lease/retry worker, audit trail for jobs, privileged operations, installer or VPS change was added.
+
