@@ -645,3 +645,30 @@ func TestTenantRootsScopeFileRemoval(t *testing.T) {
 		t.Fatalf("tenant traversal removal error = %v", err)
 	}
 }
+
+func TestNewTenantRootsRejectsAliasedDirectories(t *testing.T) {
+	dir := t.TempDir()
+	first, err := OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer first.Close()
+	second, err := OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.Close()
+	if _, err := NewTenantRoots(map[string]*Root{"tenant-a": first, "tenant-b": second}); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("aliased filesystem roots error = %v", err)
+	}
+	if _, err := NewTenantRoots(map[string]*Root{"tenant-a": first, "tenant-b": first}); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("same root pointer error = %v", err)
+	}
+	if err := second.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewTenantRoots(map[string]*Root{"tenant-a": first, "tenant-b": second}); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("closed root mapping error = %v", err)
+	}
+}
+
