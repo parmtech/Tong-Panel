@@ -1,17 +1,25 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-10-26  
+**Updated:** 2026-10-27 (Australia/Sydney)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
 ## CURRENT CHECKPOINT — READ FIRST
 
-**Phase:** P0 — PLANNING (documentation foundation)  
-**Phase state:** Documentation drafting completed for initial version; architecture decisions, threat model and review still pending.  
-**Implementation state:** NOT STARTED. No functioning Tong Panel app, installer or executable has been built.  
+**Phase:** P0 architecture/security review pending; P1 developer prototypes active on unmerged draft PRs.
+**Phase state:** Planning documents exist, but owner/security decisions and P1 support scope are still unapproved.
+**Implementation state:** Draft PRs #14–#19 contain prototypes; no deployable or production-ready hosting panel, installer, or supported release exists.
 **Production/release state:** NOT RELEASED.  
 **Primary branch:** main (verify live branch HEAD before work).  
 **Owner:** ParmTech.
+
+### Latest verified work — P1 panel status card
+- **Branch/PR:** `feature/p1-panel-status`, draft [PR #19](https://github.com/parmtech/Tong-Panel/pull/19), stacked directly on draft PR #14. Current code head `1c79adeb87005512165adc128821ebc019b1e916`.
+- **Changed behavior:** the UI reads only existing `GET /healthz` and `GET /api/v1/version`; it shows responding, unavailable, or unverified, version, last-check time and a retry control. Each request has a three-second timeout. Copy explicitly limits this to the panel process, not host resources, hosted sites, or other services. Navigation links have explicit accessible names and stay available in the phone layout. Hosting tiles remain disabled/planned.
+- **Tests:** Local Node 24 `node --test web/test/panel-status.test.mjs` passed 8/8, including a UI-level refresh interaction test for live status announcement, duplicate-click blocking and retry. The test also verifies corrected wording when the health endpoint responds unsuccessfully. On exact code head `1c79ade`, GitHub UI checks passed in [run #40430007139](https://github.com/parmtech/Tong-Panel/actions/runs/40430007139) (TypeScript compile and UI tests); Go checks passed formatting, full `go test -race ./...` and vet in [run #40430007239](https://github.com/parmtech/Tong-Panel/actions/runs/40430007239). Local Go and TypeScript toolchains are unavailable, so those checks are hosted CI results.
+- **Workflow correction history:** initial UI runs [#40429507699](https://github.com/parmtech/Tong-Panel/actions/runs/40429507699) and [#40429530134](https://github.com/parmtech/Tong-Panel/actions/runs/40429530134) stopped during setup because `setup-node` rejected `cache: false`; no tests ran on those attempts. The option was removed and later runs passed.
+- **Current gates:** PR #19 remains draft, based on unmerged PR #14. Architecture/security review remains pending; there is no integrated login/session, SQLite store, transactional queue execution, host operations, or VPS change. Accessibility has source-level labels and behavior checks, not a browser/screen-reader/WCAG audit. **P1 and the cPanel alternative remain incomplete.**
+- **Next one action:** continue the owner/security review and finalize P1 scope/support matrix before wiring authentication, SQL stores, queue execution or host operations.
 
 ### Completed and verified on GitHub
 - [x] Public GitHub repository created and checked.
@@ -37,7 +45,7 @@
 - [ ] External security audit and install/restore compatibility evidence.
 - [ ] Stable product release.
 
-**Next ONE action for a new agent:** Start with [P0-01 architecture ADR review](https://github.com/parmtech/Tong-Panel/issues/1). Coordinate [P0-02 threat model](https://github.com/parmtech/Tong-Panel/issues/2) and [P0-04 UX flows](https://github.com/parmtech/Tong-Panel/issues/4), then [P0-03 P1 scope](https://github.com/parmtech/Tong-Panel/issues/3). Respect the blueprint-before-code requirement.
+**Next ONE action for a new agent:** Continue [P0-01 architecture ADR review](https://github.com/parmtech/Tong-Panel/issues/1), coordinate the [threat model](https://github.com/parmtech/Tong-Panel/issues/2) and [P1 scope](https://github.com/parmtech/Tong-Panel/issues/3), and record owner/security decisions before production-facing auth, persistence, queue or host-operation integration.
 
 ## GitHub work queue (OPEN — not assigned or completed)
 - [#1 P0 architecture ADRs and upstream licences](https://github.com/parmtech/Tong-Panel/issues/1)
@@ -77,3 +85,14 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Security and third-party licence impact:
 - Blockers / constraints:
 - Next ONE step for handoff:
+
+
+### 2026-10-27 12:02 Australia/Sydney — P1 UI status follow-up
+- **Worker:** Codex, UI workstream; parallel read-only review by two agents.
+- **Task/state:** improve truthful status failure wording and verify the Refresh control's interaction behavior; implementation tested and documented, PR remains draft.
+- **Branch / commit / PR:** `feature/p1-panel-status`, code head `1c79adeb87005512165adc128821ebc019b1e916`, [draft PR #19](https://github.com/parmtech/Tong-Panel/pull/19).
+- **Changed files:** `cmd/tongd/ui/panel-status.mjs` reports a failed health check without claiming the process could not be reached; `web/test/panel-status.test.mjs` checks that message and exercises actual initial refresh, disabled duplicate clicks, live result, and retry.
+- **Tests:** Node 24 `node --test web/test/panel-status.test.mjs` — 8 passed, 0 failed. UI CI [#40430007139](https://github.com/parmtech/Tong-Panel/actions/runs/40430007139) passed TypeScript and UI tests; Go CI [#40430007239](https://github.com/parmtech/Tong-Panel/actions/runs/40430007239) passed gofmt, `go test -race ./...`, and `go vet ./...` on the exact code head.
+- **Security/licence:** no auth, persistence, queue, privileged operations, dependency, or licensing changes.
+- **Blockers:** P0 owner/security ADR and threat-model review and P1 scope/support decisions remain open. No browser/screen-reader/WCAG audit was performed. No production VPS was accessed or changed.
+- **Next ONE step:** continue issue #1's architecture ADR review and record owner/security decisions; keep auth/session, SQLite, queue and host-operation integration out of production-facing paths until those gates pass.

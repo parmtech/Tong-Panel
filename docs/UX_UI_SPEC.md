@@ -1,5 +1,5 @@
 # Tong Panel — UX and UI Blueprint
-Status: proposed; nothing implemented.
+Status: proposed; draft PR #14 contains a static preview and draft PR #19 proposes a panel-process status card. The status card reads only the local panel liveness and version endpoints; it is not host monitoring. Neither preview provides hosting operations or establishes full accessibility acceptance.
 
 ## Design language
 An original premium responsive experience combining a smartphone/iPad-like home icon grid, Windows/macOS Finder-style file explorer, discoverable contextual controls, global search, helpful first-run tours, accessible interfaces, clear feedback and light/dark/auto themes. Familiar patterns WITHOUT copying proprietary cPanel designs, trademarks or source assets.

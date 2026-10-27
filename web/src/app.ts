@@ -1,3 +1,5 @@
+import { loadPanelStatus } from './panel-status.mjs';
+
 export {};
 type Tile = { title: string; icon: string; subtitle: string; stage: string };
 const tiles: Tile[] = [
@@ -17,6 +19,9 @@ const tiles: Tile[] = [
 const list = document.querySelector<HTMLElement>('#tiles');
 const search = document.querySelector<HTMLInputElement>('#search');
 const status = document.querySelector<HTMLElement>('#status');
+const statusVersion = document.querySelector<HTMLElement>('#status-version');
+const statusChecked = document.querySelector<HTMLElement>('#status-checked');
+const refreshStatusButton = document.querySelector<HTMLButtonElement>('#refresh-status');
 const theme = document.querySelector<HTMLButtonElement>('#theme');
 const intro = document.querySelector<HTMLDialogElement>('#intro');
 const filterText = (text: string): void => {
@@ -42,13 +47,20 @@ theme?.addEventListener('click',()=>{
 });
 document.querySelector('#tour')?.addEventListener('click',()=>intro?.showModal());
 document.querySelector('#close-tour')?.addEventListener('click',()=>intro?.close());
-async function ping():Promise<void>{
- if(!status)return;
+async function refreshStatus():Promise<void>{
+ if(!status || !refreshStatusButton)return;
+ refreshStatusButton.disabled=true;refreshStatusButton.setAttribute('aria-busy','true');
+ status.textContent='Checking panel process availability…';status.dataset.state='unknown';
  try{
-  const response=await fetch('/api/v1/version',{cache:'no-store'});
-  if(!response.ok)throw new Error('server unavailable');
-  const data: {stage?:string} = await response.json() as {stage?:string};
-  status.textContent=`Local API: ${data.stage ?? 'unknown'}`;status.classList.add('online');
- }catch{status.textContent='API offline · design preview';status.classList.remove('online');}
+  const result=await loadPanelStatus();
+  status.textContent=result.message;status.dataset.state=result.state;
+  if(statusVersion)statusVersion.textContent=result.version ?? '';
+  if(statusChecked)statusChecked.textContent=new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(result.checkedAt);
+ }catch{
+  status.textContent='Panel status could not be checked. Retry to check again.';status.dataset.state='unknown';
+  if(statusVersion)statusVersion.textContent='';
+  if(statusChecked)statusChecked.textContent='—';
+ }finally{refreshStatusButton.disabled=false;refreshStatusButton.removeAttribute('aria-busy');}
 }
-void ping();
+refreshStatusButton?.addEventListener('click',()=>void refreshStatus());
+void refreshStatus();
