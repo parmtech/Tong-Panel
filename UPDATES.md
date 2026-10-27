@@ -4,6 +4,22 @@
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
+## CURRENT CHECKPOINT — 2026-10-28, trusted browser boundary
+- **Phase:** P0/ADR review remains pending; P1 development continues on isolated drafts. Phase 1 is not complete or production-ready.
+- **Current stacked slice:** new branch `feature/p1-cookie-origin-duplicate-guard`, based on draft PR #33 (`feature/p1-session-idle-rotation`). It rejects ambiguous duplicate `Origin` headers for cookie-authenticated mutations and adds a concurrent authenticated-read test. No public login, cookie issuance, logout route, proxy trust, or server deployment is enabled.
+- **Local validation:** Go is not installed in this Windows workspace. Corrected code head `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed hosted Go/race/vet, daemon smoke, and archive workflows; see run links below.
+- **P0/auth decision:** `docs/ADR-009-AUTHENTICATION.md` is explicitly proposed and unapproved; `docs/ADR_REGISTER.md` marks architecture decisions as draft and requires owner/security review. Do not add a public login handler until that review is recorded.
+- **Release blockers:** owner/security approval, external key custody and recovery, public HTTPS login/origin topology, trusted-agent review, signed installer/SBOM, clean Ubuntu/Debian VM install/rollback/recovery, and UI accessibility/E2E remain open. No installer currently exists; no production VPS was changed.
+- **Verified code head:** `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed Go checks [#40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640) (gofmt, full `go test -race ./...`, vet), non-destructive daemon smoke [#40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840), and unsigned developer archive lab [#40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588). These validate this code head; they do not certify a release or security approval.
+- **Next action:** continue only after owner/security review records ADR-009/P0 decisions; keep public login and production deployment disabled until then.
+
+### 2026-10-28 — Cookie Origin ambiguity guard
+- **Branch:** `feature/p1-cookie-origin-duplicate-guard`, based on #33. A local author identity and Git HTTPS credentials are unavailable, so the working tree patch could not be committed or pushed from this checkout; the same changes are being published through the connected GitHub repository integration.
+- **Code/tests:** `internal/api/session_cookie.go` now rejects requests with zero or multiple Origin header values; `internal/api/session_cookie_test.go` adds duplicate hostile Origin denial and 24 simultaneous authenticated-session reads.
+- **Validation:** local Go toolchain unavailable. At code commit `6c983a22de1e5b1ea0de133ea28c6d1daadc490c`, Go checks [#40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640) passed gofmt, full `go test -race ./...`, and vet; daemon smoke [#40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840) and unsigned archive lab [#40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588) also passed. An initial Go run detected extra trailing blank lines from API file updates; these were corrected before the passing code-head run.
+- **Security boundary:** no login or cookie issuance route added. ADR-009 and P0 remain unapproved; no security approval or production readiness claim.
+- **Next:** owner/security review of ADR-009 and P0 remains necessary before any public authentication route; otherwise continue with a separate unblocked installer lab slice.
+
 ## LATEST VERIFIED WORK — 2026-10-27, Phase 1 (SQLite queue slice partial)
 - **PR:** [Draft #14 — P1 Core Foundation](https://github.com/parmtech/Tong-Panel/pull/14), branch `feature/p1-core-foundation` (not merged).
 - **Changed files:** `internal/preflight/doctor.go`, `internal/preflight/doctor_test.go`, new `docs/READ_ONLY_DOCTOR.md` on PR branch.
@@ -181,4 +197,3 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Security and third-party licence impact:
 - Blockers / constraints:
 - Next ONE step for handoff:
-

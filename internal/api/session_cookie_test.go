@@ -148,6 +148,48 @@ func TestCookieRequiresActualTLSRejectsAmbiguousCredentials(t *testing.T) {
 	}
 }
 
+func TestCookieMutationRejectsDuplicateOriginHeaders(t *testing.T) {
+	s, _, _, token, csrf := setupCookieAPI(t)
+	req := httptest.NewRequest("POST", "https://panel.test/api/v1/jobs", strings.NewReader(`{"kind":"validation.noop"}`))
+	req.TLS = &tls.ConnectionState{}
+	req.AddCookie(&http.Cookie{Name: auth.BrowserCookieName, Value: token})
+	req.Header.Set("X-CSRF-Token", csrf)
+	req.Header.Add("Origin", "https://panel.test")
+	req.Header.Add("Origin", "https://evil.test")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Idempotency-Key", "duplicate-origin-negative-test")
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("duplicate Origin headers accepted: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestConcurrentCookieSessionReadsRemainAuthorized(t *testing.T) {
+	s, _, _, token, _ := setupCookieAPI(t)
+	h := s.Handler()
+	const requests = 24
+	start := make(chan struct{})
+	results := make(chan int, requests)
+	for i := 0; i < requests; i++ {
+		go func() {
+			<-start
+			req := httptest.NewRequest("GET", "https://panel.test/api/v1/me", nil)
+			req.TLS = &tls.ConnectionState{}
+			req.AddCookie(&http.Cookie{Name: auth.BrowserCookieName, Value: token})
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+			results <- rec.Code
+		}()
+	}
+	close(start)
+	for i := 0; i < requests; i++ {
+		if code := <-results; code != http.StatusOK {
+			t.Fatalf("concurrent authenticated read returned %d", code)
+		}
+	}
+}
+
 func TestSQLiteCookieSessionRevocationAndCurrentRole(t *testing.T) {
 	s, sessions, db, token, csrf := setupCookieAPI(t)
 	h := s.Handler()

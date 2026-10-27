@@ -45,7 +45,14 @@ func sameTLSOrigin(r *http.Request) bool {
 	if r.TLS == nil || r.Host == "" {
 		return false
 	}
-	raw := r.Header.Get("Origin")
+	// Browsers send exactly one Origin. Header.Get silently selects the first
+	// value when a request contains duplicates, which can make upstream and
+	// application proxies disagree about which origin was authorized.
+	origins := r.Header.Values("Origin")
+	if len(origins) != 1 {
+		return false
+	}
+	raw := origins[0]
 	if raw == "" || raw != strings.TrimSpace(raw) {
 		return false
 	}

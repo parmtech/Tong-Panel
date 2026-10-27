@@ -112,6 +112,13 @@ This is **combined branch evidence**, not just separate PR evidence:
 
 ## Publish decision
 
+## Cookie Origin ambiguity hardening — stacked draft PR #34 (28 October 2026)
+
+- The follow-up slice on [draft PR #34](https://github.com/parmtech/Tong-Panel/pull/34) makes cookie-authenticated mutations reject absent or duplicate `Origin` header values. This avoids authorizing the first value while an upstream component interprets another value.
+- Focused tests deny two conflicting Origin headers and exercise 24 concurrent authenticated session reads. The existing cookie boundary still requires actual TLS, exact same-origin validation, CSRF, and a pre-issued session. No public login, cookie issue/rotate/logout HTTP route or proxy trust was added.
+- Local Go formatting/tests/race/vet could not run because Go is unavailable in the current Windows workspace. Code head `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed [Go formatting, full `go test -race ./...`, and vet #40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640), [daemon smoke #40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840), and [unsigned archive lab #40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588). These are hosted CI prototype checks, not release certification or security approval.
+- This does not satisfy public HTTPS login, ADR-009 approval, origin configuration, external key custody/recovery, security review or any remaining installer/agent/UI release gate. P0 and Phase 1 exit remain blocked; no production VPS was changed.
+
 **STOP: do NOT merge/release as an installable hosting panel or begin Phase 2 implementation against real hosts yet.** Review of the stacked PR chain must preserve dependencies; independent password and UI branches (#18/#19) are not automatically integrated by stacked PR #25.
 
 **Required to advance P1 → P2:** approved P0/ADR security boundaries; tested and recoverable account bootstrap + Argon2id + MFA + login rate limits + sessions; typed authorized agent contract and malicious input/UID tests; crash/lease/rollback; API and UI integration with accessibility evidence; real dependency/security scans; signed preview package + tamper test; clean Ubuntu/Debian VM installation/start/restart/rollback and backup/restore evidence; signed reviewer/owner acceptance.
