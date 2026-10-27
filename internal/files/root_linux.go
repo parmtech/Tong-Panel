@@ -18,20 +18,20 @@ import (
 const MaxReadBytes int64 = 16 << 20
 
 var (
-	ErrInvalidRoot = errors.New("invalid file root")
-	ErrInvalidPath = errors.New("invalid relative file path")
+	ErrInvalidRoot  = errors.New("invalid file root")
+	ErrInvalidPath  = errors.New("invalid relative file path")
 	ErrInvalidLimit = errors.New("invalid file size limit")
-	ErrNotRegular = errors.New("requested path is not a regular file")
-	ErrTooLarge = errors.New("file exceeds configured read limit")
-	ErrClosed = errors.New("file root is closed")
+	ErrNotRegular   = errors.New("requested path is not a regular file")
+	ErrTooLarge     = errors.New("file exceeds configured read limit")
+	ErrClosed       = errors.New("file root is closed")
 )
 
 // Root pins a trusted directory using an open descriptor. Close may be called
 // concurrently with ReadFile; later reads fail with ErrClosed. The configured
 // root and its parent path must be administrator-controlled.
 type Root struct {
-	mu sync.RWMutex
-	fd int
+	mu   sync.RWMutex
+	fd   int
 	open bool
 }
 
