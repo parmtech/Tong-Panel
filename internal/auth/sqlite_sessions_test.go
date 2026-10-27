@@ -60,6 +60,18 @@ func TestSQLiteSessionPersistenceRevocationAndMembershipRecheck(t *testing.T) {
 	if _, _, _, err := store.Issue(rbac.Principal{UserID: "user-a", TenantID: "tenant-b", Role: rbac.Owner}, time.Hour); err == nil {
 		t.Fatal("cross-tenant membership accepted")
 	}
+	if _, err := db.Exec("UPDATE tenants SET status='suspended' WHERE id='tenant-a'"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, err := store.Issue(p, time.Hour); err == nil {
+		t.Fatal("session issued for suspended tenant")
+	}
+	if _, ok := store.Check(token); ok || store.CheckCSRF(token, csrf) {
+		t.Fatal("existing session remained valid after tenant suspension")
+	}
+	if _, err := db.Exec("UPDATE tenants SET status='active' WHERE id='tenant-a'"); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.Exec("UPDATE memberships SET role='admin' WHERE tenant_id='tenant-a' AND identity_id='user-a'"); err != nil {
 		t.Fatal(err)
 	}

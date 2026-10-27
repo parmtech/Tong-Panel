@@ -52,7 +52,9 @@ func (s *SQLiteSessionStore) Issue(p rbac.Principal, lifetime time.Duration) (to
 	}
 	defer tx.Rollback()
 	var role string
-	err = tx.QueryRow(`SELECT m.role FROM memberships m JOIN identities i ON i.id=m.identity_id
+	err = tx.QueryRow(`SELECT m.role FROM memberships m
+		JOIN identities i ON i.id=m.identity_id
+		JOIN tenants t ON t.id=m.tenant_id AND t.status='active'
 		WHERE m.tenant_id=? AND m.identity_id=? AND i.disabled=0`, p.TenantID, p.UserID).Scan(&role)
 	if err != nil || rbac.Role(role) != p.Role {
 		return "", "", time.Time{}, ErrInvalidSession
@@ -84,6 +86,7 @@ func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, boo
 		FROM sessions s
 		JOIN memberships m ON m.tenant_id=s.tenant_id AND m.identity_id=s.identity_id
 		JOIN identities i ON i.id=m.identity_id
+		JOIN tenants t ON t.id=s.tenant_id AND t.status='active'
 		WHERE s.token_sha256=? AND s.revoked_at IS NULL AND i.disabled=0`, hash[:]).
 		Scan(&p.UserID, &p.TenantID, &p.Role, &csrf, &expires)
 	if err != nil || len(csrf) != len(empty) {
