@@ -517,4 +517,3 @@ func TestTenantRootsScopeCreateOnlyWrites(t *testing.T) {
 		t.Fatalf("tenant traversal write error = %v", err)
 	}
 }
-
