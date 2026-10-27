@@ -105,14 +105,18 @@ func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, boo
 	if err != nil || !validRole(p.Role) {
 		return rbac.Principal{}, empty, false
 	}
-	if !now.Before(parsedExpiry) || idleDeadline <= now.Unix() {
-		// Permanently invalidate sessions observed past an idle or absolute
-		// deadline. A later clock rollback must not revive them. The WHERE
-		// clause avoids revoking an independently refreshed idle deadline.
+	if !now.Before(parsedExpiry) {
+		// Absolute expiry never becomes valid again after a clock rollback.
+		_, _ = s.db.Exec("UPDATE sessions SET revoked_at=? WHERE token_sha256=? AND revoked_at IS NULL",
+			now.Format(time.RFC3339Nano), hash[:])
+		return rbac.Principal{}, empty, false
+	}
+	if idleDeadline <= now.Unix() {
+		// An observed idle timeout is permanently revoked. A competing
+		// request that already extended the deadline must not be revoked.
 		_, _ = s.db.Exec(`UPDATE sessions SET revoked_at=?
-			WHERE token_sha256=? AND revoked_at IS NULL
-			AND (idle_deadline_unix<=? OR expires_at=?)`,
-			now.Format(time.RFC3339Nano), hash[:], now.Unix(), expires)
+			WHERE token_sha256=? AND revoked_at IS NULL AND idle_deadline_unix<=?`,
+			now.Format(time.RFC3339Nano), hash[:], now.Unix())
 		return rbac.Principal{}, empty, false
 	}
 	newIdle := now.Add(sqliteSessionIdle)
