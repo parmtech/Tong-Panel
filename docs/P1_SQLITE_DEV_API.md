@@ -5,7 +5,7 @@
 ## What is now wired
 - The daemon still binds `127.0.0.1:8090` only and normally uses the local JSON journal for its **single-developer preview**.
 - Set **both** `TONG_DEV_TOKEN` (random, at least 32 characters) and `TONG_DEV_SQLITE_DB` (a local file path) to explicitly select the SQLite job backend. SQLite initialization errors are fatal, not silently downgraded to JSON.
-- SQLite mode validates the caller's original dev-token principal **against already-present active tenant, identity and membership rows** at the database boundary for job creation and reads; it never creates a default owner, user, password or membership.
+- SQLite mode validates the caller's token-bound tenant/identity **against already-present active tenant, identity and membership rows on every protected HTTP request**. The live database membership role replaces any outdated role recorded in the developer token. It never creates a default owner, user, password or membership.
 - `GET /api/v1/jobs` and `GET /api/v1/jobs/{id}` return **only the current principal's own jobs**, never all jobs in a shared tenant. Invalid/deactivated principals see no SQL job details.
 - `POST /api/v1/jobs` creates only `validation.noop` under the identity from the authenticated developer token, using transactional idempotency.
 - `DELETE /api/v1/jobs/{id}` in SQLite mode only cancels the authenticated requester's **queued** job with an atomic audit; it refuses leased, running or completed work (409). Legacy JSON journal has no requester identity and explicitly returns 501 for deletion.
