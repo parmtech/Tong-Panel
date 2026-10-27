@@ -64,3 +64,16 @@ func (t *TenantRoots) WriteNewForTenant(tenantID, relative string, content []byt
 	}
 	return root.WriteNew(relative, content)
 }
+
+// RemoveFileForTenant removes one file only from the root mapped to tenantID.
+// The ID must be derived from the authorized server principal.
+func (t *TenantRoots) RemoveFileForTenant(tenantID, relative string) error {
+	if t == nil || tenantID == "" {
+		return ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ErrTenantDenied
+	}
+	return root.RemoveFile(relative)
+}
