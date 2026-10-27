@@ -1,17 +1,25 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-10-26  
+**Updated:** 2026-10-27 (Australia/Sydney)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
 ## CURRENT CHECKPOINT — READ FIRST
 
-**Phase:** P0 — PLANNING (documentation foundation)  
-**Phase state:** Documentation drafting completed for initial version; architecture decisions, threat model and review still pending.  
-**Implementation state:** NOT STARTED. No functioning Tong Panel app, installer or executable has been built.  
+**Phase:** P0 architecture/security review pending; P1 developer prototypes active on unmerged draft PRs.
+**Phase state:** Planning documents exist, but owner/security decisions and P1 support scope are still unapproved.
+**Implementation state:** Draft PRs #14–#19 contain prototypes; no deployable or production-ready hosting panel, installer, or supported release exists.
 **Production/release state:** NOT RELEASED.  
 **Primary branch:** main (verify live branch HEAD before work).  
 **Owner:** ParmTech.
+
+### Latest verified work — P1 panel status card
+- **Branch/PR:** `feature/p1-panel-status`, draft [PR #19](https://github.com/parmtech/Tong-Panel/pull/19), stacked directly on draft PR #14. Code commit `dd94c2acea811efa9a9e3552922ca8a90f94723e`; workflow-fix head `7ad6e5e7f5829010278037fd836def40ecfa4ab8`.
+- **Changed behavior:** the UI reads only existing `GET /healthz` and `GET /api/v1/version`; it shows responding, unavailable, or unverified, version, last-check time and a retry control. Each request has a three-second timeout. Copy explicitly limits this to the panel process, not host resources, hosted sites, or other services. Navigation links now have explicit accessible names and stay available in the phone layout. Hosting tiles remain disabled/planned.
+- **Tests:** Node 24 `node --test web/test/panel-status.test.mjs` passed 7/7 locally (success, endpoint failure, malformed health, timeout, version fallback, retry, labels/status region and narrow navigation). GitHub Go checks passed formatting, full `go test -race ./...` and vet on code head `dd94c2a` in [run #40429530182](https://github.com/parmtech/Tong-Panel/actions/runs/40429530182); the corrected workflow head `7ad6e5e` passed the same Go checks in [run #40429582560](https://github.com/parmtech/Tong-Panel/actions/runs/40429582560). TypeScript compilation and UI behavior tests passed in [run #40429582653](https://github.com/parmtech/Tong-Panel/actions/runs/40429582653).
+- **Workflow correction:** initial UI runs [#40429507699](https://github.com/parmtech/Tong-Panel/actions/runs/40429507699) and [#40429530134](https://github.com/parmtech/Tong-Panel/actions/runs/40429530134) stopped during setup because `setup-node` rejected `cache: false`; no TypeScript or UI tests ran on those attempts. Removed that unsupported option; the later UI run above passed.
+- **Current gates:** PR #19 remains draft, based on unmerged PR #14. Architecture/security review remains pending; no login/session integration, SQLite/queue execution, host operations or VPS changes. **P1 and the cPanel alternative remain incomplete.**
+- **Next one action:** obtain the recorded owner/security review for the ADRs and P1 scope before integrating auth, SQL stores, queue execution or host operations.
 
 ### Completed and verified on GitHub
 - [x] Public GitHub repository created and checked.

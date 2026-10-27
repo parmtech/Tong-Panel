@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-10-26):** P0 PLANNING / documentation. NO runnable panel exists.
+**Current checkpoint (2026-10-27):** P0 architecture/security approval remains pending; P1 developer prototypes exist on unmerged draft PRs. No deployable or production-ready panel exists.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.
@@ -28,8 +28,9 @@
 - P0 planning documents published and AGPL-3.0 licence selected.
 - Original Tong Panel architecture proposed, with strong host-agent privilege separation.
 - Single-server classic hosting MVP planned before modern apps, full hosting and multi-server.
-- User demanded completed blueprint/docs before coding, so **DO NOT BEGIN IMPLEMENTATION until planning review/approval gate passes.**
-- No app, API, Linux service, installer, CI build or binaries yet. Never describe planned features as working.
+- The original planning approval gate has **not** passed. Draft PRs #14–#19 do not constitute production architecture approval.
+- Drafts contain a loopback Go API, development-token auth, JSON job journal, ping-only socket prototype, read-only doctor, static UI preview, SQLite migrations/session/queue prototypes, standalone Argon2id verifier, and a panel-process status card. SQL stores and password verifier are not wired into the daemon/login; no privileged hosting operations, installer, or supported production release exists.
+- Until the owner records architecture and security decisions, keep work to explicitly scoped non-privileged prototypes and documentation. Do not wire authentication, SQL stores, queue execution or host mutations into production-facing paths.
 
 ## Workstream boundaries
 - A: UX/UI, accessibility, tours, documentation.
@@ -78,4 +79,4 @@ Never invent test outcomes or completion percentages. The journal needs explicit
 Edit UPDATES.md CURRENT CHECKPOINT and append a journal entry; link exact commit/PR, list next action, tests and blockers. Push and verify. New agent repeats read order above.
 
 ## Immediate next task
-P0 architecture decisions: draft/review ADR-001 (original code/provenance), ADR-002 (control-plane tech), ADR-003 (metadata/queue), ADR-004 (sandbox model), ADR-005 (OS support), ADR-006 (mail/DNS), ADR-007 (secrets/privilege), ADR-008 (installer signing). Then create evidence-based P1 GitHub issues.
+Obtain and record owner/security decisions for the draft ADRs and threat model, including ADR-003 (metadata/queue) and ADR-009 (authentication/session/recovery), and finalize P1 scope/support matrix. Keep PRs #14–#19 in draft until their parent chains and design gates are reviewed. Do not deploy to a live VPS.

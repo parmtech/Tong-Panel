@@ -1,5 +1,5 @@
 # Tong Panel — Development Roadmap
-**Date:** 2026-10-26 | **Current phase:** 0 — documentation/planning.  
+**Date:** 2026-10-27 | **Current phase:** P0 architecture/security approval pending; P1 developer prototypes active.
 All durations are intentionally uncommitted; phases are gated by evidence rather than time estimates.
 
 ## Milestone definitions
