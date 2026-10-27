@@ -17,6 +17,7 @@ import (
 const sqlUserBToken = "development-token-user-b-11111111111111111111111111"
 const sqlOtherToken = "development-token-other-22222222222222222222222222"
 const sqlAuditorToken = "development-token-auditor-3333333333333333333333"
+const sqlStaleOwnerToken = "development-token-stale-owner-44444444444444444444"
 
 // The SQL mode is experimental and explicitly seeded by test code; the daemon
 // must never silently make a production owner or an HTTP password bootstrap.
@@ -29,9 +30,9 @@ func setupSQLAPI(t *testing.T) (*Server, *jobs.SQLiteStore, string) {
 	}
 	t.Cleanup(func() { _ = db.Close() })
 	_, err = db.Exec(`INSERT INTO tenants(id,name) VALUES('tenant-a','A'),('tenant-b','B');
-		INSERT INTO identities(id,username) VALUES('u1','alice'),('u2','bob'),('u3','charlie');
+		INSERT INTO identities(id,username) VALUES('u1','alice'),('u2','bob'),('u3','charlie'),('u4','dave');
 		INSERT INTO memberships(tenant_id,identity_id,role)
-		VALUES('tenant-a','u1','customer'),('tenant-a','u2','customer'),('tenant-b','u3','customer');`)
+		VALUES('tenant-a','u1','customer'),('tenant-a','u2','customer'),('tenant-b','u3','customer'),('tenant-a','u4','auditor');`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +40,8 @@ func setupSQLAPI(t *testing.T) (*Server, *jobs.SQLiteStore, string) {
 		secret:          {UserID: "u1", TenantID: "tenant-a", Role: rbac.Customer},
 		sqlUserBToken:   {UserID: "u2", TenantID: "tenant-a", Role: rbac.Customer},
 		sqlOtherToken:   {UserID: "u3", TenantID: "tenant-b", Role: rbac.Customer},
-		sqlAuditorToken: {UserID: "u1", TenantID: "tenant-a", Role: rbac.Auditor},
+		sqlAuditorToken: {UserID: "u4", TenantID: "tenant-a", Role: rbac.Auditor},
+		sqlStaleOwnerToken: {UserID: "u1", TenantID: "tenant-a", Role: rbac.Owner},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -70,6 +72,10 @@ func TestDeveloperSQLiteJobsAPIActorScopeIdempotencyAndCancel(t *testing.T) {
 	h := s.Handler()
 	if r := call(h, "GET", "/api/v1/jobs", "", "", ""); r.Code != 401 {
 		t.Fatalf("unauthenticated SQL read=%d", r.Code)
+	}
+	// A token's stale OWNER role must be replaced with the live database role.
+	if rec := call(h, "GET", "/api/v1/me", sqlStaleOwnerToken, "", ""); rec.Code != 200 || !strings.Contains(rec.Body.String(), "\"Role\":\"customer\"") {
+		t.Fatalf("stale token role was not downgraded: %d %s", rec.Code, rec.Body.String())
 	}
 	const body = `{"kind":"validation.noop"}`
 	createdResp := call(h, "POST", "/api/v1/jobs", secret, "sqlite-key-0001", body)
@@ -131,10 +137,10 @@ func TestDeveloperSQLiteBackendFailsClosedForMissingOrDisabledMembership(t *test
 		t.Fatal(err)
 	}
 	const body = `{"kind":"validation.noop"}`
-	if r := call(h, "POST", "/api/v1/jobs", secret, "sqlite-missing-01", body); r.Code != 400 {
+	if r := call(h, "POST", "/api/v1/jobs", secret, "sqlite-missing-01", body); r.Code != 401 {
 		t.Fatalf("missing membership accepted: %d %s", r.Code, r.Body.String())
 	}
-	if r := call(h, "GET", "/api/v1/jobs", secret, "", ""); r.Code != 403 {
+	if r := call(h, "GET", "/api/v1/jobs", secret, "", ""); r.Code != 401 {
 		t.Fatalf("missing membership could list SQL queue: %d", r.Code)
 	}
 	if _, err := db.Exec("INSERT INTO memberships(tenant_id,identity_id,role) VALUES('tenant-a','u1','customer')"); err != nil {
@@ -143,13 +149,13 @@ func TestDeveloperSQLiteBackendFailsClosedForMissingOrDisabledMembership(t *test
 	if _, err := db.Exec("UPDATE tenants SET status='suspended' WHERE id='tenant-a'"); err != nil {
 		t.Fatal(err)
 	}
-	if r := call(h, "GET", "/api/v1/jobs", secret, "", ""); r.Code != 403 {
+	if r := call(h, "GET", "/api/v1/jobs", secret, "", ""); r.Code != 401 {
 		t.Fatalf("suspended tenant read accepted %d", r.Code)
 	}
 	if _, err := db.Exec("UPDATE tenants SET status='active' WHERE id='tenant-a'; UPDATE identities SET disabled=1 WHERE id='u1'"); err != nil {
 		t.Fatal(err)
 	}
-	if r := call(h, "GET", "/api/v1/jobs", secret, "", ""); r.Code != 403 {
+	if r := call(h, "GET", "/api/v1/jobs", secret, "", ""); r.Code != 401 {
 		t.Fatalf("disabled identity read accepted %d", r.Code)
 	}
 }
