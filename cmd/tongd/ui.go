@@ -17,7 +17,12 @@ func publicHandler(core *api.Server) http.Handler {
 	mux.Handle("/api/", handler)
 	root, _ := fs.Sub(assets, "ui")
 	static := http.FileServer(http.FS(root))
-	mux.Handle("/ui/", http.StripPrefix("/ui/", static))
+	uiStatic := http.StripPrefix("/ui/", static)
+	mux.HandleFunc("/ui/panel-status.mjs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		uiStatic.ServeHTTP(w, r)
+	})
+	mux.Handle("/ui/", uiStatic)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
