@@ -7,6 +7,7 @@ on:
       - 'go.sum'
       - 'cmd/tongd/ui/**'
       - 'scripts/smoke_p1.py'
+      - 'scripts/smoke_bootstrap_owner.py'
       - '.github/workflows/p1-preview-package.yml'
   pull_request:
     paths:
@@ -15,6 +16,7 @@ on:
       - 'go.sum'
       - 'cmd/tongd/ui/**'
       - 'scripts/smoke_p1.py'
+      - 'scripts/smoke_bootstrap_owner.py'
       - '.github/workflows/p1-preview-package.yml'
 permissions:
   contents: read
@@ -53,6 +55,8 @@ jobs:
           grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' "$RUNNER_TEMP/extracted/tong-p1-dev/DO_NOT_INSTALL.txt"
       - name: Run non-destructive smoke using binary extracted from archive
         run: python3 scripts/smoke_p1.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd"
+      - name: Verify extracted CLI creates one audited owner without default credentials
+        run: python3 scripts/smoke_bootstrap_owner.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl"
       - name: Verify extracted doctor remains read only
         run: |
           "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl" doctor > "$RUNNER_TEMP/extracted-doctor.json"

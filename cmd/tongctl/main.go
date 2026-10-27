@@ -9,8 +9,15 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "bootstrap-owner" {
+		if err := localOwnerBootstrap(os.Args[2:], os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, "local bootstrap:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if len(os.Args) != 2 || os.Args[1] != "doctor" {
-		fmt.Fprintln(os.Stderr, "usage: tongctl doctor (read only)")
+		fmt.Fprintln(os.Stderr, "usage: tongctl doctor | tongctl bootstrap-owner --db PATH --username NAME --tenant NAME --password-stdin")
 		os.Exit(2)
 	}
 	r, err := preflight.Detect("/etc/os-release")
