@@ -55,3 +55,21 @@ func (s *SQLiteStore) ListFor(tenant, requester string) ([]Job, error) {
 	}
 	return items, rows.Err()
 }
+
+// RoleFor rechecks the current database membership for a token-bound identity.
+// The database role is authoritative over the caller's development-token role.
+// Fail closed for suspended tenants, disabled identities, and deleted memberships.
+func (s *SQLiteStore) RoleFor(tenant, requester string) (string, error) {
+	if s == nil || s.db == nil || tenant == "" || requester == "" {
+		return "", ErrNotFound
+	}
+	var role string
+	err := s.db.QueryRowContext(s.ctx, `SELECT m.role FROM memberships m
+		JOIN tenants t ON t.id=m.tenant_id AND t.status='active'
+		JOIN identities i ON i.id=m.identity_id AND i.disabled=0
+		WHERE m.tenant_id=? AND m.identity_id=?`, tenant, requester).Scan(&role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrNotFound
+	}
+	return role, err
+}
