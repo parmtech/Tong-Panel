@@ -191,10 +191,10 @@ func (s *InternalLoginService) AuthenticateTrusted(ctx context.Context, tenant, 
 		return denied, ErrLoginDenied
 	}
 	if _, err := conn.ExecContext(ctx,
-		"INSERT INTO sessions(id,tenant_id,identity_id,token_sha256,csrf_sha256,expires_at) "+
-			"VALUES(?,?,?,?,?,?)",
+		"INSERT INTO sessions(id,tenant_id,identity_id,token_sha256,csrf_sha256,expires_at,idle_deadline_unix) "+
+			"VALUES(?,?,?,?,?,?,?)",
 		sessionID, tenant, identity, tokenHash[:], csrfHash[:],
-		expires.Format(time.RFC3339Nano)); err != nil {
+		expires.Format(time.RFC3339Nano), expires.Unix()); err != nil {
 		return denied, err
 	}
 	if _, err := conn.ExecContext(ctx,
