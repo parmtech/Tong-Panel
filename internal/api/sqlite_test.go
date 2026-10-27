@@ -71,7 +71,7 @@ func TestDeveloperSQLiteJobsAPIActorScopeIdempotencyAndCancel(t *testing.T) {
 	if r := call(h, "GET", "/api/v1/jobs", "", "", ""); r.Code != 401 {
 		t.Fatalf("unauthenticated SQL read=%d", r.Code)
 	}
-	const body = "{"kind":"validation.noop"}"
+	const body = `{"kind":"validation.noop"}`
 	createdResp := call(h, "POST", "/api/v1/jobs", secret, "sqlite-key-0001", body)
 	a := assertCreated(t, createdResp.Code, createdResp.Body.Bytes())
 	if a.RequestedBy != "u1" || a.TenantID != "tenant-a" {
@@ -112,7 +112,7 @@ func TestDeveloperSQLiteJobsAPIActorScopeIdempotencyAndCancel(t *testing.T) {
 	if r := call(h, "GET", "/api/v1/jobs/"+a.ID, secret, "", ""); r.Code != 200 || !strings.Contains(r.Body.String(), "cancelled") {
 		t.Fatalf("cancel not persisted: %d %s", r.Code, r.Body.String())
 	}
-	if r := call(h, "POST", "/api/v1/jobs", secret, "sqlite-key-0003", "{"kind":"system.exec"}"); r.Code != 400 {
+	if r := call(h, "POST", "/api/v1/jobs", secret, "sqlite-key-0003", `{"kind":"system.exec"}`); r.Code != 400 {
 		t.Fatalf("unsafe host command accepted: %d", r.Code)
 	}
 }
@@ -130,7 +130,7 @@ func TestDeveloperSQLiteBackendFailsClosedForMissingOrDisabledMembership(t *test
 	if _, err := db.Exec("DELETE FROM memberships WHERE tenant_id='tenant-a' AND identity_id='u1'"); err != nil {
 		t.Fatal(err)
 	}
-	const body = "{"kind":"validation.noop"}"
+	const body = `{"kind":"validation.noop"}`
 	if r := call(h, "POST", "/api/v1/jobs", secret, "sqlite-missing-01", body); r.Code != 400 {
 		t.Fatalf("missing membership accepted: %d %s", r.Code, r.Body.String())
 	}
@@ -157,7 +157,7 @@ func TestDeveloperSQLiteBackendFailsClosedForMissingOrDisabledMembership(t *test
 func TestDeveloperSQLiteJobsAPIRejectsCancellingLeasedJob(t *testing.T) {
 	s, q, _ := setupSQLAPI(t)
 	h := s.Handler()
-	r := call(h, "POST", "/api/v1/jobs", secret, "sqlite-key-lease-01", "{"kind":"validation.noop"}")
+	r := call(h, "POST", "/api/v1/jobs", secret, "sqlite-key-lease-01", `{"kind":"validation.noop"}`)
 	job := assertCreated(t, r.Code, r.Body.Bytes())
 	claim, err := q.ClaimNext("worker-test", time.Minute)
 	if err != nil || claim.Job.ID != job.ID {
