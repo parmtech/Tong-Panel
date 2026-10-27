@@ -18,12 +18,12 @@ type Principal struct {
 }
 
 func (p Principal) Can(action, resourceTenant string) bool {
-	if p.UserID == "" || p.TenantID == "" || resourceTenant == "" {
+	if p.UserID == "" || p.TenantID == "" || resourceTenant == "" || p.TenantID != resourceTenant {
 		return false
 	}
 	switch action {
 	case "jobs:read":
-		return (p.Role == Owner || p.Role == Admin || p.Role == Reseller || p.Role == Customer || p.Role == Auditor) && (p.TenantID == resourceTenant || p.Role == Owner)
+		return (p.Role == Owner || p.Role == Admin || p.Role == Reseller || p.Role == Customer || p.Role == Auditor) && true
 	case "jobs:create", "jobs:cancel":
 		return (p.Role == Owner || p.Role == Admin || p.Role == Reseller || p.Role == Customer) && (p.TenantID == resourceTenant || p.Role == Owner)
 	default:
