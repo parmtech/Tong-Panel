@@ -18,7 +18,8 @@ import (
 
 type Server struct {
 	Keys *auth.Store
-	Jobs *jobs.Store
+	Jobs    *jobs.Store
+	SQLJobs *jobs.SQLiteStore // explicit dev-only, no automatic users or login
 }
 type failure struct {
 	Error struct {
@@ -60,7 +61,7 @@ func (s *Server) Handler() http.Handler {
 	})
 	mux.HandleFunc("/api/v1/me", s.protected(s.me))
 	mux.HandleFunc("/api/v1/jobs", s.protected(s.jobListCreate))
-	mux.HandleFunc("/api/v1/jobs/", s.protected(s.jobGet))
+	mux.HandleFunc("/api/v1/jobs/", s.protected(s.jobDetail))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var raw [8]byte
 		_, _ = rand.Read(raw[:])
@@ -96,7 +97,7 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
 	writeJSON(w, 200, p)
 }
 func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
-	if s.Jobs == nil {
+	if s.Jobs == nil && s.SQLJobs == nil {
 		fail(w, 503, "jobs_unconfigured")
 		return
 	}
@@ -104,6 +105,19 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 	case "GET":
 		if !p.Can("jobs:read", p.TenantID) {
 			fail(w, 403, "forbidden")
+			return
+		}
+		if s.SQLJobs != nil {
+			items, err := s.SQLJobs.ListFor(p.TenantID, p.UserID)
+			if errors.Is(err, jobs.ErrNotFound) {
+				fail(w, 403, "forbidden")
+				return
+			}
+			if err != nil {
+				fail(w, 503, "jobs_unavailable")
+				return
+			}
+			writeJSON(w, 200, map[string]any{"jobs": items})
 			return
 		}
 		writeJSON(w, 200, map[string]any{"jobs": s.Jobs.List(p.TenantID)})
@@ -135,8 +149,20 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 			fail(w, 400, "invalid_request")
 			return
 		}
-		j, err := s.Jobs.Create(p.TenantID, req.Kind, key)
+		var j jobs.Job
+		var err error
+		if s.SQLJobs != nil {
+			j, err = s.SQLJobs.CreateFor(p.TenantID, p.UserID, req.Kind, key)
+		} else {
+			j, err = s.Jobs.Create(p.TenantID, req.Kind, key)
+		}
+		if errors.Is(err, jobs.ErrConflict) {
+			fail(w, 409, "idempotency_conflict")
+			return
+		}
 		if err != nil {
+			// The API never converts failed SQLite membership checks to
+			// trusted user identities, even with an existing dev token.
 			fail(w, 400, "invalid_job")
 			return
 		}
@@ -146,29 +172,65 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 		fail(w, 405, "method_not_allowed")
 	}
 }
-func (s *Server) jobGet(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
-	if r.Method != "GET" {
-		w.Header().Set("Allow", "GET")
-		fail(w, 405, "method_not_allowed")
-		return
-	}
-	if !p.Can("jobs:read", p.TenantID) {
-		fail(w, 403, "forbidden")
-		return
-	}
-	if s.Jobs == nil {
-		fail(w, 503, "jobs_unconfigured")
-		return
-	}
+// jobDetail is read-only unless SQLJobs is explicitly configured. JSON-journal
+// mode has no actor ownership data and cannot support safe cancellation.
+func (s *Server) jobDetail(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/jobs/")
 	if len(id) != 32 || strings.ContainsAny(id, "/\\") {
 		fail(w, 404, "not_found")
 		return
 	}
-	j, err := s.Jobs.Get(p.TenantID, id)
-	if err != nil {
-		fail(w, 404, "not_found")
+	if s.Jobs == nil && s.SQLJobs == nil {
+		fail(w, 503, "jobs_unconfigured")
 		return
 	}
-	writeJSON(w, 200, j)
+	switch r.Method {
+	case "GET":
+		if !p.Can("jobs:read", p.TenantID) {
+			fail(w, 403, "forbidden")
+			return
+		}
+		var j jobs.Job
+		var err error
+		if s.SQLJobs != nil {
+			j, err = s.SQLJobs.GetFor(p.TenantID, p.UserID, id)
+		} else {
+			j, err = s.Jobs.Get(p.TenantID, id)
+		}
+		if errors.Is(err, jobs.ErrNotFound) {
+			fail(w, 404, "not_found")
+			return
+		}
+		if err != nil {
+			fail(w, 503, "jobs_unavailable")
+			return
+		}
+		writeJSON(w, 200, j)
+	case "DELETE":
+		if s.SQLJobs == nil {
+			fail(w, 501, "sql_jobs_required")
+			return
+		}
+		if !p.Can("jobs:cancel", p.TenantID) {
+			fail(w, 403, "forbidden")
+			return
+		}
+		j, err := s.SQLJobs.CancelFor(p.TenantID, p.UserID, id)
+		if errors.Is(err, jobs.ErrNotFound) {
+			fail(w, 404, "not_found")
+			return
+		}
+		if errors.Is(err, jobs.ErrJobNotCancelable) {
+			fail(w, 409, "job_not_cancellable")
+			return
+		}
+		if err != nil {
+			fail(w, 503, "jobs_unavailable")
+			return
+		}
+		writeJSON(w, 200, j)
+	default:
+		w.Header().Set("Allow", "GET, DELETE")
+		fail(w, 405, "method_not_allowed")
+	}
 }
