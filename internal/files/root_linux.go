@@ -20,13 +20,13 @@ import (
 const MaxReadBytes int64 = 16 << 20
 
 var (
-	ErrInvalidRoot  = errors.New("invalid file root")
-	ErrInvalidPath  = errors.New("invalid relative file path")
-	ErrInvalidLimit = errors.New("invalid file size limit")
-	ErrNotRegular   = errors.New("requested path is not a regular file")
-	ErrTooLarge     = errors.New("file exceeds configured read limit")
-	ErrClosed       = errors.New("file root is closed")
-	ErrTenantDenied = errors.New("tenant file root unavailable")
+	ErrInvalidRoot   = errors.New("invalid file root")
+	ErrInvalidPath   = errors.New("invalid relative file path")
+	ErrInvalidLimit  = errors.New("invalid file size limit")
+	ErrNotRegular    = errors.New("requested path is not a regular file")
+	ErrTooLarge      = errors.New("file exceeds configured read limit")
+	ErrClosed        = errors.New("file root is closed")
+	ErrTenantDenied  = errors.New("tenant file root unavailable")
 	ErrAlreadyExists = errors.New("file already exists")
 )
 
