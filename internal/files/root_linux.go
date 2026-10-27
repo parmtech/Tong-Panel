@@ -24,6 +24,7 @@ var (
 	ErrNotRegular   = errors.New("requested path is not a regular file")
 	ErrTooLarge     = errors.New("file exceeds configured read limit")
 	ErrClosed       = errors.New("file root is closed")
+	ErrTenantDenied = errors.New("tenant file root unavailable")
 )
 
 // Root pins a trusted directory using an open descriptor. Close may be called
