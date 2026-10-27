@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-10-26):** P0 PLANNING / documentation. NO runnable panel exists.
+**Current checkpoint (2026-10-27):** P0 ADR/security review still pending; **P1 developer-only loopback prototype exists** in stacked, unmerged draft PRs #14–#25. No verified production hosting panel, signed installer or deployable release. Read UPDATES.md and the new Phase 1 gate report first.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.
@@ -25,11 +25,11 @@
 8. Record factual status, test results, blockers, next action and exact current branch/commit in UPDATES.md at handoff.
 
 ## Current work snapshot
-- P0 planning documents published and AGPL-3.0 licence selected.
-- Original Tong Panel architecture proposed, with strong host-agent privilege separation.
-- Single-server classic hosting MVP planned before modern apps, full hosting and multi-server.
-- User demanded completed blueprint/docs before coding, so **DO NOT BEGIN IMPLEMENTATION until planning review/approval gate passes.**
-- No app, API, Linux service, installer, CI build or binaries yet. Never describe planned features as working.
+- P0 planning documents and AGPL-3.0 licence published, but ADR-001 through ADR-009 and threat model are still **draft/unapproved**.
+- P1 experimental local Go API exists in draft #14 and later stacked drafts, with developer-only auth, SQLite session/job components, prototype tenant RBAC and read-only doctor. The local agent is non-root, Unix-socket ping-only, with **no host mutations**.
+- Go race tests/vet and SQLite schema tests have passing evidence in UPDATES.md. A non-destructive real-process daemon/SQLite/doctor dry-run passed [GitHub workflow #40507195050](https://github.com/parmtech/Tong-Panel/actions/runs/40507195050) on an Ubuntu runner.
+- **No approved installer, secure public login/MFA flow, fully functioning hosted-site lifecycle, signed release, OS VM install/rollback or security audit exists.** P1 Phase 2 entry is blocked.
+- Safe nonprivileged implementation can continue in reviewed development branches. **No privileged host actions, public release or real customer deployment before P0/security gate approval.**
 
 ## Workstream boundaries
 - A: UX/UI, accessibility, tours, documentation.
@@ -78,4 +78,4 @@ Never invent test outcomes or completion percentages. The journal needs explicit
 Edit UPDATES.md CURRENT CHECKPOINT and append a journal entry; link exact commit/PR, list next action, tests and blockers. Push and verify. New agent repeats read order above.
 
 ## Immediate next task
-P0 architecture decisions: draft/review ADR-001 (original code/provenance), ADR-002 (control-plane tech), ADR-003 (metadata/queue), ADR-004 (sandbox model), ADR-005 (OS support), ADR-006 (mail/DNS), ADR-007 (secrets/privilege), ADR-008 (installer signing). Then create evidence-based P1 GitHub issues.
+Read [P1 exit gate report](docs/P1_EXIT_GATE_REPORT_2026-10-27.md) and UPDATES.md; verify the latest branch and PR review state. Resolve draft P0 ADR/security acceptance, production authentication, signed package/installer and disposable OS VM recovery evidence before declaring P1 complete. Avoid additional overlapping draft PRs unless they close a specific unmet gate and have tests. Never claim that a running localhost preview is a shippable hosting panel.
