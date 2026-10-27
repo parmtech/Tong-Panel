@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+
+	"golang.org/x/sys/unix"
 )
 
 func newTestRoot(t *testing.T) (*Root, string) {
@@ -66,6 +68,13 @@ func TestReadFileEnforcesRegularFilesAndByteLimit(t *testing.T) {
 	if _, err := r.ReadFile("directory", 100); !errors.Is(err, ErrNotRegular) {
 		t.Fatalf("directory read error = %v", err)
 	}
+	pipe := filepath.Join(root, "pipe")
+	if err := unix.Mkfifo(pipe, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.ReadFile("pipe", 100); !errors.Is(err, ErrNotRegular) {
+		t.Fatalf("FIFO read error = %v", err)
+	}
 }
 
 func TestReadFileSymlinkSwapNeverReadsOutside(t *testing.T) {
@@ -80,6 +89,7 @@ func TestReadFileSymlinkSwapNeverReadsOutside(t *testing.T) {
 		t.Fatal(err)
 	}
 	stop := make(chan struct{})
+	swapped := make(chan struct{}, 1)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -91,11 +101,17 @@ func TestReadFileSymlinkSwapNeverReadsOutside(t *testing.T) {
 			default:
 			}
 			_ = os.Remove(target)
-			_ = os.Symlink(outsideFile, target)
+			if err := os.Symlink(outsideFile, target); err == nil {
+				select {
+				case swapped <- struct{}{}:
+				default:
+				}
+			}
 			_ = os.Remove(target)
 			_ = os.WriteFile(target, []byte("safe"), 0600)
 		}
 	}()
+	<-swapped
 	for i := 0; i < 1000; i++ {
 		data, err := r.ReadFile("changing.txt", 64)
 		if err == nil && string(data) != "safe" {
