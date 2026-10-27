@@ -13,7 +13,7 @@ A passing Go or SQLite unit test means only those test contracts ran. It is **no
 | --- | --- | --- |
 | P1-01 Repo/workflows | Go formatting + race tests + vet CI; SQLite schema tests, plus non-destructive daemon smoke workflow proposed in PR #25 | Frontend CI/a11y, SAST and dependency/license/SBOM scanning, release provenance |
 | P1-02 Control-plane API | Loopback HTTP version/health, limited authenticated read/no-op job API, bounded JSON/errors | OpenAPI v1 and compatibility tests, hardened transport deployment, comprehensive API contract and abuse suite |
-| P1-03 Authentication | Developer bearer, revocable SQLite sessions/CSRF and HTTPS cookie boundary; Argon2id budget #27, TOTP replay #28, encrypted MFA #29, first Owner CLI #30, SQLite admission limiter #31; **#32 adds internal-only transactional password+MFA/session/audit orchestration** | **No reviewed public HTTPS login handler, trusted peer/proxy binding, approved external secret key lifecycle, remote MFA enrollment/recovery, account-lockout policy, browser cookie issue/rotation/logout, full idle timeout or security signoff** |
+| P1-03 Authentication | Developer bearer, revocable SQLite sessions/CSRF and HTTPS cookie boundary; Argon2id #27, TOTP replay #28, encrypted MFA #29, local Owner #30, limiter #31, internal atomic login #32; **#33 adds SQLite v7 sliding idle expiry, atomic token rotation and audited logout primitives** | **No reviewed public HTTPS login/logout handler, trusted peer/proxy binding, approved external secret key custody, protected MFA recovery, browser session endpoints, abuse policy or security signoff** |
 | P1-04 Identity/RBAC | Tenant-role prototype; authenticated own-job read/cancel, current SQL role validation, no cross-tenant Owner wildcard | Full identity/team/reseller policies, permissioned global operator and end-to-end agent job identity binding |
 | P1-05 Durable jobs | SQLite idempotency, lease fencing/retry/audit and queued cancellation; tests for race, expiry, and actor attribution | Real worker/host effect execution and monotonic fencing, safe rollback and crash/failure recovery, concurrency load tests |
 | P1-06 Local agent | Non-root Unix socket proof-of-concept, peer UID, private socket directory, ping-only | **No privileged typed host actions** or external adversarial review; escalation/host mutation intentionally prohibited |
@@ -30,7 +30,7 @@ The P1 draft-stack source includes `scripts/smoke_p1.py` and `.github/workflows/
 
 1. Fresh anonymous startup: `GET /healthz` and version; preview shell CSP; authenticated API denies missing configuration.
 2. Opt-in developer token: unauthenticated denial, static bearer recognition, `validation.noop` job enqueue and idempotent retry, arbitrary command rejection, JSON-only cancellation disabled.
-3. SQLite opt-in startup with fresh file: migrations reach version 6; **zero default users**; missing membership rejects token.
+3. SQLite opt-in startup with fresh file: migrations reach version 7; **zero default users**; missing membership rejects token.
 4. Explicit disposable fixture: create local test-only tenant and user; no-op job and queued cancellation; exactly one user-attributed audit event.
 5. Disable test user in SQLite: subsequent request denied.
 6. Read-only doctor emits four checks plus explicit *not certified* warning.
@@ -100,6 +100,15 @@ This is **combined branch evidence**, not just separate PR evidence:
 - New auth regression tests exercise valid session/CSRF/revocation, wrong/unknown users, cross-tenant and disabled account, same-step replay, parallel OTP winner, persisted rate-limit denial, and fail-closed audit transaction. No real server account or VPS contacted.
 - **CI VERIFIED PASS** for authentication code commit `c2cfadc0d6e85be13b5dfab7083a77405505caf6`: [Go gofmt/full `go test -race ./...`/`go vet ./...` #40591534457](https://github.com/parmtech/Tong-Panel/actions/runs/40591534457), [actual daemon/SQLite process dry-run #40591534497](https://github.com/parmtech/Tong-Panel/actions/runs/40591534497), and [unsigned developer archive build/extract/smoke #40591534190](https://github.com/parmtech/Tong-Panel/actions/runs/40591534190). All three workflows finished **SUCCESS**. This is not a public login integration or a security assessment.
 - No public TLS listener, secure browser cookie delivery, trusted reverse proxy/client-IP derivation, encrypted master-key custody/rotation, recovery/login UI, device idle-timeout, external pen-test or signed installer. P1 completion and Phase 2 handoff remain **BLOCKED**.
+
+## Internal session lifecycle hardening — draft PR #33 (28 October 2026)
+
+- [Draft PR #33](https://github.com/parmtech/Tong-Panel/pull/33) adds SQLite **v7** `idle_deadline_unix`. Existing pre-v7 sessions are revoked during migration because their last activity cannot be trusted. New SQLite sessions and internal login sessions persist server-side idle deadlines.
+- `SQLiteSessionStore.Check` requires a valid active tenant/identity/current role, absolute expiry and **30-minute sliding idle expiration**; it refreshes deadlines monotonically and permanently revokes sessions observed past an idle/absolute limit to prevent resurrection after clock rollback.
+- Internal-only `Rotate` atomically revokes old bearer/CSRF, issues new random hashed bearer+CSRF with the **same original absolute expiry**, and audits user-attributed rotation. `Logout` revokes and audits in one transaction; audit failure rolls back revocation. No public HTTP/cookie issue/clear route enabled.
+- New tests cover idle/absolute deadlines, concurrent reads, one-winner rotation, preserved expiry across repeated rotations, and audit-failure rollback. `scripts/smoke_p1.py`, bootstrap smoke and DB unit tests were updated for schema v7.
+- **CI VERIFIED ALL PASS** at executable commit `6ae402888141e76aa83f38af5f96805598da5966`: [Go formatting/full `go test -race ./...`/`go vet ./...` #40598738018](https://github.com/parmtech/Tong-Panel/actions/runs/40598738018), [SQLite schema v7 #40598737975](https://github.com/parmtech/Tong-Panel/actions/runs/40598737975), [compiled daemon/SQLite smoke #40598738139](https://github.com/parmtech/Tong-Panel/actions/runs/40598738139), [unsigned developer archive/extraction/process smoke #40598737988](https://github.com/parmtech/Tong-Panel/actions/runs/40598737988). Initial gofmt differences were corrected; later commits are documentation-only. No production installation was certified.
+- The full Phase 1 **release exit is still BLOCKED** by P0/ADR review, public secure login + origin binding, external key custody/recovery, idle-load testing, privileged agent trust, signed installer/SBOM, clean Ubuntu/Debian VM install/rollback/recovery, and UI accessibility/E2E.
 
 ## Publish decision
 
