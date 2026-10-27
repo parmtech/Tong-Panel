@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	mfaSecretMinBytes = 20
-	mfaSecretMaxBytes = 64
+	mfaSecretMinBytes     = 20
+	mfaSecretMaxBytes     = 64
 	mfaMaxCiphertextBytes = 256
 )
 
@@ -21,7 +21,7 @@ const (
 // exposes a browser route. Provisioning and rotation require operator review.
 type MFASecretBox struct {
 	keyID string
-	aead cipher.AEAD
+	aead  cipher.AEAD
 }
 
 // NewMFASecretBox accepts only a 32-byte key and an ASCII stable key ID.
