@@ -37,10 +37,10 @@ func setupSQLAPI(t *testing.T) (*Server, *jobs.SQLiteStore, string) {
 		t.Fatal(err)
 	}
 	keys, err := auth.NewDevStore(map[string]rbac.Principal{
-		secret:          {UserID: "u1", TenantID: "tenant-a", Role: rbac.Customer},
-		sqlUserBToken:   {UserID: "u2", TenantID: "tenant-a", Role: rbac.Customer},
-		sqlOtherToken:   {UserID: "u3", TenantID: "tenant-b", Role: rbac.Customer},
-		sqlAuditorToken: {UserID: "u4", TenantID: "tenant-a", Role: rbac.Auditor},
+		secret:             {UserID: "u1", TenantID: "tenant-a", Role: rbac.Customer},
+		sqlUserBToken:      {UserID: "u2", TenantID: "tenant-a", Role: rbac.Customer},
+		sqlOtherToken:      {UserID: "u3", TenantID: "tenant-b", Role: rbac.Customer},
+		sqlAuditorToken:    {UserID: "u4", TenantID: "tenant-a", Role: rbac.Auditor},
 		sqlStaleOwnerToken: {UserID: "u1", TenantID: "tenant-a", Role: rbac.Owner},
 	})
 	if err != nil {
@@ -52,7 +52,6 @@ func setupSQLAPI(t *testing.T) (*Server, *jobs.SQLiteStore, string) {
 	}
 	return &Server{Keys: keys, SQLJobs: q}, q, path
 }
-
 
 // assertCreated makes the test failures include the HTTP error schema if needed.
 func assertCreated(t *testing.T, status int, body []byte) jobs.Job {
