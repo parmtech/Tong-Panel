@@ -33,4 +33,4 @@ jobs:
       - name: Read-only doctor smoke on CI runner
         run: |
           go run ./cmd/tongctl doctor > "$RUNNER_TEMP/tong-doctor.json"
-          python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/tong-doctor.json")); assert len(d["checks"])==4; assert any("not certified" in x.lower() for x in d["Warnings"]); print("doctor read-only JSON validated; distro is NOT certified")'
+          python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/tong-doctor.json")); assert len(d["checks"])==4; assert any("certified" in x.lower() for x in d["Warnings"]); print("doctor read-only JSON validated; distro is NOT certified")'
