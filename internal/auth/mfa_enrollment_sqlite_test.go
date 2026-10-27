@@ -103,7 +103,7 @@ func TestMFAEnrollmentRefusesSuspendedRevokedExpiredOrTampered(t *testing.T) {
 		t.Fatalf("denied enrollments consumed codes: %d %v", n, err)
 	}
 	// Tampering must never reveal the original seed or activate.
-	if _, err := db.Exec("UPDATE mfa_totp_enrollments SET pending_expires_at='2099-12-31T00:00:00Z',secret_envelope='v1:key_2026:AAAAAAA' WHERE identity_id='user-a'"); err != nil {
+	if _, err := db.Exec("UPDATE mfa_totp_enrollments SET pending_expires_at='2099-12-31T00:00:00Z',secret_envelope='v1:key_2026:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' WHERE identity_id='user-a'"); err != nil {
 		t.Fatal(err)
 	}
 	if ok, err := store.ConfirmTrusted(ctx, "tenant-a", "user-a", nextCode); ok || err == nil {
