@@ -58,7 +58,7 @@ func bootstrapID() (string, error) {
 	return hex.EncodeToString(value[:]), nil
 }
 
-// BootstrapOwner creates the first local owner in an otherwise empty v6
+// BootstrapOwner creates the first local owner in an otherwise empty v7
 // metadata database. Hashing precedes locking. BEGIN IMMEDIATE serializes
 // competing bootstraps. Account, role and audit commit or roll back together.
 // The local CLI MUST verify secure file ownership and mode before calling it.
@@ -105,7 +105,7 @@ func BootstrapOwner(ctx context.Context, db *sql.DB, username, tenantName string
 	if err := conn.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return empty, err
 	}
-	if version != 6 {
+	if version != 7 {
 		return empty, ErrBootstrapUnavailable
 	}
 	var populated int
