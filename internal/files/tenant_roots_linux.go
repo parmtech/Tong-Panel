@@ -1,0 +1,40 @@
+//go:build linux
+
+package files
+
+// TenantRoots maps server-owned tenant identifiers to pinned filesystem roots.
+// Callers must derive tenantID from an authenticated, authorized principal;
+// this mapping is not authentication or authorization by itself.
+type TenantRoots struct {
+	roots map[string]*Root
+}
+
+// NewTenantRoots copies a static tenant-to-root mapping. Empty identifiers or
+// nil roots are rejected; callers cannot mutate the copied mapping afterward.
+func NewTenantRoots(roots map[string]*Root) (*TenantRoots, error) {
+	if len(roots) == 0 {
+		return nil, ErrTenantDenied
+	}
+	copied := make(map[string]*Root, len(roots))
+	for tenantID, root := range roots {
+		if tenantID == "" || root == nil {
+			return nil, ErrTenantDenied
+		}
+		copied[tenantID] = root
+	}
+	return &TenantRoots{roots: copied}, nil
+}
+
+// ReadFileForTenant resolves only the root assigned to tenantID. It never
+// falls back to a shared/default root. tenantID must come from the server's
+// verified request principal, never directly from a client parameter.
+func (t *TenantRoots) ReadFileForTenant(tenantID, relative string, maxBytes int64) ([]byte, error) {
+	if t == nil || tenantID == "" {
+		return nil, ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return nil, ErrTenantDenied
+	}
+	return root.ReadFile(relative, maxBytes)
+}
