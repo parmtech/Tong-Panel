@@ -4,14 +4,15 @@
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
-## LATEST VERIFIED WORK — 2026-10-27, Argon2id password verifier prototype
-- **Branch:** `feature/p1-argon2-password-verifier`, stacked on draft PR #17 at commit `308bda0283e4ee0e01f4726be7a787fc9289abfe`; focused draft PR and Actions status are pending publication/verification.
-- **Changed files:** `internal/auth/password.go`, `internal/auth/password_test.go`, `go.mod`, `go.sum`, this journal and `docs/P1_AUTH_DATABASE_PROGRESS.md`.
+## LATEST VERIFIED WORK — 2026-10-27, Argon2id verifier and auth design proposal
+- **Branch/PR:** `feature/p1-argon2-password-verifier`, draft [PR #18](https://github.com/parmtech/Tong-Panel/pull/18), stacked on draft PR #17. Verified code commit `b9d0bf4816368d96ad7492d5b63ebdfc538444b1`; this journal/design follow-up is being added to the same PR.
+- **Changed files:** `internal/auth/password.go`, `internal/auth/password_test.go`, `go.mod`, `go.sum`, `docs/ADR-009-AUTHENTICATION.md`, `docs/ADR_REGISTER.md`, this journal and `docs/P1_AUTH_DATABASE_PROGRESS.md`.
 - **Working primitive:** Argon2id PHC hash/verify with a 16-byte random salt, 64 MiB / 3-pass / 4-lane creation profile, constant-time digest comparison, 1 KiB password and 512-byte PHC bounds, and strict memory/time/parallelism caps checked before KDF. Includes a rehash-policy helper and benchmark. Not wired to account creation, login, API or daemon.
 - **Dependency:** pinned `golang.org/x/crypto v0.41.0`; its module declares Go 1.23.0. `golang.org/x/sys` resolves to v0.35.0 as its transitive requirement. This is a compatible dependency pin, not a complete security/advisory or licence audit.
-- **Local verification:** Go 1.25.14 Windows/amd64 `go test ./internal/auth` and `go vet ./internal/auth` passed. One-iteration benchmark measured 31.7 ms/op and 67,133,560 B/op on this developer machine; this is not VPS sizing evidence. `go test ./...` is blocked by pre-existing Linux-only `syscall.Statfs` symbols in `internal/preflight` on Windows. Full race tests and full vet remain for Linux CI.
-- **Review/gates:** read-only auth review confirmed ADR/security review remains unapproved. This standalone, non-privileged prototype has no route or external effects; all PRs remain drafts. No production VPS changes. **Phase 1 and the cPanel alternative remain incomplete.**
-- **Next one action:** publish the focused draft PR, verify Linux Actions, and request maintainer/security review before any login/session wiring.
+- **Local verification:** Go 1.25.14 Windows/amd64 `go test ./internal/auth`, `go vet ./internal/auth`, applicable P1 package tests/vet and `go build -o NUL ./cmd/tongd` passed. One-iteration benchmark measured 31.7 ms/op and 67,133,560 B/op on this developer machine; this is not VPS sizing evidence. `go test ./...` and `go vet ./...` are blocked by pre-existing Linux-only `syscall.Statfs` symbols in `internal/preflight` on Windows. Local race testing is unavailable because CGO is disabled.
+- **Remote CI:** on code commit `b9d0bf4816368d96ad7492d5b63ebdfc538444b1`, Go Actions [run #40426977182](https://github.com/parmtech/Tong-Panel/actions/runs/40426977182) passed formatting, full `go test -race ./...` and `go vet ./...` on Linux.
+- **Design gate:** added draft ADR-009 as a review packet. Owner/security approval remains pending. The verifier has no route or external effects; all PRs remain drafts. No production VPS changes. **Phase 1 and the cPanel alternative remain incomplete.**
+- **Next one action:** obtain owner/security review of ADR-009 and PR #18 before any login/session wiring.
 
 ## LATEST SESSION — 2026-10-27, P1 SQLite queue slice
 - **Branch/PR:** `feature/p1-sqlite-transactional-queue`, draft [PR #16](https://github.com/parmtech/Tong-Panel/pull/16), stacked on draft PR #15 (`feature/p1-auth-sessions-sqlite`), then #14. SQLite/session implementation commit `6795148c39404f653f57d8936670f2d29595345f`.
