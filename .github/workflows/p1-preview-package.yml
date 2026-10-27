@@ -1,0 +1,66 @@
+name: P1 unsigned developer package lab
+on:
+  push:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'cmd/tongd/ui/**'
+      - 'scripts/smoke_p1.py'
+      - '.github/workflows/p1-preview-package.yml'
+  pull_request:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'cmd/tongd/ui/**'
+      - 'scripts/smoke_p1.py'
+      - '.github/workflows/p1-preview-package.yml'
+permissions:
+  contents: read
+jobs:
+  unsigned-dev-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.3'
+          cache: false
+      - name: Build intentionally nonproduction Linux amd64 binaries
+        run: |
+          mkdir -p "$RUNNER_TEMP/tong-p1-dev/bin"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/bin/tongd" ./cmd/tongd
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/bin/tongctl" ./cmd/tongctl
+          cp LICENSE "$RUNNER_TEMP/tong-p1-dev/LICENSE"
+          printf '%s\n' \
+            'TONG PANEL — UNSIGNED DEVELOPER PREVIEW ONLY' \
+            'DO NOT RUN ON A PRODUCTION SERVER OR EXPOSE TO THE INTERNET.' \
+            'There is no production login, root host-agent action or verified installer.' \
+            'The source is on unmerged development branches; do not use with customers.' \
+            'This is NOT a supported distro package or signed release.' \
+            > "$RUNNER_TEMP/tong-p1-dev/DO_NOT_INSTALL.txt"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" tong-p1-dev
+          (cd "$RUNNER_TEMP" && sha256sum tong-p1-UNSIGNED-dev-linux-amd64.tar.gz > SHA256SUMS)
+      - name: Verify archive extraction and checksum
+        run: |
+          (cd "$RUNNER_TEMP" && sha256sum -c SHA256SUMS)
+          mkdir -p "$RUNNER_TEMP/extracted"
+          tar -xzf "$RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" -C "$RUNNER_TEMP/extracted"
+          test -x "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd"
+          test -x "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl"
+          grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' "$RUNNER_TEMP/extracted/tong-p1-dev/DO_NOT_INSTALL.txt"
+      - name: Run non-destructive smoke using binary extracted from archive
+        run: python3 scripts/smoke_p1.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd"
+      - name: Verify extracted doctor remains read only
+        run: |
+          "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl" doctor > "$RUNNER_TEMP/extracted-doctor.json"
+          python3 -c 'import json,os; p=os.path.join(os.environ["RUNNER_TEMP"],"extracted-doctor.json"); d=json.load(open(p)); assert len(d["checks"])==4; assert "Development-only" in d["Warnings"][0]; print("doctor diagnostics parsed; no supported OS claim")'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tong-p1-UNSIGNED-developer-preview-linux-amd64
+          path: |
+            ${{ runner.temp }}/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz
+            ${{ runner.temp }}/SHA256SUMS
+          retention-days: 7
