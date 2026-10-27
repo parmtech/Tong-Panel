@@ -43,15 +43,23 @@
 - **NOT IMPLEMENTED:** production login/Argon2id, persistent sessions, actual Go SQL adapter, transactional job queue and worker, complete host agent security, installer, distro/restore testing. P1 still **IN PROGRESS**.
 - **NEXT ACTION:** Verify Go Actions for PR #15, review/merge PR #14 first, resolve authentication and SQLite architecture/security signoff, then integrate SQL migration runner and auth session persistence with tests. No live VPS touched.
 
+## LATEST VERIFIED WORK — 2026-10-27, P1 audit + queue fairness (NOT A RELEASE)
+
+- **New draft PR #21:** [worker/system audit provenance](https://github.com/parmtech/Tong-Panel/pull/21), stacked on #20. Adds transactional SQLite migration v3, worker vs human vs system attribution, historical ambiguous event cleanup, SQL guard triggers, Go and Python schema regression tests. Fixed schema CI path trigger so migrations actually run tests. **CI PASS:** [Go #40436483271](https://github.com/parmtech/Tong-Panel/actions/runs/40436483271) (gofmt, full go test -race, vet) and [SQLite #40436483021](https://github.com/parmtech/Tong-Panel/actions/runs/40436483021) (schema checks).
+- **New draft PR #22:** [queue exhaustion starvation fix](https://github.com/parmtech/Tong-Panel/pull/22), stacked on #21. SQLite queue prioritizes runnable jobs below retry cap before old exhausted stale leases, which are still reconciled when no runnable job remains. Regression test verifies a ready job is claimable and old stale lease eventually fails with system audit. **CI PASS:** [Go #40436752659](https://github.com/parmtech/Tong-Panel/actions/runs/40436752659) (gofmt, full go test -race, vet).
+- **Explicit limits:** all PRs #13–#22 are unmerged drafts; no customer hosting, real worker execution, host privilege changes or installable panel. Full project P1–P6 **NOT COMPLETE**. No server accessed or deployed to; tests are scoped Go/SQLite prototype tests.
+- **Next ONE actionable step:** review PR stack #14 → #15 → #16 → #17 → #20 → #21 → #22 and independent #18/#19 with maintainer/security review, integrate auth+queue safely behind enabled policy, and work through P1 test/installer gates before P2 hosting features. Preserve negative test and provenance evidence.
+- **Agent resume:** read AGENTS.md, latest repository PR states, and this exact checkpoint before edits; do not invent autonomous background agents or completion percentages.
+
 ## 2026-10-27 — Active security repair: worker audit attribution
 
 - **User goal:** finish full Tong Panel; **current reality:** P1 is still experimental and unmerged, and P2–P6 remain unimplemented. Do not imply complete product.
 - **New draft:** [PR #21](https://github.com/parmtech/Tong-Panel/pull/21), branch `feature/p1-worker-audit-actors` stacked on PR #20. GitHub source is committed but **not merged**.
 - **Bug fixed in code:** previous SQLite job-worker/reconciler events were incorrectly written with `actor_identity_id` of original requesting user. Migration v3 adds actor_kind/ref columns and schema guards; historical ambiguous worker events relabelled `unknown`, human creation/cancellation remain attributed to the actual requester; worker events use validated IDs; lease reconciliation is attributed to system, never the requester.
 - **Files:** `internal/database/migrations/0003_audit_actor_provenance.sql`, `internal/database/database.go` and updated migration tests, `internal/jobs/sqlite_lease.go`, `internal/jobs/sqlite_audit_test.go`, `internal/database/audit_migration_test.go`, `docs/P1_AUDIT_PROVENANCE.md` on PR #21.
-- **Tests:** Go CI [run #40436189696](https://github.com/parmtech/Tong-Panel/actions/runs/40436189696) was triggered; its result MUST be verified before claiming test success. This change has not been installed on a VPS. Source review and DB migration compatibility remain gating requirements.
+- **Tests:** Go Actions [#40436483271](https://github.com/parmtech/Tong-Panel/actions/runs/40436483271) and SQLite Actions [#40436483021](https://github.com/parmtech/Tong-Panel/actions/runs/40436483021) PASS at schema-test head; initial Go [#40436189696](https://github.com/parmtech/Tong-Panel/actions/runs/40436189696) also PASS. This change has not been installed on a VPS. Source review and DB migration compatibility remain gating requirements.
 - **Blockers:** P0 ADRs/security review, parent stacked PRs #14–#20 review/merge, production login/MFA, actual host agent safe operations, signed installer and distro VM validation, all P2–P6 functional hosting slices. Worker identifiers are not yet a cryptographically authenticated worker identity; host-side fencing remains mandatory.
-- **Next one action:** check PR #21's Go+SQLite checks, fix failures and review migration/audit invariants; then review parent PR stack safely.
+- **Next one action:** review PR #21/#22 with parent stack, verify actor and queue invariants at integration boundaries before enabling any real worker.
 
 ## CURRENT CHECKPOINT — READ FIRST
 
