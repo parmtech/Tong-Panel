@@ -16,6 +16,7 @@ import (
 const KindNoop = "validation.noop"
 const (
 	Queued  = "queued"
+	Leased  = "leased"
 	Running = "running"
 	Done    = "completed"
 	Failed  = "failed"

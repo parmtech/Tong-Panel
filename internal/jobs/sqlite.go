@@ -10,18 +10,20 @@ import (
 	"time"
 )
 
-// SQLiteStore persists the existing no-op job prototype in the shared metadata DB.
-// It deliberately has no worker, lease, or host-mutation behavior.
+// SQLiteStore persists no-op jobs and their bounded lease lifecycle in the shared
+// metadata DB. It deliberately does not execute jobs or mutate the host.
 type SQLiteStore struct {
-	db  *sql.DB
-	ctx context.Context
+	db          *sql.DB
+	ctx         context.Context
+	now         func() time.Time
+	maxAttempts int
 }
 
 func NewSQLiteStore(db *sql.DB) (*SQLiteStore, error) {
 	if db == nil {
 		return nil, errors.New("missing SQLite database")
 	}
-	return &SQLiteStore{db: db, ctx: context.Background()}, nil
+	return &SQLiteStore{db: db, ctx: context.Background(), now: time.Now, maxAttempts: 3}, nil
 }
 
 // CreateFor records a job and its requesting identity in one transaction. An
@@ -43,6 +45,9 @@ func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error
 		if existing.Kind != kind || existing.RequestedBy != requester {
 			return Job{}, ErrConflict
 		}
+		if err := activeRequester(s.ctx, tx, tenant, requester); err != nil {
+			return Job{}, err
+		}
 		if err := tx.Commit(); err != nil {
 			return Job{}, err
 		}
@@ -51,15 +56,7 @@ func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error
 	if !errors.Is(err, sql.ErrNoRows) {
 		return Job{}, err
 	}
-	var eligible int
-	err = tx.QueryRowContext(s.ctx, `SELECT 1 FROM memberships m
-		JOIN tenants t ON t.id=m.tenant_id AND t.status='active'
-		JOIN identities i ON i.id=m.identity_id AND i.disabled=0
-		WHERE m.tenant_id=? AND m.identity_id=?`, tenant, requester).Scan(&eligible)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return Job{}, errors.New("requester is not active in tenant")
-		}
+	if err := activeRequester(s.ctx, tx, tenant, requester); err != nil {
 		return Job{}, err
 	}
 	var raw [16]byte
@@ -67,16 +64,20 @@ func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error
 		return Job{}, err
 	}
 	id := hex.EncodeToString(raw[:])
-	now := time.Now().UTC()
-	_, err = tx.ExecContext(s.ctx, `INSERT INTO jobs(id,tenant_id,requested_by,kind,state,idempotency_key,created_at,updated_at)
-		VALUES(?,?,?,?,'queued',?,?,?)`, id, tenant, requester, kind, key, now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
+	now := s.now().UTC()
+	_, err = tx.ExecContext(s.ctx, `INSERT INTO jobs(id,tenant_id,requested_by,kind,state,idempotency_key,created_at,updated_at,available_at)
+		VALUES(?,?,?,?,'queued',?,?,?,?)`, id, tenant, requester, kind, key, dbTime(now), dbTime(now), dbTime(now))
 	if err != nil {
 		return Job{}, fmt.Errorf("insert job: %w", err)
+	}
+	job := Job{ID: id, TenantID: tenant, Kind: kind, State: Queued, IdempotencyKey: key, CreatedAt: now, UpdatedAt: now, RequestedBy: requester}
+	if err := appendAudit(s.ctx, tx, job, "job.created", now); err != nil {
+		return Job{}, err
 	}
 	if err := tx.Commit(); err != nil {
 		return Job{}, err
 	}
-	return Job{ID: id, TenantID: tenant, Kind: kind, State: Queued, IdempotencyKey: key, CreatedAt: now, UpdatedAt: now, RequestedBy: requester}, nil
+	return job, nil
 }
 
 func (s *SQLiteStore) Get(tenant, id string) (Job, error) {
@@ -108,41 +109,6 @@ func (s *SQLiteStore) List(tenant string) ([]Job, error) {
 		return nil, rows.Err()
 	}
 	return list, nil
-}
-
-// Transition validates and commits one state change atomically. Workers remain
-// intentionally out of scope; callers cannot use this store to execute work.
-func (s *SQLiteStore) Transition(tenant, id, to string) (Job, error) {
-	tx, err := s.db.BeginTx(s.ctx, nil)
-	if err != nil {
-		return Job{}, err
-	}
-	defer tx.Rollback()
-	j, err := scanJob(tx.QueryRowContext(s.ctx, `SELECT id,tenant_id,kind,state,idempotency_key,created_at,updated_at,requested_by
-		FROM jobs WHERE tenant_id=? AND id=?`, tenant, id))
-	if errors.Is(err, sql.ErrNoRows) {
-		return Job{}, ErrNotFound
-	}
-	if err != nil {
-		return Job{}, err
-	}
-	if !((j.State == Queued && to == Running) || (j.State == Running && (to == Done || to == Failed))) {
-		return Job{}, errors.New("invalid job transition")
-	}
-	j.State = to
-	j.UpdatedAt = time.Now().UTC()
-	result, err := tx.ExecContext(s.ctx, `UPDATE jobs SET state=?,updated_at=? WHERE tenant_id=? AND id=? AND state=?`, to, j.UpdatedAt.Format(time.RFC3339Nano), tenant, id, map[string]string{Running: Queued, Done: Running, Failed: Running}[to])
-	if err != nil {
-		return Job{}, err
-	}
-	changed, err := result.RowsAffected()
-	if err != nil || changed != 1 {
-		return Job{}, errors.New("job state changed concurrently")
-	}
-	if err := tx.Commit(); err != nil {
-		return Job{}, err
-	}
-	return j, nil
 }
 
 type rowScanner interface{ Scan(...any) error }

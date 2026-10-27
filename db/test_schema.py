@@ -4,7 +4,7 @@ import sqlite3
 import tempfile
 import unittest
 
-MIGRATION = (pathlib.Path(__file__).parents[1] / "internal" / "database" / "migrations" / "0001_initial.sql").read_text()
+MIGRATIONS = sorted((pathlib.Path(__file__).parents[1] / "internal" / "database" / "migrations").glob("[0-9][0-9][0-9][0-9]_*.sql"))
 
 
 class SchemaTests(unittest.TestCase):
@@ -15,14 +15,16 @@ class SchemaTests(unittest.TestCase):
         self.con = sqlite3.connect(self.path)
         self.addCleanup(lambda: self.con.close())
         self.con.execute("PRAGMA foreign_keys = ON")
-        self.con.executescript(MIGRATION)
+        for version, migration in enumerate(MIGRATIONS, start=1):
+            self.con.executescript(migration.read_text())
+            self.con.execute(f"PRAGMA user_version={version}")
         self.con.execute("INSERT INTO tenants(id,name) VALUES('a','A'),('b','B')")
         self.con.execute("INSERT INTO identities(id,username) VALUES('u1','alice'),('u2','bob')")
         self.con.execute("INSERT INTO memberships(tenant_id,identity_id,role) VALUES('a','u1','owner'),('b','u2','customer')")
         self.con.commit()
 
     def test_schema_and_persistent_reopen(self):
-        self.assertEqual(self.con.execute("PRAGMA user_version").fetchone()[0], 1)
+        self.assertEqual(self.con.execute("PRAGMA user_version").fetchone()[0], len(MIGRATIONS))
         self.con.close()
         self.con = sqlite3.connect(self.path)
         self.con.execute("PRAGMA foreign_keys=ON")
