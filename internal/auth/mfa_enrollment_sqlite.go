@@ -16,7 +16,7 @@ var ErrMFAEnrollmentUnavailable = errors.New("MFA enrollment unavailable")
 // NEVER connect BeginTrusted to an unauthenticated or developer-token-only
 // HTTP route. An approved password/re-auth/bootstrap proof is required first.
 type MFAEnrollmentStore struct {
-	db *sql.DB
+	db  *sql.DB
 	box *MFASecretBox
 	now func() time.Time
 }
@@ -48,10 +48,16 @@ func (s *MFAEnrollmentStore) BeginTrusted(ctx context.Context, tenant, identity 
 		JOIN tenants t ON t.id=m.tenant_id
 		WHERE i.id=? AND m.tenant_id=? AND i.disabled=0 AND t.status='active'
 		ON CONFLICT(identity_id) DO NOTHING`, envelope, expiry, identity, tenant)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	n, err := res.RowsAffected()
-	if err != nil { return nil, err }
-	if n != 1 { return nil, ErrMFAEnrollmentUnavailable }
+	if err != nil {
+		return nil, err
+	}
+	if n != 1 {
+		return nil, ErrMFAEnrollmentUnavailable
+	}
 	// Only trusted callers may show this once; the DB stores encrypted bytes.
 	return secret, nil
 }
@@ -65,17 +71,27 @@ func (s *MFAEnrollmentStore) ConfirmTrusted(ctx context.Context, tenant, identit
 	err := s.db.QueryRowContext(ctx, `SELECT secret_envelope FROM mfa_totp_enrollments
 		WHERE identity_id=? AND status='pending' AND julianday(pending_expires_at)>julianday(?)`,
 		identity, now.Format(time.RFC3339Nano)).Scan(&envelope)
-	if errors.Is(err, sql.ErrNoRows) { return false, nil }
-	if err != nil { return false, err }
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
 	secret, err := s.box.Open(identity, envelope)
-	if err != nil { return false, err } // tampered ciphertext must fail closed
+	if err != nil {
+		return false, err
+	} // tampered ciphertext must fail closed
 	defer clear(secret)
 	step, ok := acceptedTOTPStep(secret, code, now)
-	if !ok { return false, nil }
+	if !ok {
+		return false, nil
+	}
 	// One transaction couples replay consumption to enrollment activation.
 	// If the identity/tenant is revoked or another client won, both roll back.
 	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil { return false, err }
+	if err != nil {
+		return false, err
+	}
 	defer tx.Rollback()
 	r, err := tx.ExecContext(ctx, `INSERT INTO totp_replay_state(identity_id,last_accepted_step)
 		SELECT e.identity_id,? FROM mfa_totp_enrollments e
@@ -89,20 +105,34 @@ func (s *MFAEnrollmentStore) ConfirmTrusted(ctx context.Context, tenant, identit
 			updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
 		WHERE excluded.last_accepted_step>totp_replay_state.last_accepted_step`,
 		step, tenant, identity, now.Format(time.RFC3339Nano))
-	if err != nil { return false, err }
+	if err != nil {
+		return false, err
+	}
 	n, err := r.RowsAffected()
-	if err != nil { return false, err }
-	if n != 1 { return false, nil }
+	if err != nil {
+		return false, err
+	}
+	if n != 1 {
+		return false, nil
+	}
 	r, err = tx.ExecContext(ctx, `UPDATE mfa_totp_enrollments
 		SET status='active',activated_at=?
 		WHERE identity_id=? AND status='pending'
 			AND julianday(pending_expires_at)>julianday(?)`,
 		now.Format(time.RFC3339Nano), identity, now.Format(time.RFC3339Nano))
-	if err != nil { return false, err }
+	if err != nil {
+		return false, err
+	}
 	n, err = r.RowsAffected()
-	if err != nil { return false, err }
-	if n != 1 { return false, nil }
-	if err := tx.Commit(); err != nil { return false, err }
+	if err != nil {
+		return false, err
+	}
+	if n != 1 {
+		return false, nil
+	}
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
@@ -115,12 +145,20 @@ func (s *MFAEnrollmentStore) VerifyActive(ctx context.Context, tenant, identity,
 	var envelope string
 	err := s.db.QueryRowContext(ctx, `SELECT secret_envelope FROM mfa_totp_enrollments WHERE identity_id=? AND status='active'`,
 		identity).Scan(&envelope)
-	if errors.Is(err, sql.ErrNoRows) { return false, nil }
-	if err != nil { return false, err }
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
 	secret, err := s.box.Open(identity, envelope)
-	if err != nil { return false, err }
+	if err != nil {
+		return false, err
+	}
 	defer clear(secret)
 	guard, err := NewTOTPReplayGuard(s.db)
-	if err != nil { return false, err }
+	if err != nil {
+		return false, err
+	}
 	return guard.VerifyAndConsume(ctx, tenant, identity, secret, code, s.now().UTC())
 }
