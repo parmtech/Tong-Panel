@@ -340,7 +340,6 @@ func TestWriteNewSymlinkSwapNeverChangesOutsideFile(t *testing.T) {
 	}
 }
 
-
 func TestListDirReturnsBoundedSortedNoFollowMetadata(t *testing.T) {
 	r, root := newTestRoot(t)
 	if err := os.WriteFile(filepath.Join(root, "b.txt"), []byte("1234"), 0600); err != nil {
