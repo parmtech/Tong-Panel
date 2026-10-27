@@ -216,4 +216,3 @@ func TestSQLiteCookieSessionRevocationAndCurrentRole(t *testing.T) {
 		t.Fatalf("revoked session was accepted: %d", rec.Code)
 	}
 }
-
