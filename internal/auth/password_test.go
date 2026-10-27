@@ -117,3 +117,20 @@ func BenchmarkHashPassword(b *testing.B) {
 		}
 	}
 }
+
+func FuzzParseArgon2PHC(f *testing.F) {
+	validSalt := "MDEyMzQ1Njc4OWFiY2RlZg"
+	validHash := "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY"
+	for _, seed := range []string{
+		"",
+		"$argon2id$v=19$m=65536,t=3,p=4$" + validSalt + "$" + validHash,
+		"$argon2i$v=19$m=65536,t=3,p=4$" + validSalt + "$" + validHash,
+		"$argon2id$v=19$m=+65536,t=3,p=4$" + validSalt + "$" + validHash,
+		strings.Repeat("x", maxPasswordPHCBytes+1),
+	} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, encoded string) {
+		_, _ = parseArgon2PHC(encoded)
+	})
+}

@@ -1,6 +1,6 @@
 # P1 Authentication and SQLite Metadata — Development Checkpoint
 
-**Date:** 2026-10-26, Australia/Sydney | **Status:** implemented foundations with unit tests; not integrated or production ready.
+**Historical snapshot dated 2026-10-26 (Australia/Sydney).** Later dated follow-on sections below supersede this snapshot where newer code or test evidence exists. Status at this snapshot: foundations had unit tests, but were not integrated or production ready.
 
 ## Implemented in stacked feature branch
 - `internal/auth/sessions.go`: in-memory cryptographically random 32-byte session and CSRF tokens, SHA-256 hashed storage, bounded expiration (<=24 hours), per-session and per-user revocation, an HTTPS-only host-bound `__Host-` cookie helper and a delete-cookie helper.
