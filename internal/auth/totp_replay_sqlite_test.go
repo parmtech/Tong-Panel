@@ -98,7 +98,10 @@ func TestTOTPReplayGuardSerializesAcrossDatabaseHandles(t *testing.T) {
 	at := time.Unix(1_800_000_000, 0)
 	code, _ := TOTPCode(secret, at)
 	const attempts = 10
-	type result struct{ ok bool; err error }
+	type result struct {
+		ok  bool
+		err error
+	}
 	results := make(chan result, attempts)
 	start := make(chan struct{})
 	var wg sync.WaitGroup
@@ -137,7 +140,10 @@ func TestTOTPReplayGuardInvalidCodeDoesNotWriteState(t *testing.T) {
 	guard, _ := NewTOTPReplayGuard(db)
 	secret := []byte("12345678901234567890")
 	at := time.Unix(1_800_000_000, 0)
-	for _, tc := range []struct{ sec []byte; code string }{
+	for _, tc := range []struct {
+		sec  []byte
+		code string
+	}{
 		{nil, "123456"}, {secret, "short"}, {secret, "12a456"},
 		{secret, "000000"}, {secret, ""},
 	} {
