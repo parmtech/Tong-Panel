@@ -1,8 +1,19 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-10-26 (Sydney)  
+**Updated:** 2026-10-27 (Sydney)  
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## MOST RECENT CHECKPOINT — 2026-10-27 (Sydney), P1 safe queued cancellation
+
+- **Actual code:** [draft PR #20](https://github.com/parmtech/Tong-Panel/pull/20), head `feature/p1-safe-queued-cancellation`, stacked on [draft PR #17](https://github.com/parmtech/Tong-Panel/pull/17). Nothing merged or deployed from this branch.
+- **New files:** `internal/jobs/sqlite_cancel.go`, `internal/jobs/sqlite_cancel_test.go`, `docs/P1_JOB_CANCELLATION.md`.
+- **Behavior added:** `CancelFor` for the original active requester's own QUEUED SQLite no-op job, atomic with audit write and serialized against worker claims, repeat-safe. Leased/running/finished jobs cannot be reported cancelled.
+- **Tests added, awaiting verified result:** own-job and repeat cancellation, unauthorized tenant/user denial, disabled/suspended account denial, audit rollback, leased/running rejection, cancel-versus-claim race. [Go workflow #40434912175](https://github.com/parmtech/Tong-Panel/actions/runs/40434912175) triggered; verify conclusion before claiming tests passed.
+- **Related earlier drafts found on resume:** [#14 core API](https://github.com/parmtech/Tong-Panel/pull/14), [#15 sessions/schema](https://github.com/parmtech/Tong-Panel/pull/15), [#16 SQLite stores](https://github.com/parmtech/Tong-Panel/pull/16), [#17 worker lease lifecycle](https://github.com/parmtech/Tong-Panel/pull/17), [#18 Argon2id verifier](https://github.com/parmtech/Tong-Panel/pull/18), [#19 dashboard status](https://github.com/parmtech/Tong-Panel/pull/19). These remain drafts, not production functionality or merged code.
+- **Security restrictions:** job engine is still only `validation.noop`, not an executing worker. Cancellation has no HTTP route, cannot stop host effects, and host-side fencing/actor provenance review are still needed.
+- **Next ONE action:** check PR #20 Go workflow; fix any failures, then review parent PRs and architecture/security ADRs before any production integration.
+- **Phase state:** **P1 IN PROGRESS, NOT COMPLETE**. No released installer, production auth flow, privileged operations or verified VPS install.
 
 ## LATEST VERIFIED WORK — 2026-10-26, Phase 1 (P1-07 partial)
 - **PR:** [Draft #14 — P1 Core Foundation](https://github.com/parmtech/Tong-Panel/pull/14), branch `feature/p1-core-foundation` (not merged).
