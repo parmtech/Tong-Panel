@@ -20,18 +20,18 @@ var ErrLoginDenied = errors.New("authentication denied")
 // There is deliberately NO public HTTP login endpoint, cookie delivery,
 // reverse-proxy trust or external key provisioning in this change.
 type InternalLoginService struct {
-	db *sql.DB
-	box *MFASecretBox
-	limiter *SQLiteLoginLimiter
-	budget *PasswordVerifyBudget
+	db       *sql.DB
+	box      *MFASecretBox
+	limiter  *SQLiteLoginLimiter
+	budget   *PasswordVerifyBudget
 	dummyPHC string
-	now func() time.Time
+	now      func() time.Time
 }
 
 type InternalLoginResult struct {
-	Token string
-	CSRF string
-	Expires time.Time
+	Token     string
+	CSRF      string
+	Expires   time.Time
 	Principal rbac.Principal
 }
 
@@ -208,9 +208,9 @@ func (s *InternalLoginService) AuthenticateTrusted(ctx context.Context, tenant, 
 	}
 	committed = true
 	return InternalLoginResult{
-		Token: hex.EncodeToString(rawToken[:]),
-		CSRF: hex.EncodeToString(rawCSRF[:]),
-		Expires: expires,
+		Token:     hex.EncodeToString(rawToken[:]),
+		CSRF:      hex.EncodeToString(rawCSRF[:]),
+		Expires:   expires,
 		Principal: rbac.Principal{UserID: identity, TenantID: tenant, Role: rbac.Role(role)},
 	}, nil
 }
