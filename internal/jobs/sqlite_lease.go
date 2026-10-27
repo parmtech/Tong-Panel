@@ -61,7 +61,9 @@ func (s *SQLiteStore) ClaimNext(workerID string, duration time.Duration) (Claim,
 			JOIN identities i ON i.id=j.requested_by AND i.disabled=0
 			WHERE (j.state='queued' AND COALESCE(julianday(j.available_at),julianday(j.created_at))<=julianday(?))
 			   OR (j.state IN ('leased','running') AND COALESCE(julianday(j.lease_until),0)<=julianday(?))
-			ORDER BY j.created_at,j.id LIMIT 1`, dbTime(now), dbTime(now)).
+			-- Claim eligible jobs before expired leases that already exhausted their retry budget.
+			-- Otherwise the oldest exhausted lease can starve newer runnable jobs.
+			ORDER BY CASE WHEN j.attempt_count >= ? THEN 1 ELSE 0 END, j.created_at,j.id LIMIT 1`, dbTime(now), dbTime(now), s.maxAttempts).
 			Scan(&j.ID, &j.TenantID, &j.Kind, &state, &j.IdempotencyKey, &created, &updated, &j.RequestedBy, &attempts)
 		if errors.Is(err, sql.ErrNoRows) {
 			noJobs = true
