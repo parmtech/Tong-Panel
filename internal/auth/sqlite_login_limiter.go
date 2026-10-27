@@ -111,6 +111,12 @@ func (l *SQLiteLoginLimiter) Admit(ctx context.Context, tenant, username, truste
 		return false, err
 	}
 	if bucketCount > maxLoginBuckets {
+		// Commit stale-bucket pruning on global overload, or rolling it
+		// back would leave the limiter permanently locked in overload.
+		if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+			return false, err
+		}
+		committed = true
 		return false, nil
 	}
 	type current struct {
