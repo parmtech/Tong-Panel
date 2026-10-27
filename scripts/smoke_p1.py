@@ -99,6 +99,10 @@ def main(executable):
             status, _, hdrs = request("GET", "/")
             assert_response(status, 200, "embedded static UI")
             assert "frame-ancestors 'none'" in hdrs.get("Content-Security-Policy", "")
+            status, js, headers = request("GET", "/ui/panel-status.mjs")
+            assert_response(status, 200, "embedded panel status module")
+            assert "javascript" in headers.get("Content-Type", "")
+            assert isinstance(js, str) and "loadPanelStatus" in js
             status, body, _ = request("GET", "/api/v1/me")
             assert_response(status, 503, "unconfigured developer auth must deny")
             assert body["error"]["code"] == "auth_unconfigured"
