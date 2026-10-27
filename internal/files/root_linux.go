@@ -202,6 +202,44 @@ func (r *Root) WriteNew(relative string, content []byte) error {
 	return unix.Fsync(parent)
 }
 
+// RemoveFile unlinks one regular file or symlink entry below the pinned root.
+// It never follows a symlink; directories and special files are rejected. A
+// successful unlink followed by a directory-sync error means durability is
+// uncertain even though the path may already be absent.
+func (r *Root) RemoveFile(relative string) error {
+	if r == nil {
+		return ErrClosed
+	}
+	if !validRelativePath(relative) {
+		return ErrInvalidPath
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if !r.open {
+		return ErrClosed
+	}
+	parent, base, err := r.openParent(relative)
+	if err != nil {
+		return err
+	}
+	defer unix.Close(parent)
+
+	var stat unix.Stat_t
+	if err := unix.Fstatat(parent, base, &stat, unix.AT_SYMLINK_NOFOLLOW); err != nil {
+		return err
+	}
+	switch stat.Mode & unix.S_IFMT {
+	case unix.S_IFREG, unix.S_IFLNK:
+		// unlinkat removes the directory entry and never dereferences symlinks.
+	default:
+		return ErrNotRegular
+	}
+	if err := unix.Unlinkat(parent, base, 0); err != nil {
+		return err
+	}
+	return unix.Fsync(parent)
+}
+
 func (r *Root) openParent(relative string) (int, string, error) {
 	fd, err := unix.Openat2(r.fd, path.Dir(relative), &unix.OpenHow{
 		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
