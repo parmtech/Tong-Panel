@@ -134,5 +134,23 @@ class SchemaTests(unittest.TestCase):
         )
 
 
+    def test_login_rate_limit_buckets_cannot_store_invalid_counters(self):
+        row = ("x" * 32).encode()
+        self.con.execute(
+            "INSERT INTO login_attempt_buckets(bucket_sha256,attempts,window_start_unix) VALUES(?,?,?)",
+            (row, 1, 12345),
+        )
+        self.assertEqual(
+            self.con.execute("SELECT attempts FROM login_attempt_buckets").fetchone(), (1,)
+        )
+        for values in [(b"short", 1, 12345), (b"z" * 32, 0, 12345),
+                       (b"z" * 32, 26, 12345), (b"z" * 32, 3, -1)]:
+            with self.assertRaises(sqlite3.IntegrityError):
+                self.con.execute(
+                    "INSERT INTO login_attempt_buckets(bucket_sha256,attempts,window_start_unix) VALUES(?,?,?)",
+                    values,
+                )
+
+
 if __name__ == '__main__':
     unittest.main()
