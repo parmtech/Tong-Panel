@@ -5,7 +5,7 @@
 ## Contract
 
 - `files.OpenRoot` pins a configured directory descriptor and refuses a symlink at the final root component. The configured root and its parent path must be administrator-controlled.
-- `Root.ReadFile` accepts only a normalized relative path, opens beneath the pinned root with Linux `openat2`, and forbids symlinks and magic links. No fallback is attempted if the kernel does not support the required syscall/resolution flags.
+- `Root.ReadFile` accepts only a normalized relative path, opens beneath the pinned root with Linux `openat2`, and forbids symlinks, magic links, and crossing nested mount points. No fallback is attempted if the kernel does not support the required syscall/resolution flags.
 - Reads are limited to 16 MiB maximum, and only regular files are returned. FIFOs and devices are not treated as readable file content.
 - `Close` is synchronized with reads; reads after close fail.
 - The package is not wired to HTTP, the privileged agent, site identities, quotas, or ACLs. It must not be represented as cross-tenant file access control.
