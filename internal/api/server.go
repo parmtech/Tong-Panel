@@ -17,7 +17,7 @@ import (
 )
 
 type Server struct {
-	Keys *auth.Store
+	Keys    *auth.Store
 	Jobs    *jobs.Store
 	SQLJobs *jobs.SQLiteStore // explicit dev-only, no automatic users or login
 }
@@ -184,6 +184,7 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 		fail(w, 405, "method_not_allowed")
 	}
 }
+
 // jobDetail is read-only unless SQLJobs is explicitly configured. JSON-journal
 // mode has no actor ownership data and cannot support safe cancellation.
 func (s *Server) jobDetail(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
