@@ -57,6 +57,7 @@ Authentication KDF work can consume substantial CPU and memory. A corrupted stor
 - Define proxy/origin configuration and a safe bootstrap/recovery procedure when the panel is unreachable.
 - Decide whether the rate limiter needs persistence across restart and how account lockout avoids denial-of-service against a named victim.
 - Complete dependency advisory and transitive licence review for `golang.org/x/crypto` before release.
+- The current Go 1.23-compatible `x/crypto v0.41.0` pin has known advisories in its SSH/agent/OpenPGP packages. The P1 package-set `govulncheck` scan found no reachable vulnerable symbols, but reported those module-level findings plus a Windows-only `x/sys/windows` package finding. Avoid importing the affected packages; review whether to raise the Go toolchain baseline and update the pin before adding SSH functionality or releasing.
 
 ## Acceptance before login integration
 
