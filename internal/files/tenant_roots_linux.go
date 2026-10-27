@@ -51,3 +51,16 @@ func (t *TenantRoots) ListDirForTenant(tenantID, relative string, limit int) ([]
 	}
 	return root.ListDir(relative, limit)
 }
+
+// WriteNewForTenant creates a file only under the pinned root assigned to
+// tenantID. The ID must be derived from an authorized server principal.
+func (t *TenantRoots) WriteNewForTenant(tenantID, relative string, content []byte) error {
+	if t == nil || tenantID == "" {
+		return ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ErrTenantDenied
+	}
+	return root.WriteNew(relative, content)
+}
