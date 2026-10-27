@@ -113,13 +113,13 @@ class SchemaTests(unittest.TestCase):
             "VALUES(?,?,?,?)"
         )
         expiry = "2026-10-29T00:00:00Z"
-        self.con.execute(sql, ("u1", "v1:master-01:encrypted-payload", "pending", expiry))
+        self.con.execute(sql, ("u1", "v1:master-01:encrypted-payload-01234567890123456789", "pending", expiry))
         with self.assertRaises(sqlite3.IntegrityError):
             self.con.execute(sql, ("u2", "plaintext", "pending", expiry))
         with self.assertRaises(sqlite3.IntegrityError):
-            self.con.execute(sql, ("u2", "v1:master-01:encrypted-payload", "active", expiry))
+            self.con.execute(sql, ("u2", "v1:master-01:encrypted-payload-01234567890123456789", "active", expiry))
         with self.assertRaises(sqlite3.IntegrityError):
-            self.con.execute(sql, ("nonexistent", "v1:master-01:encrypted-payload", "pending", expiry))
+            self.con.execute(sql, ("nonexistent", "v1:master-01:encrypted-payload-01234567890123456789", "pending", expiry))
         with self.assertRaises(sqlite3.IntegrityError):
             self.con.execute(
                 "UPDATE mfa_totp_enrollments SET status='active' WHERE identity_id='u1'"
