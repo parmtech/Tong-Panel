@@ -113,7 +113,7 @@ func TestCookieRequiresActualTLSRejectsAmbiguousCredentials(t *testing.T) {
 	s, _, _, token, _ := setupCookieAPI(t)
 	h := s.Handler()
 	for _, tc := range []struct {
-		name string
+		name       string
 		manipulate func(*http.Request)
 	}{
 		{"plaintext with fake proxy TLS", func(req *http.Request) {
