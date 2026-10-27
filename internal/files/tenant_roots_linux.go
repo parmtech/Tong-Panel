@@ -38,3 +38,16 @@ func (t *TenantRoots) ReadFileForTenant(tenantID, relative string, maxBytes int6
 	}
 	return root.ReadFile(relative, maxBytes)
 }
+
+// ListDirForTenant resolves only the root assigned to tenantID. The caller
+// must derive this identifier from the verified server principal.
+func (t *TenantRoots) ListDirForTenant(tenantID, relative string, limit int) ([]Entry, error) {
+	if t == nil || tenantID == "" {
+		return nil, ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return nil, ErrTenantDenied
+	}
+	return root.ListDir(relative, limit)
+}
