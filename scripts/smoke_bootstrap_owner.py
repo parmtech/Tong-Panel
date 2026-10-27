@@ -39,7 +39,7 @@ def main(binary):
         assert db_file.parent.stat().st_mode & 0o077 == 0, "database directory not private"
 
         with sqlite3.connect(str(db_file)) as con:
-            assert con.execute("PRAGMA user_version").fetchone()[0] == 5
+            assert con.execute("PRAGMA user_version").fetchone()[0] == 6
             (user, phc, role) = con.execute(
                 "SELECT i.username,i.password_phc,m.role FROM identities i "
                 "JOIN memberships m ON m.identity_id=i.id").fetchone()
