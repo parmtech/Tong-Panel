@@ -32,20 +32,23 @@ On `feature/p1-sqlite-transactional-queue`, stacked on PR #15:
 - Moved the canonical schema to `internal/database/migrations/0001_initial.sql` and embed it in the Go binary. The Python schema tests now read that same source file.
 - Added `internal/database.Open`: creates a private parent directory, configures `foreign_keys`, a bounded busy timeout, WAL and FULL synchronous mode through per-connection driver pragmas, applies the schema, and limits the Go connection pool to one connection for this single-process prototype.
 - Added an opt-in `jobs.SQLiteStore` prototype. Job creation is a SQL transaction tied to an existing tenant membership; idempotent retries return the same job, cross-tenant reads are scoped, and transitions are validated and committed with a state predicate.
+- Added `auth.SQLiteSessionStore` as an alternative to the in-memory session primitive. It stores only SHA-256 session and CSRF token hashes, persists expiry and revocation, supports user-wide revocation, and re-reads current membership role and disabled identity state for each check. It is not connected to the login flow or API.
 - Added tests for migration persistence, foreign-key enforcement, tenant isolation, idempotency, failed-insert rollback, concurrent retries and state transitions. The current queue accepts only `validation.noop`; no worker executes jobs.
+- Added session tests for process-style database reopen, hash-only persistence, tenant membership enforcement, current role changes, disabled identity denial, expiry, CSRF mismatch, and individual/user-wide revocation.
 - Pinned the cgo-free `modernc.org/sqlite` driver at v1.38.2, the newest version checked that retains the repository's Go 1.23 compatibility baseline, to avoid a platform C compiler requirement. The upstream package is BSD-3-Clause and includes SQLite (public domain); transitive dependency licence inventory remains to be completed before release.
-- The Go queue is intentionally **not wired into the HTTP API or daemon**. Dev-token identity is not a production identity system, and schema/ADR-003/threat review remain unapproved. The existing JSON journal remains the running prototype's store.
+- The Go queue and SQLite session store are intentionally **not wired into the HTTP API or daemon**. Dev-token identity is not a production identity system, and schema/ADR-003/threat review remain unapproved. The existing JSON journal remains the running prototype's store, and the login path has no persistent session support yet.
 
 ### Auth/session direction remains proposed
 
-Before any production login route, the design must specify a vetted Argon2id password verifier and parameter review, generic failure behavior and rate limits, MFA enrollment/recovery and replay handling, TLS-only `__Host-` cookies, server-side hashed session/CSRF token storage, expiry/rotation/revocation, Origin/CSRF checks, and tenant membership revalidation on authenticated requests and jobs. The current `Sessions` manager is memory-only; none of these login flows or controls has been implemented. ADR-003 and the threat model still require maintainer review.
+Before any production login route, the design must specify a vetted Argon2id password verifier and parameter review, generic failure behavior and rate limits, MFA enrollment/recovery and replay handling, TLS-only `__Host-` cookies, server-side hashed session/CSRF token storage, expiry/rotation/revocation, Origin/CSRF checks, and tenant membership revalidation on authenticated requests and jobs. `SessionManager` remains memory-only; `SQLiteSessionStore` is an isolated persistence primitive, not a login flow. No Argon2id verifier, MFA flow, cookie issuance route, CSRF/Origin middleware or rate limiting has been implemented. ADR-003 and the threat model still require maintainer review.
 
 ### Validation on this branch
 
 - Go 1.25.14 Windows/amd64: focused package tests for database/jobs, plus tests for API/auth/health/daemon/RBAC, passed; `go vet` for those packages passed; `go build ./cmd/tongd` passed.
 - GitHub Actions on driver update commit `cc7608349e0f6f56ed3c85eec37d7869f0456b8c`: [Go checks #40423199616](https://github.com/parmtech/Tong-Panel/actions/runs/40423199616) passed, including gofmt, full `go test -race ./...`, and `go vet ./...`; [SQLite schema checks #40423199639](https://github.com/parmtech/Tong-Panel/actions/runs/40423199639) passed.
+- The session-store code and tests added after that CI run have passed their focused local Go tests; they still require a new Linux Go race CI run.
 - `go test ./...` could not build the existing Linux-only `internal/preflight` package on Windows (`syscall.Statfs_t`/`syscall.Statfs` unavailable).
 - `go test -race ./...` could not run on the Windows toolchain because CGO is unavailable. Linux CI must provide the full race result.
 - Python schema tests were not run locally because Python is unavailable. The updated schema workflow is expected to run in GitHub Actions after push; no result is claimed here.
-- No API login, persistent sessions, lease/retry worker, audit trail for jobs, privileged operations, installer or VPS change was added.
+- No API login wiring, Argon2id, MFA, lease/retry worker, audit trail for jobs, privileged operations, installer or VPS change was added.
 
