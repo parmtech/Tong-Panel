@@ -59,5 +59,36 @@ class SchemaTests(unittest.TestCase):
             self.con.execute("INSERT INTO jobs(id,tenant_id,requested_by,kind,state,idempotency_key) VALUES('j0','a','u1','validation.noop','exec','test-00001')")
 
 
+    def test_audit_actor_provenance_guards(self):
+        self.con.execute(
+            "INSERT INTO audit_events(id,tenant_id,actor_identity_id,actor_kind,actor_ref,action,subject_id,request_id) "
+            "VALUES('human','a','u1','user',NULL,'job.created','job-1','request-1')"
+        )
+        self.con.execute(
+            "INSERT INTO audit_events(id,tenant_id,actor_identity_id,actor_kind,actor_ref,action,subject_id,request_id) "
+            "VALUES('worker','a',NULL,'worker','worker-1','job.leased','job-1','request-2')"
+        )
+        self.con.execute(
+            "INSERT INTO audit_events(id,tenant_id,actor_identity_id,actor_kind,actor_ref,action,subject_id,request_id) "
+            "VALUES('reconciler','a',NULL,'system','lease-reconciler','job.lease_expired','job-1','request-3')"
+        )
+        self.assertEqual(
+            self.con.execute("SELECT actor_kind,actor_ref,actor_identity_id FROM audit_events WHERE id='worker'").fetchone(),
+            ('worker', 'worker-1', None),
+        )
+        for values in [
+            ('spoof-human', 'a', None, 'user', None, 'job.created', 'job-1', 'request-4'),
+            ('spoof-worker', 'a', 'u1', 'worker', 'worker-1', 'job.leased', 'job-1', 'request-5'),
+            ('spoof-system', 'a', None, 'system', None, 'job.failed', 'job-1', 'request-6'),
+        ]:
+            with self.assertRaises(sqlite3.IntegrityError):
+                self.con.execute(
+                    "INSERT INTO audit_events(id,tenant_id,actor_identity_id,actor_kind,actor_ref,action,subject_id,request_id) VALUES(?,?,?,?,?,?,?,?)",
+                    values,
+                )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("UPDATE audit_events SET actor_kind='worker' WHERE id='human'")
+
+
 if __name__ == '__main__':
     unittest.main()
