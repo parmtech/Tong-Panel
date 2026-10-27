@@ -61,7 +61,10 @@ func TestLocalOwnerBootstrapCreatesSingleAuditedArgon2idOwner(t *testing.T) {
 func TestLocalOwnerBootstrapRefusesPartialAndInvalidInput(t *testing.T) {
 	_, db := emptyBootstrapDB(t)
 	password := []byte("valid bootstrapping passphrase")
-	for _, tc := range []struct{ name, tenant string; password []byte }{
+	for _, tc := range []struct {
+		name, tenant string
+		password     []byte
+	}{
 		{"Owner", "Tenant", password},
 		{"root/admin", "Tenant", password},
 		{"one", "   ", password},
@@ -114,7 +117,10 @@ func TestLocalOwnerBootstrapRaceAllowsOnlyOneOwner(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer other.Close()
-	type outcome struct{ result BootstrapResult; err error }
+	type outcome struct {
+		result BootstrapResult
+		err    error
+	}
 	responses := make(chan outcome, 2)
 	start := make(chan struct{})
 	var wg sync.WaitGroup
