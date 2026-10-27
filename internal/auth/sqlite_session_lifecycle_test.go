@@ -101,7 +101,7 @@ func TestSQLiteSessionLogoutAuditsAndRollsBackOnAuditFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec("CREATE TRIGGER block_logout BEFORE INSERT ON audit_events "+
+	if _, err := db.Exec("CREATE TRIGGER block_logout BEFORE INSERT ON audit_events " +
 		"WHEN NEW.action='auth.logout' BEGIN SELECT RAISE(ABORT,'audit failed'); END"); err != nil {
 		t.Fatal(err)
 	}
@@ -219,4 +219,3 @@ func TestSQLiteSessionMigrationV7RejectsMissingIdleDeadline(t *testing.T) {
 		t.Fatalf("unparseable session rotated: %v", err)
 	}
 }
-
