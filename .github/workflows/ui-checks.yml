@@ -22,7 +22,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24.x'
-          cache: false
       - name: TypeScript check
         run: npm exec --yes --package=typescript@5.9.3 -- tsc --project web/tsconfig.json --noEmit
       - name: UI behavior tests
