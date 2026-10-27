@@ -85,6 +85,7 @@ func TestReadFileSymlinkSwapNeverReadsOutside(t *testing.T) {
 		t.Fatal(err)
 	}
 	target := filepath.Join(root, "changing.txt")
+	safeTemp := filepath.Join(root, "changing.safe.tmp")
 	if err := os.WriteFile(target, []byte("safe"), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +109,10 @@ func TestReadFileSymlinkSwapNeverReadsOutside(t *testing.T) {
 				}
 			}
 			_ = os.Remove(target)
-			_ = os.WriteFile(target, []byte("safe"), 0600)
+			_ = os.Remove(safeTemp)
+			if err := os.WriteFile(safeTemp, []byte("safe"), 0600); err == nil {
+				_ = os.Rename(safeTemp, target)
+			}
 		}
 	}()
 	<-swapped
