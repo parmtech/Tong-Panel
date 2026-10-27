@@ -36,6 +36,7 @@ On `feature/p1-sqlite-transactional-queue`, stacked on PR #15:
 - Added tests for migration persistence, foreign-key enforcement, tenant isolation, idempotency, failed-insert rollback, concurrent retries and state transitions. The current queue accepts only `validation.noop`; no worker executes jobs.
 - Added session tests for process-style database reopen, hash-only persistence, tenant membership enforcement, current role changes, disabled identity denial, expiry, CSRF mismatch, and individual/user-wide revocation.
 - Follow-up review tightened session issuance/checks to deny suspended tenants, made schema startup fail closed on a future schema version, and blocked new queue rows for suspended tenants or disabled identities. Added regression coverage for those cases.
+- Added numbered SQLite migration v2 with serialized, transactional upgrades. The no-op SQLite queue now supports bounded claim/start/renew/complete/fail transitions, retry delays and a maximum of three attempts, lease-expiry recovery, hashed lease tokens, and attempt/audit writes in the same transaction. Competing worker handles claim distinct jobs; stale claims are rejected after expiry/reclaim. No worker executes host operations, and the API/daemon still use the JSON prototype.
 - Pinned the cgo-free `modernc.org/sqlite` driver at v1.38.2, the newest version checked that retains the repository's Go 1.23 compatibility baseline, to avoid a platform C compiler requirement. The upstream package is BSD-3-Clause and includes SQLite (public domain); transitive dependency licence inventory remains to be completed before release.
 - The Go queue and SQLite session store are intentionally **not wired into the HTTP API or daemon**. Dev-token identity is not a production identity system, and schema/ADR-003/threat review remain unapproved. The existing JSON journal remains the running prototype's store, and the login path has no persistent session support yet.
 
@@ -54,5 +55,6 @@ Before any production login route, the design must specify a vetted Argon2id pas
 - `go test ./...` could not build the existing Linux-only `internal/preflight` package on Windows (`syscall.Statfs_t`/`syscall.Statfs` unavailable).
 - `go test -race ./...` could not run on the Windows toolchain because CGO is unavailable; the Linux Actions race run above passed.
 - Python schema tests were not run locally because Python is unavailable; the updated schema workflow passed in GitHub Actions above.
-- No API login wiring, Argon2id, MFA, lease/retry worker, audit trail for jobs, privileged operations, installer or VPS change was added.
+- No API login wiring, Argon2id, MFA, executing worker, host-side fence, privileged operations, installer or VPS change was added. The database lease/attempt/audit lifecycle is a non-executing prototype only.
+- Host-side fencing is still required before any real operation is enabled: a database lease can reject stale state updates but cannot stop a paused worker that resumes and applies an external side effect. Require an ordered fence validated immediately before host changes, plus pause/expiry/recovery tests.
 

@@ -2,8 +2,6 @@
 -- IMPORTANT: Set PRAGMA foreign_keys=ON on EVERY SQLite connection.
 -- This schema is not wired to the live Go API or the development JSON job journal.
 -- All rows and cross-tenant access still require RBAC in API and job workers.
-PRAGMA foreign_keys = ON;
-BEGIN IMMEDIATE;
 CREATE TABLE IF NOT EXISTS tenants (
   id TEXT PRIMARY KEY NOT NULL CHECK(length(id) BETWEEN 1 AND 128),
   name TEXT NOT NULL CHECK(length(name) BETWEEN 1 AND 160),
@@ -75,5 +73,3 @@ CREATE TABLE IF NOT EXISTS audit_events (
   FOREIGN KEY (tenant_id, actor_identity_id) REFERENCES memberships(tenant_id, identity_id) ON DELETE RESTRICT
 ) STRICT;
 CREATE INDEX IF NOT EXISTS audit_tenant_date ON audit_events(tenant_id, created_at);
-PRAGMA user_version = 1;
-COMMIT;

@@ -20,8 +20,8 @@ import (
 var migrations embed.FS
 
 // Open creates the parent directory, enables foreign-key enforcement on every
-// SQLite connection, applies the embedded initial schema to a new database, and
-// rejects databases created by a newer schema version.
+// SQLite connection, applies embedded migrations, and rejects databases created
+// by a newer schema version.
 func Open(ctx context.Context, path string) (*sql.DB, error) {
 	if strings.TrimSpace(path) == "" || path == ":memory:" {
 		return nil, errors.New("a file-backed SQLite path is required")
@@ -51,27 +51,60 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 		db.Close()
 		return nil, fmt.Errorf("connect SQLite: %w", err)
 	}
-	const schemaVersion = 1
-	var version int
-	if err := db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
+	if err := applyMigrations(ctx, db); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("read SQLite schema version: %w", err)
-	}
-	if version > schemaVersion {
-		db.Close()
-		return nil, fmt.Errorf("SQLite schema version %d is newer than supported version %d", version, schemaVersion)
-	}
-	if version == schemaVersion {
-		return db, nil
-	}
-	schema, err := migrations.ReadFile("migrations/0001_initial.sql")
-	if err != nil {
-		db.Close()
-		return nil, fmt.Errorf("read embedded schema: %w", err)
-	}
-	if _, err := db.ExecContext(ctx, string(schema)); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("apply SQLite schema: %w", err)
+		return nil, err
 	}
 	return db, nil
+}
+
+func applyMigrations(ctx context.Context, db *sql.DB) error {
+	const schemaVersion = 2
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("get SQLite migration connection: %w", err)
+	}
+	defer conn.Close()
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+			return fmt.Errorf("begin SQLite migration lock: %w", err)
+		}
+		var version int
+		if err := conn.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+			return fmt.Errorf("read SQLite schema version: %w", err)
+		}
+		if version > schemaVersion {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+			return fmt.Errorf("SQLite schema version %d is newer than supported version %d", version, schemaVersion)
+		}
+		if version == schemaVersion {
+			if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+				return fmt.Errorf("finish SQLite migration check: %w", err)
+			}
+			return nil
+		}
+		next := version + 1
+		name := fmt.Sprintf("migrations/%04d_%s.sql", next, map[int]string{1: "initial", 2: "job_leases"}[next])
+		script, err := migrations.ReadFile(name)
+		if err != nil {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+			return fmt.Errorf("read embedded SQLite migration %d: %w", next, err)
+		}
+		if _, err := conn.ExecContext(ctx, string(script)); err != nil {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+			return fmt.Errorf("apply SQLite migration %d: %w", next, err)
+		}
+		if _, err := conn.ExecContext(ctx, fmt.Sprintf("PRAGMA user_version = %d", next)); err != nil {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+			return fmt.Errorf("set SQLite schema version %d: %w", next, err)
+		}
+		if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+			return fmt.Errorf("commit SQLite migration %d: %w", next, err)
+		}
+	}
 }
