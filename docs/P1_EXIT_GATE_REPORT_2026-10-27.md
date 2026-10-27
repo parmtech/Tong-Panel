@@ -35,7 +35,7 @@ The PR #25 source includes `scripts/smoke_p1.py` and `.github/workflows/p1-smoke
 5. Disable test user in SQLite: subsequent request denied.
 6. Read-only doctor emits four checks plus explicit *not certified* warning.
 
-**CI run:** [P1 developer smoke workflow #40506869294](https://github.com/parmtech/Tong-Panel/actions/runs/40506869294). Record final outcome after reading job results; do not mark it PASS while pending.
+**CI VERIFIED:** Initial [P1 smoke run #40506869294](https://github.com/parmtech/Tong-Panel/actions/runs/40506869294) successfully built the daemon and passed ALL real-process smoke cases, but failed a doctor-warning test that searched for the wrong phrase. The assertion was fixed without changing the diagnostic code. Final [P1 smoke run #40507195050](https://github.com/parmtech/Tong-Panel/actions/runs/40507195050) **PASSED ALL STEPS**: daemon build, anonymous API/UI, journal no-op, SQLite v3 migration/membership/audit/revocation, read-only doctor JSON. This is Ubuntu GitHub runner evidence only, not signed OS installer or production VM install certification.
 
 Existing evidence on parent branches: [Go race CI #40479073313](https://github.com/parmtech/Tong-Panel/actions/runs/40479073313), [SQLite schema CI #40436483021](https://github.com/parmtech/Tong-Panel/actions/runs/40436483021). These are **unit/integration** checks, not install certification.
 
@@ -58,6 +58,6 @@ Only run in a **disposable lab environment** with a known free TCP 8090. The smo
 
 **Required to advance P1 → P2:** approved P0/ADR security boundaries; tested and recoverable account bootstrap + Argon2id + MFA + login rate limits + sessions; typed authorized agent contract and malicious input/UID tests; crash/lease/rollback; API and UI integration with accessibility evidence; real dependency/security scans; signed preview package + tamper test; clean Ubuntu/Debian VM installation/start/restart/rollback and backup/restore evidence; signed reviewer/owner acceptance.
 
-**Next actionable step after CI:** triage actual smoke log, fix any test failures, then scope the reviewed authentication/login+MFA vertical slice. Do not close Phase 1 from a green smoke test alone.
+**Next actionable step after CI:** review the complete unmerged PR stack plus P0 ADR-009, scope the rate-limited Argon2id + replay-protected MFA + reviewed TLS login vertical slice, and run clean supported-distro installer/recovery evidence before exit signoff. Do not close Phase 1 from a green smoke test alone.
 
 **Responsible project:** ParmTech. Status authored from available repository/CI evidence, not an independent pen-test or signed owner release decision.
