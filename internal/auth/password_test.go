@@ -136,4 +136,3 @@ func FuzzParseArgon2PHC(f *testing.F) {
 		_, _ = parseArgon2PHC(encoded)
 	})
 }
-
