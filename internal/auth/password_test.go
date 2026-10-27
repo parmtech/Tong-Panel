@@ -79,9 +79,13 @@ func TestPasswordPHCRejectsMalformedAndUnboundedParameters(t *testing.T) {
 		"$argon2i$v=19$m=65536,t=3,p=4$" + validSalt + "$" + validHash,
 		"$argon2id$v=16$m=65536,t=3,p=4$" + validSalt + "$" + validHash,
 		"$argon2id$v=19$m=4294967295,t=3,p=4$" + validSalt + "$" + validHash,
+		"$argon2id$v=19$m=131073,t=3,p=4$" + validSalt + "$" + validHash,
 		"$argon2id$v=19$m=65536,t=999999,p=4$" + validSalt + "$" + validHash,
+		"$argon2id$v=19$m=65536,t=7,p=4$" + validSalt + "$" + validHash,
 		"$argon2id$v=19$m=65536,t=3,p=255$" + validSalt + "$" + validHash,
+		"$argon2id$v=19$m=+65536,t=3,p=4$" + validSalt + "$" + validHash,
 		"$argon2id$v=19$m=65536,m=65536,t=3,p=4$" + validSalt + "$" + validHash,
+		"$argon2id$v=19$m=65536,t=3,p=4,x=1$" + validSalt + "$" + validHash,
 		"$argon2id$v=19$m=65536,t=3,p=4$short$" + validHash,
 		"$argon2id$v=19$m=65536,t=3,p=4$" + validSalt + "$short",
 	} {

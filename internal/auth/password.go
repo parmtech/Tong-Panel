@@ -94,6 +94,14 @@ func parseArgon2PHC(encoded string) (argon2Params, bool) {
 		if !found || seen[key] {
 			return zero, false
 		}
+		if value == "" {
+			return zero, false
+		}
+		for _, digit := range value {
+			if digit < '0' || digit > '9' {
+				return zero, false
+			}
+		}
 		seen[key] = true
 		parsed, err := strconv.ParseUint(value, 10, 32)
 		if err != nil {
