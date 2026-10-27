@@ -4,7 +4,7 @@ This document applies to the **draft** [PR #30](https://github.com/parmtech/Tong
 
 ## Implemented contract
 
-- `auth.BootstrapOwner(ctx, db, username, tenantName, password)` only succeeds against a **completely empty, v5** SQLite metadata store. It rejects an existing tenant, user, membership, job, session, audit, MFA enrollment or replay record. It **never** resets existing owners or repairs an imported database.
+- `auth.BootstrapOwner(ctx, db, username, tenantName, password)` only succeeds against a **completely empty, v6** SQLite metadata store. It rejects an existing tenant, user, membership, job, session, audit, MFA enrollment or replay record. It **never** resets existing owners or repairs an imported database.
 - First Owner, Tenant, membership and human-attributed `owner.bootstrap` audit record are created within a single `BEGIN IMMEDIATE` transaction. If the audit write fails, all rows roll back. Concurrent bootstraps on separate connections cannot both succeed.
 - The password is hashed with the existing bounded **Argon2id PHC** primitive; password and one-time token values are never written to stdout, the audit table, CLI flags or an environment variable. There is **no default username or password**.
 - `tongctl bootstrap-owner` must be invoked locally with `TONG_ALLOW_LOCAL_OWNER_BOOTSTRAP=yes`, an explicit `--password-stdin` flag, and an anonymous **pipe**, not a terminal or regular file. A database path that is a symlink, group/world accessible, or not owned by the current operator is denied. New file is created `0600`; containing directory must be owner-only.
