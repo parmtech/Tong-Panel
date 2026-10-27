@@ -12,7 +12,9 @@ func newTestMFABox(t *testing.T) *MFASecretBox {
 	t.Helper()
 	key := bytes.Repeat([]byte{0x93}, 32)
 	box, err := NewMFASecretBox("key_2026", key)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	return box
 }
 
@@ -20,9 +22,13 @@ func TestMFASecretBoxEncryptedRandomizedAndIdentityBound(t *testing.T) {
 	box := newTestMFABox(t)
 	secret := []byte("01234567890123456789")
 	first, err := box.Seal("user-a", secret)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	second, err := box.Seal("user-a", secret)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if first == second || strings.Contains(first, string(secret)) {
 		t.Fatal("TOTP seed not protected by fresh authenticated encryption")
 	}
@@ -47,7 +53,9 @@ func TestMFASecretBoxTamperingInvalidFormatsAndBounds(t *testing.T) {
 	box := newTestMFABox(t)
 	secret := []byte("01234567890123456789")
 	good, err := box.Seal("user-a", secret)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, bad := range []string{"", "v2:key_2026:x", "v1:key_2026:x",
 		"v1:key_2026:", "v1:old:x", strings.Repeat("X", 400),
 		good + "=", good + ":suffix"} {
@@ -67,7 +75,10 @@ func TestMFASecretBoxTamperingInvalidFormatsAndBounds(t *testing.T) {
 	if _, err := box.Open("user-a", tampered); err == nil {
 		t.Fatal("AEAD nonce modification was accepted")
 	}
-	for _, tc := range []struct{ identity string; seed []byte }{
+	for _, tc := range []struct {
+		identity string
+		seed     []byte
+	}{
 		{"", secret}, {strings.Repeat("a", 129), secret},
 		{"user\nb", secret}, {"user-a", []byte("short")},
 		{"user-a", bytes.Repeat([]byte{8}, 65)},
@@ -93,14 +104,22 @@ func TestMFASecretBoxTamperingInvalidFormatsAndBounds(t *testing.T) {
 
 func TestMFASecretBoxWorksWithIndependentCryptographicKey(t *testing.T) {
 	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil { t.Fatal(err) }
+	if _, err := rand.Read(key); err != nil {
+		t.Fatal(err)
+	}
 	box, err := NewMFASecretBox("operator_v1", key)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, size := range []int{20, 32, 64} {
 		secret := make([]byte, size)
-		if _, err := rand.Read(secret); err != nil { t.Fatal(err) }
+		if _, err := rand.Read(secret); err != nil {
+			t.Fatal(err)
+		}
 		encrypted, err := box.Seal("account-2026", secret)
-		if err != nil { t.Fatal(err) }
+		if err != nil {
+			t.Fatal(err)
+		}
 		opened, err := box.Open("account-2026", encrypted)
 		if err != nil || !bytes.Equal(opened, secret) {
 			t.Fatalf("round trip seed of %d bytes failed: %v", size, err)
