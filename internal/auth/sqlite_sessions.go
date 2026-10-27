@@ -102,7 +102,17 @@ func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, boo
 	}
 	now := s.now().UTC()
 	parsedExpiry, err := time.Parse(time.RFC3339Nano, expires)
-	if err != nil || !now.Before(parsedExpiry) || idleDeadline <= now.Unix() || !validRole(p.Role) {
+	if err != nil || !validRole(p.Role) {
+		return rbac.Principal{}, empty, false
+	}
+	if !now.Before(parsedExpiry) || idleDeadline <= now.Unix() {
+		// Permanently invalidate sessions observed past an idle or absolute
+		// deadline. A later clock rollback must not revive them. The WHERE
+		// clause avoids revoking an independently refreshed idle deadline.
+		_, _ = s.db.Exec(`UPDATE sessions SET revoked_at=?
+			WHERE token_sha256=? AND revoked_at IS NULL
+			AND (idle_deadline_unix<=? OR expires_at=?)`,
+			now.Format(time.RFC3339Nano), hash[:], now.Unix(), expires)
 		return rbac.Principal{}, empty, false
 	}
 	newIdle := now.Add(sqliteSessionIdle)
