@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/parmtech/tong-panel/internal/api"
 	"github.com/parmtech/tong-panel/internal/auth"
+	"github.com/parmtech/tong-panel/internal/database"
 	"github.com/parmtech/tong-panel/internal/jobs"
 	"github.com/parmtech/tong-panel/internal/rbac"
 	"log"
@@ -32,11 +33,32 @@ func main() {
 	if dataDir == "" {
 		dataDir = filepath.Join(os.TempDir(), "tong-panel-dev")
 	}
-	q, err := jobs.Open(filepath.Join(dataDir, "jobs.json"))
-	if err != nil {
-		logger.Fatal("job journal: ", err)
+	// The SQL mode is opt-in for local development only. No identity, password,
+	// session or default administrator is silently provisioned by this server.
+	var q *jobs.Store
+	var sqlJobs *jobs.SQLiteStore
+	if sqlitePath := os.Getenv("TONG_DEV_SQLITE_DB"); sqlitePath != "" {
+		if keys == nil {
+			logger.Fatal("TONG_DEV_SQLITE_DB requires TONG_DEV_TOKEN in this local-only prototype")
+		}
+		db, err := database.Open(context.Background(), sqlitePath)
+		if err != nil {
+			logger.Fatal("development SQLite store: ", err)
+		}
+		defer db.Close()
+		sqlJobs, err = jobs.NewSQLiteStore(db)
+		if err != nil {
+			logger.Fatal("development SQLite jobs: ", err)
+		}
+		logger.Print("opt-in dev SQLite mode enabled; identity and membership must exist already; no provisioning performed")
+	} else {
+		var err error
+		q, err = jobs.Open(filepath.Join(dataDir, "jobs.json"))
+		if err != nil {
+			logger.Fatal("job journal: ", err)
+		}
 	}
-	server := &http.Server{Addr: "127.0.0.1:8090", Handler: publicHandler(&api.Server{Keys: keys, Jobs: q}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
+	server := &http.Server{Addr: "127.0.0.1:8090", Handler: publicHandler(&api.Server{Keys: keys, Jobs: q, SQLJobs: sqlJobs}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
 	stopCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	errs := make(chan error, 1)
