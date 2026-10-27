@@ -26,6 +26,7 @@ jobs:
           files="$(gofmt -l cmd internal)"
           if [ -n "$files" ]; then
             printf "Go files requiring gofmt:\\n%s\\n" "$files"
+            for file in $files; do diff -u "$file" <(gofmt "$file") || true; done
             exit 1
           fi
       - name: Test
