@@ -2,7 +2,9 @@
 
 package files
 
-// TenantRoots maps server-owned tenant identifiers to pinned filesystem roots.
+import "golang.org/x/sys/unix"
+
+// TenantRoots maps server-owned tenant identifiers to distinct pinned filesystem roots.
 // Callers must derive tenantID from an authenticated, authorized principal;
 // this mapping is not authentication or authorization by itself.
 type TenantRoots struct {
@@ -15,11 +17,29 @@ func NewTenantRoots(roots map[string]*Root) (*TenantRoots, error) {
 	if len(roots) == 0 {
 		return nil, ErrTenantDenied
 	}
+	type rootIdentity struct { dev uint64; ino uint64 }
+	seen := make(map[rootIdentity]struct{}, len(roots))
 	copied := make(map[string]*Root, len(roots))
 	for tenantID, root := range roots {
 		if tenantID == "" || root == nil {
 			return nil, ErrTenantDenied
 		}
+		root.mu.RLock()
+		if !root.open {
+			root.mu.RUnlock()
+			return nil, ErrTenantDenied
+		}
+		var stat unix.Stat_t
+		statErr := unix.Fstat(root.fd, &stat)
+		root.mu.RUnlock()
+		if statErr != nil {
+			return nil, ErrTenantDenied
+		}
+		identity := rootIdentity{dev: uint64(stat.Dev), ino: stat.Ino}
+		if _, exists := seen[identity]; exists {
+			return nil, ErrTenantDenied
+		}
+		seen[identity] = struct{}{}
 		copied[tenantID] = root
 	}
 	return &TenantRoots{roots: copied}, nil
