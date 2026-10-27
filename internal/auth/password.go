@@ -58,7 +58,8 @@ func HashPassword(password []byte) (string, error) {
 // VerifyPassword rejects malformed or over-budget PHC strings before running
 // Argon2. Password bytes are consumed as-is; callers must not trim or log them.
 func VerifyPassword(password []byte, encoded string) bool {
-	if len(password) < 12 || len(password) > maxPasswordBytes || len(encoded) > maxPasswordPHCBytes {
+	// Creation enforces the current minimum; verification must also accept bounded legacy passwords.
+	if len(password) > maxPasswordBytes || len(encoded) > maxPasswordPHCBytes {
 		return false
 	}
 	params, ok := parseArgon2PHC(encoded)

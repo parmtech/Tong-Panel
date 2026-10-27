@@ -59,15 +59,18 @@ func TestPasswordHashRejectsLengthBounds(t *testing.T) {
 	}
 }
 
-func TestPasswordVerifyRejectsLegacyHashBelowMinimum(t *testing.T) {
+func TestPasswordVerifyAcceptsLegacyHashBelowCreationMinimum(t *testing.T) {
 	password := []byte("short")
 	salt := []byte("0123456789abcdef")
 	hash := argon2.IDKey(password, salt, passwordHashTime, passwordHashMemoryKiB, passwordHashThreads, passwordHashLength)
 	encoded := fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s",
 		passwordHashMemoryKiB, passwordHashTime, passwordHashThreads,
 		base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(hash))
-	if VerifyPassword(password, encoded) {
-		t.Fatal("stored password below the configured minimum accepted")
+	if !VerifyPassword(password, encoded) {
+		t.Fatal("valid legacy password below the current creation minimum was rejected")
+	}
+	if _, err := HashPassword(password); err != ErrPasswordTooShort {
+		t.Fatalf("new short password error = %v", err)
 	}
 }
 
