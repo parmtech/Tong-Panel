@@ -24,7 +24,7 @@ func (p Principal) Can(action, resourceTenant string) bool {
 	switch action {
 	case "jobs:read":
 		return (p.Role == Owner || p.Role == Admin || p.Role == Reseller || p.Role == Customer || p.Role == Auditor) && (p.TenantID == resourceTenant || p.Role == Owner)
-	case "jobs:create":
+	case "jobs:create", "jobs:cancel":
 		return (p.Role == Owner || p.Role == Admin || p.Role == Reseller || p.Role == Customer) && (p.TenantID == resourceTenant || p.Role == Owner)
 	default:
 		return false
