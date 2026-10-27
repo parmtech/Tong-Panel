@@ -86,6 +86,18 @@ func (s *Server) protected(h secured) http.HandlerFunc {
 			fail(w, 401, "unauthorized")
 			return
 		}
+		if s.SQLJobs != nil {
+			// In opt-in SQLite mode, the CURRENT database membership is
+			// authoritative. A stale dev token must not preserve a prior
+			// owner/admin role after account disablement or role downgrade.
+			role, err := s.SQLJobs.RoleFor(p.TenantID, p.UserID)
+			if err != nil {
+				w.Header().Set("WWW-Authenticate", "Bearer")
+				fail(w, 401, "unauthorized")
+				return
+			}
+			p.Role = rbac.Role(role)
+		}
 		h(w, r, p)
 	}
 }
