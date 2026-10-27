@@ -125,12 +125,13 @@ func parseArgon2PHC(encoded string) (argon2Params, bool) {
 		return zero, false
 	}
 	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
-	if err != nil || len(salt) < 16 || len(salt) > 32 {
+	if err != nil || len(salt) < 16 || len(salt) > 32 || base64.RawStdEncoding.EncodeToString(salt) != parts[4] {
 		return zero, false
 	}
 	hash, err := base64.RawStdEncoding.DecodeString(parts[5])
-	if err != nil || len(hash) != passwordHashLength {
+	if err != nil || len(hash) != passwordHashLength || base64.RawStdEncoding.EncodeToString(hash) != parts[5] {
 		return zero, false
 	}
 	return argon2Params{memory: uint32(memory), time: uint32(iterations), threads: uint8(parallelism), salt: salt, hash: hash}, true
 }
+
