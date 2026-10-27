@@ -43,6 +43,16 @@
 - **NOT IMPLEMENTED:** production login/Argon2id, persistent sessions, actual Go SQL adapter, transactional job queue and worker, complete host agent security, installer, distro/restore testing. P1 still **IN PROGRESS**.
 - **NEXT ACTION:** Verify Go Actions for PR #15, review/merge PR #14 first, resolve authentication and SQLite architecture/security signoff, then integrate SQL migration runner and auth session persistence with tests. No live VPS touched.
 
+## 2026-10-27 — Active security repair: worker audit attribution
+
+- **User goal:** finish full Tong Panel; **current reality:** P1 is still experimental and unmerged, and P2–P6 remain unimplemented. Do not imply complete product.
+- **New draft:** [PR #21](https://github.com/parmtech/Tong-Panel/pull/21), branch `feature/p1-worker-audit-actors` stacked on PR #20. GitHub source is committed but **not merged**.
+- **Bug fixed in code:** previous SQLite job-worker/reconciler events were incorrectly written with `actor_identity_id` of original requesting user. Migration v3 adds actor_kind/ref columns and schema guards; historical ambiguous worker events relabelled `unknown`, human creation/cancellation remain attributed to the actual requester; worker events use validated IDs; lease reconciliation is attributed to system, never the requester.
+- **Files:** `internal/database/migrations/0003_audit_actor_provenance.sql`, `internal/database/database.go` and updated migration tests, `internal/jobs/sqlite_lease.go`, `internal/jobs/sqlite_audit_test.go`, `internal/database/audit_migration_test.go`, `docs/P1_AUDIT_PROVENANCE.md` on PR #21.
+- **Tests:** Go CI [run #40436189696](https://github.com/parmtech/Tong-Panel/actions/runs/40436189696) was triggered; its result MUST be verified before claiming test success. This change has not been installed on a VPS. Source review and DB migration compatibility remain gating requirements.
+- **Blockers:** P0 ADRs/security review, parent stacked PRs #14–#20 review/merge, production login/MFA, actual host agent safe operations, signed installer and distro VM validation, all P2–P6 functional hosting slices. Worker identifiers are not yet a cryptographically authenticated worker identity; host-side fencing remains mandatory.
+- **Next one action:** check PR #21's Go+SQLite checks, fix failures and review migration/audit invariants; then review parent PR stack safely.
+
 ## CURRENT CHECKPOINT — READ FIRST
 
 **Phase:** P0 architecture/security review pending; P1 core development IN PROGRESS (draft code).  
