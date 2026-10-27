@@ -1,8 +1,20 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-10-27 (Sydney)  
+**Updated:** 2026-10-28 (Sydney)  
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## NEW VERIFIED CHECKPOINT — 2026-10-28 (Sydney): Argon2id + durable MFA replay primitives
+
+- **Owner goal:** finish Phase 1 and become publication/Phase 2-ready. **Actual state:** P1 authentication foundations improved, but production login, signed installer and clean VM acceptance gates remain incomplete; **Phase 2 still BLOCKED**.
+- **PR #27 (DRAFT, not merged):** [Argon2id/PHC verifier consolidated](https://github.com/parmtech/Tong-Panel/pull/27), branch `feature/p1-password-kdf-consolidation`, stacked on #26. Carries isolated password verifier/tests and proposed ADR-009 from original independent draft #18. Adds explicit nonblocking 1–4 slot in-process Argon2id derivation admission control and concurrency tests. No login route or account recovery.
+- **PR #28 (DRAFT, not merged):** [SQLite TOTP replay barrier](https://github.com/parmtech/Tong-Panel/pull/28), `feature/p1-totp-replay-sqlite`, stacked on #27. New migration v4 stores last consumed 30-second step per identity (not secret); `TOTPReplayGuard.VerifyAndConsume` rejects repeated/older steps across tenants, checks live tenant/member/identity, and atomically fences concurrent claims. Negative tests cover malformed codes, disabled/suspended identities and concurrent DB connections. No TOTP secret encryption, enrollment, full login or session issuance.
+- **PR #27 verified CI:** [Go race/vet #40514729111](https://github.com/parmtech/Tong-Panel/actions/runs/40514729111) **PASS**; [actual daemon smoke #40514729807](https://github.com/parmtech/Tong-Panel/actions/runs/40514729807) **PASS**; [unsigned archive smoke #40514729051](https://github.com/parmtech/Tong-Panel/actions/runs/40514729051) **PASS**.
+- **PR #28 verified CI:** [Go checks #40515875960](https://github.com/parmtech/Tong-Panel/actions/runs/40515875960) **PASS** (gofmt, full `go test -race ./...`, vet); [SQLite schema checks #40515875837](https://github.com/parmtech/Tong-Panel/actions/runs/40515875837) **PASS**; [compiled daemon/doctor #40515875930](https://github.com/parmtech/Tong-Panel/actions/runs/40515875930) **PASS**; [unsigned dev-archive #40515876140](https://github.com/parmtech/Tong-Panel/actions/runs/40515876140) **PASS**. Initial code-head gofmt failure corrected; final test steps pass. No customer/server data was used.
+- **Exit gate report updated:** [Draft P1 Exit Gate Report](https://github.com/parmtech/Tong-Panel/blob/feature/p1-totp-replay-sqlite/docs/P1_EXIT_GATE_REPORT_2026-10-27.md); proposed [ADR-009 authentication](https://github.com/parmtech/Tong-Panel/blob/feature/p1-totp-replay-sqlite/docs/ADR-009-AUTHENTICATION.md) still **UNAPPROVED**.
+- **Still-blocking P1 requirements:** local owner bootstrap + reviewed credential store, production login and generic failures/source+account rate limits, encrypted TOTP enrollment and recovery codes, atomic MFA consumption/session issue and cookie rotation, provider-signed artifacts, distro clean VM install/upgrade/recovery, host privilege/worker review, broad UI a11y/E2E tests, architecture decisions and independent security signoff. These cannot be honestly treated as ready.
+- **Next ONE ACTION:** implement/test the **reviewed local-only bootstrap and secure encrypted MFA enrollment/credential storage design** under ADR-009, then integrate login with rate-limits and transactionally coupled TOTP/session/audit; do NOT expose public authentication or merge before owner/security architecture review.
+- **Handoff:** all new source remains in draft PRs #27/#28 atop #26; main is not an installable panel. Do not claim all P1 complete or P2 started. No live VPS touched.
 
 ## LATEST VERIFIED HANDOFF — 2026-10-27 (Sydney): P1 exit dry-run, package lab, UI consolidation
 
