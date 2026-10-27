@@ -78,7 +78,7 @@ func TestInternalLoginIssuesRevocableSessionWithAtomicAudit(t *testing.T) {
 		t.Fatal("login did not create a verifiable session/CSRF pair")
 	}
 	var auditCount int
-	if err := db.QueryRow("SELECT count(*) FROM audit_events WHERE action='auth.login' AND "+
+	if err := db.QueryRow("SELECT count(*) FROM audit_events WHERE action='auth.login' AND " +
 		"actor_kind='user' AND actor_identity_id='user-a'").Scan(&auditCount); err != nil || auditCount != 1 {
 		t.Fatalf("successful authentication audit missing: %d %v", auditCount, err)
 	}
@@ -99,7 +99,7 @@ func TestInternalLoginIssuesRevocableSessionWithAtomicAudit(t *testing.T) {
 func TestInternalLoginAuditFailureDoesNotBurnOTPOrIssueSession(t *testing.T) {
 	service, db, _, password, clock, seed := setupTrustedLogin(t)
 	code, _ := TOTPCode(seed, *clock)
-	if _, err := db.Exec("CREATE TRIGGER block_login_audit BEFORE INSERT ON audit_events "+
+	if _, err := db.Exec("CREATE TRIGGER block_login_audit BEFORE INSERT ON audit_events " +
 		"WHEN NEW.action='auth.login' BEGIN SELECT RAISE(ABORT,'audit unavailable'); END"); err != nil {
 		t.Fatal(err)
 	}
@@ -129,8 +129,8 @@ func TestInternalLoginDeniesUnknownWrongPasswordOrUnenrolledMFA(t *testing.T) {
 	code, _ := TOTPCode(seed, *clock)
 	for _, tc := range []struct {
 		user, tenant, source string
-		password []byte
-		code string
+		password             []byte
+		code                 string
 	}{
 		{"unknown", "tenant-a", "192.0.2.10", password, code},
 		{"alice", "tenant-a", "192.0.2.11", []byte("incorrect-password"), code},
