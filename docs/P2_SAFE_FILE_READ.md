@@ -14,6 +14,10 @@
 
 Linux tests cover parent traversal, absolute/non-normalized paths, symlink and root-symlink rejection, directory/non-regular inputs, byte limits, close behavior, and concurrent reads while an attacker repeatedly swaps a regular file for a symlink to an outside secret. A successful read during the swap may return only the in-root fixture content; kernel errors are expected to fail closed.
 
+## Verification
+
+Code head `15dd7c412bbdfe34fa884d935c49cadf950750b7` passed [Go formatting, full race tests, and vet #40601259497](https://github.com/parmtech/Tong-Panel/actions/runs/40601259497), [daemon smoke #40601259446](https://github.com/parmtech/Tong-Panel/actions/runs/40601259446), and [unsigned archive lab #40601259524](https://github.com/parmtech/Tong-Panel/actions/runs/40601259524). Local Go tests were unavailable.
+
 ## Remaining P2 work
 
 This primitive does not satisfy the P2 Files UI/API or two-tenant isolation gate. The phase still depends on reviewed P1 identity/job/host-agent boundaries, installer and supported-OS lab, service adapters, scoped ACLs/quotas, safe writes/archive handling, and end-to-end restore/security evidence. No host mutation or deployment is included.
