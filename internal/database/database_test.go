@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"path/filepath"
 	"testing"
 )
@@ -32,4 +33,31 @@ func TestOpenAppliesMigrationAndKeepsForeignKeysEnabled(t *testing.T) {
 		t.Fatalf("reopen should be idempotent: %v", err)
 	}
 	db.Close()
+}
+
+func TestOpenRejectsNewerSchemaVersionWithoutDowngrade(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "panel.db")
+	db, err := Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("PRAGMA user_version = 2"); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if db, err := Open(context.Background(), path); err == nil {
+		db.Close()
+		t.Fatal("opened database from a newer schema version")
+	}
+	db, err = sql.Open("sqlite", "file:"+filepath.ToSlash(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var version int
+	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 2 {
+		t.Fatalf("newer schema version was changed: version=%d err=%v", version, err)
+	}
 }

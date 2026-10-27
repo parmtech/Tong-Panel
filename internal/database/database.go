@@ -20,7 +20,8 @@ import (
 var migrations embed.FS
 
 // Open creates the parent directory, enables foreign-key enforcement on every
-// SQLite connection, applies the embedded initial schema, and returns the DB.
+// SQLite connection, applies the embedded initial schema to a new database, and
+// rejects databases created by a newer schema version.
 func Open(ctx context.Context, path string) (*sql.DB, error) {
 	if strings.TrimSpace(path) == "" || path == ":memory:" {
 		return nil, errors.New("a file-backed SQLite path is required")
@@ -49,6 +50,19 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 	if err := db.PingContext(ctx); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("connect SQLite: %w", err)
+	}
+	const schemaVersion = 1
+	var version int
+	if err := db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("read SQLite schema version: %w", err)
+	}
+	if version > schemaVersion {
+		db.Close()
+		return nil, fmt.Errorf("SQLite schema version %d is newer than supported version %d", version, schemaVersion)
+	}
+	if version == schemaVersion {
+		return db, nil
 	}
 	schema, err := migrations.ReadFile("migrations/0001_initial.sql")
 	if err != nil {

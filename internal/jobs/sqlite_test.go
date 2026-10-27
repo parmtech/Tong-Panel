@@ -52,6 +52,21 @@ func TestSQLiteCreateIdempotencyScopeAndTransactions(t *testing.T) {
 	if _, err := store.CreateFor("tenant-a", "missing-user", KindNoop, "request-0002"); err == nil {
 		t.Fatal("missing membership accepted")
 	}
+	if _, err := store.db.Exec("UPDATE tenants SET status='suspended' WHERE id='tenant-a'"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CreateFor("tenant-a", "user-a", KindNoop, "request-0003"); err == nil {
+		t.Fatal("job created for suspended tenant")
+	}
+	if _, err := store.db.Exec("UPDATE tenants SET status='active' WHERE id='tenant-a'; UPDATE identities SET disabled=1 WHERE id='user-a'"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CreateFor("tenant-a", "user-a", KindNoop, "request-0004"); err == nil {
+		t.Fatal("job created by disabled identity")
+	}
+	if _, err := store.db.Exec("UPDATE identities SET disabled=0 WHERE id='user-a'"); err != nil {
+		t.Fatal(err)
+	}
 	var count int
 	if err := store.db.QueryRow("SELECT count(*) FROM jobs WHERE tenant_id='tenant-a'").Scan(&count); err != nil || count != 1 {
 		t.Fatalf("failed insertion left a row: count=%d err=%v", count, err)

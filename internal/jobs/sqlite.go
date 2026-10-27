@@ -51,6 +51,17 @@ func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error
 	if !errors.Is(err, sql.ErrNoRows) {
 		return Job{}, err
 	}
+	var eligible int
+	err = tx.QueryRowContext(s.ctx, `SELECT 1 FROM memberships m
+		JOIN tenants t ON t.id=m.tenant_id AND t.status='active'
+		JOIN identities i ON i.id=m.identity_id AND i.disabled=0
+		WHERE m.tenant_id=? AND m.identity_id=?`, tenant, requester).Scan(&eligible)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Job{}, errors.New("requester is not active in tenant")
+		}
+		return Job{}, err
+	}
 	var raw [16]byte
 	if _, err := rand.Read(raw[:]); err != nil {
 		return Job{}, err
