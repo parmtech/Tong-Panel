@@ -61,7 +61,7 @@
 
 **Phase:** P0 architecture/security review pending; P1 core development IN PROGRESS (draft code).
 **Phase state:** Seven phase plans, draft architecture ADR register, threat model, test strategy and report published; approval and deeper threat review still pending.
-**Implementation state:** P1 developer prototype remains in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14); auth/session foundations are in [draft PR #15](https://github.com/parmtech/Tong-Panel/pull/15); SQLite/session prototypes are in [draft PR #16](https://github.com/parmtech/Tong-Panel/pull/16); the lease/recovery slice is in [draft PR #17](https://github.com/parmtech/Tong-Panel/pull/17). These drafts are unmerged and not production-ready. **P1 NOT COMPLETE.** No hosting app or installer exists.
+**Implementation state:** P1 developer prototype remains in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14); auth/session foundations are in [draft PR #15](https://github.com/parmtech/Tong-Panel/pull/15); SQLite/session prototypes are in [draft PR #16](https://github.com/parmtech/Tong-Panel/pull/16); the lease/recovery slice is in [draft PR #17](https://github.com/parmtech/Tong-Panel/pull/17); and an isolated Argon2id verifier plus proposed ADR-009 are in [draft PR #18](https://github.com/parmtech/Tong-Panel/pull/18). These drafts are unmerged and not production-ready. **P1 NOT COMPLETE.** No hosting app or installer exists.
 **Production/release state:** NOT RELEASED.  
 **Primary branch:** main (verify live branch HEAD before work).  
 **Owner:** ParmTech.
@@ -88,6 +88,7 @@
 
 - [x] P1 developer prototype branch and [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14) pushed, with successful Go workflow run [40260348235](https://github.com/parmtech/Tong-Panel/actions/runs/40260348235).\n- [x] Detailed [Phase 1 report](docs/PHASE1_REPORT_2026-10-26.md) written.\n\n### Pending / unverified
 - [ ] Architecture and licensing ADRs **reviewed and approved** (currently drafted only).
+- [ ] ADR-009 authentication/session proposal and PR #18 reviewed/approved; no login route may be wired before the issue #1/#6 gate is recorded.
 - [ ] Explicit P1 MVP scope and initial supported Linux matrix locked.
 - [ ] Detailed adversarial threat model, signed-artifact/installer design reviewed.
 - [x] P1 issues created (#5–#12).
@@ -96,7 +97,7 @@
 - [ ] External security audit and install/restore compatibility evidence.
 - [ ] Stable product release.
 
-**Next ONE action for a new agent:** request ADR-003/auth-session design review and check the draft PR #14/#15 parent chain before any merge. No live VPS changes.
+**Next ONE action for a new agent:** obtain owner/security review of ADR-003, ADR-009 and the PR #14–#18 stack before any merge or login/API wiring. No live VPS changes.
 
 ## GitHub work queue (OPEN — not assigned or completed)
 - [#1 P0 architecture ADRs and upstream licences](https://github.com/parmtech/Tong-Panel/issues/1)
@@ -106,8 +107,8 @@
 
 ## Added implementation work queue
 - [P1-01 API liveness #5](https://github.com/parmtech/Tong-Panel/issues/5) — prototype PR #13 draft; local tests and GitHub Actions Go checks pass; review pending.
-- [P1-02 Auth/MFA #6](https://github.com/parmtech/Tong-Panel/issues/6) — planned.
-- [P1-03 Durable jobs #7](https://github.com/parmtech/Tong-Panel/issues/7) — planned.
+- [P1-02 Auth/MFA #6](https://github.com/parmtech/Tong-Panel/issues/6) — partial prototypes in PR #15 and PR #18; login, MFA/recovery, approved design and API integration remain open.
+- [P1-03 Durable jobs #7](https://github.com/parmtech/Tong-Panel/issues/7) — partial SQLite queue and lease/recovery prototypes in PR #16/#17; API wiring, executing worker, host fence, cancellation and production recovery remain open.
 - [P1-04 Host agent #8](https://github.com/parmtech/Tong-Panel/issues/8) — planned, security gated.
 - [P1-05 UI kit #9](https://github.com/parmtech/Tong-Panel/issues/9) — planned.
 - [P1-06 Tenant model #10](https://github.com/parmtech/Tong-Panel/issues/10) — planned.
