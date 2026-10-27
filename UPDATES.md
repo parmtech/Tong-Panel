@@ -4,6 +4,16 @@
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
+## CURRENT DEVELOPMENT — 2026-10-27, opt-in SQLite API integration (draft)
+
+- **Branch/PR:** [draft PR #23](https://github.com/parmtech/Tong-Panel/pull/23), head `feature/p1-sqlite-dev-api-integration`, stacked on #22. **Not merged or deployed**; all parents #14–#22 remain pending security/integration review.
+- **Code:** New `internal/jobs/sqlite_actor_reads.go` adds `GetFor`, `ListFor`, `RoleFor` with active tenant/identity/membership checks and per-user job scoping. Existing API `GET/POST /api/v1/jobs` and `GET /api/v1/jobs/{id}` can optionally use SQLite, and `DELETE` cancels ONLY the current actor's own queued no-op job (audited, no host effects). Existing JSON backend remains default and does not expose cancellation. RBAC adds `jobs:cancel`.
+- **Daemon:** SQLite is selected only by explicit `TONG_DEV_SQLITE_DB` AND `TONG_DEV_TOKEN`. Initialization fails closed, no default admin/user/password/tenant provisioned; daemon continues to bind loopback 127.0.0.1. Existing static developer token remains **not production auth**.
+- **Validation:** API regression tests cover anonymous denial, own/cross-user/cross-tenant reads, current DB role downgrade vs stale token, suspended/disabled/missing membership denial, idempotency, cancellation and leased-job conflict. `docs/P1_SQLITE_DEV_API.md` explains developer-only manual setup and restrictions.
+- **CI status at journal creation:** earlier syntax and gofmt failures were fixed, and updated [Go run #40441848354](https://github.com/parmtech/Tong-Panel/actions/runs/40441848354) had **gofmt PASS**; full Go race tests/vet results require read-back verification before claiming success.
+- **Still pending:** production login/MFA/CSRF/Origin/TLS, worker host fencing, service agent review, full role hierarchy, independent security audit, real web/DB/domain/mail/SSL hosting functions, OS installers, release signing, migration safety drills. **Phase 1 NOT COMPLETE; whole product NOT COMPLETE.**
+- **Next ONE action:** inspect latest PR #23 full GitHub CI results, fix any regression, update this checkpoint with proof. Then work through security review and parent PR stack before enabling any real host mutation.
+
 ## MOST RECENT CHECKPOINT — 2026-10-27 (Sydney), P1 safe queued cancellation
 
 - **Actual code:** [draft PR #20](https://github.com/parmtech/Tong-Panel/pull/20), head `feature/p1-safe-queued-cancellation`, stacked on [draft PR #17](https://github.com/parmtech/Tong-Panel/pull/17). Nothing merged or deployed from this branch.
