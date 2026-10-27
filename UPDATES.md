@@ -4,21 +4,19 @@
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
-## LATEST VERIFIED WORK — 2026-10-27, Phase 1 (SQLite queue slice partial)
-- **PR:** [Draft #14 — P1 Core Foundation](https://github.com/parmtech/Tong-Panel/pull/14), branch `feature/p1-core-foundation` (not merged).
-- **Changed files:** `internal/preflight/doctor.go`, `internal/preflight/doctor_test.go`, new `docs/READ_ONLY_DOCTOR.md` on PR branch.
-- **Working functionality:** `tongctl doctor` now reads candidate OS, available RAM, root filesystem free space, and TCP LISTEN 80/443 from /proc, returning explicit pass/warn/block JSON. Does not modify server or bind ports.
-- **Local tests:** `go test -race ./...`, `go vet ./...`, `go build ./...` passed; container Debian 13 report correctly blocked unsupported initial distro candidate.
-- **GitHub Actions verified:** [Go checks run #40262321339](https://github.com/parmtech/Tong-Panel/actions/runs/40262321339) **success**, gofmt + go test -race + go vet.
-- **Not done:** production install, VM distro certification, kernel/cloud firewall verification, installer rollback, host agent security audit, secure auth, SQL data store and work queues. **Phase 1 remains IN PROGRESS.**
-- **Next one action:** implement reviewed production auth/session architecture (#6) or continue safe installer diagnostics (#11), then update this file with tests and commits. Read AGENTS.md and open PR #14 before starting.
+## LATEST VERIFIED WORK — 2026-10-27, legacy-password verification compatibility
+- **Branch/PR:** `feature/p1-argon2-password-verifier`, draft [PR #18](https://github.com/parmtech/Tong-Panel/pull/18), stacked on draft PR #17. Code fix commit `71d78d40be3295de8e01dd805bd7351f71fd46f6`.
+- **Review finding and fix:** read-only auth review found `VerifyPassword` incorrectly enforced the 12-byte minimum intended for new passwords, which would reject existing shorter credentials before they could be upgraded. The verifier now accepts bounded shorter values while `HashPassword` continues enforcing the creation minimum. A regression test confirms a valid short legacy hash verifies and a new short password is still rejected.
+- **Validation:** Go Actions [run #40430367584](https://github.com/parmtech/Tong-Panel/actions/runs/40430367584) passed gofmt, full `go test -race ./...`, and `go vet ./...` on the exact code commit. This workspace has no Go executable, so the follow-up test was verified in hosted CI, not run locally.
+- **Limits:** This is a verifier-only primitive; no login/session routes or daemon integration. Per-process KDF memory/concurrency budgets remain mandatory before login exposure. ADR-009 and security review remain unapproved. No VPS changes. **P1 and the cPanel alternative remain incomplete.**
+- **Next one action:** obtain owner/security review of ADR-009 before considering login/session wiring.
 
 ## LATEST SESSION — 2026-10-27, P1 SQLite queue slice
 - **Branch/PR:** `feature/p1-sqlite-transactional-queue`, draft [PR #16](https://github.com/parmtech/Tong-Panel/pull/16), stacked on draft PR #15 (`feature/p1-auth-sessions-sqlite`), then #14. SQLite/session implementation commit `6795148c39404f653f57d8936670f2d29595345f`.
 - **Scope:** issue #7, a Go SQLite migration runner and non-executing transactional queue prototype; no changes to the live VPS.
 - **Code:** schema moved to `internal/database/migrations/0001_initial.sql` and embedded in a Go opener; added a pinned cgo-free SQLite driver, transactional job store, and independent SQLite-backed session registry that stores only session/CSRF hashes and rechecks live membership. Neither is wired into the API/daemon.
 - **Tests actually run:** Go 1.25.14 Windows/amd64 focused tests passed for `internal/database`, `internal/jobs`, `internal/api`, `internal/auth`, `internal/health`, `cmd/tongd` and `internal/rbac`; `go vet` passed for those packages; `go build ./cmd/tongd` passed. This includes the new session persistence, expiry, revocation, tenant-membership and disabled-identity tests.
-- **Remote checks on driver update commit:** GitHub Actions [Go run #40423199616](https://github.com/parmtech/Tong-Panel/actions/runs/40423199616) passed (gofmt, `go test -race ./...`, `go vet ./...`); [SQLite schema run #40423199639](https://github.com/parmtech/Tong-Panel/actions/runs/40423199639) passed.
+- **Remote checks:** current branch head `4387fddac5a8796fb765fd6d5b1070cae0b7014a` passed Go checks [#40424846107](https://github.com/parmtech/Tong-Panel/actions/runs/40424846107) (gofmt, full race-enabled tests, vet) and SQLite schema checks [#40424846054](https://github.com/parmtech/Tong-Panel/actions/runs/40424846054).
 - **Not passed/not run locally:** full `go test ./...` is blocked on existing Linux-only `internal/preflight` syscall usage on Windows; `go test -race ./...` cannot run because the Windows environment lacks CGO; Python schema tests were not run because Python is unavailable. GitHub Actions on the session-store commit passed: Go checks [#40423834545](https://github.com/parmtech/Tong-Panel/actions/runs/40423834545) (`gofmt`, full `go test -race ./...`, `go vet ./...`) and SQLite schema checks [#40423834542](https://github.com/parmtech/Tong-Panel/actions/runs/40423834542).
 - **Auth limitations:** the SQLite session store is not production login and is not wired to the API. No Argon2id verifier, TOTP enrollment/replay protection, CSRF/Origin middleware, rate limiting or browser session route exists. The original in-memory manager remains in the codebase.
 - **Follow-up review correction:** read-only review identified that tenant suspension was not checked by the new session primitive. Issuance and every session/CSRF lookup now require an active tenant. On follow-up commit `bb617eaed9dc2b6e8e10e1b8380d85987feb1408`, Go checks [#40424296948](https://github.com/parmtech/Tong-Panel/actions/runs/40424296948) and SQLite schema checks [#40424296939](https://github.com/parmtech/Tong-Panel/actions/runs/40424296939) passed.
@@ -32,8 +30,8 @@
 - **Branch/PR:** `feature/p1-transactional-job-leases`, draft [PR #17](https://github.com/parmtech/Tong-Panel/pull/17), stacked on draft PR #16 (itself stacked on #15/#14); no live VPS changes.
 - **Code:** added ordered migration v2 for availability scheduling and lease owner/token-hash fields; migration runner now serializes and applies each numbered migration atomically. Replaced SQLite's unrestricted manual state transition with token-fenced claim/start/renew/complete/fail operations, max-three-attempt retry policy, lease expiry recovery, SHA-256-only lease token storage and same-transaction attempt/audit records. Only `validation.noop` is eligible; this is not wired into the API/daemon and has no execution behavior.
 - **Tests actually run:** local Go 1.25.14 Windows/amd64 `go test` and `go vet` passed for database/jobs/auth/API/health/daemon/RBAC packages. Coverage includes v1-to-v2 upgrade, newer-schema refusal, transaction serialization across two DB handles, unique concurrent claims, expiry/reclaim after reopen, stale token rejection, retry timing/limits, tenant suspension/disabled identity, and audit creation.
-- **Review:** read-only review found no current token/tenant/state bypass in the no-op prototype. Before any external operation, the worker/agent needs a monotonic host-side fence checked at apply time; DB token fencing cannot stop an already-paused process from performing a real side effect after lease expiry.
-- **Remote CI:** Go checks [#40425964059](https://github.com/parmtech/Tong-Panel/actions/runs/40425964059) passed (gofmt, full `go test -race ./...`, `go vet ./...`); SQLite schema checks [#40425964024](https://github.com/parmtech/Tong-Panel/actions/runs/40425964024) passed on code commit `b132a9e169aa2674adc82ae483595b5e04b0a889`.
+- **Review:** read-only review found no current token/tenant/state bypass in the no-op prototype. Before any external operation, the worker/agent needs a monotonic host-side fence checked at apply time; DB token fencing cannot stop an already-paused process from performing a real side effect after lease expiry. Existing audit rows use the original requester for lifecycle events; add explicit worker actor identity/type before executing work so automated actions are not attributed to a user.
+- **Remote CI:** current branch head `308bda0283e4ee0e01f4726be7a787fc9289abfe` passed Go checks [#40426213720](https://github.com/parmtech/Tong-Panel/actions/runs/40426213720) (gofmt, full `go test -race ./...`, `go vet ./...`) and SQLite schema checks [#40426213939](https://github.com/parmtech/Tong-Panel/actions/runs/40426213939).
 - **Limits:** local Python unavailable; full local race run blocked by Windows CGO; Linux CI passed. P0 ADR/security review remains unapproved; all PRs remain drafts. P1 and the cPanel alternative remain incomplete.
 - **Next one action:** obtain recorded ADR/security review before wiring auth or queue stores into the daemon, then continue the authenticated single-host control-plane vertical slice.
 
@@ -60,7 +58,7 @@
 
 **Phase:** P0 architecture/security review pending; P1 core development IN PROGRESS (draft code).
 **Phase state:** Seven phase plans, draft architecture ADR register, threat model, test strategy and report published; approval and deeper threat review still pending.
-**Implementation state:** P1 developer prototype remains in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14); auth/session foundations are in [draft PR #15](https://github.com/parmtech/Tong-Panel/pull/15); SQLite/session prototypes are in [draft PR #16](https://github.com/parmtech/Tong-Panel/pull/16); the lease/recovery slice is in [draft PR #17](https://github.com/parmtech/Tong-Panel/pull/17). These drafts are unmerged and not production-ready. **P1 NOT COMPLETE.** No hosting app or installer exists.
+**Implementation state:** P1 developer prototype remains in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14); auth/session foundations are in [draft PR #15](https://github.com/parmtech/Tong-Panel/pull/15); SQLite/session prototypes are in [draft PR #16](https://github.com/parmtech/Tong-Panel/pull/16); the lease/recovery slice is in [draft PR #17](https://github.com/parmtech/Tong-Panel/pull/17); and an isolated Argon2id verifier plus proposed ADR-009 are in [draft PR #18](https://github.com/parmtech/Tong-Panel/pull/18). These drafts are unmerged and not production-ready. **P1 NOT COMPLETE.** No hosting app or installer exists.
 **Production/release state:** NOT RELEASED.  
 **Primary branch:** main (verify live branch HEAD before work).  
 **Owner:** ParmTech.
@@ -87,6 +85,7 @@
 
 - [x] P1 developer prototype branch and [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14) pushed, with successful Go workflow run [40260348235](https://github.com/parmtech/Tong-Panel/actions/runs/40260348235).\n- [x] Detailed [Phase 1 report](docs/PHASE1_REPORT_2026-10-26.md) written.\n\n### Pending / unverified
 - [ ] Architecture and licensing ADRs **reviewed and approved** (currently drafted only).
+- [ ] ADR-009 authentication/session proposal and PR #18 reviewed/approved; no login route may be wired before the issue #1/#6 gate is recorded.
 - [ ] Explicit P1 MVP scope and initial supported Linux matrix locked.
 - [ ] Detailed adversarial threat model, signed-artifact/installer design reviewed.
 - [x] P1 issues created (#5–#12).
@@ -95,7 +94,7 @@
 - [ ] External security audit and install/restore compatibility evidence.
 - [ ] Stable product release.
 
-**Next ONE action for a new agent:** request ADR-003/auth-session design review and check the draft PR #14/#15 parent chain before any merge. No live VPS changes.
+**Next ONE action for a new agent:** obtain owner/security review of ADR-003, ADR-009 and the PR #14–#18 stack before any merge or login/API wiring. No live VPS changes.
 
 ## GitHub work queue (OPEN — not assigned or completed)
 - [#1 P0 architecture ADRs and upstream licences](https://github.com/parmtech/Tong-Panel/issues/1)
@@ -105,8 +104,8 @@
 
 ## Added implementation work queue
 - [P1-01 API liveness #5](https://github.com/parmtech/Tong-Panel/issues/5) — prototype PR #13 draft; local tests and GitHub Actions Go checks pass; review pending.
-- [P1-02 Auth/MFA #6](https://github.com/parmtech/Tong-Panel/issues/6) — planned.
-- [P1-03 Durable jobs #7](https://github.com/parmtech/Tong-Panel/issues/7) — planned.
+- [P1-02 Auth/MFA #6](https://github.com/parmtech/Tong-Panel/issues/6) — partial prototypes in PR #15 and PR #18; login, MFA/recovery, approved design and API integration remain open.
+- [P1-03 Durable jobs #7](https://github.com/parmtech/Tong-Panel/issues/7) — partial SQLite queue and lease/recovery prototypes in PR #16/#17; API wiring, executing worker, host fence, cancellation and production recovery remain open.
 - [P1-04 Host agent #8](https://github.com/parmtech/Tong-Panel/issues/8) — planned, security gated.
 - [P1-05 UI kit #9](https://github.com/parmtech/Tong-Panel/issues/9) — planned.
 - [P1-06 Tenant model #10](https://github.com/parmtech/Tong-Panel/issues/10) — planned.

@@ -1,6 +1,6 @@
 # Tong Panel — Development Roadmap
-**Date:** 2026-10-26 | **Current phase:** 0 — documentation/planning.  
-All durations are intentionally uncommitted; phases are gated by evidence rather than time estimates.
+**Date:** 2026-10-27 | **Current phase:** P0 architecture/security approval pending; P1 developer prototypes in progress.
+No phase is complete by virtue of a draft PR. Phases remain gated by review and evidence rather than time estimates.
 
 ## Milestone definitions
 
@@ -60,5 +60,5 @@ Multiple agents may work in independent branches. Use CODEOWNERS later; never si
 ## Version/release format
 0.0.x planning/prototypes (not installable); 0.1.x experimental; 0.5.x beta only with explicit caution; 1.0.0 stable only after P6. A tagged release is not a compatibility promise by itself.
 
-## Next concrete implementation action — NOT STARTED
-Write and review ADR-001 through ADR-008 and a threat model, then select P1 task boundaries. Do not produce installer scripts or alter real servers before approval. See UPDATES.md and AGENTS.md for current checkpoint.
+## Next concrete action — design review gate remains open
+Obtain recorded owner/security decisions on the draft ADR register, threat model and P1 scope/support matrix. The current unmerged PRs contain non-production prototypes; do not wire authentication, SQLite stores, executing jobs or host actions into production-facing paths until the relevant decisions and review gates are recorded. Do not alter real servers. See UPDATES.md and AGENTS.md for the live checkpoint.
