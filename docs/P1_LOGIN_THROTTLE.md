@@ -16,4 +16,4 @@ This component is **not wired to any HTTP login route**. Account-existence ambig
 
 Every admitted **attempt**, regardless of login success, consumes its two buckets. No untrusted user should call the in-memory service directly with a forged source. A real login must also enforce TLS-only origin, validated/sanitized peer IP, global memory-bound KDF, active tenant/member checks, encrypted MFA, replay prevention and **atomic session issue+audit**. No production credential pathway exists yet.
 
-CI tests verify concurrent cross-DB enforcement, account and source quotas, clock rollback, expiry, malformed sources and SQLite schema guards. See [P1 Exit Gate Report](docs/P1_EXIT_GATE_REPORT_2026-10-27.md) for remaining release blockers.
+CI tests verify concurrent cross-DB enforcement, account and source quotas, clock rollback, expiry, malformed sources and SQLite schema guards. See [P1 Exit Gate Report](P1_EXIT_GATE_REPORT_2026-10-27.md) for remaining release blockers.
