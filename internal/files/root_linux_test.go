@@ -339,3 +339,100 @@ func TestWriteNewSymlinkSwapNeverChangesOutsideFile(t *testing.T) {
 		t.Fatalf("outside target changed to %q, %v", data, err)
 	}
 }
+
+
+func TestListDirReturnsBoundedSortedNoFollowMetadata(t *testing.T) {
+	r, root := newTestRoot(t)
+	if err := os.WriteFile(filepath.Join(root, "b.txt"), []byte("1234"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(root, "a-dir"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	outside := t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, "secret.txt"), []byte("outside secret"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, "z-link")); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := r.ListDir("", 3)
+	if !errors.Is(err, ErrTooManyEntries) || entries != nil {
+		t.Fatalf("over-limit listing = %#v, %v", entries, err)
+	}
+	entries, err = r.ListDir("", 4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 3 {
+		t.Fatalf("entry count = %d, want 3", len(entries))
+	}
+	if entries[0].Name != "a-dir" || entries[0].Kind != EntryDir {
+		t.Fatalf("first entry = %#v", entries[0])
+	}
+	if entries[1].Name != "b.txt" || entries[1].Kind != EntryFile || entries[1].Size != 4 {
+		t.Fatalf("file entry = %#v", entries[1])
+	}
+	if entries[2].Name != "z-link" || entries[2].Kind != EntrySymlink || entries[2].Size != 0 {
+		t.Fatalf("symlink entry = %#v", entries[2])
+	}
+	if _, err := r.ListDir("z-link", 10); err == nil {
+		t.Fatal("listing through a symlink succeeded")
+	}
+	if _, err := r.ListDir("../", 10); !errors.Is(err, ErrInvalidPath) {
+		t.Fatalf("traversal listing error = %v", err)
+	}
+	if _, err := r.ListDir("", 0); !errors.Is(err, ErrInvalidLimit) {
+		t.Fatalf("zero listing limit error = %v", err)
+	}
+	if _, err := r.ListDir("", MaxListEntries+1); !errors.Is(err, ErrInvalidLimit) {
+		t.Fatalf("excessive listing limit error = %v", err)
+	}
+}
+
+func TestListDirSymlinkSwapNeverListsOutsideEntries(t *testing.T) {
+	r, root := newTestRoot(t)
+	outside := t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, "outside-secret.txt"), []byte("secret"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, "changing")
+	stop := make(chan struct{})
+	ready := make(chan struct{}, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			_ = os.Remove(target)
+			if err := os.Symlink(outside, target); err == nil {
+				select {
+				case ready <- struct{}{}:
+				default:
+				}
+			}
+			_ = os.Remove(target)
+		}
+	}()
+	<-ready
+	for i := 0; i < 1000; i++ {
+		entries, err := r.ListDir("changing", 100)
+		if err == nil {
+			for _, entry := range entries {
+				if entry.Name == "outside-secret.txt" {
+					close(stop)
+					wg.Wait()
+					t.Fatal("listing through swapped symlink exposed outside entry")
+				}
+			}
+		}
+	}
+	close(stop)
+	wg.Wait()
+}
