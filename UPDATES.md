@@ -4,6 +4,16 @@
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
+## NEW DEVELOPMENT CHECKPOINT — 2026-10-27, session-cookie trust boundary
+
+- **Branch / PR:** [draft PR #24](https://github.com/parmtech/Tong-Panel/pull/24), `feature/p1-session-cookie-boundary`, based on [draft PR #23](https://github.com/parmtech/Tong-Panel/pull/23). **All code remains unmerged; no VPS changes.**
+- **Work implemented:** `internal/api/session_cookie.go`, `internal/api/server.go`, `internal/api/session_cookie_test.go`; optional `auth.SQLiteSessionStore` pre-issued cookie consumption on actual HTTPS only, strict HTTPS Origin matching request Host plus CSRF token check for cookie-authenticated mutation, rejects cookies with mixed developer bearer and duplicates, never falls back to bearer after failed session authentication. No session issuance/login handler is enabled.
+- **RBAC security fix:** `internal/rbac/policy.go` and tests now deny jobs read/create/cancel across tenants **even for tenant Owner**; privileged platform operator requires a separate scoped identity model.
+- **Verification state:** initial [Go Actions #40478894219](https://github.com/parmtech/Tong-Panel/actions/runs/40478894219) found only gofmt differences; fixed exact CI diff. [Go Actions #40479073313](https://github.com/parmtech/Tong-Panel/actions/runs/40479073313) triggered; verify full gofmt/race/vet result before claiming all tests passed.
+- **Risk controls:** no public TLS listener, no password login/Argon2id/MFA integration, no password reset, no cookie issuance endpoint, no privileged host operation. Browser session code is a tested-boundary candidate, **not a production login**. The normal localhost daemon is HTTP with developer bearer and does not configure a cookie session store.
+- **Next ONE action:** verify [PR #24 CI](https://github.com/parmtech/Tong-Panel/pull/24), fix any tests, then review pending ADR-009 authentication plan and design rate-limited MFA-protected login that issues secure sessions under a reviewed TLS deployment.
+- **Overall state:** Phase 1 IN PROGRESS; P2–P6 hosting features and release remain incomplete.
+
 ## CURRENT DEVELOPMENT — 2026-10-27, opt-in SQLite API integration (draft)
 
 - **Branch/PR:** [draft PR #23](https://github.com/parmtech/Tong-Panel/pull/23), head `feature/p1-sqlite-dev-api-integration`, stacked on #22. **Not merged or deployed**; all parents #14–#22 remain pending security/integration review.
