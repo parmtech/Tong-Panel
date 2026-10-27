@@ -1,3 +1,5 @@
+import { loadPanelStatus } from './panel-status.mjs';
+
 const tiles = [
     { title: 'Websites', icon: '🌐', subtitle: 'Sites & PHP', stage: 'P2' },
     { title: 'Domains', icon: '🪐', subtitle: 'Aliases & redirects', stage: 'P2' },
@@ -15,6 +17,9 @@ const tiles = [
 const list = document.querySelector('#tiles');
 const search = document.querySelector('#search');
 const status = document.querySelector('#status');
+const statusVersion = document.querySelector('#status-version');
+const statusChecked = document.querySelector('#status-checked');
+const refreshStatusButton = document.querySelector('#refresh-status');
 const theme = document.querySelector('#theme');
 const intro = document.querySelector('#intro');
 const filterText = (text) => {
@@ -53,21 +58,35 @@ theme?.addEventListener('click', () => {
 });
 document.querySelector('#tour')?.addEventListener('click', () => intro?.showModal());
 document.querySelector('#close-tour')?.addEventListener('click', () => intro?.close());
-async function ping() {
-    if (!status)
+async function refreshStatus() {
+    if (!status || !refreshStatusButton)
         return;
+    refreshStatusButton.disabled = true;
+    refreshStatusButton.setAttribute('aria-busy', 'true');
+    status.textContent = 'Checking panel process availability…';
+    status.dataset.state = 'unknown';
     try {
-        const response = await fetch('/api/v1/version', { cache: 'no-store' });
-        if (!response.ok)
-            throw new Error('server unavailable');
-        const data = await response.json();
-        status.textContent = `Local API: ${data.stage ?? 'unknown'}`;
-        status.classList.add('online');
+        const result = await loadPanelStatus();
+        status.textContent = result.message;
+        status.dataset.state = result.state;
+        if (statusVersion)
+            statusVersion.textContent = result.version ?? '';
+        if (statusChecked)
+            statusChecked.textContent = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(result.checkedAt);
     }
     catch {
-        status.textContent = 'API offline · design preview';
-        status.classList.remove('online');
+        status.textContent = 'Panel status could not be checked. Retry to check again.';
+        status.dataset.state = 'unknown';
+        if (statusVersion)
+            statusVersion.textContent = '';
+        if (statusChecked)
+            statusChecked.textContent = '—';
+    }
+    finally {
+        refreshStatusButton.disabled = false;
+        refreshStatusButton.removeAttribute('aria-busy');
     }
 }
-void ping();
+refreshStatusButton?.addEventListener('click', () => void refreshStatus());
+void refreshStatus();
 export {};
