@@ -1,17 +1,31 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-10-27 (Sydney)
+**Updated:** 2026-10-28 (Sydney)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
-## CURRENT CHECKPOINT — 2026-10-28, trusted browser boundary
+## VERIFIED P1 CHECKPOINT — 2026-10-28, trusted browser boundary
 - **Phase:** P0/ADR review remains pending; P1 development continues on isolated drafts. Phase 1 is not complete or production-ready.
 - **Current stacked slice:** new branch `feature/p1-cookie-origin-duplicate-guard`, based on draft PR #33 (`feature/p1-session-idle-rotation`). It rejects ambiguous duplicate `Origin` headers for cookie-authenticated mutations and adds a concurrent authenticated-read test. No public login, cookie issuance, logout route, proxy trust, or server deployment is enabled.
 - **Local validation:** Go is not installed in this Windows workspace. Corrected code head `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed hosted Go/race/vet, daemon smoke, and archive workflows; see run links below.
 - **P0/auth decision:** `docs/ADR-009-AUTHENTICATION.md` is explicitly proposed and unapproved; `docs/ADR_REGISTER.md` marks architecture decisions as draft and requires owner/security review. Do not add a public login handler until that review is recorded.
 - **Release blockers:** owner/security approval, external key custody and recovery, public HTTPS login/origin topology, trusted-agent review, signed installer/SBOM, clean Ubuntu/Debian VM install/rollback/recovery, and UI accessibility/E2E remain open. No installer currently exists; no production VPS was changed.
 - **Verified code head:** `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed Go checks [#40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640) (gofmt, full `go test -race ./...`, vet), non-destructive daemon smoke [#40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840), and unsigned developer archive lab [#40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588). These validate this code head; they do not certify a release or security approval.
-- **Next action:** continue only after owner/security review records ADR-009/P0 decisions; keep public login and production deployment disabled until then.
+- **Authentication boundary:** owner/security review must record ADR-009/P0 decisions before a public login route; keep public login and production deployment disabled. Isolated non-privileged prototypes can continue.
+
+## CURRENT P2 SLICE — isolated safe file-read primitive
+- **Branch:** `feature/p2-safe-tenant-file-read`, stacked on draft PR #34. PR #34's cookie-origin change remains a draft; its latest exact-head Go/race/vet, daemon smoke, and archive workflows passed (see prior entry).
+- **Scope:** Linux-only `internal/files.Root` uses a pinned directory descriptor and `openat2` resolution constraints for a bounded, read-only file access proof. It rejects traversal and all symlinks; it is not wired to HTTP or privileged operations and is not tenant authorization.
+- **Validation:** code and adversarial/race tests are authored; GitHub Actions verification is pending. Local Go executable is unavailable, though the pinned `golang.org/x/sys v0.35.0` module source is cached and confirms `Openat2` API availability.
+- **P2 status:** PLANNED/IN PROGRESS only. No UI/API, file writes/uploads, ACL/quotas, two-tenant E2E, site/domain/database/SSL lifecycle, installer, or restore drill exists. P1 approvals and host-agent/installer prerequisites remain open.
+- **Next action:** run exact-head Linux Go CI, repair any failures, then choose the next narrowly scoped P2 acceptance slice without enabling host mutation.
+
+### 2026-10-28 — P2 safe file-read foundation
+- **Branch/PR:** `feature/p2-safe-tenant-file-read`, intended draft PR stacked on #34.
+- **Change:** add a Linux-only, unprivileged `openat2`-based descriptor-rooted regular-file reader with 16 MiB cap and no symlink fallback. Add malicious path/symlink, size/type, close, and concurrent symlink-swap tests.
+- **Validation:** pending hosted Go formatting, full race tests and vet. No local Go test claim.
+- **Limitations:** does not implement files API/UI, tenant identity/ACL, writes, archive extraction or integration with host agent. P2 alpha remains gated by P1, installer, service adapters, two-tenant isolation, and full recovery evidence.
+- **Next:** read hosted CI, fix issues, and record results before further slices.
 
 ### 2026-10-28 — Cookie Origin ambiguity guard
 - **Branch:** `feature/p1-cookie-origin-duplicate-guard`, based on #33. A local author identity and Git HTTPS credentials are unavailable, so the working tree patch could not be committed or pushed from this checkout; the same changes are being published through the connected GitHub repository integration.
