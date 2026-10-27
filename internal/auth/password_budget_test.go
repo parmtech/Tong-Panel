@@ -32,11 +32,12 @@ func TestPasswordVerifyBudgetRejectsOverloadAndReleasesSlot(t *testing.T) {
 	}
 	entered := make(chan struct{})
 	release := make(chan struct{})
+	var started sync.Once
 	b.verify = func(password []byte, encoded string) bool {
 		if string(password) != "long-password" || encoded != "opaque-hash" {
 			t.Errorf("verification mutated inputs")
 		}
-		close(entered)
+		started.Do(func() { close(entered) })
 		<-release
 		return true
 	}
