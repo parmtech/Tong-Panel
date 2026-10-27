@@ -6,6 +6,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'scripts/smoke_p1.py'
+      - 'scripts/smoke_bootstrap_owner.py'
       - '.github/workflows/p1-smoke.yml'
   pull_request:
     paths:
@@ -13,6 +14,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'scripts/smoke_p1.py'
+      - 'scripts/smoke_bootstrap_owner.py'
       - '.github/workflows/p1-smoke.yml'
 permissions:
   contents: read
@@ -28,6 +30,10 @@ jobs:
           cache: false
       - name: Compile real daemon
         run: go build -trimpath -o "$RUNNER_TEMP/tongd" ./cmd/tongd
+      - name: Build local bootstrap CLI
+        run: go build -trimpath -o "$RUNNER_TEMP/tongctl" ./cmd/tongctl
+      - name: Verify single-use local first-owner bootstrap with real binary
+        run: python3 scripts/smoke_bootstrap_owner.py "$RUNNER_TEMP/tongctl"
       - name: Safe localhost API and SQLite process dry run
         run: python3 scripts/smoke_p1.py "$RUNNER_TEMP/tongd"
       - name: Read-only doctor smoke on CI runner
