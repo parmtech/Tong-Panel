@@ -481,4 +481,3 @@ func TestTenantRootsKeepDirectoryListingsWithinAssignedRoot(t *testing.T) {
 		t.Fatalf("tenant traversal listing error = %v", err)
 	}
 }
-
