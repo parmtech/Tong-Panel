@@ -481,3 +481,40 @@ func TestTenantRootsKeepDirectoryListingsWithinAssignedRoot(t *testing.T) {
 		t.Fatalf("tenant traversal listing error = %v", err)
 	}
 }
+
+func TestTenantRootsScopeCreateOnlyWrites(t *testing.T) {
+	rootAPath := t.TempDir()
+	rootBPath := t.TempDir()
+	rootA, err := OpenRoot(rootAPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootA.Close()
+	rootB, err := OpenRoot(rootBPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootB.Close()
+	roots, err := NewTenantRoots(map[string]*Root{"tenant-a": rootA, "tenant-b": rootB})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := roots.WriteNewForTenant("tenant-a", "created.txt", []byte("tenant-a")); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := os.ReadFile(filepath.Join(rootAPath, "created.txt")); err != nil || string(got) != "tenant-a" {
+		t.Fatalf("tenant A created content = %q, %v", got, err)
+	}
+	if _, err := os.Lstat(filepath.Join(rootBPath, "created.txt")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("tenant B unexpectedly received tenant A's file: %v", err)
+	}
+	for _, tenant := range []string{"", "unknown-tenant"} {
+		if err := roots.WriteNewForTenant(tenant, "denied.txt", []byte("denied")); !errors.Is(err, ErrTenantDenied) {
+			t.Fatalf("tenant %q write error = %v", tenant, err)
+		}
+	}
+	if err := roots.WriteNewForTenant("tenant-a", "../tenant-b/escape.txt", []byte("escape")); !errors.Is(err, ErrInvalidPath) {
+		t.Fatalf("tenant traversal write error = %v", err)
+	}
+}
+
