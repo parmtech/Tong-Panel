@@ -22,7 +22,13 @@ jobs:
           go-version: '1.27.3'
           cache: false
       - name: gofmt check
-        run: test -z "$(gofmt -l cmd internal)"
+        run: |
+          files="$(gofmt -l cmd internal)"
+          if [ -n "$files" ]; then
+            printf "Go files requiring gofmt:\\n%s\\n" "$files"
+            for file in $files; do diff -u "$file" <(gofmt "$file") || true; done
+            exit 1
+          fi
       - name: Test
         run: go test -race ./...
       - name: Vet
