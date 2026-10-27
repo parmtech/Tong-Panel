@@ -95,4 +95,4 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - **Tests:** Node 24 `node --test web/test/panel-status.test.mjs` — 8 passed, 0 failed. UI CI [#40430007139](https://github.com/parmtech/Tong-Panel/actions/runs/40430007139) passed TypeScript and UI tests; Go CI [#40430007239](https://github.com/parmtech/Tong-Panel/actions/runs/40430007239) passed gofmt, `go test -race ./...`, and `go vet ./...` on the exact code head.
 - **Security/licence:** no auth, persistence, queue, privileged operations, dependency, or licensing changes.
 - **Blockers:** P0 owner/security ADR and threat-model review and P1 scope/support decisions remain open. No browser/screen-reader/WCAG audit was performed. No production VPS was accessed or changed.
-- **Next ONE step:** refresh the PR description with the exact test and CI evidence, keeping the PR draft and recording the remaining gates.
+- **Next ONE step:** continue issue #1's architecture ADR review and record owner/security decisions; keep auth/session, SQLite, queue and host-operation integration out of production-facing paths until those gates pass.
