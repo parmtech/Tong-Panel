@@ -90,5 +90,22 @@ class SchemaTests(unittest.TestCase):
             self.con.execute("UPDATE audit_events SET actor_kind='worker' WHERE id='human'")
 
 
+    def test_totp_replay_ledger_identity_fk_and_step_bounds(self):
+        self.con.execute(
+            "INSERT INTO totp_replay_state(identity_id,last_accepted_step) VALUES('u1',60000000)"
+        )
+        self.assertEqual(
+            self.con.execute("SELECT last_accepted_step FROM totp_replay_state WHERE identity_id='u1'").fetchone(),
+            (60000000,),
+        )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("INSERT INTO totp_replay_state(identity_id,last_accepted_step) VALUES('u1',60000001)")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("INSERT INTO totp_replay_state(identity_id,last_accepted_step) VALUES('missing',60000000)")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("UPDATE totp_replay_state SET last_accepted_step=-1 WHERE identity_id='u1'")
+
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -6,7 +6,7 @@
 
 ## Context
 
-The current API uses development bearer tokens and a JSON job journal. The repository has isolated in-memory and SQLite session primitives, a TOTP verification primitive, and a new Argon2id PHC verifier prototype. It has no account login route, MFA enrollment/recovery, replay protection, login throttling, CSRF/Origin middleware or production session wiring. ADR-003 and the threat model remain unapproved. Issue #6 requires a reviewed design before authentication integration.
+The current API uses development bearer tokens and a JSON job journal. The repository has isolated in-memory and SQLite session primitives, a TOTP verification primitive, and a new Argon2id PHC verifier prototype. It still has no account login route, MFA enrollment/recovery, complete login throttling, secure secret storage or production session wiring. A standalone TLS cookie CSRF/Origin boundary exists in draft #24; a standalone identity-wide SQLite TOTP replay primitive exists in draft #28, neither wired to a production login. ADR-003 and the threat model remain unapproved. Issue #6 requires a reviewed design before authentication integration.
 
 Authentication KDF work can consume substantial CPU and memory. A corrupted stored verifier or unbounded login concurrency could exhaust a small VPS. User and tenant existence, account state, password validity and MFA state must not be disclosed by response differences.
 
@@ -15,7 +15,7 @@ Authentication KDF work can consume substantial CPU and memory. A corrupted stor
 ### Password credentials
 
 - Store only a canonical Argon2id v=19 PHC string. The current prototype uses a 16-byte random salt, 32-byte output and the RFC 9106 lower-memory recommendation: 64 MiB, 3 passes and 4 lanes. This is a proposed default, not yet benchmarked against supported VPS targets.
-- New passwords must be 12–1024 bytes. Treat password input as bytes exactly as received; do not trim, silently truncate, normalize or log it. The prototype rejects shorter passwords for both creation and verification.
+- New passwords must be 12–1024 bytes. Treat password input as bytes exactly as received; do not trim, silently truncate, normalize or log it. New hash creation rejects shorter passwords; bounded verification accepts shorter legacy credentials for migration and rehash after secure login.
 - Before calling the KDF, reject unsupported algorithms/versions, malformed encodings, salts outside 16–32 bytes, non-32-byte outputs, memory below 64 MiB or above 128 MiB, iterations below 3 or above 6, and parallelism outside 1–4. Keep the upper limits configurable only through a reviewed migration, not user input.
 - Keep hash creation and verification outside SQLite write transactions. After benchmarking, enforce both per-account/source rate limits and a process-wide memory-budgeted concurrency bound. When the bound is full, fail quickly with a generic retry response; do not queue unbounded requests. Trust forwarded client IP only from explicitly configured reverse proxies.
 - For nonexistent/disabled users, perform a bounded dummy verification at the same current profile where practical. Return the same status and response shape for unknown user, wrong password, disabled identity, wrong MFA and tenant denial. Do not expose which condition failed in logs or responses.
@@ -69,4 +69,4 @@ Authentication KDF work can consume substantial CPU and memory. A corrupted stor
 
 ## Current implementation status
 
-The standalone Argon2id primitive and isolated SQLite session store are development prototypes only. No login service, HTTP route, MFA enrollment/recovery, CSRF/Origin middleware, rate limiter, browser cookie issuance or production daemon wiring exists. P1 remains in progress; no live server was changed.
+The standalone Argon2id primitive and 1–4 slot KDF memory budget are consolidated in draft #27. The isolated SQLite session store and TLS-only cookie CSRF/Origin boundary are in draft #24. Identity-wide, durable TOTP replay consumption (without secret storage or enrollment) and migration v4 are in draft #28. **No actual login service, MFA enrollment/recovery, durable account/source rate limiter, secured TOTP secret store, browser cookie issuance, transactionally coupled login/MFA/session creation, or production daemon wiring exists.** P1 remains in progress; no live server was changed.

@@ -42,8 +42,8 @@ func TestMigratingV2RelabelsHistoricallyMisattributedWorkerActions(t *testing.T)
 	}
 	defer db.Close()
 	var version int
-	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 3 {
-		t.Fatalf("v3 migration not applied, version=%d err=%v", version, err)
+	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 4 {
+		t.Fatalf("v3/v4 migrations not applied, version=%d err=%v", version, err)
 	}
 	for _, tc := range []struct{ id, kind, user string }{
 		{"old-human", "user", "user-a"},
