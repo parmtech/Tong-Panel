@@ -17,9 +17,10 @@ import (
 )
 
 type Server struct {
-	Keys    *auth.Store
-	Jobs    *jobs.Store
-	SQLJobs *jobs.SQLiteStore // explicit dev-only, no automatic users or login
+	Keys     *auth.Store
+	Jobs     *jobs.Store
+	SQLJobs  *jobs.SQLiteStore        // explicit dev-only, no automatic users or login
+	Sessions *auth.SQLiteSessionStore // separately issued sessions, HTTPS only; no login route
 }
 type failure struct {
 	Error struct {
@@ -76,15 +77,33 @@ type secured func(http.ResponseWriter, *http.Request, rbac.Principal)
 
 func (s *Server) protected(h secured) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if s.Keys == nil {
+		if s.Keys == nil && s.Sessions == nil {
 			fail(w, 503, "auth_unconfigured")
 			return
 		}
-		p, ok := s.Keys.Check(r.Header.Get("Authorization"))
-		if !ok {
-			w.Header().Set("WWW-Authenticate", "Bearer")
-			fail(w, 401, "unauthorized")
-			return
+		var p rbac.Principal
+		if cookie, err := r.Cookie(auth.BrowserCookieName); err == nil {
+			// A cookie is never downgraded to a static developer token if
+			// expired, malformed, duplicated, or sent over plaintext HTTP.
+			var code int
+			var reason string
+			p, code, reason = s.cookiePrincipal(r, cookie)
+			if code != 0 {
+				fail(w, code, reason)
+				return
+			}
+		} else {
+			if s.Keys == nil {
+				fail(w, 401, "unauthorized")
+				return
+			}
+			var ok bool
+			p, ok = s.Keys.Check(r.Header.Get("Authorization"))
+			if !ok {
+				w.Header().Set("WWW-Authenticate", "Bearer")
+				fail(w, 401, "unauthorized")
+				return
+			}
 		}
 		if s.SQLJobs != nil {
 			// In opt-in SQLite mode, the CURRENT database membership is
