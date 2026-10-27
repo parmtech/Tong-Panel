@@ -158,3 +158,43 @@ func TestOpenRootRefusesFinalSymlinkAndCloseIsSafe(t *testing.T) {
 		t.Fatalf("read after close error = %v", err)
 	}
 }
+
+func TestTenantRootsKeepReadsWithinAssignedTenant(t *testing.T) {
+	rootAPath := t.TempDir()
+	rootBPath := t.TempDir()
+	if err := os.WriteFile(filepath.Join(rootAPath, "account.txt"), []byte("tenant-a"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rootBPath, "account.txt"), []byte("tenant-b-secret"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	rootA, err := OpenRoot(rootAPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootA.Close()
+	rootB, err := OpenRoot(rootBPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootB.Close()
+	roots, err := NewTenantRoots(map[string]*Root{"tenant-a": rootA, "tenant-b": rootB})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := roots.ReadFileForTenant("tenant-a", "account.txt", 64)
+	if err != nil || string(data) != "tenant-a" {
+		t.Fatalf("tenant A read = %q, %v", data, err)
+	}
+	for _, tenant := range []string{"", "unknown-tenant"} {
+		if data, err := roots.ReadFileForTenant(tenant, "account.txt", 64); !errors.Is(err, ErrTenantDenied) {
+			t.Fatalf("tenant %q unexpectedly read %q, err=%v", tenant, data, err)
+		}
+	}
+	if _, err := roots.ReadFileForTenant("tenant-a", "../tenant-b/account.txt", 64); err == nil {
+		t.Fatal("tenant A traversed to tenant B")
+	}
+	if _, err := NewTenantRoots(map[string]*Root{"": rootA}); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("empty tenant mapping error = %v", err)
+	}
+}
