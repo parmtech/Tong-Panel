@@ -64,4 +64,3 @@ func sameTLSOrigin(r *http.Request) bool {
 	}
 	return strings.EqualFold(u.Host, r.Host)
 }
-
