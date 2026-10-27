@@ -1,7 +1,6 @@
 package api
 
 import (
-	"crypto/tls"
 	"net/http"
 	"net/url"
 	"strings"
@@ -58,6 +57,3 @@ func sameTLSOrigin(r *http.Request) bool {
 	}
 	return strings.EqualFold(u.Host, r.Host)
 }
-
-// Explicit compile-time assertion of TLS-only trust source in API tests.
-var _ *tls.ConnectionState
