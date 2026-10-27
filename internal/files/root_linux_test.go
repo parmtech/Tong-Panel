@@ -349,6 +349,9 @@ func TestListDirReturnsBoundedSortedNoFollowMetadata(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(root, "a-dir"), 0700); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(root, "c.txt"), []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	outside := t.TempDir()
 	if err := os.WriteFile(filepath.Join(outside, "secret.txt"), []byte("outside secret"), 0600); err != nil {
 		t.Fatal(err)
@@ -365,8 +368,8 @@ func TestListDirReturnsBoundedSortedNoFollowMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 3 {
-		t.Fatalf("entry count = %d, want 3", len(entries))
+	if len(entries) != 4 {
+		t.Fatalf("entry count = %d, want 4", len(entries))
 	}
 	if entries[0].Name != "a-dir" || entries[0].Kind != EntryDir {
 		t.Fatalf("first entry = %#v", entries[0])
@@ -374,8 +377,11 @@ func TestListDirReturnsBoundedSortedNoFollowMetadata(t *testing.T) {
 	if entries[1].Name != "b.txt" || entries[1].Kind != EntryFile || entries[1].Size != 4 {
 		t.Fatalf("file entry = %#v", entries[1])
 	}
-	if entries[2].Name != "z-link" || entries[2].Kind != EntrySymlink || entries[2].Size != 0 {
-		t.Fatalf("symlink entry = %#v", entries[2])
+	if entries[2].Name != "c.txt" || entries[2].Kind != EntryFile || entries[2].Size != 1 {
+		t.Fatalf("second file entry = %#v", entries[2])
+	}
+	if entries[3].Name != "z-link" || entries[3].Kind != EntrySymlink || entries[3].Size != 0 {
+		t.Fatalf("symlink entry = %#v", entries[3])
 	}
 	if _, err := r.ListDir("z-link", 10); err == nil {
 		t.Fatal("listing through a symlink succeeded")
