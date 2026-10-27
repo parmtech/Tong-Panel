@@ -57,4 +57,5 @@ Before any production login route, the design must specify a vetted Argon2id pas
 - Python schema tests were not run locally because Python is unavailable; the updated schema workflow passed in GitHub Actions above.
 - No API login wiring, Argon2id, MFA, executing worker, host-side fence, privileged operations, installer or VPS change was added. The database lease/attempt/audit lifecycle is a non-executing prototype only.
 - Host-side fencing is still required before any real operation is enabled: a database lease can reject stale state updates but cannot stop a paused worker that resumes and applies an external side effect. Require an ordered fence validated immediately before host changes, plus pause/expiry/recovery tests.
+- On lease/recovery code commit `b132a9e169aa2674adc82ae483595b5e04b0a889` (draft PR #17), Linux GitHub Actions [Go checks #40425964059](https://github.com/parmtech/Tong-Panel/actions/runs/40425964059) passed formatting, full `go test -race ./...`, and `go vet ./...`; [SQLite schema checks #40425964024](https://github.com/parmtech/Tong-Panel/actions/runs/40425964024) passed migration/schema tests.
 

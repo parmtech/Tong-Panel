@@ -29,12 +29,13 @@
 - **Next one action:** request maintainer review of ADR-003, auth/session design, dependency licences and the #14/#15 parent chain before any API wiring or merge.
 
 ## LATEST SESSION — 2026-10-27, P1 job lease and recovery slice
-- **Branch/PR:** `feature/p1-transactional-job-leases`, stacked on draft PR #16 (itself stacked on #15/#14); no live VPS changes.
+- **Branch/PR:** `feature/p1-transactional-job-leases`, draft [PR #17](https://github.com/parmtech/Tong-Panel/pull/17), stacked on draft PR #16 (itself stacked on #15/#14); no live VPS changes.
 - **Code:** added ordered migration v2 for availability scheduling and lease owner/token-hash fields; migration runner now serializes and applies each numbered migration atomically. Replaced SQLite's unrestricted manual state transition with token-fenced claim/start/renew/complete/fail operations, max-three-attempt retry policy, lease expiry recovery, SHA-256-only lease token storage and same-transaction attempt/audit records. Only `validation.noop` is eligible; this is not wired into the API/daemon and has no execution behavior.
 - **Tests actually run:** local Go 1.25.14 Windows/amd64 `go test` and `go vet` passed for database/jobs/auth/API/health/daemon/RBAC packages. Coverage includes v1-to-v2 upgrade, newer-schema refusal, transaction serialization across two DB handles, unique concurrent claims, expiry/reclaim after reopen, stale token rejection, retry timing/limits, tenant suspension/disabled identity, and audit creation.
 - **Review:** read-only review found no current token/tenant/state bypass in the no-op prototype. Before any external operation, the worker/agent needs a monotonic host-side fence checked at apply time; DB token fencing cannot stop an already-paused process from performing a real side effect after lease expiry.
-- **Limits:** local Python unavailable; full local race run blocked by Windows CGO; Linux CI pending. P0 ADR/security review remains unapproved; all PRs remain drafts. P1 and the cPanel alternative remain incomplete.
-- **Next one action:** run full Linux Go race/vet plus Python migration checks on this branch, then continue the authenticated single-host control-plane vertical slice only within the reviewed design.
+- **Remote CI:** Go checks [#40425964059](https://github.com/parmtech/Tong-Panel/actions/runs/40425964059) passed (gofmt, full `go test -race ./...`, `go vet ./...`); SQLite schema checks [#40425964024](https://github.com/parmtech/Tong-Panel/actions/runs/40425964024) passed on code commit `b132a9e169aa2674adc82ae483595b5e04b0a889`.
+- **Limits:** local Python unavailable; full local race run blocked by Windows CGO; Linux CI passed. P0 ADR/security review remains unapproved; all PRs remain drafts. P1 and the cPanel alternative remain incomplete.
+- **Next one action:** obtain recorded ADR/security review before wiring auth or queue stores into the daemon, then continue the authenticated single-host control-plane vertical slice.
 
 ### 2026-10-26 — P1 agent socket hardening (additional update)
 - **Branch:** `feature/p1-core-foundation`, unmerged [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14).
@@ -59,7 +60,7 @@
 
 **Phase:** P0 architecture/security review pending; P1 core development IN PROGRESS (draft code).
 **Phase state:** Seven phase plans, draft architecture ADR register, threat model, test strategy and report published; approval and deeper threat review still pending.
-**Implementation state:** P1 developer prototype remains in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14); auth/session and SQLite schema foundations are in stacked [draft PR #15](https://github.com/parmtech/Tong-Panel/pull/15); SQLite/session prototypes are in [draft PR #16](https://github.com/parmtech/Tong-Panel/pull/16); the lease/recovery slice is being prepared on `feature/p1-transactional-job-leases`. These drafts are unmerged and not production-ready. **P1 NOT COMPLETE.** No hosting app or installer exists.
+**Implementation state:** P1 developer prototype remains in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14); auth/session foundations are in [draft PR #15](https://github.com/parmtech/Tong-Panel/pull/15); SQLite/session prototypes are in [draft PR #16](https://github.com/parmtech/Tong-Panel/pull/16); the lease/recovery slice is in [draft PR #17](https://github.com/parmtech/Tong-Panel/pull/17). These drafts are unmerged and not production-ready. **P1 NOT COMPLETE.** No hosting app or installer exists.
 **Production/release state:** NOT RELEASED.  
 **Primary branch:** main (verify live branch HEAD before work).  
 **Owner:** ParmTech.
