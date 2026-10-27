@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -196,5 +197,145 @@ func TestTenantRootsKeepReadsWithinAssignedTenant(t *testing.T) {
 	}
 	if _, err := NewTenantRoots(map[string]*Root{"": rootA}); !errors.Is(err, ErrTenantDenied) {
 		t.Fatalf("empty tenant mapping error = %v", err)
+	}
+}
+
+func TestWriteNewCreatesAtomicallyWithoutReplacing(t *testing.T) {
+	r, root := newTestRoot(t)
+	if err := os.Mkdir(filepath.Join(root, "uploads"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.WriteNew("uploads/created.txt", []byte("complete upload")); err != nil {
+		t.Fatal(err)
+	}
+	data, err := r.ReadFile("uploads/created.txt", 64)
+	if err != nil || string(data) != "complete upload" {
+		t.Fatalf("created file read = %q, %v", data, err)
+	}
+	info, err := os.Stat(filepath.Join(root, "uploads", "created.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0600 {
+		t.Fatalf("created file mode = %04o", info.Mode().Perm())
+	}
+	if err := os.WriteFile(filepath.Join(root, "uploads", "existing.txt"), []byte("preserve"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.WriteNew("uploads/existing.txt", []byte("overwrite attempt")); !errors.Is(err, ErrAlreadyExists) {
+		t.Fatalf("existing target error = %v", err)
+	}
+	data, err = r.ReadFile("uploads/existing.txt", 64)
+	if err != nil || string(data) != "preserve" {
+		t.Fatalf("existing file changed = %q, %v", data, err)
+	}
+	if err := r.WriteNew("../escape.txt", []byte("escape")); !errors.Is(err, ErrInvalidPath) {
+		t.Fatalf("traversal write error = %v", err)
+	}
+	if err := r.WriteNew("uploads/large.txt", make([]byte, int(MaxReadBytes)+1)); !errors.Is(err, ErrTooLarge) {
+		t.Fatalf("oversized write error = %v", err)
+	}
+	if err := os.Symlink(t.TempDir(), filepath.Join(root, "linked-dir")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.WriteNew("linked-dir/escaped.txt", []byte("escape")); err == nil {
+		t.Fatal("write through symlinked parent succeeded")
+	}
+	assertNoStagingDirectories(t, root)
+}
+
+func TestConcurrentWriteNewHasOneWinner(t *testing.T) {
+	r, root := newTestRoot(t)
+	const writers = 16
+	start := make(chan struct{})
+	results := make(chan error, writers)
+	values := make(map[byte]struct{}, writers)
+	for i := 0; i < writers; i++ {
+		value := byte('A' + i)
+		values[value] = struct{}{}
+		go func() {
+			<-start
+			results <- r.WriteNew("winner.txt", []byte{value})
+		}()
+	}
+	close(start)
+	winners := 0
+	for i := 0; i < writers; i++ {
+		err := <-results
+		if err == nil {
+			winners++
+		} else if !errors.Is(err, ErrAlreadyExists) {
+			t.Fatalf("concurrent write returned unexpected error: %v", err)
+		}
+	}
+	if winners != 1 {
+		t.Fatalf("successful writers = %d, want exactly one", winners)
+	}
+	data, err := r.ReadFile("winner.txt", 1)
+	if err != nil || len(data) != 1 {
+		t.Fatalf("winner file = %q, %v", data, err)
+	}
+	if _, ok := values[data[0]]; !ok {
+		t.Fatalf("winner content %q was not written by a participant", data)
+	}
+	assertNoStagingDirectories(t, root)
+}
+
+func assertNoStagingDirectories(t *testing.T, root string) {
+	t.Helper()
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), ".tong-stage-") {
+			t.Errorf("staging directory leaked after operation: %q", entry.Name())
+		}
+	}
+}
+
+func TestWriteNewSymlinkSwapNeverChangesOutsideFile(t *testing.T) {
+	r, root := newTestRoot(t)
+	outside := t.TempDir()
+	outsideFile := filepath.Join(outside, "secret.txt")
+	if err := os.WriteFile(outsideFile, []byte("outside secret"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, "upload.txt")
+	stop := make(chan struct{})
+	ready := make(chan struct{}, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			_ = os.Remove(target)
+			if err := os.Symlink(outsideFile, target); err == nil {
+				select {
+				case ready <- struct{}{}:
+				default:
+				}
+			}
+		}
+	}()
+	<-ready
+	for i := 0; i < 100; i++ {
+		err := r.WriteNew("upload.txt", []byte("new safe file"))
+		if err != nil && !errors.Is(err, ErrAlreadyExists) {
+			close(stop)
+			wg.Wait()
+			t.Fatalf("write during symlink swap returned %v", err)
+		}
+	}
+	close(stop)
+	wg.Wait()
+	data, err := os.ReadFile(outsideFile)
+	if err != nil || string(data) != "outside secret" {
+		t.Fatalf("outside target changed to %q, %v", data, err)
 	}
 }
