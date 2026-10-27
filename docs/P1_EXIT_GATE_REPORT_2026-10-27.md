@@ -18,9 +18,9 @@ A passing Go or SQLite unit test means only those test contracts ran. It is **no
 | P1-05 Durable jobs | SQLite idempotency, lease fencing/retry/audit and queued cancellation; tests for race, expiry, and actor attribution | Real worker/host effect execution and monotonic fencing, safe rollback and crash/failure recovery, concurrency load tests |
 | P1-06 Local agent | Non-root Unix socket proof-of-concept, peer UID, private socket directory, ping-only | **No privileged typed host actions** or external adversarial review; escalation/host mutation intentionally prohibited |
 | P1-07 Metadata/migrations | SQLite STRICT metadata schema, 3 staged migrations, single writer and integrity tests | Schema migration backup/restore, corrupted database and mid-upgrade failure drills, encryption/secret rotation |
-| P1-08 UI shell | Embedded CSS/JS static developer preview and TypeScript source | Functional auth/UI integration, responsive keyboard and screen-reader audits, notifications/search/jobs interaction E2E |
+| P1-08 UI shell | Embedded UI now includes **panel-process-only** status/refresh, atomic live announcement, explicit nav labels and Node+TypeScript checks in stacked draft #26; combined Go/Node CI pass | Full functional auth/jobs UI, real-browser responsive/keyboard and screen-reader/WCAG audits, notifications/search/jobs interaction E2E |
 | P1-09 Diagnostics | Read-only OS/RAM/disk/port preflight via `tongctl doctor` | Safe redacted support bundle, log/diagnostic failure scenarios, candidate distro lab evaluation |
-| P1-10 Packages/releases | **No signed experimental package, bootstrap installer or clean distro VM install evidence** | Immutable signed preview artifacts, SBOM/provenance, Ubuntu 24.04 + Debian 12 x86_64 clean VM install/upgrade/rollback/recovery |
+| P1-10 Packages/releases | **Checksum-tested, explicitly unsigned Linux amd64 developer archive** produced by #25/26 CI; archive extracted and real daemon smoke repeated | **No signed package or bootstrap installer**, SBOM/provenance, Ubuntu 24.04 + Debian 12 x86_64 clean VM install/upgrade/rollback/recovery |
 
 **P0 prerequisites remain UNAPPROVED:** ADR-001 through ADR-008 are still draft per `docs/ADR_REGISTER.md` and the initial threat model is unreviewed. Review/signoff is a human responsibility; a coding assistant must not forge it. ADR-009 secure authentication plan also needs review.
 
@@ -51,6 +51,18 @@ python3 -m unittest discover -s db -p 'test_*.py' -v
 ```
 
 Only run in a **disposable lab environment** with a known free TCP 8090. The smoke script refuses to interfere with a preexisting local service, uses temporary test files, stops child processes, does not require root and must not be mistaken for an installer. The candidate `doctor` output is not OS certification. No SSH, DNS, ACME, real emails or customer services are touched.
+
+## Latest combined verification — PR #26
+
+This is **combined branch evidence**, not just separate PR evidence:
+
+- [Go Actions #40508400960](https://github.com/parmtech/Tong-Panel/actions/runs/40508400960): **PASS** (gofmt, `go test -race ./...`, `go vet ./...`) on combined source including the UI.
+- [UI Actions #40508400761](https://github.com/parmtech/Tong-Panel/actions/runs/40508400761): **PASS** (TypeScript 5.9 check and Node behavior tests for panel status).
+- [Real-process dry-run #40508400737](https://github.com/parmtech/Tong-Panel/actions/runs/40508400737): **PASS** (compiled daemon, API/SQLite revocation and audit, embedded panel-status module and doctor).
+- [Unsigned archive build/smoke #40508400655](https://github.com/parmtech/Tong-Panel/actions/runs/40508400655): **PASS** (Linux amd64 archive checksum, extraction, real daemon process smoke, read-only doctor, GitHub Actions artifact).
+- [Earlier SQLite migration schema #40436483021](https://github.com/parmtech/Tong-Panel/actions/runs/40436483021): **PASS** with independent migration tests. PR #26 inherits these schemas, and combined Go suite exercised SQLite at runtime.
+
+**Archive is UNSIGNED and marked DO NOT INSTALL.** Checksums protect an already trusted downloaded file against accidental corruption; they **do not authenticate publisher identity**. This is neither a publish-ready production release nor Ubuntu/Debian clean-VM certification. Source files on [draft PR #26](https://github.com/parmtech/Tong-Panel/pull/26) include ported UI work from independently reviewed-by-CI draft #19; [Argon2id draft #18](https://github.com/parmtech/Tong-Panel/pull/18) is not integrated. P0 human security approval remains pending.
 
 ## Publish decision
 
