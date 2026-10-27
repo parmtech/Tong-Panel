@@ -1,0 +1,29 @@
+name: Go checks
+on:
+  push:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - '.github/workflows/go-checks.yml'
+  pull_request:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - '.github/workflows/go-checks.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.3'
+          cache: false
+      - name: gofmt check
+        run: test -z "$(gofmt -l cmd internal)"
+      - name: Test
+        run: go test -race ./...
+      - name: Vet
+        run: go vet ./...
