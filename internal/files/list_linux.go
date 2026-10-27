@@ -4,6 +4,7 @@ package files
 
 import (
 	"errors"
+	"io"
 	"os"
 	"sort"
 
@@ -72,7 +73,7 @@ func (r *Root) ListDir(relative string, limit int) ([]Entry, error) {
 	defer f.Close()
 
 	names, err := f.Readdirnames(limit + 1)
-	if err != nil && !errors.Is(err, os.ErrClosed) && !errors.Is(err, os.ErrNotExist) && err.Error() != "EOF" {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 	if len(names) > limit {
