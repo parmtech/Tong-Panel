@@ -17,9 +17,9 @@ import (
 )
 
 type Server struct {
-	Keys    *auth.Store
-	Jobs    *jobs.Store
-	SQLJobs *jobs.SQLiteStore // explicit dev-only, no automatic users or login
+	Keys     *auth.Store
+	Jobs     *jobs.Store
+	SQLJobs  *jobs.SQLiteStore        // explicit dev-only, no automatic users or login
 	Sessions *auth.SQLiteSessionStore // separately issued sessions, HTTPS only; no login route
 }
 type failure struct {
