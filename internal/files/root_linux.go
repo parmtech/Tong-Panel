@@ -5,6 +5,8 @@
 package files
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"io"
 	"os"
@@ -25,6 +27,7 @@ var (
 	ErrTooLarge     = errors.New("file exceeds configured read limit")
 	ErrClosed       = errors.New("file root is closed")
 	ErrTenantDenied = errors.New("tenant file root unavailable")
+	ErrAlreadyExists = errors.New("file already exists")
 )
 
 // Root pins a trusted directory using an open descriptor. Close may be called
@@ -113,6 +116,101 @@ func (r *Root) ReadFile(relative string, maxBytes int64) ([]byte, error) {
 		return nil, ErrTooLarge
 	}
 	return data, nil
+}
+
+// WriteNew atomically creates a new regular file below the pinned root with
+// mode 0600. It never replaces an existing path, including a symlink. If the
+// final directory sync fails, the file may already be present but durability
+// is unconfirmed. Kernels without the required openat2/renameat2 support fail
+// closed.
+func (r *Root) WriteNew(relative string, content []byte) error {
+	if r == nil {
+		return ErrClosed
+	}
+	if !validRelativePath(relative) {
+		return ErrInvalidPath
+	}
+	if len(content) > int(MaxReadBytes) {
+		return ErrTooLarge
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if !r.open {
+		return ErrClosed
+	}
+	parent, base, err := r.openParent(relative)
+	if err != nil {
+		return err
+	}
+	defer unix.Close(parent)
+
+	var random [16]byte
+	if _, err := rand.Read(random[:]); err != nil {
+		return err
+	}
+	stage := ".tong-stage-" + hex.EncodeToString(random[:])
+	if err := unix.Mkdirat(r.fd, stage, 0700); err != nil {
+		return err
+	}
+	stageFD, err := unix.Openat2(r.fd, stage, &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		return err
+	}
+	defer func() {
+		_ = unix.Unlinkat(stageFD, "payload", 0)
+		_ = unix.Close(stageFD)
+		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+	}()
+	const temp = "payload"
+	fd, err := unix.Openat2(stageFD, temp, &unix.OpenHow{
+		Flags:   uint64(unix.O_WRONLY | unix.O_CREAT | unix.O_EXCL | unix.O_CLOEXEC | unix.O_NOFOLLOW | unix.O_NONBLOCK | unix.O_NOCTTY),
+		Mode:    0600,
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		return err
+	}
+	f := os.NewFile(uintptr(fd), temp)
+	if f == nil {
+		_ = unix.Close(fd)
+		return ErrInvalidPath
+	}
+	written, writeErr := f.Write(content)
+	if writeErr == nil && written != len(content) {
+		writeErr = io.ErrShortWrite
+	}
+	if writeErr == nil {
+		writeErr = f.Sync()
+	}
+	closeErr := f.Close()
+	if writeErr != nil {
+		return writeErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if err := unix.Renameat2(stageFD, temp, parent, base, unix.RENAME_NOREPLACE); err != nil {
+		if errors.Is(err, unix.EEXIST) {
+			return ErrAlreadyExists
+		}
+		return err
+	}
+	return unix.Fsync(parent)
+}
+
+func (r *Root) openParent(relative string) (int, string, error) {
+	fd, err := unix.Openat2(r.fd, path.Dir(relative), &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		return -1, "", err
+	}
+	return fd, path.Base(relative), nil
 }
 
 func validRelativePath(name string) bool {
