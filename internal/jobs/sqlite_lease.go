@@ -37,7 +37,7 @@ type sqliteSession interface {
 }
 
 func (s *SQLiteStore) ClaimNext(workerID string, duration time.Duration) (Claim, error) {
-	if s == nil || workerID == "" || len(workerID) > 128 || duration < time.Second || duration > maxLeaseDuration || s.maxAttempts < 1 || s.maxAttempts > 10 {
+	if s == nil || !safeWorkerID(workerID) || duration < time.Second || duration > maxLeaseDuration || s.maxAttempts < 1 || s.maxAttempts > 10 {
 		return Claim{}, errors.New("invalid lease request")
 	}
 	var raw [32]byte
@@ -84,7 +84,7 @@ func (s *SQLiteStore) ClaimNext(workerID string, duration time.Duration) (Claim,
 			if err != nil {
 				return err
 			}
-			if err := appendAudit(s.ctx, q, j, "job.lease_expired", now); err != nil {
+			if err := appendNonUserAudit(s.ctx, q, j, "job.lease_expired", "system", "lease-reconciler", now); err != nil {
 				return err
 			}
 		}
@@ -95,7 +95,7 @@ func (s *SQLiteStore) ClaimNext(workerID string, duration time.Duration) (Claim,
 				return err
 			}
 			j.State = Failed
-			if err := appendAudit(s.ctx, q, j, "job.failed", now); err != nil {
+			if err := appendNonUserAudit(s.ctx, q, j, "job.failed", "system", "lease-reconciler", now); err != nil {
 				return err
 			}
 			noJobs = true
@@ -121,7 +121,7 @@ func (s *SQLiteStore) ClaimNext(workerID string, duration time.Duration) (Claim,
 		}
 		j.State = Leased
 		j.UpdatedAt = now
-		if err := appendAudit(s.ctx, q, j, "job.leased", now); err != nil {
+		if err := appendNonUserAudit(s.ctx, q, j, "job.leased", "worker", workerID, now); err != nil {
 			return err
 		}
 		claim = Claim{Job: j, WorkerID: workerID, Token: token, ExpiresAt: expires}
@@ -152,7 +152,7 @@ func (s *SQLiteStore) Start(claim Claim) (Job, error) {
 			return ErrLeaseLost
 		}
 		job.State, job.UpdatedAt = Running, now
-		return appendAudit(s.ctx, q, job, "job.started", now)
+		return appendNonUserAudit(s.ctx, q, job, "job.started", "worker", claim.WorkerID, now)
 	})
 	return job, err
 }
@@ -177,7 +177,7 @@ func (s *SQLiteStore) Renew(claim Claim, duration time.Duration) (Claim, error) 
 		}
 		job.UpdatedAt = now
 		renewed = Claim{Job: job, WorkerID: claim.WorkerID, Token: claim.Token, ExpiresAt: expires}
-		return appendAudit(s.ctx, q, job, "job.lease_renewed", now)
+		return appendNonUserAudit(s.ctx, q, job, "job.lease_renewed", "worker", claim.WorkerID, now)
 	})
 	return renewed, err
 }
@@ -204,7 +204,7 @@ func (s *SQLiteStore) Complete(claim Claim) (Job, error) {
 			return err
 		}
 		job.State, job.UpdatedAt = Done, now
-		return appendAudit(s.ctx, q, job, "job.completed", now)
+		return appendNonUserAudit(s.ctx, q, job, "job.completed", "worker", claim.WorkerID, now)
 	})
 	return job, err
 }
@@ -247,7 +247,7 @@ func (s *SQLiteStore) Fail(claim Claim, errorCode string, retryable bool, retryD
 			return err
 		}
 		job.State, job.UpdatedAt = next, now
-		if err := appendAudit(s.ctx, q, job, action, now); err != nil {
+		if err := appendNonUserAudit(s.ctx, q, job, action, "worker", claim.WorkerID, now); err != nil {
 			return err
 		}
 		return nil
@@ -256,7 +256,7 @@ func (s *SQLiteStore) Fail(claim Claim, errorCode string, retryable bool, retryD
 }
 
 func (s *SQLiteStore) withValidClaim(claim Claim, fn func(sqliteSession, time.Time, [32]byte) error) error {
-	if s == nil || claim.WorkerID == "" || len(claim.WorkerID) > 128 || claim.Job.ID == "" || claim.Job.TenantID == "" {
+	if s == nil || !safeWorkerID(claim.WorkerID) || claim.Job.ID == "" || claim.Job.TenantID == "" {
 		return ErrLeaseLost
 	}
 	raw, err := hex.DecodeString(claim.Token)
@@ -333,6 +333,41 @@ func appendAudit(ctx context.Context, q sqliteSession, job Job, action string, n
 	}
 	_, err = q.ExecContext(ctx, `INSERT INTO audit_events(id,tenant_id,actor_identity_id,action,subject_id,request_id,created_at)
 		VALUES(?,?,?,?,?,?,?)`, id, job.TenantID, job.RequestedBy, action, job.ID, id, dbTime(now))
+	return err
+}
+
+// safeWorkerID constrains worker references to log-safe stable service IDs.
+// This is not authentication; a future registered worker identity is required.
+func safeWorkerID(value string) bool {
+	if value == "" || len(value) > 128 {
+		return false
+	}
+	for _, c := range value {
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+			(c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+// appendNonUserAudit records the actor that actually applied a queue
+// transition. In particular, the job requester MUST NOT be attributed with
+// lease/start/renew/complete/fail operations performed by a worker or scheduler.
+// Only the actor ID (not a lease token) may appear in persisted audit rows.
+func appendNonUserAudit(ctx context.Context, q sqliteSession, job Job, action, kind, actorRef string, now time.Time) error {
+	if (kind != "worker" && kind != "system") || !safeWorkerID(actorRef) {
+		return errors.New("invalid non-user audit actor")
+	}
+	id, err := randomID()
+	if err != nil {
+		return err
+	}
+	_, err = q.ExecContext(ctx,
+		`INSERT INTO audit_events(id,tenant_id,actor_identity_id,actor_kind,actor_ref,action,subject_id,request_id,created_at)
+		 VALUES(?,?,NULL,?,?,?,?,?,?)`,
+		id, job.TenantID, kind, actorRef, action, job.ID, id, dbTime(now))
 	return err
 }
 
