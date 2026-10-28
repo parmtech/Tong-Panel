@@ -161,6 +161,22 @@ func TestSiteDatabaseMetadataAPIIsTenantScopedAndSecretFree(t *testing.T) {
 	if created.Code != http.StatusCreated {
 		t.Fatalf("database metadata create returned %d: %s", created.Code, created.Body.String())
 	}
+	const recordPath = path + "/wordpress"
+	if r := call(h, http.MethodGet, recordPath, sqlOtherToken, "", ""); r.Code != http.StatusNotFound {
+		t.Fatalf("cross-tenant metadata read returned %d: %s", r.Code, r.Body.String())
+	}
+	if r := call(h, http.MethodGet, recordPath, sqlAuditorToken, "", ""); r.Code != http.StatusOK || !strings.Contains(r.Body.String(), `"DatabaseID":"wordpress"`) {
+		t.Fatalf("Auditor metadata read returned %d: %s", r.Code, r.Body.String())
+	}
+	if r := call(h, http.MethodGet, recordPath+"?tenant_id=tenant-b", secret, "", ""); r.Code != http.StatusBadRequest {
+		t.Fatalf("metadata query override returned %d", r.Code)
+	}
+	if r := call(h, http.MethodGet, path+"/missing", secret, "", ""); r.Code != http.StatusNotFound {
+		t.Fatalf("missing metadata read returned %d", r.Code)
+	}
+	if r := call(h, http.MethodDelete, recordPath, secret, "", ""); r.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("metadata deletion returned %d", r.Code)
+	}
 	var record sites.SiteDatabaseRecord
 	if err := json.Unmarshal(created.Body.Bytes(), &record); err != nil {
 		t.Fatal(err)

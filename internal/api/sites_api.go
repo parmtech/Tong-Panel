@@ -95,6 +95,10 @@ func (s *Server) siteResource(w http.ResponseWriter, r *http.Request, p rbac.Pri
 		s.siteDatabaseCollection(w, r, p, parts[0])
 		return
 	}
+	if len(parts) == 3 && parts[0] != "" && parts[1] == "databases" && parts[2] != "" {
+		s.siteDatabaseResource(w, r, p, parts[0], parts[2])
+		return
+	}
 	if len(parts) == 3 && parts[0] != "" && parts[1] == "domains" && parts[2] != "" {
 		s.siteDomainRemove(w, r, p, parts[0], parts[2])
 		return
@@ -168,6 +172,32 @@ func (s *Server) siteDatabaseCollection(w http.ResponseWriter, r *http.Request, 
 		w.Header().Set("Allow", "GET, POST")
 		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
 	}
+}
+
+func (s *Server) siteDatabaseResource(w http.ResponseWriter, r *http.Request, p rbac.Principal, siteID, databaseID string) {
+	if r.URL.RawQuery != "" {
+		fail(w, http.StatusBadRequest, "invalid_database_request")
+		return
+	}
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		return
+	}
+	if !p.Can("sites:read", p.TenantID) {
+		fail(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if s.SiteCatalog == nil {
+		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
+		return
+	}
+	record, err := s.SiteCatalog.GetDatabase(r.Context(), p.TenantID, siteID, databaseID)
+	if err != nil {
+		writeSiteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, record)
 }
 
 func (s *Server) siteNginxPreview(w http.ResponseWriter, r *http.Request, p rbac.Principal, siteID string) {
