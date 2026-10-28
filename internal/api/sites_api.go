@@ -83,6 +83,10 @@ func (s *Server) siteResource(w http.ResponseWriter, r *http.Request, p rbac.Pri
 		s.siteGet(w, r, p, parts[0])
 		return
 	}
+	if len(parts) == 3 && parts[0] != "" && parts[1] == "domains" && parts[2] != "" {
+		s.siteDomainRemove(w, r, p, parts[0], parts[2])
+		return
+	}
 	if len(parts) == 4 && parts[0] != "" && parts[1] == "domains" && parts[2] != "" && parts[3] == "verification" {
 		s.siteDomainVerificationBegin(w, r, p, parts[0], parts[2])
 		return
@@ -180,8 +184,10 @@ func writeSiteError(w http.ResponseWriter, err error) {
 	case errors.Is(err, sites.ErrSiteExists), errors.Is(err, sites.ErrDomainClaimed),
 		errors.Is(err, sites.ErrDomainVerificationState):
 		fail(w, http.StatusConflict, "site_conflict")
-	case errors.Is(err, sites.ErrSiteNotFound):
+ 	case errors.Is(err, sites.ErrSiteNotFound), errors.Is(err, sites.ErrDomainNotFound):
 		fail(w, http.StatusNotFound, "not_found")
+	case errors.Is(err, sites.ErrPrimaryDomain):
+		fail(w, http.StatusConflict, "primary_domain_required")
 	case errors.Is(err, sites.ErrDomainProofMismatch):
 		fail(w, http.StatusForbidden, "domain_proof_invalid")
 	case errors.Is(err, sites.ErrDomainVerificationExpired):
@@ -191,4 +197,26 @@ func writeSiteError(w http.ResponseWriter, err error) {
 	default:
 		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
 	}
+}
+
+ 
+func (s *Server) siteDomainRemove(w http.ResponseWriter, r *http.Request, p rbac.Principal, siteID, domain string) {
+	if r.Method != http.MethodDelete {
+		w.Header().Set("Allow", http.MethodDelete)
+		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		return
+	}
+	if !p.Can("sites:write", p.TenantID) {
+		fail(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if s.SiteCatalog == nil {
+		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
+		return
+	}
+	if err := s.SiteCatalog.RemoveAliasDomain(r.Context(), p.TenantID, siteID, domain); err != nil {
+		writeSiteError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
