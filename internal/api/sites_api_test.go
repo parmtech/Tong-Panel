@@ -260,3 +260,27 @@ func TestSiteDomainAPIOnlyRemovesTenantAliasAndReleasesClaim(t *testing.T) {
 		t.Fatalf("released alias could not be claimed: %d %s", reclaimed.Code, reclaimed.Body.String())
 	}
 }
+
+
+func TestConcurrentSiteAliasRemovalHasOneWinner(t *testing.T) {
+	server, _, _ := setupSiteAPI(t)
+	h := server.Handler()
+	if r := createTestSite(t, h, secret, "site-race", "race.example.test"); r.Code != http.StatusCreated {
+		t.Fatalf("create site: %d %s", r.Code, r.Body.String())
+	}
+	path := "/api/v1/sites/site-race/domains/www.race.example.test"
+	start := make(chan struct{})
+	codes := make(chan int, 2)
+	for range 2 {
+		go func() {
+			<-start
+			codes <- call(h, http.MethodDelete, path, secret, "", "").Code
+		}()
+	}
+	close(start)
+	a, b := <-codes, <-codes
+	if !((a == http.StatusNoContent && b == http.StatusNotFound) ||
+		(a == http.StatusNotFound && b == http.StatusNoContent)) {
+		t.Fatalf("concurrent alias removal statuses=(%d,%d), want one removal and one not found", a, b)
+	}
+}
