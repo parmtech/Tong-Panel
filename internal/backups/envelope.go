@@ -321,4 +321,3 @@ func wipe(value []byte) {
 		value[i] = 0
 	}
 }
-
