@@ -160,4 +160,3 @@ func (c *Catalog) CompleteDomainVerification(ctx context.Context, tenantID, site
 	}
 	return nil
 }
-
