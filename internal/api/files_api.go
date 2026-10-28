@@ -311,4 +311,3 @@ func writeFilesError(w http.ResponseWriter, err error) {
 		fail(w, http.StatusServiceUnavailable, "files_unavailable")
 	}
 }
-

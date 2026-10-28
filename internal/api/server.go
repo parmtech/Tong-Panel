@@ -271,4 +271,3 @@ func (s *Server) jobDetail(w http.ResponseWriter, r *http.Request, p rbac.Princi
 		fail(w, 405, "method_not_allowed")
 	}
 }
-

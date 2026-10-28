@@ -155,4 +155,3 @@ func TestNewLinuxFileMutationBarrierRejectsUnsafeDirectory(t *testing.T) {
 		t.Fatal("accepted a group/other-writable lock directory")
 	}
 }
-
