@@ -1055,3 +1055,46 @@ func TestRootOperationsReserveInternalStagingNames(t *testing.T) {
 		}
 	}
 }
+
+func TestTenantRootsScopeStaleArchiveCleanup(t *testing.T) {
+	rootAPath := t.TempDir()
+	rootBPath := t.TempDir()
+	rootA, err := OpenRoot(rootAPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootA.Close()
+	rootB, err := OpenRoot(rootBPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootB.Close()
+	roots, err := NewTenantRoots(map[string]*Root{"tenant-a": rootA, "tenant-b": rootB})
+	if err != nil {
+		t.Fatal(err)
+	}
+	nameA := ".tong-archive-stage-5123456789abcdef0123456789abcdef"
+	nameB := ".tong-archive-stage-6123456789abcdef0123456789abcdef"
+	for _, target := range []string{filepath.Join(rootAPath, nameA), filepath.Join(rootBPath, nameB)} {
+		if err := os.Mkdir(target, 0700); err != nil {
+			t.Fatal(err)
+		}
+		oldTime := time.Now().Add(-2 * time.Hour)
+		if err := os.Chtimes(target, oldTime, oldTime); err != nil {
+			t.Fatal(err)
+		}
+	}
+	removed, err := roots.CleanupStaleArchiveStagesForTenant("tenant-a", time.Hour)
+	if err != nil || removed != 1 {
+		t.Fatalf("tenant A cleanup = %d, %v", removed, err)
+	}
+	if _, err := os.Lstat(filepath.Join(rootAPath, nameA)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("tenant A orphan remained: %v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(rootBPath, nameB)); err != nil {
+		t.Fatalf("tenant B orphan was modified: %v", err)
+	}
+	if _, err := roots.CleanupStaleArchiveStagesForTenant("unknown", time.Hour); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("unknown tenant cleanup error = %v", err)
+	}
+}
