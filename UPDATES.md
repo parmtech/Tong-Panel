@@ -1,4 +1,4 @@
-Warning: truncated output (original token count: 22755)
+Warning: truncated output (original token count: 23149)
 Total output lines: 499
 
 # Tong Panel — Live Project Status and Work Journal
@@ -17,22 +17,22 @@ Total output lines: 499
 - **Authentication boundary:** owner/security review must record ADR-009/P0 decisions before a public login route; keep public login and production deployment disabled. Isolated non-privileged prototypes can continue.
 
 ## CURRENT P2 SLICE — cross-process Files mutation barrier
-- **Branch/PR:** `feature/p2-quota-maintenance-barrier`, intended draft stacked on #55. Implementation in progress; exact head and hosted checks pending.
+- **Branch/PR:** `feature/p2-quota-maintenance-barrier`, draft [PR #56](https://github.com/parmtech/Tong-Panel/pull/56), stacked on #55. Code head `1364c68ab32faa0f90c1f01efe65d50cf100525f` passed [Go format/full race/vet #40714421755](https://github.com/parmtech/Tong-Panel/actions/runs/40714421755), [daemon smoke #40714421877](https://github.com/parmtech/Tong-Panel/actions/runs/40714421877), and [unsigned package #40714421724](https://github.com/parmtech/Tong-Panel/actions/runs/40714421724). Two earlier heads failed only the Go formatting gate due trailing blank lines; both were corrected before this green code head.
 - **Change/tests:** Linux advisory shared/exclusive locks in a service-owned private directory; authenticated upload/delete handlers hold a shared per-tenant lock from before quota reservation/removal through accounting. Exclusive maintenance waits for active mutations; tests cover separate-process coordination, same-process drain, tenant isolation, cancellation and unsafe lock directory rejection.
-- **Status/limits:** source edits are uncommitted and have not yet been run through Go or GitHub Actions. This barrier does not stop external PHP/WordPress or administrator filesystem writers, and no recovery code clears reservations. P2 remains incomplete; no daemon wiring or production host changes.
-- **Next:** run full race/vet and VM workflows, fix any failures, then add recovery only behind an integrated, documented host-level writer quiescence contract.
+- **Status/limits:** API and same-process checks are green on `1364c68`; the clean-VM workflow now includes the API test binary and is awaiting hosted verification. This barrier does not stop external PHP/WordPress or administrator filesystem writers, and no recovery code clears reservations. P2 remains incomplete; no daemon wiring or production host changes.
+- **Next:** verify current-head clean VM checks, then add recovery only behind an integrated, documented host-level writer quiescence contract.
 
 ## PRIOR VERIFIED P2 SLICE — measured tenant Files quota setup
 - **Branch/PR:** `feature/p2-quota-reconciliation`, draft [PR #55](https://github.com/parmtech/Tong-Panel/pull/55), stacked on #54; code head `2a56d93d250b4ad352831da97db6a7a8b0a8c134`.
 - **Change/tests:** bounded Linux pinned-root scan counts nested regular-file logical bytes, never follows symlinks or crosses mounts, serializes against mutations on the same `Root`, and fails closed on entry/depth limits, special files, detected path changes and overflow. `ConfigureTenantQuotaFromRoots` records measured usage and still refuses pending reservations.
-- **Validation:** Go formatting/full race/vet [#40711216528](https://github.com/parmtech/Tong-Panel/actions/runs/40711216528), daemon smoke [#40711216435](https://github.com/parmtech/Tong-Panel/actions/runs/40711216435), unsigned package [#40711216395](https://github.com/parmtech/Tong-Panel/actions/runs/40711216395), and Ubuntu 24.04/Debian 12 clean VM smoke [#40711216498](https://github.com/parmtech/Tong-Panel/actions/runs/40711216498) passed on the exact code head. Local Go/gofmt unavailable.
+- **Validation:** code head passed Go formatting/full race/vet [#40711216528](https://github.com/parmtech/Tong-Panel/actions/runs/40711216528), daemon smoke [#40711216435](https://github.com/parmtech/Tong-Panel/actions/runs/40711216435), unsigned package [#40711216395](https://github.com/parmtech/Tong-Panel/actions/runs/40711216395), and Ubuntu 24.04/Debian 12 clean VM smoke [#40711216498](https://github.com/parmtech/Tong-Panel/actions/runs/40711216498). Documentation head `993cc56e119f6a1b2c357a5e8b07d3ac5c7e6975` also passed [Go #40712342446](https://github.com/parmtech/Tong-Panel/actions/runs/40712342446), [daemon #40712342583](https://github.com/parmtech/Tong-Panel/actions/runs/40712342583), [package #40712342394](https://github.com/parmtech/Tong-Panel/actions/runs/40712342394), and both clean guests [#40712342367](https://github.com/parmtech/Tong-Panel/actions/runs/40712342367). Local Go/gofmt unavailable.
 - **Limits/status:** callers must quiesce writers outside the same `Root`; this is not a cross-process startup barrier and does not recover crash-stranded reservations. No daemon wiring, Files UI/object ACL, installer/service lifecycle, backup/restore or owner/security approval. P2 remains incomplete; no production host changed.
 - **Next:** design and test a cross-process maintenance barrier that drains live uploads before scanned usage can safely clear stale reservations.
 
 ### 2026-10-29 — P2 cross-process file mutation barrier (in progress)
-- **Branch:** `feature/p2-quota-maintenance-barrier`, based on PR #55 head `993cc56e119f6a1b2c357a5e8b07d3ac5c7e6975`.
+- **Branch/PR:** `feature/p2-quota-maintenance-barrier`, draft [PR #56](https://github.com/parmtech/Tong-Panel/pull/56), based on PR #55 head `993cc56e119f6a1b2c357a5e8b07d3ac5c7e6975`; current verified Go/API code head `1364c68ab32faa0f90c1f01efe65d50cf100525f` passed [Go format/race/vet #40714421755](https://github.com/parmtech/Tong-Panel/actions/runs/40714421755), [daemon #40714421877](https://github.com/parmtech/Tong-Panel/actions/runs/40714421877), and [package #40714421724](https://github.com/parmtech/Tong-Panel/actions/runs/40714421724).
 - **Change:** add Linux per-tenant shared/exclusive advisory lock primitive and require shared leases around authenticated Files upload/delete quota accounting. Add process-level lock coordination, cancellation, tenant isolation and permission rejection tests.
-- **Tests:** not run locally (Go/gofmt unavailable on this Windows workspace); `git diff --check` only. Hosted verification has not started.
+- **Tests:** Local Go/gofmt unavailable. Two initial hosted Go checks failed solely because final blank lines were not normalized; corrected code head passed Go format/full race/vet, daemon smoke and unsigned package. The clean-VM workflow now builds and runs the API test binary on Ubuntu 24.04 and Debian 12; its latest-head results are pending.
 - **Limits/security:** lock directory must be service-owned and not group/other writable. This coordinates participating API processes only; external site/admin writers still need a separately implemented and tested maintenance quiescence contract. No stale reservation recovery, daemon wiring, owner/security approval or production host change. Phase 2 remains incomplete.
 - **Next:** inspect and execute exact PR-head CI; continue toward safe startup recovery and the remaining P2 roadmap gates.
 
@@ -92,7 +92,66 @@ Total output lines: 499
 - **Branch/PR:** `feature/p2-bounded-file-writer`, draft [PR #39](https://github.com/parmtech/Tong-Panel/pull/39), stacked on draft #38/#37/#36/#35. Executable code commit: `aca299ed6090de6c327f78700be28086ee785502`.
 - **Scope:** adds `Root.WriteNewFrom` and `TenantRoots.WriteNewFromForTenant`. Reads only up to caller-selected cap+1 (cap max 16 MiB), rejects oversize content before target publication, then uses existing mode-0600 atomic create-only no-replace publication. Unknown tenant IDs are rejected before stream consumption.
 - **Focused tests:** exact cap success; cap+1 consumption and no partial target; invalid path/limit/nil reader; closed-root non-consumption; unknown-tenant non-consumption and tenant-root separation; concurrent same-target single winner.
-- **Validation:** executable code commit `aca299ed6090de6c327f78700be28086ee785502` passed Go formatting/full `go test -race ./...`/vet [#40611776793](https://github.com/parmtech/Tong-Panel/actions/runs/40611776793), daemon smoke [#40611776807](https://github.com/parmtech/Tong-Panel/actions/runs/40611776807), and unsigned package lab [#406117767…12755 tokens truncated…tions Go checks pass; review pending.
+- **Validation:** executable code commit `aca299ed6090de6c327f78700be28086ee785502` passed Go formatting/full `go test -race ./...`/vet [#40611776793](https://github.com/parmtech/Tong-Panel/actions/runs/40611776793), daemon smoke [#40611776807](https://github.com/parmtech/Tong-Panel/actions/runs/40611776807), and unsigned package lab [#40611776733](https://github.com/parmtech/Tong-Panel/actions/runs/40611776733). Local Go/gofmt remain unavailable; PR head follow-ups are documentation-only.
+- **Limits/status:** the later PR #41 replaces this bounded in-memory stream buffer with direct staging-file streaming. Neither version adds an aggregate tenant quota, global concurrency admission, HTTP API, user/object ACL, auth integration, replacement writes, scanner, request timeout, startup recovery, installer or host mutation. P0/P1 remain open and P2 is incomplete.
+- **Next:** continue isolated, non-privileged P2 work. API/auth and real installer/service lifecycle integration remain behind owner/security review and signed package/recovery gates.
+
+## PRIOR VERIFIED P2 SLICE — bounded archive request-stream ingestion
+- **Branch/PR:** `feature/p2-bounded-archive-reader`, draft [PR #38](https://github.com/parmtech/Tong-Panel/pull/38), stacked on draft #37/#36/#35. Executable code commit: `fd418e1769efef5e5b21a7e7e3ac722fe31aba51`.
+- **Scope:** adds `ReadGzipTarBounded`, `Root.ExtractGzipTarNewFrom`, and a tenant-scoped stream wrapper. It reads at most the selected compressed-byte cap plus one before rejecting overflow; unknown tenants are denied before reading.
+- **Focused tests:** exact cap/cap+1 consumption, invalid caps/nil reader, no target publication on oversize, successful bounded extraction, and unknown-tenant non-consumption.
+- **Validation:** passed Go formatting/full `go test -race ./...`/vet [#40611138073](https://github.com/parmtech/Tong-Panel/actions/runs/40611138073), daemon smoke [#40611138018](https://github.com/parmtech/Tong-Panel/actions/runs/40611138018), and unsigned package lab [#40611138068](https://github.com/parmtech/Tong-Panel/actions/runs/40611138068). Follow-up PR-head commits are documentation-only.
+- **Limits/status:** not an HTTP route, authorization/ACL, quota, timeout, scanner, startup recovery or production deployment. P0/P1 remain open; P2 is incomplete.
+
+## PRIOR VERIFIED P2 QA SLICE — clean disposable VM smoke
+- **Branch/PR:** `feature/p2-clean-vm-smoke`, draft [PR #37](https://github.com/parmtech/Tong-Panel/pull/37), stacked on draft #36/#35. Code/workflow commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`; follow-up docs are on this branch.
+- **Scope:** QEMU/TCG launches fresh Ubuntu 24.04 and Debian 12 cloud-image guests in GitHub Actions. It builds the unsigned preview, provi…11149 tokens truncated…uction-ready.
+**P2 implementation:** draft [PR #53](https://github.com/parmtech/Tong-Panel/pull/53), stacked on #52–#50, adds persistent tenant file quota reservations; it does not yet recover crash-stranded reservations, reconcile on-disk usage, account deletes or wire the Files API into the daemon. P2 hosting lifecycle/installer/backup-restore acceptance remains open.
+**P1 implementation state:** authentication/session, local bootstrap and job/agent prototypes remain in unmerged drafts. No production login or privileged host mutator is approved. No hosting app or installer exists.
+**Production/release state:** NOT RELEASED.  
+**Primary branch:** main (verify live branch HEAD before work).  
+**Owner:** ParmTech.
+
+### Completed and verified on GitHub
+- [x] Public GitHub repository created and checked.
+- [x] Initial README exists; AGPL-3.0 LICENSE verified.
+- [x] docs/BLUEPRINT.md: product, personas, features, acceptance, roadmap overview.
+- [x] docs/FEATURE_MATRIX.md: priorities and proof requirements.
+- [x] docs/ARCHITECTURE.md: proposed control plane / privileged local agent boundary.
+- [x] docs/ROADMAP.md: P0–P6 milestones.
+- [x] docs/SECURITY.md: preliminary threat model and security gates.
+- [x] docs/UPSTREAM_RESEARCH.md: HestiaCP, Virtualmin, ISPConfig, 1Panel, Coolify, CloudPanel, File Browser and licensing/safety notes.
+- [x] docs/UX_UI_SPEC.md: mobile icon grid, desktop-style File Explorer and guidance.
+- [x] docs/INSTALLER_SPEC.md: signed fresh-host single-command installation plan.
+- [x] AGENTS.md: any-agent resume and work protocol.
+- [x] CONTRIBUTING.md: community work conventions.
+- [x] README.md: documentation index and clear pre-release notice.
+- [x] docs/PHASE_INDEX.md and docs/phases/P0..P6 separate phase instructions and gates.
+- [x] docs/ADR_REGISTER.md, docs/THREAT_MODEL.md, docs/TEST_STRATEGY.md: draft decisions, threats and QA framework.
+- [x] docs/REPORT_2026-10-26.md: actual phase kickoff report.
+- [x] 8 P1 implementation issues (#5–#12) created with deliverables/acceptance.
+- [x] Draft PR #13 contains loopback-only Go health API and tests; local Go 1.23.2 test/vet passed and GitHub Actions Go 1.27.3 gofmt/test-race/vet PASSED (branch only).
+
+- [x] P1 developer prototype branch and [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14) pushed, with successful Go workflow run [40260348235](https://github.com/parmtech/Tong-Panel/actions/runs/40260348235).\n- [x] Detailed [Phase 1 report](docs/PHASE1_REPORT_2026-10-26.md) written.\n\n### Pending / unverified
+- [ ] Architecture and licensing ADRs **reviewed and approved** (currently drafted only).
+- [ ] Explicit P1 MVP scope and initial supported Linux matrix locked.
+- [ ] Detailed adversarial threat model, signed-artifact/installer design reviewed.
+- [x] P1 issues created (#5–#12).
+- [ ] P1 issues assigned and ownership/reviews confirmed; draft PR #13 approved/merged; CI checks now VERIFIED passing, but PR remains draft and unmerged.
+- [ ] Full implementation backend/frontend/agent, installer, CI run evidence, auth/security tests, app recipes.
+- [ ] External security audit and install/restore compatibility evidence.
+- [ ] Stable product release.
+
+**Next ONE action for a new agent:** request ADR-003/auth-session design review and check the draft PR #14/#15 parent chain before any merge. No live VPS changes.
+
+## GitHub work queue (OPEN — not assigned or completed)
+- [#1 P0 architecture ADRs and upstream licences](https://github.com/parmtech/Tong-Panel/issues/1)
+- [#2 P0 threat model and security validation](https://github.com/parmtech/Tong-Panel/issues/2)
+- [#3 P0 finalize P1 MVP/distro scope](https://github.com/parmtech/Tong-Panel/issues/3)
+- [#4 P0 UX flows and file-explorer design](https://github.com/parmtech/Tong-Panel/issues/4)
+
+## Added implementation work queue
+- [P1-01 API liveness #5](https://github.com/parmtech/Tong-Panel/issues/5) — prototype PR #13 draft; local tests and GitHub Actions Go checks pass; review pending.
 - [P1-02 Auth/MFA #6](https://github.com/parmtech/Tong-Panel/issues/6) — planned.
 - [P1-03 Durable jobs #7](https://github.com/parmtech/Tong-Panel/issues/7) — planned.
 - [P1-04 Host agent #8](https://github.com/parmtech/Tong-Panel/issues/8) — planned, security gated.
@@ -231,4 +290,3 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - **Tests/evidence:** nested logical byte totals, symlink/staging behavior, depth/entry/special-file negatives, scan serialization with a blocked upload, tenant isolation and quota setup with pending-reservation denial. Exact code head passed [Go formatting/full race/vet #40711216528](https://github.com/parmtech/Tong-Panel/actions/runs/40711216528), [daemon smoke #40711216435](https://github.com/parmtech/Tong-Panel/actions/runs/40711216435), [unsigned package #40711216395](https://github.com/parmtech/Tong-Panel/actions/runs/40711216395), and [Ubuntu 24.04/Debian 12 clean VM #40711216498](https://github.com/parmtech/Tong-Panel/actions/runs/40711216498). Local Go unavailable.
 - **Security/limits:** external tenant writers must be quiesced; same-process locking is not a cross-process startup barrier. Crash-stranded reservations still fail closed; no daemon wiring, UI/object ACL, installer, backup/restore or owner/security approval. P2 incomplete; no host changed.
 - **Next one step:** design a cross-process maintenance barrier and live-upload drain before clearing pending reservations based on a scan.
-

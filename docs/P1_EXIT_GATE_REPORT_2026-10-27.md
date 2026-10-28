@@ -1,4 +1,4 @@
-Warning: truncated output (original token count: 12384)
+Warning: truncated output (original token count: 12489)
 Total output lines: 265
 
 # Tong Panel — Phase 1 Exit / Phase 2 Entry Gate Report
@@ -111,7 +111,50 @@ This is **combined branch evidence**, not just separate PR evidence:
 - Internal-only `Rotate` atomically revokes old bearer/CSRF, issues new random hashed bearer+CSRF with the **same original absolute expiry**, and audits user-attributed rotation. `Logout` revokes and audits in one transaction; audit failure rolls back revocation. No public HTTP/cookie issue/clear route enabled.
 - New tests cover idle/absolute deadlines, concurrent reads, one-winner rotation, preserved expiry across repeated rotations, and audit-failure rollback. `scripts/smoke_p1.py`, bootstrap smoke and DB unit tests were updated for schema v7.
 - **CI VERIFIED ALL PASS** at executable commit `6ae402888141e76aa83f38af5f96805598da5966`: [Go formatting/full `go test -race ./...`/`go vet ./...` #40598738018](https://github.com/parmtech/Tong-Panel/actions/runs/40598738018), [SQLite schema v7 #40598737975](https://github.com/parmtech/Tong-Panel/actions/runs/40598737975), [compiled daemon/SQLite smoke #40598738139](https://github.com/parmtech/Tong-Panel/actions/runs/40598738139), [unsigned developer archive/extraction/process smoke #40598737988](https://github.com/parmtech/Tong-Panel/actions/runs/40598737988). Initial gofmt differences were corrected; later commits are documentation-only. No production installation was certified.
-- The full…2384 tokens truncated…e quota, request timeout, replacement write, API/auth/ACL integration, installer or P2 acceptance gate. No live host changed; P0/P1 remain open and P2 remains incomplete.
+- The full Phase 1 **release exit is still BLOCKED** by P0/ADR review, public secure login + origin binding, external key custody/recovery, idle-load testing, privileged agent trust, signed installer/SBOM, clean Ubuntu/Debian VM install/rollback/recovery, and UI accessibility/E2E.
+
+## Publish decision
+
+## Cookie Origin ambiguity hardening — stacked draft PR #34 (28 October 2026)
+
+- The follow-up slice on [draft PR #34](https://github.com/parmtech/Tong-Panel/pull/34) makes cookie-authenticated mutations reject absent or duplicate `Origin` header values. This avoids authorizing the first value while an upstream component interprets another value.
+- Focused tests deny two conflicting Origin headers and exercise 24 concurrent authenticated session reads. The existing cookie boundary still requires actual TLS, exact same-origin validation, CSRF, and a pre-issued session. No public login, cookie issue/rotate/logout HTTP route or proxy trust was added.
+- Local Go formatting/tests/race/vet could not run because Go is unavailable in the current Windows workspace. Code head `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed [Go formatting, full `go test -race ./...`, and vet #40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640), [daemon smoke #40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840), and [unsigned archive lab #40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588). These are hosted CI prototype checks, not release certification or security approval.
+- This does not satisfy public HTTPS login, ADR-009 approval, origin configuration, external key custody/recovery, security review or any remaining installer/agent/UI release gate. P0 and Phase 1 exit remain blocked; no production VPS was changed.
+
+## P2 isolated file primitive checkpoint — draft PR #36 (28 October 2026)
+
+- Draft PR [#36](https://github.com/parmtech/Tong-Panel/pull/36), stacked on #35, extends the unprivileged Linux file prototype: create-only writes hold a stage lock, and bounded stale cleanup now recognizes both write and archive stages. The tenant wrapper continues to select only the configured pinned root.
+- Focused negative/race tests cover stale write-stage removal, active-lock skip and later cleanup, symlink/outside-root preservation, unrelated names, and tenant-root scope. Exact executable code commit `d7b1ae492e75355622b24b779b206640f99eba56` passed [Go checks #40609720874](https://github.com/parmtech/Tong-Panel/actions/runs/40609720874), [daemon smoke #40609720701](https://github.com/parmtech/Tong-Panel/actions/runs/40609720701), and [unsigned package lab #40609720693](https://github.com/parmtech/Tong-Panel/actions/runs/40609720693). A later PR-head commit changes documentation only.
+- This is not a Files API/UI, user/object authorization, quota system, startup recovery integration, installer, site/domain/database/SSL lifecycle, or two-tenant end-to-end result. P0 ADR/threat review and P1 authentication, trusted-agent, installer, and recovery gates remain open. No production host or VPS was modified.
+- **Phase 2 status remains NOT COMPLETE and gated.** This isolated prototype does not permit merging/releasing or implementing host mutations against real servers.
+## P2 disposable clean-VM smoke lane — draft PR #37 (28 October 2026)
+
+- Draft PR [#37](https://github.com/parmtech/Tong-Panel/pull/37), stacked on #36, adds a disposable QEMU/TCG run for candidate Ubuntu 24.04 and Debian 12 cloud images. It builds the explicitly unsigned developer preview, runs it as an unprivileged guest user, verifies the archive checksum/OS identity, and exercises the existing daemon/SQLite smoke and read-only doctor check.
+- Both matrix jobs passed [clean VM run #40610418570](https://github.com/parmtech/Tong-Panel/actions/runs/40610418570) for workflow/code commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`.
+- This is clean-guest runtime evidence only. No installer, service install/resta…489 tokens truncated…tps://github.com/parmtech/Tong-Panel/actions/runs/40613452879).
+- Caller cancellation/deadline and disk/concurrency quotas remain outside this primitive. No API/auth/ACL or host service changes; P0/P1 remain open and P2 incomplete.
+
+## P2 bounded streaming create-only file upload — draft PR #41
+
+- Draft PR [#41](https://github.com/parmtech/Tong-Panel/pull/41), stacked on draft #40, refactors `WriteNewFrom` to stream request bytes directly into a private staging file, using constant application buffer memory and at most the caller cap+1 reads (cap ≤16 MiB). The file is published only after EOF within the cap through atomic no-replace rename; overflow or source error discards the stage.
+- Negative/race coverage includes over-limit and reader-error non-publication, stage cleanup, invalid/closed-root rejection, concurrent one-winner creation, and root close synchronization during a blocked stream.
+- Executable commit `df450a054fe8df50333e8e820f4145601e8d75f8` passed [Go format/full race/vet #40612826353](https://github.com/parmtech/Tong-Panel/actions/runs/40612826353), [daemon smoke #40612826486](https://github.com/parmtech/Tong-Panel/actions/runs/40612826486), and [unsigned package lab #40612826389](https://github.com/parmtech/Tong-Panel/actions/runs/40612826389).
+- No global concurrency limit, tenant-wide disk quota, deadline, HTTP/auth/ACL, installer or host lifecycle is added. P0/P1 review remains open and P2 remains incomplete. No production host changed.
+
+## P2 internal two-tenant Files lifecycle regression — draft PR #40
+
+- Draft PR [#40](https://github.com/parmtech/Tong-Panel/pull/40), stacked on draft #39, adds integration-style coverage across two distinct temporary pinned tenant roots.
+- The test exercises bounded and create-only writes, buffered and streamed archive extraction, per-tenant read/list, tenant-scoped removal, unknown-tenant denial and cross-root traversal denial.
+- Test commit `28bde9fee671c0a8438337ec5017c5d564b778d7` passed [Go formatting/full `go test -race ./...`/vet #40612116106](https://github.com/parmtech/Tong-Panel/actions/runs/40612116106), [daemon smoke #40612116078](https://github.com/parmtech/Tong-Panel/actions/runs/40612116078), and [unsigned package smoke #40612116013](https://github.com/parmtech/Tong-Panel/actions/runs/40612116013).
+- This is internal selector integration evidence, not authenticated HTTP, user/object authorization, clean install/recovery, or the roadmap's complete two-tenant acceptance gate. P0/P1 remain open and P2 remains incomplete. No production host changed.
+
+## P2 bounded streamed create-only file writes — draft PR #39
+
+- Draft PR [#39](https://github.com/parmtech/Tong-Panel/pull/39), stacked on draft #38, adds bounded reader ingestion for create-only file writes through the pinned root and tenant-root selector.
+- Executable code commit `aca299ed6090de6c327f78700be28086ee785502` passed [Go formatting/full `go test -race ./...`/vet #40611776793](https://github.com/parmtech/Tong-Panel/actions/runs/40611776793), [daemon smoke #40611776807](https://github.com/parmtech/Tong-Panel/actions/runs/40611776807), and [unsigned package lab #40611776733](https://github.com/parmtech/Tong-Panel/actions/runs/40611776733).
+- Focused tests cover exact cap, bounded cap+1 consumption, rejection without target publication, invalid path/limit/nil input, closed root, unknown tenant before reader consumption, tenant separation and concurrent single-winner publication.
+- This holds a bounded input buffer (caller cap at most 16 MiB); it is not a tenant-wide quota, request timeout, replacement write, API/auth/ACL integration, installer or P2 acceptance gate. No live host changed; P0/P1 remain open and P2 remains incomplete.
 
 ## P2 bounded archive stream primitive — draft PR #38
 
@@ -204,10 +247,9 @@ This is **combined branch evidence**, not just separate PR evidence:
 - Focused tests cover nested files, symlink and private-stage behavior, special-file and scan limits, synchronization with an in-flight streamed write, tenant isolation and pending-reservation denial during reconfiguration. Exact code head `2a56d93d250b4ad352831da97db6a7a8b0a8c134` passed [Go formatting/full race/vet #40711216528](https://github.com/parmtech/Tong-Panel/actions/runs/40711216528), [daemon smoke #40711216435](https://github.com/parmtech/Tong-Panel/actions/runs/40711216435), [unsigned package lab #40711216395](https://github.com/parmtech/Tong-Panel/actions/runs/40711216395), and [Ubuntu 24.04/Debian 12 clean VM #40711216498](https://github.com/parmtech/Tong-Panel/actions/runs/40711216498).
 - **Gate status:** callers must quiesce external writers; this is not a cross-process startup barrier and does not recover crash-stranded reservations. No daemon quota wiring, Files UI/object ACL, installer/service lifecycle, backup/restore or owner/security approval. P2 remains incomplete; no production host changed.
 
-## P2 cross-process Files mutation barrier — in progress (29 October 2026)
+## P2 cross-process Files mutation barrier — draft PR #56 (29 October 2026)
 
 - The isolated branch `feature/p2-quota-maintenance-barrier` adds a Linux per-tenant advisory shared/exclusive barrier in a service-owned lock directory. Authenticated upload/delete routes hold a shared lease across quota reservation or removal, filesystem mutation and accounting finalization; exclusive maintenance waits for those API mutations.
-- Focused tests are authored for separate-process lock exclusion, in-flight mutation drain, tenant independence, canceled waiters, unsafe lock-directory permissions and fail-closed API behavior when the barrier is not configured.
-- **Verification:** implementation and tests are not yet committed or executed by CI. Local Go and gofmt are unavailable; only `git diff --check` can be performed here.
+- Focused tests cover separate-process lock exclusion, in-flight mutation drain, tenant independence, canceled waiters, unsafe lock-directory permissions and fail-closed API behavior when the barrier is not configured.
+- Code head `1364c68ab32faa0f90c1f01efe65d50cf100525f` passed [Go formatting/full race/vet #40714421755](https://github.com/parmtech/Tong-Panel/actions/runs/40714421755), [daemon smoke #40714421877](https://github.com/parmtech/Tong-Panel/actions/runs/40714421877), and [unsigned package #40714421724](https://github.com/parmtech/Tong-Panel/actions/runs/40714421724). Two earlier Go runs failed on trailing blank-line formatting only; the corrected head passed. A follow-up extends the clean-VM workflow to run the API test binary in Ubuntu 24.04 and Debian 12; its exact-head results are pending.
 - **Limits/gate status:** the lock only coordinates participating Tong Panel API processes. It does not quiesce PHP/WordPress, shell or other external filesystem writers; startup recovery must not clear pending reservations until host-level writer quiescence is implemented and verified. No reservation recovery, daemon integration, signed installer, backup/restore, ADR/threat-model owner-security approval or P2 completion is claimed. No production host changed.
-

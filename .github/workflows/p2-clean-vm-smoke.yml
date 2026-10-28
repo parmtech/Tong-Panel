@@ -8,6 +8,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'internal/files/**'
+      - 'internal/api/**'
       - 'LICENSE'
       - 'scripts/smoke_p1.py'
       - 'scripts/verify_vm_image_checksum.sh'
@@ -50,6 +51,7 @@ jobs:
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/bin/tongctl" ./cmd/tongctl
           mkdir -p "$RUNNER_TEMP/tong-p1-dev/tests"
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go test -c -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/tests/files.test" ./internal/files
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go test -c -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/tests/api.test" ./internal/api
           cp LICENSE "$RUNNER_TEMP/tong-p1-dev/LICENSE"
           printf '%s\n' 'TONG PANEL — UNSIGNED DEVELOPER PREVIEW ONLY' 'DO NOT RUN ON A PRODUCTION SERVER OR EXPOSE TO THE INTERNET.' 'There is no production login, root host-agent action or verified installer.' 'The source is on unmerged development branches; do not use with customers.' 'This is NOT a supported distro package or signed release.' > "$RUNNER_TEMP/tong-p1-dev/DO_NOT_INSTALL.txt"
           tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" tong-p1-dev
