@@ -671,4 +671,3 @@ func TestNewTenantRootsRejectsAliasedDirectories(t *testing.T) {
 		t.Fatalf("closed root mapping error = %v", err)
 	}
 }
-
