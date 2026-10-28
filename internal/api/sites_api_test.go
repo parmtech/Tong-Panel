@@ -363,3 +363,49 @@ func TestConcurrentSiteAliasAddHasSingleWinner(t *testing.T) {
 		t.Fatalf("concurrent alias creation statuses=(%d,%d), want one claim and one conflict", a, b)
 	}
 }
+
+
+func TestAddedAliasUsesItsOwnDNSProofBeforeBecomingVerified(t *testing.T) {
+	server, lookup, _ := setupSiteAPI(t)
+	h := server.Handler()
+	if r := createTestSite(t, h, secret, "site-a", "a.example.test"); r.Code != http.StatusCreated {
+		t.Fatalf("create site: %d %s", r.Code, r.Body.String())
+	}
+	added := call(h, http.MethodPost, "/api/v1/sites/site-a/domains", secret, "", `{"domain":"alias.example.test"}`)
+	if added.Code != http.StatusCreated {
+		t.Fatalf("add alias: %d %s", added.Code, added.Body.String())
+	}
+	beginPath := "/api/v1/sites/site-a/domains/alias.example.test/verification"
+	begin := call(h, http.MethodPost, beginPath, secret, "", "")
+	if begin.Code != http.StatusCreated {
+		t.Fatalf("begin alias proof: %d %s", begin.Code, begin.Body.String())
+	}
+	var instruction sites.DomainVerificationInstruction
+	if err := json.Unmarshal(begin.Body.Bytes(), &instruction); err != nil {
+		t.Fatal(err)
+	}
+	if instruction.Name != "_tong-panel-challenge.alias.example.test" {
+		t.Fatalf("alias challenge name=%q", instruction.Name)
+	}
+	lookup.set(instruction.Name, instruction.Value)
+	completePath := beginPath + "/complete"
+	completeBody := fmt.Sprintf(`{"value":%q}`, instruction.Value)
+	if r := call(h, http.MethodPost, completePath, secret, "", completeBody); r.Code != http.StatusOK {
+		t.Fatalf("complete alias proof: %d %s", r.Code, r.Body.String())
+	}
+	got := call(h, http.MethodGet, "/api/v1/sites/site-a", secret, "", "")
+	if got.Code != http.StatusOK {
+		t.Fatalf("site read after alias verification: %d %s", got.Code, got.Body.String())
+	}
+	var record sites.SiteRecord
+	if err := json.Unmarshal(got.Body.Bytes(), &record); err != nil {
+		t.Fatal(err)
+	}
+	states := make(map[string]string, len(record.Domains))
+	for _, domain := range record.Domains {
+		states[domain.Name] = domain.OwnershipState
+	}
+	if states["alias.example.test"] != "verified" || states["a.example.test"] != "pending" {
+		t.Fatalf("unexpected per-domain ownership states: %#v", states)
+	}
+}
