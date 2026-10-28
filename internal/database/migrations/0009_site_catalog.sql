@@ -8,7 +8,7 @@ CREATE TABLE sites (
 ) STRICT;
 
 CREATE TABLE site_domains (
-    domain TEXT NOT NULL PRIMARY KEY COLLATE NOCASE CHECK (domain = lower(domain)),
+    domain TEXT NOT NULL PRIMARY KEY COLLATE NOCASE CHECK (domain COLLATE BINARY = lower(domain) COLLATE BINARY),
     tenant_id TEXT NOT NULL,
     site_id TEXT NOT NULL,
     kind TEXT NOT NULL CHECK (kind IN ('primary', 'alias')),
