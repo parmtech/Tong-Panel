@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -33,6 +34,7 @@ var (
 	ErrTenantDenied  = errors.New("tenant file root unavailable")
 	ErrAlreadyExists = errors.New("file already exists")
 	ErrInvalidReader = errors.New("invalid file content reader")
+	ErrPublishedDurabilityUnconfirmed = errors.New("file published but directory durability is unconfirmed")
 )
 
 // Root pins a trusted directory using an open descriptor. Close prevents new
@@ -245,7 +247,10 @@ func writeNewFromRootFD(rootFD int, relative string, src io.Reader, maxBytes int
 		}
 		return err
 	}
-	return unix.Fsync(parent)
+	if err := unix.Fsync(parent); err != nil {
+		return fmt.Errorf("%w: %v", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	return nil
 }
 
 // RemoveFile unlinks one regular file or symlink entry below the pinned root.

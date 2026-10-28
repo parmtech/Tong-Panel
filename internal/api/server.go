@@ -21,7 +21,8 @@ type Server struct {
 	Jobs     *jobs.Store
 	SQLJobs  *jobs.SQLiteStore        // explicit dev-only, no automatic users or login
 	Sessions *auth.SQLiteSessionStore // separately issued sessions, HTTPS only; no login route
-	Files    TenantFileService        // optional, read-only tenant-scoped Files API
+	Files    TenantFileService        // optional, tenant-scoped Files API
+	FileQuota TenantFileQuota         // required for any Files upload; nil fails closed
 }
 type failure struct {
 	Error struct {
