@@ -1011,6 +1011,59 @@ func TestExtractGzipTarNewRejectsCorruptAndTrailingGzipData(t *testing.T) {
 	}
 }
 
+func TestExtractGzipTarNewConcurrentSameTargetHasSingleWinner(t *testing.T) {
+	r, root := newTestRoot(t)
+	archives := [][]byte{
+		gzipTarForTest(t, archiveTestEntry{
+			header: tar.Header{Name: "tenant-a.txt", Typeflag: tar.TypeReg},
+			data:   []byte("tenant a"),
+		}),
+		gzipTarForTest(t, archiveTestEntry{
+			header: tar.Header{Name: "tenant-b.txt", Typeflag: tar.TypeReg},
+			data:   []byte("tenant b"),
+		}),
+	}
+
+	const attempts = 16
+	start := make(chan struct{})
+	results := make(chan error, attempts)
+	var wg sync.WaitGroup
+	for i := 0; i < attempts; i++ {
+		wg.Add(1)
+		go func(archive []byte) {
+			defer wg.Done()
+			<-start
+			results <- r.ExtractGzipTarNew("shared-target", archive, ArchiveLimits{})
+		}(archives[i%len(archives)])
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	winners := 0
+	for err := range results {
+		switch {
+		case err == nil:
+			winners++
+		case errors.Is(err, ErrAlreadyExists):
+		default:
+			t.Errorf("concurrent extraction error = %v, want one success or ErrAlreadyExists", err)
+		}
+	}
+	if winners != 1 {
+		t.Fatalf("successful extractions = %d, want exactly one", winners)
+	}
+
+	entries, err := os.ReadDir(filepath.Join(root, "shared-target"))
+	if err != nil {
+		t.Fatalf("read published target: %v", err)
+	}
+	if len(entries) != 1 || (entries[0].Name() != "tenant-a.txt" && entries[0].Name() != "tenant-b.txt") {
+		t.Fatalf("published target entries = %#v, want exactly one complete winner tree", entries)
+	}
+	assertNoStagingDirectories(t, root)
+}
+
 func TestExtractGzipTarNewEnforcesCompressedFileAndEntryLimits(t *testing.T) {
 	r, root := newTestRoot(t)
 	oneFile := gzipTarForTest(t, archiveTestEntry{
