@@ -20,7 +20,7 @@ import (
 var migrations embed.FS
 
 // SchemaVersion is the newest schema version supported by this binary.
-const SchemaVersion = 10
+const SchemaVersion = 11
 
 // Open creates the parent directory, enables foreign-key enforcement on every
 // SQLite connection, applies embedded migrations, and rejects databases created
@@ -90,7 +90,7 @@ func applyMigrations(ctx context.Context, db *sql.DB) error {
 			return nil
 		}
 		next := version + 1
-		name := fmt.Sprintf("migrations/%04d_%s.sql", next, map[int]string{1: "initial", 2: "job_leases", 3: "audit_actor_provenance", 4: "totp_replay_state", 5: "mfa_enrollment", 6: "login_attempt_buckets", 7: "session_idle", 8: "tenant_file_quota", 9: "site_catalog", 10: "domain_verification"}[next])
+		name := fmt.Sprintf("migrations/%04d_%s.sql", next, map[int]string{1: "initial", 2: "job_leases", 3: "audit_actor_provenance", 4: "totp_replay_state", 5: "mfa_enrollment", 6: "login_attempt_buckets", 7: "session_idle", 8: "tenant_file_quota", 9: "site_catalog", 10: "domain_verification", 11: "site_database_catalog"}[next])
 		script, err := migrations.ReadFile(name)
 		if err != nil {
 			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
