@@ -295,8 +295,6 @@ for host in tenant-a.example.test tenant-b.example.test; do
   headers="$(curl --silent --show-error --resolve "$host:80:127.0.0.1" -D - -o /dev/null "http://$host/path?from=http")"
   grep -qE '^HTTP/[^ ]+ 308' <<<"$headers"
   grep -qi "^[Ll]ocation: https://$host/path?from=http" <<<"$headers"
-  body="$(curl --silent --show-error --insecure --resolve "$host:443:127.0.0.1" "https://$host/")"
-  [[ "$body" == *"${host/tenant-/tenant-}"* ]] || true
 done
 body_a="$(curl --silent --show-error --insecure --resolve tenant-a.example.test:443:127.0.0.1 https://tenant-a.example.test/)"
 body_b="$(curl --silent --show-error --insecure --resolve tenant-b.example.test:443:127.0.0.1 https://tenant-b.example.test/)"
