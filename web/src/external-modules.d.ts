@@ -9,4 +9,5 @@ declare module '*.mjs' {
         fetcher?: typeof fetch,
         timeoutMs?: number,
     ): Promise<PanelStatusResult>;
+    export function loadNginxPreview(siteID: string, fetcher?: typeof fetch): Promise<string>;
 }

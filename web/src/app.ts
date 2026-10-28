@@ -1,4 +1,5 @@
 import { loadPanelStatus } from './panel-status.mjs';
+import { loadNginxPreview } from './site-preview.mjs';
 
 export {};
 type Tile = { title: string; icon: string; subtitle: string; stage: string };
@@ -24,6 +25,11 @@ const statusChecked = document.querySelector<HTMLElement>('#status-checked');
 const refreshStatusButton = document.querySelector<HTMLButtonElement>('#refresh-status');
 const theme = document.querySelector<HTMLButtonElement>('#theme');
 const intro = document.querySelector<HTMLDialogElement>('#intro');
+const sitePreviewForm = document.querySelector<HTMLFormElement>('#site-preview-form');
+const sitePreviewID = document.querySelector<HTMLInputElement>('#site-preview-id');
+const sitePreviewStatus = document.querySelector<HTMLElement>('#site-preview-status');
+const sitePreviewOutput = document.querySelector<HTMLElement>('#site-preview-output');
+const sitePreviewSubmit = document.querySelector<HTMLButtonElement>('#site-preview-submit');
 const filterText = (text: string): void => {
  if (!list) return;
  list.replaceChildren();
@@ -64,3 +70,18 @@ async function refreshStatus():Promise<void>{
 }
 refreshStatusButton?.addEventListener('click',()=>void refreshStatus());
 void refreshStatus();
+sitePreviewForm?.addEventListener('submit', async (event: SubmitEvent) => {
+ event.preventDefault();
+ if(!sitePreviewID || !sitePreviewStatus || !sitePreviewOutput || !sitePreviewSubmit)return;
+ sitePreviewSubmit.disabled=true;sitePreviewSubmit.setAttribute('aria-busy','true');
+ sitePreviewStatus.dataset.state='loading';sitePreviewStatus.textContent='Loading read-only preview…';
+ sitePreviewOutput.hidden=true;sitePreviewOutput.textContent='';
+ try{
+  const config=await loadNginxPreview(sitePreviewID.value);
+  sitePreviewOutput.textContent=config;sitePreviewOutput.hidden=false;
+  sitePreviewStatus.dataset.state='available';sitePreviewStatus.textContent='Preview loaded. Configuration has not been applied.';
+ }catch(error){
+  sitePreviewStatus.dataset.state='unavailable';
+  sitePreviewStatus.textContent=error instanceof Error?error.message:'Preview unavailable. Try again.';
+ }finally{sitePreviewSubmit.disabled=false;sitePreviewSubmit.removeAttribute('aria-busy');}
+});

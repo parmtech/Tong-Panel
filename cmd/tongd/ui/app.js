@@ -1,4 +1,5 @@
 import { loadPanelStatus } from './panel-status.mjs';
+import { loadNginxPreview } from './site-preview.mjs';
 
 const tiles = [
     { title: 'Websites', icon: '🌐', subtitle: 'Sites & PHP', stage: 'P2' },
@@ -22,6 +23,11 @@ const statusChecked = document.querySelector('#status-checked');
 const refreshStatusButton = document.querySelector('#refresh-status');
 const theme = document.querySelector('#theme');
 const intro = document.querySelector('#intro');
+const sitePreviewForm = document.querySelector('#site-preview-form');
+const sitePreviewID = document.querySelector('#site-preview-id');
+const sitePreviewStatus = document.querySelector('#site-preview-status');
+const sitePreviewOutput = document.querySelector('#site-preview-output');
+const sitePreviewSubmit = document.querySelector('#site-preview-submit');
 const filterText = (text) => {
     if (!list)
         return;
@@ -89,4 +95,31 @@ async function refreshStatus() {
 }
 refreshStatusButton?.addEventListener('click', () => void refreshStatus());
 void refreshStatus();
+
+sitePreviewForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!sitePreviewID || !sitePreviewStatus || !sitePreviewOutput || !sitePreviewSubmit)
+        return;
+    sitePreviewSubmit.disabled = true;
+    sitePreviewSubmit.setAttribute('aria-busy', 'true');
+    sitePreviewStatus.dataset.state = 'loading';
+    sitePreviewStatus.textContent = 'Loading read-only preview…';
+    sitePreviewOutput.hidden = true;
+    sitePreviewOutput.textContent = '';
+    try {
+        const config = await loadNginxPreview(sitePreviewID.value);
+        sitePreviewOutput.textContent = config;
+        sitePreviewOutput.hidden = false;
+        sitePreviewStatus.dataset.state = 'available';
+        sitePreviewStatus.textContent = 'Preview loaded. Configuration has not been applied.';
+    }
+    catch (error) {
+        sitePreviewStatus.dataset.state = 'unavailable';
+        sitePreviewStatus.textContent = error instanceof Error ? error.message : 'Preview unavailable. Try again.';
+    }
+    finally {
+        sitePreviewSubmit.disabled = false;
+        sitePreviewSubmit.removeAttribute('aria-busy');
+    }
+});
 export {};

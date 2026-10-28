@@ -18,3 +18,21 @@
 #refresh-status:disabled{cursor:wait;opacity:.7}
 @media(max-width:700px){.panel-status{grid-template-columns:1fr;gap:18px;padding:21px}.panel-status-result{border-left:0;border-top:1px solid var(--border);padding:17px 0 0}}
 @media(max-width:530px){.sidebar{display:grid;grid-template-columns:1fr;align-items:stretch;gap:8px}.sidebar nav{display:flex;margin-left:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:4px}.sidebar nav a{flex:0 0 auto}.sidebar nav a:nth-child(2),.sidebar nav a:nth-child(3){display:flex}}
+
+.site-preview{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.9fr);gap:20px;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:24px 26px;box-shadow:var(--shadow);margin:0 0 36px}
+.site-preview-copy h2{font-size:21px;letter-spacing:-.5px;margin:7px 0 5px}
+.site-preview-copy p,.site-preview-help{color:var(--muted);font-size:13px;line-height:1.55;margin:0;max-width:650px}
+.site-preview-form label{display:block;font-size:12px;font-weight:750;margin:0 0 7px}
+.site-preview-controls{display:flex;gap:9px}
+.site-preview-controls input{min-width:0;flex:1;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);padding:10px 12px}
+.site-preview-controls button{border:1px solid var(--accent);border-radius:10px;background:var(--accent);color:white;font-weight:750;padding:10px 13px}
+.site-preview-controls button:disabled{cursor:wait;opacity:.65}
+.site-preview-help{font-size:11px;margin:7px 0 10px}
+.site-preview-status{font-size:12px;font-weight:700;line-height:1.5;margin:0;color:var(--muted)}
+.site-preview-status[data-state=available]{color:#19745d}
+.site-preview-status[data-state=unavailable]{color:#a63838}
+:root[data-theme=dark] .site-preview-status[data-state=available]{color:#73d6b7}
+:root[data-theme=dark] .site-preview-status[data-state=unavailable]{color:#ff9999}
+.site-preview-output{grid-column:1/-1;max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--soft);border:1px solid var(--border);border-radius:12px;padding:16px;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ink)}
+@media(max-width:700px){.site-preview{grid-template-columns:1fr;gap:18px;padding:21px}.site-preview-output{grid-column:auto}}
+@media(max-width:420px){.site-preview-controls{align-items:stretch;flex-direction:column}.site-preview-controls button{min-height:44px}}
