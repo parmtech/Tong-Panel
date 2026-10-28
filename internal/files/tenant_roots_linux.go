@@ -93,6 +93,20 @@ func (t *TenantRoots) WriteNewForTenant(tenantID, relative string, content []byt
 	return root.WriteNew(relative, content)
 }
 
+// WriteNewFromForTenant ingests bounded file content only beneath the pinned
+// root selected by tenantID. The ID must come from an authenticated and
+// authorized server-side principal; this method itself does not authorize it.
+func (t *TenantRoots) WriteNewFromForTenant(tenantID, relative string, src io.Reader, maxBytes int64) error {
+	if t == nil || tenantID == "" {
+		return ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ErrTenantDenied
+	}
+	return root.WriteNewFrom(relative, src, maxBytes)
+}
+
 // RemoveFileForTenant removes one file only from the root mapped to tenantID.
 // The ID must be derived from the authorized server principal.
 func (t *TenantRoots) RemoveFileForTenant(tenantID, relative string) error {

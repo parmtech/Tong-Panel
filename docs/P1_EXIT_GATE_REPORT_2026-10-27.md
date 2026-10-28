@@ -131,6 +131,13 @@ This is **combined branch evidence**, not just separate PR evidence:
 - Both matrix jobs passed [clean VM run #40610418570](https://github.com/parmtech/Tong-Panel/actions/runs/40610418570) for workflow/code commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`.
 - This is clean-guest runtime evidence only. No installer, service install/restart, rollback, restore, supported OS matrix certification, or P2 end-to-end hosting lifecycle is tested. P0/P1 gates remain open; no live host was changed.
 - **Phase 2 status remains NOT COMPLETE and gated.** Do not treat this infrastructure or the unsigned preview as permission to install or deploy.
+## P2 bounded streamed create-only file writes — draft PR #39
+
+- Draft PR [#39](https://github.com/parmtech/Tong-Panel/pull/39), stacked on draft #38, adds bounded reader ingestion for create-only file writes through the pinned root and tenant-root selector.
+- Executable code commit `aca299ed6090de6c327f78700be28086ee785502` passed [Go formatting/full `go test -race ./...`/vet #40611776793](https://github.com/parmtech/Tong-Panel/actions/runs/40611776793), [daemon smoke #40611776807](https://github.com/parmtech/Tong-Panel/actions/runs/40611776807), and [unsigned package lab #40611776733](https://github.com/parmtech/Tong-Panel/actions/runs/40611776733).
+- Focused tests cover exact cap, bounded cap+1 consumption, rejection without target publication, invalid path/limit/nil input, closed root, unknown tenant before reader consumption, tenant separation and concurrent single-winner publication.
+- This holds a bounded input buffer (caller cap at most 16 MiB); it is not a tenant-wide quota, request timeout, replacement write, API/auth/ACL integration, installer or P2 acceptance gate. No live host changed; P0/P1 remain open and P2 remains incomplete.
+
 ## P2 bounded archive stream primitive — draft PR #38
 
 - Draft PR [#38](https://github.com/parmtech/Tong-Panel/pull/38), stacked on the clean-VM smoke work, adds a bounded `io.Reader` entry point for gzip/tar extraction. Tests cover exact/over-limit reads, no target on oversize, successful extraction, and tenant denial before stream consumption.
