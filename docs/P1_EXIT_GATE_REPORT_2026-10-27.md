@@ -377,3 +377,8 @@ This is **combined branch evidence**, not just separate PR evidence:
 
 - Exact head `f68c03e81f3007406d8a30cbc455b3704cef4dff` passed the Ubuntu 24.04 [clean-VM job](https://github.com/parmtech/Tong-Panel/actions/runs/40770709002/job/123106800802) and Debian 12 [clean-VM job](https://github.com/parmtech/Tong-Panel/actions/runs/40770709002/job/123106800515), including package build, no automatic start/enable, default-deny auth, non-root loopback service, upgrade, downgrade, and state-marker preservation after package removal.
 - This is not a signed or approved installer, supported distribution package, host mutation authorization, recovery guarantee, restore test, or P1/P2 exit evidence. ADR-001–009 and threat-model owner/security review remain pending; no production host changed.
+
+
+## P1 browser-session logout follow-on — draft PR #78 (29 October 2026)
+
+The draft adds a TLS-only, CSRF- and same-origin-protected logout route for sessions already issued by a separate trusted flow. It calls the atomic SQLite logout/audit primitive and clears the `__Host-` session cookie only after successful revocation. Focused tests cover cookie attributes, audit, denial and concurrent logout; exact-head CI is pending. This does not implement login, session issuance/rotation, trusted proxy configuration, production daemon auth, or security approval. **P1 exit remains NOT COMPLETE and Phase 2 release readiness is unchanged.**
