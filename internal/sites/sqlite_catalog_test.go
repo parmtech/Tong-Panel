@@ -18,6 +18,11 @@ func openCatalog(t *testing.T, path string) *Catalog {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
+	for _, tenant := range []string{"tenant-a", "tenant-b"} {
+		if _, err := db.Exec("INSERT INTO tenants(id,name) VALUES(?,?)", tenant, tenant); err != nil {
+			t.Fatal(err)
+		}
+	}
 	catalog, err := NewCatalog(db)
 	if err != nil {
 		t.Fatal(err)
@@ -106,10 +111,6 @@ func TestCatalogConcurrentCrossTenantDomainClaimHasSingleWinner(t *testing.T) {
 	catalogB, err := NewCatalog(dbB)
 	if err != nil {
 		t.Fatal(err)
-	}
-	// openCatalog seeded tenant-a on first open; seed tenant-b before racing.
-	if _, err := catalogA.db.Exec("INSERT INTO tenants(id,name) VALUES(?,?)", "tenant-b", "Tenant B"); err == nil {
-		// The other connection may already have inserted the row.
 	}
 	specs := []SiteSpec{
 		{TenantID: "tenant-a", SiteID: "site-a", PrimaryDomain: "race.example", DocumentRoot: "sites/site-a/public"},
