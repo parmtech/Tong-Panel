@@ -18,7 +18,7 @@
 - **Scope:** replace mutable Ubuntu `noble/current` and Debian `bookworm/latest` guest URLs with dated official image paths. Verify pinned SHA-256/SHA-512 before QEMU overlay creation or guest boot. Negative tests reject malformed/wrong digests, altered images and missing files; both supported algorithms have valid-fixture tests.
 - **Validation:** local Cygwin Bash checksum tests, `bash -n` and `git diff --check` passed. Both Ubuntu 24.04 and Debian 12 guests passed [GitHub matrix #40615254194](https://github.com/parmtech/Tong-Panel/actions/runs/40615254194), including checker negative cases, Files suite, daemon/SQLite smoke and doctor.
 - **Limits/status:** reproducibility and image-integrity coverage only; this still runs an unsigned developer preview, not an installer or certified OS matrix, and does not validate services, rollback, restore, authenticated API/ACL or full P2 hosting E2E. ADR-001–009 and threat-model owner/security review remain pending; P0/P1 are unapproved, P2 incomplete, and no real host changed.
-- **Next:** continue a safe non-privileged P2 slice after the matrix verifies. Do not expose public login or implement privileged host mutations before architecture/security review.
+- **Next:** conduct and document a technical ADR/threat-model review for maintainer decision; continue non-privileged P2 slices only. Do not expose public login or implement privileged host mutations before architecture/security review.
 
 ## PRIOR VERIFIED P2 SLICE — root-close-safe bounded file uploads
 - **Branch/PR:** `feature/p2-stream-close-safe`, draft [PR #42](https://github.com/parmtech/Tong-Panel/pull/42), stacked on draft #41/#40/#39/#38/#37/#36/#35. Executable code commit: `faa220eed997f68b225dc105cc4386227d742dfe`.
@@ -84,7 +84,7 @@
 - **Change:** pin Ubuntu 24.04 to official release `20261017`/SHA-256 and Debian 12 to official build `20261026-2643`/SHA-512. Verify each download before creating a QEMU overlay. Add checksum tests for both algorithms and rejection of malformed/wrong digests, tampering and missing files.
 - **Tests:** local Cygwin Bash verifier suite, `bash -n` for all three scripts and `git diff --check` passed. Hosted clean-VM workflow [#40615254194](https://github.com/parmtech/Tong-Panel/actions/runs/40615254194) passed both Ubuntu 24.04 and Debian 12 guest jobs, including checksum rejection tests and the Files/daemon/doctor smoke.
 - **Security/limits:** no public login, privileged host operation, live server, installer or release was enabled. P0/ADR/security owner review remains pending. This is image integrity and guest test evidence, not OS certification or P2 completion.
-- **Next step:** finish hosted Ubuntu/Debian guest verification; proceed to another approved, non-privileged P2 slice only.
+- **Next step:** conduct and document a technical ADR/threat-model review for maintainer decision; continue non-privileged P2 work only.
 
 ### 2026-10-28 — P2 Files tests in clean Ubuntu/Debian guests
 - **Branch/PR:** `feature/p2-files-on-clean-vm`, draft [PR #44](https://github.com/parmtech/Tong-Panel/pull/44), stacked on #43/#42.
