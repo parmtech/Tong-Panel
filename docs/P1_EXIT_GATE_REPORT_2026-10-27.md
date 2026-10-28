@@ -131,6 +131,12 @@ This is **combined branch evidence**, not just separate PR evidence:
 - Both matrix jobs passed [clean VM run #40610418570](https://github.com/parmtech/Tong-Panel/actions/runs/40610418570) for workflow/code commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`.
 - This is clean-guest runtime evidence only. No installer, service install/restart, rollback, restore, supported OS matrix certification, or P2 end-to-end hosting lifecycle is tested. P0/P1 gates remain open; no live host was changed.
 - **Phase 2 status remains NOT COMPLETE and gated.** Do not treat this infrastructure or the unsigned preview as permission to install or deploy.
+## P2 Files clean-guest test matrix — draft PR #44
+
+- Draft PR [#44](https://github.com/parmtech/Tong-Panel/pull/44), stacked on the current P2 draft chain, builds the Linux `internal/files` test binary and runs it inside fresh unprivileged Ubuntu 24.04 and Debian 12 QEMU guests. Changes to `internal/files/**` trigger this workflow.
+- Both guest jobs passed [clean VM workflow #40614167120](https://github.com/parmtech/Tong-Panel/actions/runs/40614167120), including the filesystem suite, daemon/SQLite smoke and read-only doctor check.
+- This checks the primitives against candidate guest kernels only. It does not install the panel, certify either OS, test service lifecycle/rollback/restore, or satisfy P2 hosting E2E. No production host changed; P0/P1 review remains open.
+
 ## P2 root-close-safe streamed file upload — draft PR #42
 
 - Draft PR [#42](https://github.com/parmtech/Tong-Panel/pull/42), stacked on #41, duplicates the pinned root descriptor before consuming the caller's bounded stream. The root lifecycle lock is released before I/O; close prevents new operations but need not wait for a blocked upload, and the in-flight operation can finish using its pinned descriptor copy.
