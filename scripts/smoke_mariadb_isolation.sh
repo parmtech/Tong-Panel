@@ -63,4 +63,37 @@ if mariadb --defaults-extra-file="$work/tenant-b.cnf" --batch --skip-column-name
   exit 1
 fi
 
-printf '%s\n' "PASS: each temporary MariaDB user reads its own tenant database and is denied the other tenant's database"
+# Exercise an actual dump/restore using only tenant A's temporary credentials.
+# The dump and client option files remain private to this disposable guest.
+umask 077
+mariadb-dump --defaults-extra-file="$work/tenant-a.cnf" --single-transaction "$db_a" > "$work/tenant-a.sql"
+if mariadb-dump --defaults-extra-file="$work/tenant-a.cnf" --single-transaction "$db_b" > "$work/unauthorized.sql" 2>/dev/null; then
+  echo "tenant A unexpectedly exported tenant B database" >&2
+  exit 1
+fi
+if grep -q 'tenant-b' "$work/unauthorized.sql"; then
+  echo "denied cross-tenant export exposed tenant B data" >&2
+  exit 1
+fi
+
+mariadb --defaults-extra-file="$work/tenant-a.cnf" "$db_a" -e "UPDATE tenant_marker SET owner_name='changed-after-backup'"
+mariadb --defaults-extra-file="$work/tenant-a.cnf" "$db_a" < "$work/tenant-a.sql"
+restored_a="$(mariadb --defaults-extra-file="$work/tenant-a.cnf" --batch --skip-column-names "$db_a" -e 'SELECT owner_name FROM tenant_marker')"
+if [[ "$restored_a" != tenant-a ]]; then
+  echo "tenant A restore did not recover its own backed-up value" >&2
+  exit 1
+fi
+
+printf '%s\n' 'CREATE TABLE restore_probe (value INT);' 'INSERT INTO restore_probe VALUES (1);' > "$work/cross-tenant-import.sql"
+if mariadb --defaults-extra-file="$work/tenant-a.cnf" "$db_b" < "$work/cross-tenant-import.sql" >/dev/null 2>&1; then
+  echo "tenant A unexpectedly imported data into tenant B database" >&2
+  exit 1
+fi
+if sudo mariadb --protocol=socket -uroot --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$db_b' AND table_name='restore_probe'" | grep -qx '0'; then
+  :
+else
+  echo "denied cross-tenant import unexpectedly created a table" >&2
+  exit 1
+fi
+
+printf '%s\n' "PASS: temporary users are database-scoped; tenant A can dump and restore its own data, and cannot read, export, or restore across tenants"
