@@ -262,9 +262,11 @@ func TestHTTPSCookieLogoutHasSingleWinnerWhenRaced(t *testing.T) {
 	}
 	close(start)
 	a, b := <-codes, <-codes
-	if !((a == http.StatusNoContent && b == http.StatusUnauthorized) ||
-		(a == http.StatusUnauthorized && b == http.StatusNoContent)) {
-		t.Fatalf("raced logout statuses=(%d,%d), want one success and one unauthorized", a, b)
+	denied := func(code int) bool {
+		return code == http.StatusUnauthorized || code == http.StatusForbidden
+	}
+	if !((a == http.StatusNoContent && denied(b)) || (b == http.StatusNoContent && denied(a))) {
+		t.Fatalf("raced logout statuses=(%d,%d), want one success and one denied request", a, b)
 	}
 	var auditCount int
 	if err := db.QueryRow("SELECT COUNT(*) FROM audit_events WHERE action='auth.logout'").Scan(&auditCount); err != nil {

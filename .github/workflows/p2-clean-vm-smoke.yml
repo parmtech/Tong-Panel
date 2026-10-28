@@ -19,6 +19,7 @@ on:
       - 'scripts/test_deb_package.sh'
       - 'scripts/p2_package_install_vm.sh'
       - 'scripts/smoke_mariadb_isolation.sh'
+      - 'scripts/smoke_nginx_config_rollback.sh'
       - 'packaging/debian/**'
       - '.github/workflows/p2-clean-vm-smoke.yml'
 permissions:
@@ -61,6 +62,7 @@ jobs:
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go test -c -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/tests/sites.test" ./internal/sites
           cp LICENSE "$RUNNER_TEMP/tong-p1-dev/LICENSE"
           cp scripts/smoke_mariadb_isolation.sh "$RUNNER_TEMP/tong-p1-dev/tests/mariadb-isolation.sh"
+          cp scripts/smoke_nginx_config_rollback.sh "$RUNNER_TEMP/tong-p1-dev/tests/nginx-config-rollback.sh"
           printf '%s\n' 'TONG PANEL — UNSIGNED DEVELOPER PREVIEW ONLY' 'DO NOT RUN ON A PRODUCTION SERVER OR EXPOSE TO THE INTERNET.' 'There is no production login, root host-agent action or verified installer.' 'The source is on unmerged development branches; do not use with customers.' 'This is NOT a supported distro package or signed release.' > "$RUNNER_TEMP/tong-p1-dev/DO_NOT_INSTALL.txt"
           tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" tong-p1-dev
           (cd "$RUNNER_TEMP" && sha256sum tong-p1-UNSIGNED-dev-linux-amd64.tar.gz > SHA256SUMS)
