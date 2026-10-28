@@ -13,7 +13,15 @@
 - **Verified code head:** `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed Go checks [#40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640) (gofmt, full `go test -race ./...`, vet), non-destructive daemon smoke [#40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840), and unsigned developer archive lab [#40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588). These validate this code head; they do not certify a release or security approval.
 - **Authentication boundary:** owner/security review must record ADR-009/P0 decisions before a public login route; keep public login and production deployment disabled. Isolated non-privileged prototypes can continue.
 
-## CURRENT P2 QA SLICE — clean disposable VM smoke
+## CURRENT P2 SLICE — bounded archive request-stream ingestion
+- **Branch/PR:** `feature/p2-bounded-archive-reader`, draft [PR #38](https://github.com/parmtech/Tong-Panel/pull/38), stacked on draft #37/#36/#35. Executable code commit: `fd418e1769efef5e5b21a7e7e3ac722fe31aba51`.
+- **Scope:** adds `ReadGzipTarBounded`, `Root.ExtractGzipTarNewFrom`, and a tenant-scoped stream wrapper. The reader consumes at most the selected compressed-byte limit plus one byte before returning an oversize error. Unknown tenant IDs are rejected before the reader is consumed. Existing extraction path/atomic publication rules remain in force.
+- **Focused tests:** exact cap and limit+1 consumption; invalid caps/nil reader; over-limit request does not publish a target; successful bounded stream extraction; unknown tenant stream denial without consumption.
+- **Validation:** local Go/gofmt are unavailable in this Windows workspace. Exact-head Go/race/vet and existing daemon/package CI for `fd418e1769efef5e5b21a7e7e3ac722fe31aba51` are pending.
+- **Limits/status:** this helper is not wired to an HTTP route, authentication, ACL/object ownership, per-tenant quota, scanning or startup recovery. It bounds compressed bytes, not request duration. No public login, privileged operation or production deployment. P0/P1 remain open and P2 is incomplete.
+- **Next:** verify exact-head CI and continue only unprivileged P2 Files/hosting slices until reviewed identity/host-agent and installer prerequisites allow integration.
+
+## PRIOR VERIFIED P2 QA SLICE — clean disposable VM smoke
 - **Branch/PR:** `feature/p2-clean-vm-smoke`, draft [PR #37](https://github.com/parmtech/Tong-Panel/pull/37), stacked on draft #36/#35. Code/workflow commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`; follow-up docs are on this branch.
 - **Scope:** QEMU/TCG launches fresh Ubuntu 24.04 and Debian 12 cloud-image guests in GitHub Actions. It builds the unsigned preview, provisions an unprivileged test user, verifies OS/version and archive checksum, extracts the preview and runs the real daemon/SQLite smoke and read-only doctor check. The workflow uses repository read-only permission and no secrets, forwards SSH only to runner loopback, and removes guest artifacts after each job.
 - **Validation:** both distro jobs passed [clean VM matrix #40610418570](https://github.com/parmtech/Tong-Panel/actions/runs/40610418570) on the exact workflow/code commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`.
@@ -32,6 +40,13 @@
 - **Validation:** code head `a2922cac5945f6ff8f47302ad8099754ba6bba5a` passed hosted Go checks [#40608916965](https://github.com/parmtech/Tong-Panel/actions/runs/40608916965) (gofmt, full `go test -race ./...`, vet), daemon smoke [#40608916946](https://github.com/parmtech/Tong-Panel/actions/runs/40608916946), and unsigned package lab [#40608917120](https://github.com/parmtech/Tong-Panel/actions/runs/40608917120). Local Go executable is unavailable.
 - **P2 status:** PLANNED/IN PROGRESS only. No UI/API, ACL/quotas integration, two-tenant E2E, site/domain/database/SSL lifecycle, installer, or restore drill exists. Replacement writes, automatic startup invocation of orphan cleanup, and HTTP upload/download/delete/authorization are not implemented. Directory listing is bounded to 1,000 entries and may be incomplete during concurrent mutations. The tenant selector now applies to listing and create-only write operations as well as reads. P1 approvals and host-agent/installer prerequisites remain open.
 - **Next action:** continue isolated archive/file-manager negative/race coverage and document crash/orphan recovery requirements; do not wire file operations into HTTP until P1 identity and API trust boundaries receive maintainer review.
+
+### 2026-10-28 — P2 bounded archive request-stream ingestion
+- **Branch/PR:** `feature/p2-bounded-archive-reader`, draft [PR #38](https://github.com/parmtech/Tong-Panel/pull/38), stacked on #37.
+- **Change:** add a bounded `io.Reader` helper and root/tenant archive extraction methods. The request stream is limited to compressed cap plus one byte before erroring, and the tenant selector is resolved before reading. No HTTP route or identity is wired.
+- **Tests:** exact/over-limit read bounds, invalid limits and nil reader, no publication on oversize, valid stream extraction, and unknown-tenant non-consumption.
+- **Validation:** code commit `fd418e1769efef5e5b21a7e7e3ac722fe31aba51`; Go/race/vet and P1 smoke/package workflows are pending. Local Go/gofmt are unavailable.
+- **Limits/next:** no HTTP, auth/ACL/quota, timeout, scanner, installer or service lifecycle integration. P0/P1 decisions remain unapproved; verify Actions before extending the slice.
 
 ### 2026-10-28 — P2 tenant-scoped archive-stage cleanup
 - **Branch/PR:** `feature/p2-safe-tenant-file-read`, draft [PR #35](https://github.com/parmtech/Tong-Panel/pull/35), stacked on #34.

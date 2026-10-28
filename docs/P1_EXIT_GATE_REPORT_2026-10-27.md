@@ -131,6 +131,11 @@ This is **combined branch evidence**, not just separate PR evidence:
 - Both matrix jobs passed [clean VM run #40610418570](https://github.com/parmtech/Tong-Panel/actions/runs/40610418570) for workflow/code commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`.
 - This is clean-guest runtime evidence only. No installer, service install/restart, rollback, restore, supported OS matrix certification, or P2 end-to-end hosting lifecycle is tested. P0/P1 gates remain open; no live host was changed.
 - **Phase 2 status remains NOT COMPLETE and gated.** Do not treat this infrastructure or the unsigned preview as permission to install or deploy.
+## P2 bounded archive stream primitive — draft PR #38
+
+- Draft PR [#38](https://github.com/parmtech/Tong-Panel/pull/38), stacked on the clean-VM smoke work, adds a bounded `io.Reader` entry point for gzip/tar extraction. Tests cover exact/over-limit reads, no target on oversize, successful extraction, and tenant denial before stream consumption.
+- Executable code commit: `fd418e1769efef5e5b21a7e7e3ac722fe31aba51`. Exact-head Go/race/vet, daemon smoke, and unsigned package workflows are pending. No local Go toolchain is available.
+- This does not add an HTTP upload route, user/object authorization, quotas, request timeouts, scanning, installation, or service lifecycle. It is not a P2 acceptance result.
 **STOP: do NOT merge/release as an installable hosting panel or begin Phase 2 implementation against real hosts yet.** Review of the stacked PR chain must preserve dependencies; independent password and UI branches (#18/#19) are not automatically integrated by stacked PR #25.
 
 **Required to advance P1 → P2:** approved P0/ADR security boundaries; tested and recoverable account bootstrap + Argon2id + MFA + login rate limits + sessions; typed authorized agent contract and malicious input/UID tests; crash/lease/rollback; API and UI integration with accessibility evidence; real dependency/security scans; signed preview package + tamper test; clean Ubuntu/Debian VM installation/start/restart/rollback and backup/restore evidence; signed reviewer/owner acceptance.
