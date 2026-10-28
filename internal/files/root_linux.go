@@ -17,7 +17,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const MaxReadBytes int64 = 16 << 20
+const (
+	MaxReadBytes int64 = 16 << 20
+	writeStagePrefix = ".tong-stage-"
+)
 
 var (
 	ErrInvalidRoot   = errors.New("invalid file root")
@@ -148,7 +151,7 @@ func (r *Root) WriteNew(relative string, content []byte) error {
 	if _, err := rand.Read(random[:]); err != nil {
 		return err
 	}
-	stage := ".tong-stage-" + hex.EncodeToString(random[:])
+	stage := writeStagePrefix + hex.EncodeToString(random[:])
 	if err := unix.Mkdirat(r.fd, stage, 0700); err != nil {
 		return err
 	}
@@ -255,7 +258,11 @@ func validRelativePath(name string) bool {
 	if name == "" || strings.ContainsRune(name, '\x00') || path.IsAbs(name) || path.Clean(name) != name {
 		return false
 	}
-	for _, component := range strings.Split(name, "/") {
+	components := strings.Split(name, "/")
+	if strings.HasPrefix(components[0], writeStagePrefix) || strings.HasPrefix(components[0], archiveStagePrefix) {
+		return false
+	}
+	for _, component := range components {
 		if component == "" || component == "." || component == ".." {
 			return false
 		}
