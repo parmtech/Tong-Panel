@@ -34,4 +34,3 @@ func (p Principal) Can(action, resourceTenant string) bool {
 		return false
 	}
 }
-

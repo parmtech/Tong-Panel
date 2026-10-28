@@ -61,4 +61,3 @@ func mapTenantFileError(err error) error {
 		return ErrFilesUnavailable
 	}
 }
-

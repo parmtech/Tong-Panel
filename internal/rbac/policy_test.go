@@ -58,4 +58,3 @@ func TestFilesReadIsTenantBoundAndAuditorDenied(t *testing.T) {
 		t.Fatal("unknown role unexpectedly received file access")
 	}
 }
-

@@ -9,11 +9,9 @@ import (
 	"github.com/parmtech/tong-panel/internal/rbac"
 )
 
-const (
-	maxAPIFilesReadBytes  int64 = 16 << 20
-	defaultAPIFilesLimit       = 200
-	maxAPIFilesLimit            = 1000
-)
+const maxAPIFilesReadBytes int64 = 16 << 20
+const defaultAPIFilesLimit = 200
+const maxAPIFilesLimit = 1000
 
 var (
 	ErrFilesTenantDenied = errors.New("tenant file access denied")
@@ -145,4 +143,3 @@ func writeFilesError(w http.ResponseWriter, err error) {
 		fail(w, http.StatusServiceUnavailable, "files_unavailable")
 	}
 }
-

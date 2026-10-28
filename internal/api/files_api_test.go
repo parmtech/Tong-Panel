@@ -156,4 +156,3 @@ func TestFilesReadAPIDefaultClosedAuthRoleAndReadOnlyMethods(t *testing.T) {
 		t.Fatalf("unconfigured file service status=%d body=%s, want 503", rec.Code, rec.Body.String())
 	}
 }
-
