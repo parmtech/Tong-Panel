@@ -846,3 +846,71 @@ func TestExtractGzipTarNewSymlinkSwapNeverChangesOutsideTarget(t *testing.T) {
 	}
 	assertNoStagingDirectories(t, root)
 }
+
+func TestExtractGzipTarNewConcurrentPublicationHasOneWinner(t *testing.T) {
+	r, root := newTestRoot(t)
+	archive := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("winner")})
+	const callers = 12
+	start := make(chan struct{})
+	results := make(chan error, callers)
+	for i := 0; i < callers; i++ {
+		go func() {
+			<-start
+			results <- r.ExtractGzipTarNew("atomic-site", archive, ArchiveLimits{})
+		}()
+	}
+	close(start)
+	winners := 0
+	for i := 0; i < callers; i++ {
+		err := <-results
+		if err == nil {
+			winners++
+		} else if !errors.Is(err, ErrAlreadyExists) {
+			t.Fatalf("concurrent extraction error = %v", err)
+		}
+	}
+	if winners != 1 {
+		t.Fatalf("successful extractions = %d, want exactly one", winners)
+	}
+	data, err := os.ReadFile(filepath.Join(root, "atomic-site", "index.html"))
+	if err != nil || string(data) != "winner" {
+		t.Fatalf("published archive content = %q, %v", data, err)
+	}
+	assertNoStagingDirectories(t, root)
+}
+
+func TestTenantRootsScopeArchiveExtraction(t *testing.T) {
+	rootAPath := t.TempDir()
+	rootBPath := t.TempDir()
+	rootA, err := OpenRoot(rootAPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootA.Close()
+	rootB, err := OpenRoot(rootBPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootB.Close()
+	roots, err := NewTenantRoots(map[string]*Root{"tenant-a": rootA, "tenant-b": rootB})
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("tenant-a")})
+	if err := roots.ExtractGzipTarNewForTenant("tenant-a", "site", archive, ArchiveLimits{}); err != nil {
+		t.Fatal(err)
+	}
+	if data, err := os.ReadFile(filepath.Join(rootAPath, "site", "index.html")); err != nil || string(data) != "tenant-a" {
+		t.Fatalf("tenant A archive content = %q, %v", data, err)
+	}
+	if _, err := os.Lstat(filepath.Join(rootBPath, "site")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("tenant B unexpectedly received extracted tree: %v", err)
+	}
+	if err := roots.ExtractGzipTarNewForTenant("unknown", "site", archive, ArchiveLimits{}); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("unknown tenant extraction error = %v", err)
+	}
+	if err := roots.ExtractGzipTarNewForTenant("tenant-a", "../tenant-b/site", archive, ArchiveLimits{}); !errors.Is(err, ErrInvalidPath) {
+		t.Fatalf("tenant traversal extraction error = %v", err)
+	}
+}
+
