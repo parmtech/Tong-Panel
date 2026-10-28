@@ -67,6 +67,27 @@ func (l ArchiveLimits) withDefaults() (ArchiveLimits, error) {
 	return l, nil
 }
 
+// ReadGzipTarBounded reads at most maxBytes+1 bytes to determine whether the
+// compressed input exceeds its configured cap. It never reads the full
+// untrusted stream before checking the limit. Callers should pass request
+// bodies directly to ExtractGzipTarNewFrom rather than allocating them first.
+func ReadGzipTarBounded(src io.Reader, maxBytes int64) ([]byte, error) {
+	if src == nil {
+		return nil, ErrInvalidArchive
+	}
+	if maxBytes < 1 || maxBytes > MaxArchiveCompressedBytes {
+		return nil, ErrInvalidLimit
+	}
+	data, err := io.ReadAll(io.LimitReader(src, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, ErrArchiveLimit
+	}
+	return data, nil
+}
+
 // ExtractGzipTarNew extracts a bounded gzip-compressed tar archive into a new
 // directory below the pinned root. It publishes the completed tree atomically
 // and never replaces an existing path. Only regular files and directories are
@@ -154,6 +175,33 @@ func (r *Root) ExtractGzipTarNew(relative string, archive []byte, limits Archive
 	}
 	defer unix.Close(rootDir)
 	return unix.Fsync(rootDir)
+}
+
+// ExtractGzipTarNewFrom reads a gzip tar stream under its compressed-byte
+// limit, then extracts it using the same atomic no-replace contract as
+// ExtractGzipTarNew. It does not close src.
+func (r *Root) ExtractGzipTarNewFrom(relative string, src io.Reader, limits ArchiveLimits) error {
+	if r == nil {
+		return ErrClosed
+	}
+	if !validRelativePath(relative) {
+		return ErrInvalidPath
+	}
+	limits, err := limits.withDefaults()
+	if err != nil {
+		return err
+	}
+	r.mu.RLock()
+	open := r.open
+	r.mu.RUnlock()
+	if !open {
+		return ErrClosed
+	}
+	archive, err := ReadGzipTarBounded(src, limits.CompressedBytes)
+	if err != nil {
+		return err
+	}
+	return r.ExtractGzipTarNew(relative, archive, limits)
 }
 
 func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits) error {
