@@ -152,5 +152,39 @@ class SchemaTests(unittest.TestCase):
                 )
 
 
+
+    def test_site_database_catalog_tenant_foreign_keys_and_safe_names(self):
+        for tenant, site in (("a", "site-a"), ("b", "site-b")):
+            self.con.execute(
+                "INSERT INTO sites(tenant_id,site_id,document_root,created_at) VALUES(?,?,?,?)",
+                (tenant, site, f"sites/{site}/public", 1234),
+            )
+        insert = (
+            "INSERT INTO site_databases(tenant_id,site_id,database_id,database_name,username,created_at) "
+            "VALUES(?,?,?,?,?,?)"
+        )
+        database_a = "tp_" + "a" * 26
+        user_a = "tu_" + "a" * 26
+        database_b = "tp_" + "b" * 26
+        user_b = "tu_" + "b" * 26
+        self.con.execute(insert, ("a", "site-a", "wordpress", database_a, user_a, 1234))
+        self.con.execute(insert, ("b", "site-b", "wordpress", database_b, user_b, 1234))
+        self.assertEqual(
+            self.con.execute("SELECT count(*) FROM site_databases").fetchone()[0], 2
+        )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(insert, ("a", "site-a", "wordpress", database_b, "tu_" + "c" * 26, 1234))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(insert, ("a", "site-a", "other", database_a, user_b, 1234))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(insert, ("a", "site-a", "bad;drop", "tp_" + "c" * 26, "tu_" + "c" * 26, 1234))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(insert, ("missing", "site-a", "wordpress", "tp_" + "d" * 26, "tu_" + "d" * 26, 1234))
+        columns = {
+            row[1] for row in self.con.execute("PRAGMA table_info(site_databases)")
+        }
+        self.assertNotIn("password", columns)
+        self.assertNotIn("credential", columns)
+
 if __name__ == '__main__':
     unittest.main()
