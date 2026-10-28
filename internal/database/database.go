@@ -59,7 +59,7 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 }
 
 func applyMigrations(ctx context.Context, db *sql.DB) error {
-	const schemaVersion = 7
+	const schemaVersion = 8
 	conn, err := db.Conn(ctx)
 	if err != nil {
 		return fmt.Errorf("get SQLite migration connection: %w", err)
@@ -88,7 +88,7 @@ func applyMigrations(ctx context.Context, db *sql.DB) error {
 			return nil
 		}
 		next := version + 1
-		name := fmt.Sprintf("migrations/%04d_%s.sql", next, map[int]string{1: "initial", 2: "job_leases", 3: "audit_actor_provenance", 4: "totp_replay_state", 5: "mfa_enrollment", 6: "login_attempt_buckets", 7: "session_idle"}[next])
+		name := fmt.Sprintf("migrations/%04d_%s.sql", next, map[int]string{1: "initial", 2: "job_leases", 3: "audit_actor_provenance", 4: "totp_replay_state", 5: "mfa_enrollment", 6: "login_attempt_buckets", 7: "session_idle", 8: "tenant_file_quota"}[next])
 		script, err := migrations.ReadFile(name)
 		if err != nil {
 			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
