@@ -16,14 +16,14 @@ const defaultAPIFilesLimit = 200
 const maxAPIFilesLimit = 1000
 
 var (
-	ErrFilesTenantDenied = errors.New("tenant file access denied")
-	ErrFilePathInvalid   = errors.New("invalid file path")
-	ErrFileNotFound      = errors.New("file not found")
-	ErrFileReadTooLarge  = errors.New("file exceeds read limit")
-	ErrFileListTooLarge  = errors.New("directory exceeds list limit")
-	ErrFilesUnavailable  = errors.New("file service unavailable")
-	ErrFileQuotaExceeded = errors.New("tenant file quota exceeded")
-	ErrFileAlreadyExists = errors.New("file already exists")
+	ErrFilesTenantDenied                  = errors.New("tenant file access denied")
+	ErrFilePathInvalid                    = errors.New("invalid file path")
+	ErrFileNotFound                       = errors.New("file not found")
+	ErrFileReadTooLarge                   = errors.New("file exceeds read limit")
+	ErrFileListTooLarge                   = errors.New("directory exceeds list limit")
+	ErrFilesUnavailable                   = errors.New("file service unavailable")
+	ErrFileQuotaExceeded                  = errors.New("tenant file quota exceeded")
+	ErrFileAlreadyExists                  = errors.New("file already exists")
 	ErrFilePublishedDurabilityUnconfirmed = errors.New("file was published but durability is unconfirmed")
 )
 

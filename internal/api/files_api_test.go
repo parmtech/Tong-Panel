@@ -71,10 +71,10 @@ func sessionGET(h http.Handler, path, token string) *httptest.ResponseRecorder {
 }
 
 type testFileQuota struct {
-	mu        sync.Mutex
-	limit     int64
-	used      map[string]int64
-	reserved  map[string]int64
+	mu       sync.Mutex
+	limit    int64
+	used     map[string]int64
+	reserved map[string]int64
 }
 
 func newTestFileQuota(limit int64) *testFileQuota {
