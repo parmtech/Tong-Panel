@@ -107,7 +107,28 @@ func (f uncertainWriteFiles) WriteNewForTenant(string, string, io.Reader, int64)
 	return f.bytes, ErrFilePublishedDurabilityUnconfirmed
 }
 
-func (r *testFileQuotaReservation) Commit(actualBytes int64) {
+type failingCommitQuota struct{ reservation *failingCommitReservation }
+
+func (q failingCommitQuota) Reserve(string, int64) (FileQuotaReservation, error) {
+	return q.reservation, nil
+}
+
+type failingCommitReservation struct {
+	commitCalls  int
+	releaseCalls int
+}
+
+func (r *failingCommitReservation) Commit(int64) error {
+	r.commitCalls++
+	return io.ErrClosedPipe
+}
+
+func (r *failingCommitReservation) Release() error {
+	r.releaseCalls++
+	return nil
+}
+
+func (r *testFileQuotaReservation) Commit(actualBytes int64) error {
 	r.quota.mu.Lock()
 	defer r.quota.mu.Unlock()
 	if r.done || actualBytes < 0 || actualBytes > r.bytes {
@@ -116,16 +137,18 @@ func (r *testFileQuotaReservation) Commit(actualBytes int64) {
 	r.quota.reserved[r.tenantID] -= r.bytes
 	r.quota.used[r.tenantID] += actualBytes
 	r.done = true
+	return nil
 }
 
-func (r *testFileQuotaReservation) Release() {
+func (r *testFileQuotaReservation) Release() error {
 	r.quota.mu.Lock()
 	defer r.quota.mu.Unlock()
 	if r.done {
-		return
+		return nil
 	}
 	r.quota.reserved[r.tenantID] -= r.bytes
 	r.done = true
+	return nil
 }
 
 func (q *testFileQuota) snapshot(tenantID string) (used, reserved int64) {
@@ -310,6 +333,21 @@ func TestFilesWriteKeepsQuotaAccountedWhenPublishedDurabilityIsUncertain(t *test
 	}
 	if used, reserved := quota.snapshot("tenant-a"); used != 3 || reserved != 0 {
 		t.Fatalf("uncertain publication quota used=%d reserved=%d", used, reserved)
+	}
+}
+
+func TestFilesWriteDoesNotReleaseReservationWhenQuotaCommitIsUncertain(t *testing.T) {
+	s, _, _, token, csrf := setupCookieAPI(t)
+	attachTestTenantFiles(t, s)
+	s.Files = uncertainWriteFiles{TenantFileService: s.Files, bytes: 3}
+	reservation := &failingCommitReservation{}
+	s.FileQuota = failingCommitQuota{reservation: reservation}
+	rec := fileWriteCall(s.Handler(), "/api/v1/files/content?path=possibly-published.txt", token, csrf, "abc")
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("quota commit error status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if reservation.commitCalls != 1 || reservation.releaseCalls != 0 {
+		t.Fatalf("quota finalization commit=%d release=%d", reservation.commitCalls, reservation.releaseCalls)
 	}
 }
 

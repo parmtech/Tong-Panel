@@ -44,11 +44,12 @@ type TenantFileService interface {
 }
 
 // FileQuotaReservation accounts for bytes admitted for one upload. Commit must
-// atomically replace the reservation with actualBytes and cannot fail for a
-// valid reservation; Release must be safe after failed or canceled writes.
+// atomically replace the reservation with actualBytes; if it fails, the
+// reservation must remain in force for later reconciliation. Release must be
+// safe after failed or canceled writes and retain the reservation if it fails.
 type FileQuotaReservation interface {
-	Commit(actualBytes int64)
-	Release()
+	Commit(actualBytes int64) error
+	Release() error
 }
 
 // TenantFileQuota reserves capacity before any request body is consumed. A
@@ -199,7 +200,7 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 	committed := false
 	defer func() {
 		if !committed {
-			reservation.Release()
+			_ = reservation.Release()
 		}
 	}()
 
@@ -211,8 +212,17 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 	written, err := s.Files.WriteNewForTenant(p.TenantID, relative, r.Body, maxBytes)
 	if err != nil {
 		if errors.Is(err, ErrFilePublishedDurabilityUnconfirmed) {
-			reservation.Commit(written)
 			committed = true
+			if quotaErr := reservation.Commit(written); quotaErr != nil {
+				fail(w, http.StatusServiceUnavailable, "quota_unavailable")
+				return
+			}
+		} else {
+			committed = true
+			if quotaErr := reservation.Release(); quotaErr != nil {
+				fail(w, http.StatusServiceUnavailable, "quota_unavailable")
+				return
+			}
 		}
 		var maxBytesErr *http.MaxBytesError
 		if errors.Is(err, ErrFileReadTooLarge) || errors.As(err, &maxBytesErr) {
@@ -222,8 +232,11 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 		}
 		return
 	}
-	reservation.Commit(written)
 	committed = true
+	if err := reservation.Commit(written); err != nil {
+		fail(w, http.StatusServiceUnavailable, "quota_unavailable")
+		return
+	}
 	writeJSON(w, http.StatusCreated, map[string]any{"bytes": written})
 }
 
