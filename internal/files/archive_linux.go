@@ -445,9 +445,17 @@ func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	rootFile := os.NewFile(uintptr(rootFD), "file-root")
+	defer unix.Close(rootFD)
+	scanFD, err := unix.Openat2(r.fd, ".", &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		return 0, err
+	}
+	rootFile := os.NewFile(uintptr(scanFD), "file-root-scan")
 	if rootFile == nil {
-		_ = unix.Close(rootFD)
+		_ = unix.Close(scanFD)
 		return 0, ErrInvalidRoot
 	}
 	names, readErr := rootFile.Readdirnames(-1)
@@ -528,12 +536,8 @@ func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
 	}
 	if removed > 0 {
 		if err := unix.Fsync(rootFD); err != nil {
-			_ = unix.Close(rootFD)
 			return removed, err
 		}
-	}
-	if err := unix.Close(rootFD); err != nil {
-		return removed, err
 	}
 	return removed, nil
 }
