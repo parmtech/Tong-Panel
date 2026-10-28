@@ -68,6 +68,7 @@ func (s *Server) Handler() http.Handler {
 		writeJSON(w, 200, map[string]string{"product": "Tong Panel", "stage": "experimental-core", "api": "v1"})
 	})
 	mux.HandleFunc("/api/v1/me", s.protected(s.me))
+	mux.HandleFunc("/api/v1/session/logout", s.protected(s.sessionLogout))
 	mux.HandleFunc("/api/v1/jobs", s.protected(s.jobListCreate))
 	mux.HandleFunc("/api/v1/jobs/", s.protected(s.jobDetail))
 	mux.HandleFunc("/api/v1/files", s.protected(s.fileList))
@@ -138,6 +139,38 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
 	}
 	writeJSON(w, 200, p)
 }
+
+// sessionLogout revokes an already authenticated browser session. It never
+// issues or rotates a session; protected() has already enforced actual TLS,
+// same-origin and CSRF checks for this state-changing request.
+func (s *Server) sessionLogout(w http.ResponseWriter, r *http.Request, _ rbac.Principal) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		return
+	}
+	if s.Sessions == nil || r.TLS == nil {
+		fail(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	cookie, err := r.Cookie(auth.BrowserCookieName)
+	if err != nil || cookie.Value == "" {
+		fail(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	if err := s.Sessions.Logout(r.Context(), cookie.Value); err != nil {
+		if errors.Is(err, auth.ErrInvalidSession) {
+			fail(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		fail(w, http.StatusServiceUnavailable, "session_unavailable")
+		return
+	}
+	http.SetCookie(w, auth.ExpiredSessionCookie())
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
 	if s.Jobs == nil && s.SQLJobs == nil {
 		fail(w, 503, "jobs_unconfigured")
