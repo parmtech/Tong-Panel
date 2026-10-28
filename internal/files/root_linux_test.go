@@ -350,7 +350,7 @@ func (r *gatedReader) Read(p []byte) (int, error) {
 	return copy(p, []byte("safe")), nil
 }
 
-func TestRootCloseWaitsForStreamPublication(t *testing.T) {
+func TestRootCloseDoesNotBlockOnStreamAndWriteFinishes(t *testing.T) {
 	r, root := newTestRoot(t)
 	src := &gatedReader{started: make(chan struct{}), release: make(chan struct{})}
 	writeDone := make(chan error, 1)
@@ -365,16 +365,19 @@ func TestRootCloseWaitsForStreamPublication(t *testing.T) {
 	<-closeStarted
 	select {
 	case err := <-closeDone:
+		if err != nil {
+			close(src.release)
+			t.Fatalf("Close failed during a blocked stream: %v", err)
+		}
+	case <-time.After(time.Second):
 		close(src.release)
-		t.Fatalf("Close returned while stream publication was in progress: %v", err)
-	case <-time.After(20 * time.Millisecond):
+		writeErr := <-writeDone
+		closeErr := <-closeDone
+		t.Fatalf("Close waited for blocked stream: write=%v close=%v", writeErr, closeErr)
 	}
 	close(src.release)
 	if err := <-writeDone; err != nil {
-		t.Fatalf("stream write failed before Close: %v", err)
-	}
-	if err := <-closeDone; err != nil {
-		t.Fatalf("Close failed after stream publication: %v", err)
+		t.Fatalf("stream write failed after root Close: %v", err)
 	}
 	if data, err := os.ReadFile(filepath.Join(root, "stream.txt")); err != nil || string(data) != "safe" {
 		t.Fatalf("published stream after close = %q, %v", data, err)
