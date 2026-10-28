@@ -9,7 +9,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
