@@ -58,6 +58,8 @@ func attachTestTenantFiles(t *testing.T, s *Server) (string, string) {
 		t.Fatal(err)
 	}
 	s.Files = NewTenantFileService(roots)
+	barrier, _ := newTestLinuxFileMutationBarrier(t)
+	s.FileMutationBarrier = barrier
 	return rootAPath, rootBPath
 }
 
@@ -343,6 +345,10 @@ func TestFilesWriteAPIRequiresQuotaAndCSRF(t *testing.T) {
 	s.FileQuota = newTestFileQuota(32)
 	if rec := fileWriteCall(h, "/api/v1/files/content?path=blocked.txt", token, "wrong", "data"); rec.Code != http.StatusForbidden {
 		t.Fatalf("missing CSRF status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	s.FileMutationBarrier = nil
+	if rec := fileWriteCall(h, "/api/v1/files/content?path=blocked.txt", token, csrf, "data"); rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("missing mutation barrier status=%d body=%s", rec.Code, rec.Body.String())
 	}
 	unauthenticated := httptest.NewRequest(http.MethodPost, "https://panel.test/api/v1/files/content?path=blocked.txt", strings.NewReader("data"))
 	unauthenticated.TLS = &tls.ConnectionState{}

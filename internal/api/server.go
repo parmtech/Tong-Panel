@@ -17,12 +17,13 @@ import (
 )
 
 type Server struct {
-	Keys      *auth.Store
-	Jobs      *jobs.Store
-	SQLJobs   *jobs.SQLiteStore        // explicit dev-only, no automatic users or login
-	Sessions  *auth.SQLiteSessionStore // separately issued sessions, HTTPS only; no login route
-	Files     TenantFileService        // optional, tenant-scoped Files API
-	FileQuota TenantFileQuota          // required for any Files upload; nil fails closed
+	Keys                *auth.Store
+	Jobs                *jobs.Store
+	SQLJobs             *jobs.SQLiteStore        // explicit dev-only, no automatic users or login
+	Sessions            *auth.SQLiteSessionStore // separately issued sessions, HTTPS only; no login route
+	Files               TenantFileService        // optional, tenant-scoped Files API
+	FileQuota           TenantFileQuota          // required for any Files upload; nil fails closed
+	FileMutationBarrier FileMutationBarrier      // required for quota-sensitive file writes/deletes
 }
 type failure struct {
 	Error struct {
