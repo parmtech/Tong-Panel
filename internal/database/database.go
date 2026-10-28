@@ -19,6 +19,9 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
+// SchemaVersion is the newest schema version supported by this binary.
+const SchemaVersion = 8
+
 // Open creates the parent directory, enables foreign-key enforcement on every
 // SQLite connection, applies embedded migrations, and rejects databases created
 // by a newer schema version.
@@ -59,7 +62,6 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 }
 
 func applyMigrations(ctx context.Context, db *sql.DB) error {
-	const schemaVersion = 8
 	conn, err := db.Conn(ctx)
 	if err != nil {
 		return fmt.Errorf("get SQLite migration connection: %w", err)
@@ -77,11 +79,11 @@ func applyMigrations(ctx context.Context, db *sql.DB) error {
 			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
 			return fmt.Errorf("read SQLite schema version: %w", err)
 		}
-		if version > schemaVersion {
+		if version > SchemaVersion {
 			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
-			return fmt.Errorf("SQLite schema version %d is newer than supported version %d", version, schemaVersion)
+			return fmt.Errorf("SQLite schema version %d is newer than supported version %d", version, SchemaVersion)
 		}
-		if version == schemaVersion {
+		if version == SchemaVersion {
 			if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
 				return fmt.Errorf("finish SQLite migration check: %w", err)
 			}
