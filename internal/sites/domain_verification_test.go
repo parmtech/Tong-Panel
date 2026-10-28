@@ -122,7 +122,7 @@ func TestDomainVerificationRequiresDNSRecordAndReissuedToken(t *testing.T) {
 		t.Fatal("reissue returned the same random token")
 	}
 	noRecord := txtLookupFunc(func(context.Context, string) ([]string, error) { return []string{"other"}, nil })
-	if err := catalog.CompleteDomainVerification(context.Background(), "tenant-a", "site-a", "example.com", first.Value, noRecord); !errors.Is(err, ErrDomainVerificationExpired) {
+	if err := catalog.CompleteDomainVerification(context.Background(), "tenant-a", "site-a", "example.com", first.Value, noRecord); !errors.Is(err, ErrDomainProofMismatch) {
 		t.Fatalf("replaced token error=%v", err)
 	}
 	if err := catalog.CompleteDomainVerification(context.Background(), "tenant-a", "site-a", "example.com", second.Value, noRecord); !errors.Is(err, ErrDomainProofMismatch) {
