@@ -58,3 +58,20 @@ func TestFilesReadIsTenantBoundAndAuditorDenied(t *testing.T) {
 		t.Fatal("unknown role unexpectedly received file access")
 	}
 }
+
+func TestFilesWriteIsTenantBoundAndAuditorDenied(t *testing.T) {
+	for _, role := range []Role{Owner, Admin, Reseller, Customer} {
+		p := Principal{UserID: "u", TenantID: "team-1", Role: role}
+		if !p.Can("files:write", "team-1") {
+			t.Errorf("role %s cannot write own tenant files", role)
+		}
+		if p.Can("files:write", "team-2") {
+			t.Errorf("role %s crossed tenant boundary for file writes", role)
+		}
+	}
+	for _, role := range []Role{Auditor, "unknown"} {
+		if (Principal{UserID: "u", TenantID: "team-1", Role: role}).Can("files:write", "team-1") {
+			t.Errorf("role %q unexpectedly received file write access", role)
+		}
+	}
+}

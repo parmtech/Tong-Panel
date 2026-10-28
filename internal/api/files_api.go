@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -10,16 +11,20 @@ import (
 )
 
 const maxAPIFilesReadBytes int64 = 16 << 20
+const maxAPIFilesWriteBytes int64 = 16 << 20
 const defaultAPIFilesLimit = 200
 const maxAPIFilesLimit = 1000
 
 var (
-	ErrFilesTenantDenied = errors.New("tenant file access denied")
-	ErrFilePathInvalid   = errors.New("invalid file path")
-	ErrFileNotFound      = errors.New("file not found")
-	ErrFileReadTooLarge  = errors.New("file exceeds read limit")
-	ErrFileListTooLarge  = errors.New("directory exceeds list limit")
-	ErrFilesUnavailable  = errors.New("file service unavailable")
+	ErrFilesTenantDenied                  = errors.New("tenant file access denied")
+	ErrFilePathInvalid                    = errors.New("invalid file path")
+	ErrFileNotFound                       = errors.New("file not found")
+	ErrFileReadTooLarge                   = errors.New("file exceeds read limit")
+	ErrFileListTooLarge                   = errors.New("directory exceeds list limit")
+	ErrFilesUnavailable                   = errors.New("file service unavailable")
+	ErrFileQuotaExceeded                  = errors.New("tenant file quota exceeded")
+	ErrFileAlreadyExists                  = errors.New("file already exists")
+	ErrFilePublishedDurabilityUnconfirmed = errors.New("file was published but durability is unconfirmed")
 )
 
 // TenantFileEntry exposes only a name and non-following type/size metadata.
@@ -31,10 +36,27 @@ type TenantFileEntry struct {
 }
 
 // TenantFileService must select the tenant root using the server-authenticated
-// tenant ID supplied by the handler. This interface is read-only by design.
+// tenant ID supplied by the handler.
 type TenantFileService interface {
 	ListForTenant(tenantID, relative string, limit int) ([]TenantFileEntry, error)
 	ReadForTenant(tenantID, relative string, maxBytes int64) ([]byte, error)
+	WriteNewForTenant(tenantID, relative string, content io.Reader, maxBytes int64) (int64, error)
+}
+
+// FileQuotaReservation accounts for bytes admitted for one upload. Commit must
+// atomically replace the reservation with actualBytes; if it fails, the
+// reservation must remain in force for later reconciliation. Release must be
+// safe after failed or canceled writes and retain the reservation if it fails.
+type FileQuotaReservation interface {
+	Commit(actualBytes int64) error
+	Release() error
+}
+
+// TenantFileQuota reserves capacity before any request body is consumed. A
+// durable implementation must serialize reservations across workers and
+// reconcile existing files before enabling this API.
+type TenantFileQuota interface {
+	Reserve(tenantID string, bytes int64) (FileQuotaReservation, error)
 }
 
 func parseTenantFileQuery(r *http.Request, allowLimit, requirePath bool) (string, int, error) {
@@ -98,11 +120,18 @@ func (s *Server) fileList(w http.ResponseWriter, r *http.Request, p rbac.Princip
 }
 
 func (s *Server) fileContent(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
+	switch r.Method {
+	case http.MethodGet:
+		s.fileRead(w, r, p)
+	case http.MethodPost:
+		s.fileWrite(w, r, p)
+	default:
+		w.Header().Set("Allow", "GET, POST")
 		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
-		return
 	}
+}
+
+func (s *Server) fileRead(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
 	if !p.Can("files:read", p.TenantID) {
 		fail(w, http.StatusForbidden, "forbidden")
 		return
@@ -129,6 +158,88 @@ func (s *Server) fileContent(w http.ResponseWriter, r *http.Request, p rbac.Prin
 	_, _ = w.Write(content)
 }
 
+func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
+	if !p.Can("files:write", p.TenantID) {
+		fail(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if s.Files == nil || s.FileQuota == nil {
+		fail(w, http.StatusServiceUnavailable, "files_unavailable")
+		return
+	}
+	relative, _, err := parseTenantFileQuery(r, false, true)
+	if err != nil {
+		fail(w, http.StatusBadRequest, "invalid_file_request")
+		return
+	}
+	if r.Header.Get("Content-Type") != "application/octet-stream" {
+		fail(w, http.StatusUnsupportedMediaType, "binary_required")
+		return
+	}
+	reserveBytes := r.ContentLength
+	if reserveBytes < 0 {
+		reserveBytes = maxAPIFilesWriteBytes
+	}
+	if reserveBytes > maxAPIFilesWriteBytes {
+		fail(w, http.StatusRequestEntityTooLarge, "file_limit_exceeded")
+		return
+	}
+	reservation, err := s.FileQuota.Reserve(p.TenantID, reserveBytes)
+	if err != nil {
+		if errors.Is(err, ErrFileQuotaExceeded) {
+			fail(w, http.StatusInsufficientStorage, "file_quota_exceeded")
+		} else {
+			fail(w, http.StatusServiceUnavailable, "files_unavailable")
+		}
+		return
+	}
+	if reservation == nil {
+		fail(w, http.StatusServiceUnavailable, "files_unavailable")
+		return
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = reservation.Release()
+		}
+	}()
+
+	maxBytes := reserveBytes
+	if r.ContentLength < 0 {
+		maxBytes = maxAPIFilesWriteBytes
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+	written, err := s.Files.WriteNewForTenant(p.TenantID, relative, r.Body, maxBytes)
+	if err != nil {
+		if errors.Is(err, ErrFilePublishedDurabilityUnconfirmed) {
+			committed = true
+			if quotaErr := reservation.Commit(written); quotaErr != nil {
+				fail(w, http.StatusServiceUnavailable, "quota_unavailable")
+				return
+			}
+		} else {
+			committed = true
+			if quotaErr := reservation.Release(); quotaErr != nil {
+				fail(w, http.StatusServiceUnavailable, "quota_unavailable")
+				return
+			}
+		}
+		var maxBytesErr *http.MaxBytesError
+		if errors.Is(err, ErrFileReadTooLarge) || errors.As(err, &maxBytesErr) {
+			fail(w, http.StatusRequestEntityTooLarge, "file_limit_exceeded")
+		} else {
+			writeFilesError(w, err)
+		}
+		return
+	}
+	committed = true
+	if err := reservation.Commit(written); err != nil {
+		fail(w, http.StatusServiceUnavailable, "quota_unavailable")
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"bytes": written})
+}
+
 func writeFilesError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrFilesTenantDenied):
@@ -139,6 +250,12 @@ func writeFilesError(w http.ResponseWriter, err error) {
 		fail(w, http.StatusNotFound, "not_found")
 	case errors.Is(err, ErrFileReadTooLarge), errors.Is(err, ErrFileListTooLarge):
 		fail(w, http.StatusRequestEntityTooLarge, "file_limit_exceeded")
+	case errors.Is(err, ErrFileQuotaExceeded):
+		fail(w, http.StatusInsufficientStorage, "file_quota_exceeded")
+	case errors.Is(err, ErrFileAlreadyExists):
+		fail(w, http.StatusConflict, "already_exists")
+	case errors.Is(err, ErrFilePublishedDurabilityUnconfirmed):
+		fail(w, http.StatusServiceUnavailable, "file_durability_unconfirmed")
 	default:
 		fail(w, http.StatusServiceUnavailable, "files_unavailable")
 	}
