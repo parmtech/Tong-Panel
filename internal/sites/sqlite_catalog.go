@@ -13,6 +13,8 @@ var (
 	ErrSiteExists         = errors.New("site already exists")
 	ErrSiteNotFound       = errors.New("site not found")
 	ErrDomainClaimed      = errors.New("domain is already claimed")
+	ErrDomainNotFound     = errors.New("site domain not found")
+	ErrPrimaryDomain      = errors.New("primary domain cannot be removed")
 )
 
 // Catalog persists declarative site metadata only. A pending domain row is not
@@ -132,4 +134,44 @@ func (c *Catalog) Get(ctx context.Context, tenantID, siteID string) (SiteRecord,
 		return SiteRecord{}, fmt.Errorf("iterate site domains: %w", err)
 	}
 	return record, nil
+}
+
+// RemoveAliasDomain releases an alias claim for the requested tenant/site.
+// The primary domain is immutable through this operation. This changes metadata
+// only; callers must not infer that any host configuration was changed.
+func (c *Catalog) RemoveAliasDomain(ctx context.Context, tenantID, siteID, rawDomain string) error {
+	if ctx == nil || c == nil || c.db == nil || !validID(tenantID) || !validID(siteID) {
+		return ErrCatalogUnavailable
+	}
+	domain, err := NormalizeDomain(rawDomain)
+	if err != nil {
+		return err
+	}
+	result, err := c.db.ExecContext(ctx,
+		"DELETE FROM site_domains WHERE domain=? AND tenant_id=? AND site_id=? AND kind='alias'",
+		domain, tenantID, siteID)
+	if err != nil {
+		return fmt.Errorf("remove site alias domain: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read site alias removal result: %w", err)
+	}
+	if changed == 1 {
+		return nil
+	}
+	var kind string
+	err = c.db.QueryRowContext(ctx,
+		"SELECT kind FROM site_domains WHERE domain=? AND tenant_id=? AND site_id=?",
+		domain, tenantID, siteID).Scan(&kind)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrDomainNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("check site domain removal result: %w", err)
+	}
+	if kind == "primary" {
+		return ErrPrimaryDomain
+	}
+	return ErrDomainNotFound
 }
