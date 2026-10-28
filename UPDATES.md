@@ -13,12 +13,12 @@
 - **Verified code head:** `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed Go checks [#40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640) (gofmt, full `go test -race ./...`, vet), non-destructive daemon smoke [#40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840), and unsigned developer archive lab [#40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588). These validate this code head; they do not certify a release or security approval.
 - **Authentication boundary:** owner/security review must record ADR-009/P0 decisions before a public login route; keep public login and production deployment disabled. Isolated non-privileged prototypes can continue.
 
-## CURRENT P2 SLICE — concurrent archive publication race
-- **Branch/PR:** `feature/p2-archive-target-race`, draft [PR #48](https://github.com/parmtech/Tong-Panel/pull/48), stacked on #47/#46. Code commit: `beaca356887c645520c144cc9fb0fa6cdfd8eeb1`.
-- **Change/tests:** 16 simultaneous gzip/tar extractions with different complete trees target one destination. The race test requires exactly one successful publication, all other callers to receive `ErrAlreadyExists`, one intact winner tree, and no leaked stage.
-- **Validation:** Go formatting/full race/vet [#40618389233](https://github.com/parmtech/Tong-Panel/actions/runs/40618389233), daemon [#40618389360](https://github.com/parmtech/Tong-Panel/actions/runs/40618389360), unsigned package [#40618389336](https://github.com/parmtech/Tong-Panel/actions/runs/40618389336), and Ubuntu 24.04/Debian 12 clean-VM matrix [#40618389193](https://github.com/parmtech/Tong-Panel/actions/runs/40618389193) all passed on the code head.
-- **Limits/status:** internal filesystem publication concurrency only; no authenticated Files API/ACL, quota, installer, hosting lifecycle or restore. ADR/threat-model owner-security review remains pending; P2 incomplete and no production host changed.
-- **Next:** continue unprivileged P2 work while identity, host-agent, installer and recovery gates remain unapproved.
+## CURRENT P2 SLICE — concurrent two-tenant archive isolation
+- **Branch/PR:** `feature/p2-tenant-archive-race`, draft [PR #49](https://github.com/parmtech/Tong-Panel/pull/49), stacked on #48/#47/#46. Code commit: `141e0aab6119c346f2ff761c4bb1ecc2da62beae`.
+- **Change/tests:** two distinct pinned tenant roots concurrently receive 16 extraction attempts each to the same relative site path. The test requires one winner per tenant, `ErrAlreadyExists` for each same-tenant loser, tenant-specific site contents, and no staging leaks.
+- **Validation:** Go formatting/full race/vet [#40618958111](https://github.com/parmtech/Tong-Panel/actions/runs/40618958111), daemon [#40618958138](https://github.com/parmtech/Tong-Panel/actions/runs/40618958138), unsigned package [#40618957985](https://github.com/parmtech/Tong-Panel/actions/runs/40618957985), and Ubuntu 24.04/Debian 12 clean-VM matrix [#40618958036](https://github.com/parmtech/Tong-Panel/actions/runs/40618958036) all passed on the code head.
+- **Limits/status:** test-only proof of internal pinned-root isolation; not authenticated HTTP/API authorization, quotas, installer/service lifecycle or restore. ADR/threat-model owner-security review pending; P2 incomplete and no production host changed.
+- **Next:** continue isolated unprivileged vertical slices; privileged hosting features remain gated by approved P0/P1 boundaries.
 
 ## PRIOR VERIFIED P2 SLICE — root-close-safe bounded file uploads
 - **Branch/PR:** `feature/p2-stream-close-safe`, draft [PR #42](https://github.com/parmtech/Tong-Panel/pull/42), stacked on draft #41/#40/#39/#38/#37/#36/#35. Executable code commit: `faa220eed997f68b225dc105cc4386227d742dfe`.
@@ -405,3 +405,10 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - It requires one winner, `ErrAlreadyExists` for every loser, a single intact winner tree and cleanup of all staging directories.
 - Code commit `beaca356887c645520c144cc9fb0fa6cdfd8eeb1` passed [Go/race/vet #40618389233](https://github.com/parmtech/Tong-Panel/actions/runs/40618389233), [daemon #40618389360](https://github.com/parmtech/Tong-Panel/actions/runs/40618389360), [package #40618389336](https://github.com/parmtech/Tong-Panel/actions/runs/40618389336), and Ubuntu/Debian clean guests [#40618389193](https://github.com/parmtech/Tong-Panel/actions/runs/40618389193).
 - The test validates existing internal create-only publication; P2 and owner/security review remain incomplete. No production host changed.
+
+
+### 2026-10-28 — P2 concurrent two-tenant archive isolation
+- Draft [PR #49](https://github.com/parmtech/Tong-Panel/pull/49), stacked on #48/#47/#46, adds 16 concurrent extraction attempts per tenant, targeting the same relative site path in two distinct pinned roots.
+- It requires one successful publication per tenant, same-tenant losers to get `ErrAlreadyExists`, tenant-specific content on readback, and both stage areas clean.
+- Code commit `141e0aab6119c346f2ff761c4bb1ecc2da62beae` passed [Go/race/vet #40618958111](https://github.com/parmtech/Tong-Panel/actions/runs/40618958111), [daemon #40618958138](https://github.com/parmtech/Tong-Panel/actions/runs/40618958138), [package #40618957985](https://github.com/parmtech/Tong-Panel/actions/runs/40618957985), and Ubuntu/Debian clean guests [#40618958036](https://github.com/parmtech/Tong-Panel/actions/runs/40618958036).
+- This is internal Files primitive isolation evidence only. P0 owner/security review and P2 acceptance gates remain incomplete; no live host changed.
