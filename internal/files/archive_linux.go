@@ -174,6 +174,9 @@ func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits) error {
 			break
 		}
 		if err != nil {
+			if bounded.N == 0 {
+				return ErrArchiveLimit
+			}
 			return ErrInvalidArchive
 		}
 		headerCount++
@@ -225,6 +228,9 @@ func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits) error {
 			}
 			closeErr := f.Close()
 			if copyErr != nil {
+				if bounded.N == 0 {
+					return ErrArchiveLimit
+				}
 				return ErrInvalidArchive
 			}
 			if closeErr != nil {
@@ -245,7 +251,10 @@ func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits) error {
 	if _, err := io.Copy(&tail, bounded); err != nil {
 		return ErrInvalidArchive
 	}
-	if bounded.N == 0 || tail.nonZero || source.Len() != 0 {
+	if bounded.N == 0 {
+		return ErrArchiveLimit
+	}
+	if tail.nonZero || source.Len() != 0 {
 		return ErrInvalidArchive
 	}
 	return nil
