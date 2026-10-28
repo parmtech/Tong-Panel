@@ -364,7 +364,6 @@ func TestConcurrentSiteAliasAddHasSingleWinner(t *testing.T) {
 	}
 }
 
-
 func TestAddedAliasUsesItsOwnDNSProofBeforeBecomingVerified(t *testing.T) {
 	server, lookup, _ := setupSiteAPI(t)
 	h := server.Handler()
