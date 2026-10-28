@@ -14,7 +14,7 @@
 - A process crash can leave a private write or archive staging directory. `CleanupStaleStages` and its `TenantRoots` wrapper are explicit cleanup primitives, not yet wired into startup. They only consider exact lowercase-hex internal names, require the effective UID and private directory permissions, keep stages younger than one hour, and skip a directory with an active exclusive `flock`. Both create-only writes and archive extraction hold that lock while staging. Cleanup removes contents without following symlinks. Generic file operations reject these reserved root names, and root listings hide them. The old `CleanupStaleArchiveStages` names remain compatibility wrappers and now clean both kinds.
 - `TenantRoots` copies a fixed server-owned tenant-to-root mapping, rejects closed or inode-aliased roots, and selects only the assigned root for reads, listings, create-only writes, file removal, and bounded archive extraction. The caller must supply a tenant identifier derived from a verified server principal; this helper does not authenticate or authorize that principal.
 - Reads are limited to 16 MiB maximum, and only regular files are returned. FIFOs and devices are not treated as readable file content.
-- `Close` is synchronized with reads; reads after close fail.
+- `Close` is synchronized with short descriptor acquisition for operations. New calls after close fail; an in-flight `WriteNewFrom` retains a duplicate pinned descriptor and can complete without making close wait on a slow reader.
 - The package is not wired to HTTP, the privileged agent, site identities, quotas, or ACLs. It must not be represented as cross-tenant file access control.
 
 ## Tests
