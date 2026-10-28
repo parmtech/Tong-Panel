@@ -34,11 +34,15 @@ func TestInstallPreflightReportsReadOnlyThresholdMatch(t *testing.T) {
 
 func TestInstallPreflightFailsClosedOnUnsupportedOrUnknownFacts(t *testing.T) {
 	tests := []struct {
-		name string
+		name     string
 		snapshot preflight.Snapshot
-		want string
+		want     string
 	}{
-		{name: "unsupported OS", snapshot: func() preflight.Snapshot { s := preflightSnapshot(); s.OSRelease = "ID=debian\nVERSION_ID=13\n"; return s }(), want: "unsupported_os"},
+		{name: "unsupported OS", snapshot: func() preflight.Snapshot {
+			s := preflightSnapshot()
+			s.OSRelease = "ID=debian\nVERSION_ID=13\n"
+			return s
+		}(), want: "unsupported_os"},
 		{name: "low disk", snapshot: func() preflight.Snapshot { s := preflightSnapshot(); s.DiskAvailableBytes = 1; return s }(), want: "disk_below_minimum"},
 		{name: "unknown disk", snapshot: func() preflight.Snapshot { s := preflightSnapshot(); s.DiskKnown = false; return s }(), want: "disk_unknown"},
 		{name: "unknown listeners", snapshot: func() preflight.Snapshot { s := preflightSnapshot(); s.PortsKnown = false; return s }(), want: "ports_unknown"},

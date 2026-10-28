@@ -86,7 +86,7 @@ func runInstallPreflight(args []string, snapshot preflight.Snapshot, output io.W
 	})
 	result := installPreflightResult{
 		Notice: "Read-only development gate. Allowed means only that detected facts match supplied thresholds; it is not installation authorization or support certification.",
-		Host: report, Gate: gate,
+		Host:   report, Gate: gate,
 	}
 	if err := json.NewEncoder(output).Encode(result); err != nil {
 		return false, err
