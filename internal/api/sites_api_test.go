@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -118,6 +119,97 @@ func TestSiteAPIRequiresAuthAndEnforcesTenantScope(t *testing.T) {
 	}
 	if r := call(h, http.MethodPost, "/api/v1/sites", secret, "", `{"site_id":"site-a","primary_domain":"a.example.test"}`); r.Code != http.StatusConflict {
 		t.Fatalf("duplicate site returned %d", r.Code)
+	}
+}
+
+func TestSiteDatabaseMetadataAPIIsTenantScopedAndSecretFree(t *testing.T) {
+	server, _, _ := setupSiteAPI(t)
+	h := server.Handler()
+	if r := createTestSite(t, h, secret, "site-db", "db.example.test"); r.Code != http.StatusCreated {
+		t.Fatalf("create site: %d %s", r.Code, r.Body.String())
+	}
+	const path = "/api/v1/sites/site-db/databases"
+	if r := call(h, http.MethodGet, path, "", "", ""); r.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous metadata list returned %d", r.Code)
+	}
+	if r := call(h, http.MethodPost, path, "", "", `{"database_id":"wordpress"}`); r.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous metadata create returned %d", r.Code)
+	}
+	if r := call(h, http.MethodGet, path, sqlOtherToken, "", ""); r.Code != http.StatusNotFound {
+		t.Fatalf("cross-tenant metadata list returned %d", r.Code)
+	}
+	if r := call(h, http.MethodPost, path, sqlAuditorToken, "", `{"database_id":"wordpress"}`); r.Code != http.StatusForbidden {
+		t.Fatalf("auditor created metadata: %d", r.Code)
+	}
+	if r := call(h, http.MethodGet, path, sqlAuditorToken, "", ""); r.Code != http.StatusOK || !strings.Contains(r.Body.String(), `"databases":[]`) {
+		t.Fatalf("auditor read-only empty list returned %d: %s", r.Code, r.Body.String())
+	}
+	for _, body := range []string{
+		`{"database_id":"bad;drop"}`,
+		`{"database_id":"wordpress","tenant_id":"tenant-b"}`,
+		`{"database_id":"wordpress","database_name":"unsafe"}`,
+		`{"database_id":"wordpress","username":"unsafe"}`,
+	} {
+		if r := call(h, http.MethodPost, path, secret, "", body); r.Code != http.StatusBadRequest {
+			t.Errorf("invalid/injected metadata request %s returned %d: %s", body, r.Code, r.Body.String())
+		}
+	}
+	if r := call(h, http.MethodPost, path, secret, "", ""); r.Code != http.StatusUnsupportedMediaType {
+		t.Fatalf("non-JSON metadata request returned %d", r.Code)
+	}
+	created := call(h, http.MethodPost, path, secret, "", `{"database_id":"wordpress"}`)
+	if created.Code != http.StatusCreated {
+		t.Fatalf("database metadata create returned %d: %s", created.Code, created.Body.String())
+	}
+	var record sites.SiteDatabaseRecord
+	if err := json.Unmarshal(created.Body.Bytes(), &record); err != nil {
+		t.Fatal(err)
+	}
+	if record.TenantID != "tenant-a" || record.SiteID != "site-db" || record.DatabaseID != "wordpress" ||
+		!regexp.MustCompile(`^tp_[a-z2-7]{26}$`).MatchString(record.DatabaseName) ||
+		!regexp.MustCompile(`^tu_[a-z2-7]{26}$`).MatchString(record.Username) ||
+		strings.Contains(strings.ToLower(created.Body.String()), "password") {
+		t.Fatalf("response contains unsafe scope or secret metadata: %+v %s", record, created.Body.String())
+	}
+	if r := call(h, http.MethodPost, path, secret, "", `{"database_id":"wordpress"}`); r.Code != http.StatusConflict {
+		t.Fatalf("duplicate metadata create returned %d: %s", r.Code, r.Body.String())
+	}
+	listed := call(h, http.MethodGet, path, secret, "", "")
+	if listed.Code != http.StatusOK || strings.Count(listed.Body.String(), `"DatabaseID":"wordpress"`) != 1 {
+		t.Fatalf("same-tenant metadata list returned %d: %s", listed.Code, listed.Body.String())
+	}
+	if r := call(h, http.MethodGet, "/api/v1/sites/missing/databases", secret, "", ""); r.Code != http.StatusNotFound {
+		t.Fatalf("missing site metadata list returned %d", r.Code)
+	}
+	if r := call(h, http.MethodDelete, path, secret, "", ""); r.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("unsupported metadata deletion returned %d", r.Code)
+	}
+}
+
+func TestConcurrentSiteDatabaseMetadataCreateHasSingleWinner(t *testing.T) {
+	server, _, _ := setupSiteAPI(t)
+	h := server.Handler()
+	if r := createTestSite(t, h, secret, "site-db-race", "dbrace.example.test"); r.Code != http.StatusCreated {
+		t.Fatalf("create site: %d %s", r.Code, r.Body.String())
+	}
+	path := "/api/v1/sites/site-db-race/databases"
+	start := make(chan struct{})
+	codes := make(chan int, 2)
+	for range 2 {
+		go func() {
+			<-start
+			codes <- call(h, http.MethodPost, path, secret, "", `{"database_id":"wordpress"}`).Code
+		}()
+	}
+	close(start)
+	a, b := <-codes, <-codes
+	if !((a == http.StatusCreated && b == http.StatusConflict) ||
+		(a == http.StatusConflict && b == http.StatusCreated)) {
+		t.Fatalf("concurrent database metadata create statuses=(%d,%d), want one create and one conflict", a, b)
+	}
+	listed := call(h, http.MethodGet, path, secret, "", "")
+	if listed.Code != http.StatusOK || strings.Count(listed.Body.String(), `"DatabaseID":"wordpress"`) != 1 {
+		t.Fatalf("race published more than one metadata record: %d %s", listed.Code, listed.Body.String())
 	}
 }
 

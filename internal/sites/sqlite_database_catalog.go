@@ -115,6 +115,53 @@ func (c *Catalog) GetDatabase(ctx context.Context, tenantID, siteID, databaseID 
 	return record, nil
 }
 
+// ListDatabases returns metadata for one tenant-owned site. Empty results are
+// distinct from a missing site. This does not inspect or provision MariaDB.
+func (c *Catalog) ListDatabases(ctx context.Context, tenantID, siteID string) ([]SiteDatabaseRecord, error) {
+	if ctx == nil || c == nil || c.db == nil {
+		return nil, ErrCatalogUnavailable
+	}
+	if !validID(tenantID) || !validID(siteID) {
+		return nil, ErrInvalidDatabaseSpec
+	}
+	rows, err := c.db.QueryContext(ctx,
+		"SELECT tenant_id,site_id,database_id,database_name,username,created_at "+
+			"FROM site_databases WHERE tenant_id=? AND site_id=? ORDER BY created_at,database_id",
+		tenantID, siteID)
+	if err != nil {
+		return nil, fmt.Errorf("list site database metadata: %w", err)
+	}
+	defer rows.Close()
+	records := make([]SiteDatabaseRecord, 0)
+	for rows.Next() {
+		var record SiteDatabaseRecord
+		if err := rows.Scan(&record.TenantID, &record.SiteID, &record.DatabaseID,
+			&record.DatabaseName, &record.Username, &record.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan site database metadata: %w", err)
+		}
+		records = append(records, record)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read site database metadata: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close site database metadata rows: %w", err)
+	}
+	if len(records) != 0 {
+		return records, nil
+	}
+	var siteExists bool
+	if err := c.db.QueryRowContext(ctx,
+		"SELECT EXISTS(SELECT 1 FROM sites WHERE tenant_id=? AND site_id=?)",
+		tenantID, siteID).Scan(&siteExists); err != nil {
+		return nil, fmt.Errorf("check site for database metadata list: %w", err)
+	}
+	if !siteExists {
+		return nil, ErrSiteNotFound
+	}
+	return records, nil
+}
+
 func siteDatabaseNames(spec SiteDatabaseSpec) (databaseName, username string) {
 	sum := sha256.Sum256([]byte(spec.TenantID + "\x00" + spec.SiteID + "\x00" + spec.DatabaseID))
 	suffix := strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(sum[:16]))
