@@ -128,6 +128,12 @@ if [[ -z "$fpm_bin" ]]; then
   done
 fi
 test -n "$fpm_bin"
+pool_user="$(awk -F ' = ' '/^user = / { print $2; exit }' /home/ci/php-fpm-pool.conf)"
+pool_group="$(awk -F ' = ' '/^group = / { print $2; exit }' /home/ci/php-fpm-pool.conf)"
+test -n "$pool_user"
+test "$pool_user" = "$pool_group"
+# This account exists only in the disposable guest so FPM can load its pool.
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin "$pool_user"
 sudo "$fpm_bin" -t -y /home/ci/php-fpm-test.conf
 cat > /home/ci/nginx-test.conf <<'NGINX'
 worker_processes 1;
