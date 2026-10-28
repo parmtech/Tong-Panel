@@ -215,3 +215,48 @@ func TestConcurrentDomainVerificationCompletionHasOneWinner(t *testing.T) {
 		t.Fatalf("concurrent proof completions had %d winners (%d, %d), want one", winners, a, b)
 	}
 }
+
+
+func TestSiteDomainAPIOnlyRemovesTenantAliasAndReleasesClaim(t *testing.T) {
+	server, _, _ := setupSiteAPI(t)
+	h := server.Handler()
+	if r := createTestSite(t, h, secret, "site-a", "a.example.test"); r.Code != http.StatusCreated {
+		t.Fatalf("create site: %d %s", r.Code, r.Body.String())
+	}
+	const aliasPath = "/api/v1/sites/site-a/domains/www.a.example.test"
+	const primaryPath = "/api/v1/sites/site-a/domains/a.example.test"
+	if r := call(h, http.MethodDelete, aliasPath, "", "", ""); r.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous alias removal returned %d", r.Code)
+	}
+	if r := call(h, http.MethodDelete, aliasPath, sqlOtherToken, "", ""); r.Code != http.StatusNotFound {
+		t.Fatalf("cross-tenant alias removal returned %d", r.Code)
+	}
+	if r := call(h, http.MethodDelete, aliasPath, sqlAuditorToken, "", ""); r.Code != http.StatusForbidden {
+		t.Fatalf("auditor alias removal returned %d", r.Code)
+	}
+	if r := call(h, http.MethodDelete, primaryPath, secret, "", ""); r.Code != http.StatusConflict {
+		t.Fatalf("primary domain removal returned %d: %s", r.Code, r.Body.String())
+	}
+	if r := call(h, http.MethodDelete, aliasPath, secret, "", ""); r.Code != http.StatusNoContent {
+		t.Fatalf("tenant alias removal returned %d: %s", r.Code, r.Body.String())
+	}
+	if r := call(h, http.MethodDelete, aliasPath, secret, "", ""); r.Code != http.StatusNotFound {
+		t.Fatalf("repeated alias removal returned %d", r.Code)
+	}
+	var record sites.SiteRecord
+	got := call(h, http.MethodGet, "/api/v1/sites/site-a", secret, "", "")
+	if got.Code != http.StatusOK {
+		t.Fatalf("site read after alias removal returned %d", got.Code)
+	}
+	if err := json.Unmarshal(got.Body.Bytes(), &record); err != nil {
+		t.Fatal(err)
+	}
+	if len(record.Domains) != 1 || record.Domains[0].Name != "a.example.test" || record.Domains[0].Kind != "primary" {
+		t.Fatalf("alias remained in site record: %+v", record.Domains)
+	}
+	// A released name is globally claimable again, but only by a new tenant/site request.
+	reclaimed := call(h, http.MethodPost, "/api/v1/sites", sqlOtherToken, "", `{"site_id":"site-b","primary_domain":"b.example.test","aliases":["www.a.example.test"]}`)
+	if reclaimed.Code != http.StatusCreated {
+		t.Fatalf("released alias could not be claimed: %d %s", reclaimed.Code, reclaimed.Body.String())
+	}
+}
