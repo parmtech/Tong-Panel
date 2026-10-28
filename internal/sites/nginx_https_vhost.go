@@ -39,7 +39,7 @@ func RenderNginxHTTPSVhost(site SiteRecord, paths HostingPaths, tls NginxTLSFile
 	canonical := domains[0]
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "server {\n    listen 80;\n    server_name %s;\n", serverNames)
+	fmt.Fprintf(&b, "server {\n    listen 80;\n    server_name %s;\n    root %s;\n", serverNames, root)
 	b.WriteString("    location ^~ /.well-known/acme-challenge/ {\n        try_files $uri =404;\n    }\n")
 	fmt.Fprintf(&b, "    location / {\n        return 308 https://%s$request_uri;\n    }\n}\n\n", canonical)
 
