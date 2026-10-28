@@ -283,7 +283,6 @@ func TestConcurrentSiteAliasRemovalHasOneWinner(t *testing.T) {
 	}
 }
 
-
 func TestSiteDomainAPIAddsTenantScopedPendingAlias(t *testing.T) {
 	server, _, _ := setupSiteAPI(t)
 	h := server.Handler()
