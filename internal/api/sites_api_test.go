@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/parmtech/tong-panel/internal/auth"
 	"github.com/parmtech/tong-panel/internal/database"
+	"github.com/parmtech/tong-panel/internal/jobs"
+	"github.com/parmtech/tong-panel/internal/rbac"
 	"github.com/parmtech/tong-panel/internal/sites"
 )
 
@@ -43,22 +45,39 @@ func (s *siteTXTStub) callCount() int {
 	return len(s.calls)
 }
 
-func setupSiteAPI(t *testing.T) (*Server, *siteTXTStub, string) {
+func setupSiteAPI(t *testing.T) (*Server, *siteTXTStub, *sql.DB) {
 	t.Helper()
-	server, _, path := setupSQLAPI(t)
-	db, err := database.Open(context.Background(), filepath.Join(filepath.Dir(path), "api.db"))
+	db, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "api.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
+	if _, err := db.Exec(`INSERT INTO tenants(id,name) VALUES('tenant-a','A'),('tenant-b','B');
+		INSERT INTO identities(id,username) VALUES('u1','alice'),('u2','bob'),('u3','charlie'),('u4','dave');
+		INSERT INTO memberships(tenant_id,identity_id,role)
+		VALUES('tenant-a','u1','customer'),('tenant-a','u2','customer'),('tenant-b','u3','customer'),('tenant-a','u4','auditor');`); err != nil {
+		t.Fatal(err)
+	}
+	keys, err := auth.NewDevStore(map[string]rbac.Principal{
+		secret:          {UserID: "u1", TenantID: "tenant-a", Role: rbac.Customer},
+		sqlUserBToken:   {UserID: "u2", TenantID: "tenant-a", Role: rbac.Customer},
+		sqlOtherToken:   {UserID: "u3", TenantID: "tenant-b", Role: rbac.Customer},
+		sqlAuditorToken: {UserID: "u4", TenantID: "tenant-a", Role: rbac.Auditor},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	q, err := jobs.NewSQLiteStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
 	catalog, err := sites.NewCatalog(db)
 	if err != nil {
 		t.Fatal(err)
 	}
 	lookup := &siteTXTStub{records: make(map[string][]string)}
-	server.SiteCatalog = catalog
-	server.DomainTXTLookup = lookup
-	return server, lookup, path
+	server := &Server{Keys: keys, SQLJobs: q, SiteCatalog: catalog, DomainTXTLookup: lookup}
+	return server, lookup, db
 }
 
 func createTestSite(t *testing.T, h http.Handler, token, siteID, domain string) *httptest.ResponseRecorder {
@@ -101,7 +120,7 @@ func TestSiteAPIRequiresAuthAndEnforcesTenantScope(t *testing.T) {
 }
 
 func TestDomainVerificationAPIIsSingleUseTenantBoundAndStoresOnlyDigest(t *testing.T) {
-	server, lookup, dbPath := setupSiteAPI(t)
+	server, lookup, db := setupSiteAPI(t)
 	h := server.Handler()
 	if r := createTestSite(t, h, secret, "site-a", "a.example.test"); r.Code != http.StatusCreated {
 		t.Fatalf("create site: %d %s", r.Code, r.Body.String())
@@ -124,10 +143,6 @@ func TestDomainVerificationAPIIsSingleUseTenantBoundAndStoresOnlyDigest(t *testi
 	if instruction.Name != "_tong-panel-challenge.a.example.test" || len(instruction.Value) != 43 || instruction.ExpiresAt <= 0 {
 		t.Fatalf("invalid verification instruction: %+v", instruction)
 	}
-	db, err := database.Open(context.Background(), dbPath)
-	if err != nil {
-		t.Fatal(err)
-	}
 	var stored string
 	if err := db.QueryRow("SELECT verification_token_sha256 FROM site_domains WHERE domain='a.example.test'").Scan(&stored); err != nil {
 		t.Fatal(err)
@@ -135,7 +150,6 @@ func TestDomainVerificationAPIIsSingleUseTenantBoundAndStoresOnlyDigest(t *testi
 	if len(stored) != 64 || stored == instruction.Value {
 		t.Fatalf("one-time proof was not stored as a digest: %q", stored)
 	}
-	_ = db.Close()
 
 	const completePath = "/api/v1/sites/site-a/domains/a.example.test/verification/complete"
 	if r := call(h, http.MethodPost, completePath, secret, "", `{"value":"wrong-token"}`); r.Code != http.StatusForbidden {
