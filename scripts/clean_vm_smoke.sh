@@ -112,8 +112,29 @@ grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' tong-p1-dev/DO_NOT_INSTALL.txt
 ./tong-p1-dev/tests/api.test -test.v -test.timeout=4m
 ./tong-p1-dev/tests/sites.test -test.v -test.timeout=4m
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends nginx
+sudo apt-get install -y --no-install-recommends nginx php-fpm
 TONG_NGINX_PREVIEW_PATH=/home/ci/nginx-site.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderNginxVhostRequiresVerifiedCanonicalDomains$' -test.timeout=1m
+TONG_PHP_FPM_PREVIEW_PATH=/home/ci/php-fpm-pool.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderPHPFPMPoolRequiresVerifiedIsolatedSite$' -test.timeout=1m
+cat > /home/ci/php-fpm-test.conf <<'FPM'
+[global]
+daemonize = no
+error_log = /tmp/tong-php-fpm-test.log
+include = /home/ci/php-fpm-pool.conf
+FPM
+fpm_bin="$(command -v php-fpm || true)"
+if [[ -z "$fpm_bin" ]]; then
+  for candidate in /usr/sbin/php-fpm[0-9]*; do
+    if [[ -x "$candidate" ]]; then fpm_bin="$candidate"; break; fi
+  done
+fi
+test -n "$fpm_bin"
+pool_user="$(awk -F ' = ' '/^user = / { print $2; exit }' /home/ci/php-fpm-pool.conf)"
+pool_group="$(awk -F ' = ' '/^group = / { print $2; exit }' /home/ci/php-fpm-pool.conf)"
+test -n "$pool_user"
+test "$pool_user" = "$pool_group"
+# This account exists only in the disposable guest so FPM can load its pool.
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin "$pool_user"
+sudo "$fpm_bin" -t -y /home/ci/php-fpm-test.conf
 cat > /home/ci/nginx-test.conf <<'NGINX'
 worker_processes 1;
 pid /tmp/tong-nginx-test.pid;
