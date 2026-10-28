@@ -145,7 +145,7 @@ def main(executable):
             # The daemon performs schema migrations, NEVER seeds default owners.
             with sqlite3.connect(database, timeout=5) as con:
                 version = con.execute("PRAGMA user_version").fetchone()[0]
-                assert version == 10, f"wrong migration version: {version}"
+                assert version == 11, f"wrong migration version: {version}"
                 assert con.execute("SELECT count(*) FROM identities").fetchone()[0] == 0
                 status, _, _ = request("GET", "/api/v1/me", TOKEN)
                 assert_response(status, 401, "token with no DB membership must be denied")
