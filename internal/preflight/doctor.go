@@ -206,12 +206,14 @@ func EvaluateMutationGate(s Snapshot, requirements MutationRequirements) Mutatio
 	return gate
 }
 
-// Detect returns a best-effort, READ-ONLY host report. It never binds ports,
-// changes packages, writes files, modifies firewall rules or probes credentials.
-func Detect(path string) (Report, error) {
+// DetectSnapshot collects best-effort, READ-ONLY host facts. It never binds
+// ports, changes packages, writes files, modifies firewall rules or probes
+// credentials. Unknown resource readings remain unknown so a future gate can
+// fail closed instead of interpreting an unreadable resource as available.
+func DetectSnapshot(path string) (Snapshot, error) {
 	osRelease, err := os.ReadFile(path)
 	if err != nil {
-		return Report{}, err
+		return Snapshot{}, err
 	}
 	s := Snapshot{OSRelease: string(osRelease), GOOS: runtime.GOOS, Arch: runtime.GOARCH}
 	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
@@ -243,5 +245,14 @@ func Detect(path string) (Report, error) {
 		seen++
 	}
 	s.TCPListening, s.PortsKnown = listeners, seen == 2
+	return s, nil
+}
+
+// Detect returns the existing best-effort, READ-ONLY developer doctor report.
+func Detect(path string) (Report, error) {
+	s, err := DetectSnapshot(path)
+	if err != nil {
+		return Report{}, err
+	}
 	return Evaluate(s)
 }

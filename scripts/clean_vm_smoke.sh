@@ -298,6 +298,15 @@ body_b="$(curl --silent --show-error --insecure --resolve tenant-b.example.test:
 hidden_status="$(curl --silent --show-error --insecure --resolve tenant-a.example.test:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://tenant-a.example.test/.private.php)"
 [[ "$hidden_status" == 403 ]]
 printf '%s\n' 'two-tenant HTTPS smoke passed; HTTP redirects, ACME challenge path stays on HTTP, TLS sites remain isolated'
+# The preflight is read-only: this intentionally reports the ports occupied by
+# the disposable Nginx fixture as blockers and exits 3 rather than authorizing
+# any installation step. The command has no mutation implementation.
+set +e
+/home/ci/tong-p1-dev/bin/tongctl preflight --min-disk-bytes 1 --required-tcp-ports 80,443 > install-preflight.json
+preflight_status=$?
+set -e
+[[ "$preflight_status" == 3 ]]
+python3 -c 'import json; d=json.load(open("install-preflight.json")); assert d["gate"]["allowed"] is False; assert "tcp_port_in_use:80" in d["gate"]["blockers"]; assert "tcp_port_in_use:443" in d["gate"]["blockers"]; assert "not installation authorization" in d["notice"]; print("clean-guest install preflight correctly blocked occupied web ports without host mutation")'
 bash ./tong-p1-dev/tests/mariadb-isolation.sh
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
