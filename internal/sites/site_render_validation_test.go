@@ -89,4 +89,3 @@ func TestRenderersRequireVerifiedPrimaryAndRejectMalformedPendingAliases(t *test
 		})
 	}
 }
-

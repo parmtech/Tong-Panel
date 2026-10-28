@@ -61,4 +61,3 @@ func verifiedSiteDomains(site SiteRecord) ([]string, error) {
 	domains[0] = primary
 	return append(domains, aliases...), nil
 }
-
