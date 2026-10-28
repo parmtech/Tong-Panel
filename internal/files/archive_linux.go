@@ -213,7 +213,9 @@ func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits) error {
 	gz.Multistream(false)
 	defer gz.Close()
 
-	bounded := &io.LimitedReader{R: gz, N: limits.ExpandedBytes}
+	// Read one byte beyond the inclusive limit so the caller can distinguish
+	// an archive that ends exactly at the limit from one that exceeds it.
+	bounded := &io.LimitedReader{R: gz, N: limits.ExpandedBytes + 1}
 	tr := tar.NewReader(bounded)
 	seenHeaders := make(map[string]struct{})
 	directories := make(map[string]struct{})
