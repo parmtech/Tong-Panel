@@ -13,7 +13,14 @@
 - **Verified code head:** `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed Go checks [#40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640) (gofmt, full `go test -race ./...`, vet), non-destructive daemon smoke [#40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840), and unsigned developer archive lab [#40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588). These validate this code head; they do not certify a release or security approval.
 - **Authentication boundary:** owner/security review must record ADR-009/P0 decisions before a public login route; keep public login and production deployment disabled. Isolated non-privileged prototypes can continue.
 
-## CURRENT P2 SLICE — root-close-safe bounded file uploads
+## CURRENT P2 SLICE — clean-VM Files regression matrix
+- **Branch/PR:** `feature/p2-files-on-clean-vm`, draft [PR #44](https://github.com/parmtech/Tong-Panel/pull/44), stacked on #43/#42/#41 and the Files foundation #35. Workflow/code commit: `b187fe11253321542502341e5fd4f02a830faa3b`.
+- **Scope:** the disposable QEMU matrix builds a Linux `internal/files` test binary, checksum-packages it with the unsigned preview, then runs the full filesystem suite as the unprivileged guest user on fresh Ubuntu 24.04 and Debian 12 guests. Changes under `internal/files/**` now trigger this workflow.
+- **Validation:** both matrix guests passed [clean VM workflow #40614167120](https://github.com/parmtech/Tong-Panel/actions/runs/40614167120), including the filesystem test suite, existing daemon/SQLite smoke and read-only doctor check.
+- **Limits/status:** this adds real guest-kernel evidence for file primitives only. It is not an installer, supported OS certification, API/auth/ACL, service lifecycle, rollback, restore or full P2 hosting acceptance. P0/P1 remain unapproved; no real host changed.
+- **Next:** proceed to owner-reviewed identity/API and installer/service lifecycle boundaries; do not overstate this clean-VM test as installation or release evidence.
+
+## PRIOR VERIFIED P2 SLICE — root-close-safe bounded file uploads
 - **Branch/PR:** `feature/p2-stream-close-safe`, draft [PR #42](https://github.com/parmtech/Tong-Panel/pull/42), stacked on draft #41/#40/#39/#38/#37/#36/#35. Executable code commit: `faa220eed997f68b225dc105cc4386227d742dfe`.
 - **Change:** `WriteNewFrom` duplicates the pinned root descriptor under the lifecycle lock, releases that lock before consuming a potentially slow reader, and uses the duplicate through bounded staging and publication. `Close` prevents new operations but no longer waits for a blocked stream; an already-started operation can safely finish on its descriptor copy.
 - **Focused tests:** gated slow reader proves Close returns promptly, staged write completes after root close, and subsequent reads fail closed. Existing upload bound, error cleanup, same-target race, and tenant isolation tests remain.
@@ -71,6 +78,12 @@
 - **Validation:** code head `a2922cac5945f6ff8f47302ad8099754ba6bba5a` passed hosted Go checks [#40608916965](https://github.com/parmtech/Tong-Panel/actions/runs/40608916965) (gofmt, full `go test -race ./...`, vet), daemon smoke [#40608916946](https://github.com/parmtech/Tong-Panel/actions/runs/40608916946), and unsigned package lab [#40608917120](https://github.com/parmtech/Tong-Panel/actions/runs/40608917120). Local Go executable is unavailable.
 - **P2 status:** PLANNED/IN PROGRESS only. No UI/API, ACL/quotas integration, two-tenant E2E, site/domain/database/SSL lifecycle, installer, or restore drill exists. Replacement writes, automatic startup invocation of orphan cleanup, and HTTP upload/download/delete/authorization are not implemented. Directory listing is bounded to 1,000 entries and may be incomplete during concurrent mutations. The tenant selector now applies to listing and create-only write operations as well as reads. P1 approvals and host-agent/installer prerequisites remain open.
 - **Next action:** continue isolated archive/file-manager negative/race coverage and document crash/orphan recovery requirements; do not wire file operations into HTTP until P1 identity and API trust boundaries receive maintainer review.
+
+### 2026-10-28 — P2 Files tests in clean Ubuntu/Debian guests
+- **Branch/PR:** `feature/p2-files-on-clean-vm`, draft [PR #44](https://github.com/parmtech/Tong-Panel/pull/44), stacked on #43/#42.
+- **Change:** build the Linux `internal/files` Go test binary and include it inside the checksum-verified unsigned preview bundle. The QEMU script runs it as unprivileged user `ci` inside fresh Ubuntu 24.04 and Debian 12 guest kernels. Added `internal/files/**` to workflow path triggers.
+- **Validation:** both guest jobs succeeded in [clean VM workflow #40614167120](https://github.com/parmtech/Tong-Panel/actions/runs/40614167120). The workflow also retained daemon/SQLite smoke and read-only doctor checks.
+- **Limits/next:** this validates the file primitives on clean candidate guest kernels only. It is not an installer, OS certification, service/rollback/restore test or hosting E2E. P0/P1 remain open; no live host changed.
 
 ### 2026-10-28 — P0/P1 status reconciliation for owner review
 - **Branch/PR:** `docs/phase-status-2026-10-28`, draft [PR #43](https://github.com/parmtech/Tong-Panel/pull/43), stacked on draft #42.
