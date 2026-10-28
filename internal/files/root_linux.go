@@ -42,9 +42,10 @@ var (
 // may finish independently. The configured root and its parent path must be
 // administrator-controlled.
 type Root struct {
-	mu   sync.RWMutex
-	fd   int
-	open bool
+	mu         sync.RWMutex
+	operations sync.RWMutex
+	fd         int
+	open       bool
 }
 
 // OpenRoot opens a directory without following a symlink at its final path
@@ -165,6 +166,8 @@ func (r *Root) WriteNewFrom(relative string, src io.Reader, maxBytes int64) erro
 	if maxBytes < 0 || maxBytes > MaxReadBytes {
 		return ErrInvalidLimit
 	}
+	r.operations.RLock()
+	defer r.operations.RUnlock()
 	r.mu.RLock()
 	if !r.open {
 		r.mu.RUnlock()
@@ -271,6 +274,8 @@ func (r *Root) RemoveFileWithSize(relative string) (int64, error) {
 	if !validRelativePath(relative) {
 		return 0, ErrInvalidPath
 	}
+	r.operations.RLock()
+	defer r.operations.RUnlock()
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if !r.open {
