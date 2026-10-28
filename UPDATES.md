@@ -100,7 +100,50 @@ Total output lines: 499
 - **Branch/PR:** `feature/p2-bounded-archive-reader`, draft [PR #38](https://github.com/parmtech/Tong-Panel/pull/38), stacked on draft #37/#36/#35. Executable code commit: `fd418e1769efef5e5b21a7e7e3ac722fe31aba51`.
 - **Scope:** adds `ReadGzipTarBounded`, `Root.ExtractGzipTarNewFrom`, and a tenant-scoped stream wrapper. It reads at most the selected compressed-byte cap plus one before rejecting overflow; unknown tenants are denied before reading.
 - **Focused tests:** exact cap/cap+1 consumption, invalid caps/nil reader, no target publication on oversize, successful bounded extraction, and unknown-tenant non-consumption.
-- **Validation:** passed Go formatting/full `go test -race ./...`/vet [#40611138073](https://github.com/parmtech/Tong-Panel/actions/runs/40611138073), daemon smoke [#40611138018](https://github.com/parmtech/Tong-Panel/actions/runs/40611138018), and unsigned package lab [#40611138068](https://github.com/parmtech/Tong-Pane…11320 tokens truncated…uction-ready.
+- **Validation:** passed Go formatting/full `go test -race ./...`/vet [#40611138073](https://github.com/parmtech/Tong-Panel/actions/runs/40611138073), daemon smoke [#40611138018](https://github.com/parmtech/Tong-Panel/actions/runs/40611138018), and unsigned package lab [#40611138068](https://github.com/parmtech/Tong-Panel/actions/runs/40611138068). Follow-up PR-head commits are documentation-only.
+- **Limits/status:** not an HTTP route, authorization/ACL, quota, timeout, scanner, startup recovery or production deployment. P0/P1 remain open; P2 is incomplete.
+
+## PRIOR VERIFIED P2 QA SLICE — clean disposable VM smoke
+- **Branch/PR:** `feature/p2-clean-vm-smoke`, draft [PR #37](https://github.com/parmtech/Tong-Panel/pull/37), stacked on draft #36/#35. Code/workflow commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`; follow-up docs are on this branch.
+- **Scope:** QEMU/TCG launches fresh Ubuntu 24.04 and Debian 12 cloud-image guests in GitHub Actions. It builds the unsigned preview, provisions an unprivileged test user, verifies OS/version and archive checksum, extracts the preview and runs the real daemon/SQLite smoke and read-only doctor check. The workflow uses repository read-only permission and no secrets, forwards SSH only to runner loopback, and removes guest artifacts after each job.
+- **Validation:** both distro jobs passed [clean VM matrix #40610418570](https://github.com/parmtech/Tong-Panel/actions/runs/40610418570) on the exact workflow/code commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`.
+- **Limits:** this validates preview binary execution on clean candidate OS images only. It is not installer/service install, rollback, backup restore, supported OS certification, or security approval. The archive is unsigned and marked DO NOT INSTALL. P0/P1 remain open; P2 is incomplete.
+- **Next:** implement only unprivileged, reviewable P2 pieces while P0/P1 human decisions remain pending; no privileged service or production host changes.
+
+## PRIOR VERIFIED P2 SLICE — locked cleanup for write and archive staging
+- **Branch:** `feature/p2-write-stage-cleanup`, stacked on draft PR #35 at `3c99386f13c02690e2c0f26f9764be900b77ff65`; draft PR #36 is [open](https://github.com/parmtech/Tong-Panel/pull/36). Drafts #33–#36 remain unmerged.
+- **Scope:** extends the unprivileged Linux file prototype so orphan cleanup covers both create-only write stages and archive extraction stages. `WriteNew` holds a nonblocking exclusive flock through staging and publication; the bounded cleanup path only recognizes exact internal lowercase-hex names, validates effective-UID ownership/private permissions/one-hour age, skips active locks, removes without following symlinks, and syncs the pinned root. The tenant-scoped wrapper uses the selected pinned root only. Startup invocation remains intentionally unwired pending reviewed lifecycle/identity boundaries.
+- **Validation:** the focused stale-stage negative/race tests and full Go formatting, race-test and vet workflow passed on code commit `d7b1ae492e75355622b24b779b206640f99eba56` [#40609720874](https://github.com/parmtech/Tong-Panel/actions/runs/40609720874). The non-destructive daemon smoke [#40609720701](https://github.com/parmtech/Tong-Panel/actions/runs/40609720701) and unsigned package lab [#40609720693](https://github.com/parmtech/Tong-Panel/actions/runs/40609720693) also passed. Follow-up commit `ae91dce1ac361f115bc2d8d8965ede9cc2896ec6` only corrected journal line endings/status; it contains no code changes. Local Go/gofmt remain unavailable.
+- **P0/P1/P2 status:** ADR-001–009 and threat/security review remain unapproved. No public login, privileged host action, installer or live VPS change. This code is a primitive, not a Files API/UI or tenant authorization layer. P2 alpha remains incomplete.
+- **Remaining P2 gates:** Files API/UI with reviewed identity and ACL/object ownership, quotas and upload-body bounds, cross-tenant E2E, site/domain/database/SSL lifecycle, supported-OS installer and rollback, service recovery, backup/restore drill, and accessibility/release evidence.
+## PRIOR VERIFIED P2 FOUNDATION — isolated safe file-read primitive
+- **Branch:** `feature/p2-safe-tenant-file-read`, stacked on draft PR #34. PR #34's cookie-origin change remains a draft; its latest exact-head G…9320 tokens truncated…passed (gofmt, full `go test -race ./...`, `go vet ./...`); SQLite schema checks [#40425964024](https://github.com/parmtech/Tong-Panel/actions/runs/40425964024) passed on code commit `b132a9e169aa2674adc82ae483595b5e04b0a889`.
+- **Limits:** local Python unavailable; full local race run blocked by Windows CGO; Linux CI passed. P0 ADR/security review remains unapproved; all PRs remain drafts. P1 and the cPanel alternative remain incomplete.
+- **Next one action:** obtain recorded ADR/security review before wiring auth or queue stores into the daemon, then continue the authenticated single-host control-plane vertical slice.
+
+### 2026-10-26 — P1 agent socket hardening (additional update)
+- **Branch:** `feature/p1-core-foundation`, unmerged [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14).
+- **Files:** `internal/agent/agent_linux.go` and `internal/agent/agent_linux_test.go`.
+- **Changes:** removed process-global umask mutation, require an owned private non-symlink socket parent, retain socket permission 0600, bounded newline-delimited ping-only JSON requests with malformed/concatenated JSON rejection.
+- **Local evidence:** `go test -race ./...` and `go vet ./...` passed; agent tests cover denied UIDs, disallowed ops, shared/symlink parents, malformed requests and valid ping.
+- **Remote GitHub CI:** latest agent hardening Go Actions [run #40262754298](https://github.com/parmtech/Tong-Panel/actions/runs/40262754298) **PASSED** (gofmt, Go race tests, vet). Previous preflight commit Go Actions [run 40262321339](https://github.com/parmtech/Tong-Panel/actions/runs/40262321339) passed.
+- **Safety:** agent still no privileged verb, not a root service and not approved for server mutations; phase P1 NOT COMPLETE.
+- **Next:** review latest PR #14 CI, then security review of agent boundaries and development authentication limitations (#6/#8).
+
+## LATEST SESSION — 2026-10-26 (Australia/Sydney), P1 authentication and metadata
+- **Branch:** `feature/p1-auth-sessions-sqlite`, based on `feature/p1-core-foundation`; new [draft PR #15](https://github.com/parmtech/Tong-Panel/pull/15). Both PRs are unmerged.
+- **Added Go:** `internal/auth/sessions.go` and tests: random 256-bit session & CSRF secrets, hashed in-memory token registry, expiry, revocation, secure HTTPS host-only cookie constructors; no login HTTP wiring.
+- **Added SQLite planning code:** `db/migrations/0001_initial.sql` with tenant, user, membership, session, job, attempt, audit schema and constraints; `db/test_schema.py` and `.github/workflows/schema-checks.yml`.
+- **Local tests performed:** `go test -race ./...`, `go vet ./...` **PASS** on Go 1.23.2 developer source checkout; `python3 -m unittest discover -s db -p 'test_*.py' -v` **4/4 PASS**.
+- **GitHub Actions:** [SQLite schema run #40310453620](https://github.com/parmtech/Tong-Panel/actions/runs/40310453620) **PASS**. [Go checks run #40310453646](https://github.com/parmtech/Tong-Panel/actions/runs/40310453646) **PASS** (gofmt, go test -race, go vet). Both remote workflows passed.
+- **Issue progress:** #6 auth/MFA and #7 durable jobs updated with partial evidence, left open. Parent #14, architecture review #1/#2 and database ADR remain open.
+- **NOT IMPLEMENTED:** production login/Argon2id, persistent sessions, actual Go SQL adapter, transactional job queue and worker, complete host agent security, installer, distro/restore testing. P1 still **IN PROGRESS**.
+- **NEXT ACTION:** Verify Go Actions for PR #15, review/merge PR #14 first, resolve authentication and SQLite architecture/security signoff, then integrate SQL migration runner and auth session persistence with tests. No live VPS touched.
+
+## CURRENT CHECKPOINT — READ FIRST
+
+**Phase:** P0 architecture/security review pending; P1 core development IN PROGRESS; P2 hosting alpha IN PROGRESS (draft prototypes only).
+**Phase state:** ADR-001–009 and the threat model remain proposals/unreviewed. Neither Phase 1 nor Phase 2 is complete or production-ready.
 **P2 implementation:** draft [PR #53](https://github.com/parmtech/Tong-Panel/pull/53), stacked on #52–#50, adds persistent tenant file quota reservations; it does not yet recover crash-stranded reservations, reconcile on-disk usage, account deletes or wire the Files API into the daemon. P2 hosting lifecycle/installer/backup-restore acceptance remains open.
 **P1 implementation state:** authentication/session, local bootstrap and job/agent prototypes remain in unmerged drafts. No production login or privileged host mutator is approved. No hosting app or installer exists.
 **Production/release state:** NOT RELEASED.  

@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 12572)
-Total output lines: 265
-
 # Tong Panel — Phase 1 Exit / Phase 2 Entry Gate Report
 **Prepared:** 2026-10-27 (Australia/Sydney)  
 **Scope:** Exact Phase 1 requirements in `docs/phases/P1-CORE-FOUNDATION.md`; source tree at draft [PR #25](https://github.com/parmtech/Tong-Panel/pull/25).  
@@ -132,7 +129,24 @@ This is **combined branch evidence**, not just separate PR evidence:
 
 - Draft PR [#37](https://github.com/parmtech/Tong-Panel/pull/37), stacked on #36, adds a disposable QEMU/TCG run for candidate Ubuntu 24.04 and Debian 12 cloud images. It builds the explicitly unsigned developer preview, runs it as an unprivileged guest user, verifies the archive checksum/OS identity, and exercises the existing daemon/SQLite smoke and read-only doctor check.
 - Both matrix jobs passed [clean VM run #40610418570](https://github.com/parmtech/Tong-Panel/actions/runs/40610418570) for workflow/code commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`.
-- This is clean-guest runtime evidence only. No installer, service install/resta…572 tokens truncated…hub.com/parmtech/Tong-Panel/pull/41), stacked on draft #40, refactors `WriteNewFrom` to stream request bytes directly into a private staging file, using constant application buffer memory and at most the caller cap+1 reads (cap ≤16 MiB). The file is published only after EOF within the cap through atomic no-replace rename; overflow or source error discards the stage.
+- This is clean-guest runtime evidence only. No installer, service install/restart, rollback, restore, supported OS matrix certification, or P2 end-to-end hosting lifecycle is tested. P0/P1 gates remain open; no live host was changed.
+- **Phase 2 status remains NOT COMPLETE and gated.** Do not treat this infrastructure or the unsigned preview as permission to install or deploy.
+## P2 Files clean-guest test matrix — draft PR #44
+
+- Draft PR [#44](https://github.com/parmtech/Tong-Panel/pull/44), stacked on the current P2 draft chain, builds the Linux `internal/files` test binary and runs it inside fresh unprivileged Ubuntu 24.04 and Debian 12 QEMU guests. Changes to `internal/files/**` trigger this workflow.
+- Both guest jobs passed [clean VM workflow #40614167120](https://github.com/parmtech/Tong-Panel/actions/runs/40614167120), including the filesystem suite, daemon/SQLite smoke and read-only doctor check.
+- This checks the primitives against candidate guest kernels only. It does not install the panel, certify either OS, test service lifecycle/rollback/restore, or satisfy P2 hosting E2E. No production host changed; P0/P1 review remains open.
+
+## P2 root-close-safe streamed file upload — draft PR #42
+
+- Draft PR [#42](https://github.com/parmtech/Tong-Panel/pull/42), stacked on #41, duplicates the pinned root descriptor before consuming the caller's bounded stream. The root lifecycle lock is released before I/O; close prevents new operations but need not wait for a blocked upload, and the in-flight operation can finish using its pinned descriptor copy.
+- A gated-reader regression test verifies prompt close, safe completion/publication after close and rejection of post-close reads.
+- Code commit `faa220eed997f68b225dc105cc4386227d742dfe` passed [Go formatting/full race/vet #40613452838](https://github.com/parmtech/Tong-Panel/actions/runs/40613452838), [daemon smoke #40613452810](https://github.com/parmtech/Tong-Panel/actions/runs/40613452810), and [unsigned package lab #40613452879](https://github.com/parmtech/Tong-Panel/actions/runs/40613452879).
+- Caller cancellation/deadline and disk/concurrency quotas remain outside this primitive. No API/auth/ACL or host service changes; P0/P1 remain open and P2 incomplete.
+
+## P2 bounded streaming create-only file upload — draft PR #41
+
+- Draft PR [#41](https://github.com/parmtech/Tong-Panel/pull/41), stacked on draft #40, refactors `WriteNewFrom` to stream request bytes directly into a private staging file, using constant application buffer memory and at most the caller cap+1 reads (cap ≤16 MiB). The file is published only after EOF within the cap through atomic no-replace rename; overflow or source error discards the stage.
 - Negative/race coverage includes over-limit and reader-error non-publication, stage cleanup, invalid/closed-root rejection, concurrent one-winner creation, and root close synchronization during a blocked stream.
 - Executable commit `df450a054fe8df50333e8e820f4145601e8d75f8` passed [Go format/full race/vet #40612826353](https://github.com/parmtech/Tong-Panel/actions/runs/40612826353), [daemon smoke #40612826486](https://github.com/parmtech/Tong-Panel/actions/runs/40612826486), and [unsigned package lab #40612826389](https://github.com/parmtech/Tong-Panel/actions/runs/40612826389).
 - No global concurrency limit, tenant-wide disk quota, deadline, HTTP/auth/ACL, installer or host lifecycle is added. P0/P1 review remains open and P2 remains incomplete. No production host changed.

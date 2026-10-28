@@ -115,11 +115,11 @@ func TestSQLiteFileQuotaReconciliationClearsOnlyAfterQuiescedMeasuredScan(t *tes
 func TestSQLiteFileQuotaReconciliationFailsClosedBeforeClearingReservations(t *testing.T) {
 	quiesceErr := errors.New("web service still active")
 	for _, tc := range []struct {
-		name       string
-		quiescer   *testTenantFileQuiescer
-		limit      int64
-		makeFifo   bool
-		want       error
+		name     string
+		quiescer *testTenantFileQuiescer
+		limit    int64
+		makeFifo bool
+		want     error
 	}{
 		{name: "quiescer error", quiescer: &testTenantFileQuiescer{err: quiesceErr}, limit: 20, want: quiesceErr},
 		{name: "quiescer without resume", quiescer: &testTenantFileQuiescer{noResume: true}, limit: 20, want: ErrFilesUnavailable},
