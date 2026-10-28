@@ -33,12 +33,12 @@ func (s SiteDatabaseSpec) Validate() (SiteDatabaseSpec, error) {
 // SiteDatabaseRecord contains names and ownership metadata only. It never stores
 // a database password or asserts that a MariaDB database/user has been created.
 type SiteDatabaseRecord struct {
-	TenantID    string
-	SiteID      string
-	DatabaseID  string
+	TenantID     string
+	SiteID       string
+	DatabaseID   string
 	DatabaseName string
-	Username    string
-	CreatedAt   int64
+	Username     string
+	CreatedAt    int64
 }
 
 func (c *Catalog) CreateDatabase(ctx context.Context, input SiteDatabaseSpec) error {
