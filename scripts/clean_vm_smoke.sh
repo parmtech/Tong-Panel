@@ -111,6 +111,7 @@ retry_guest_scp scripts/smoke_p1.py "$guest:/home/ci/smoke_p1.py"
 cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
 set -Eeuo pipefail
+trap 'status=$?; echo "clean guest smoke failed (status=$status) at: $BASH_COMMAND" >&2' ERR
 test "$(id -u)" -ne 0
 test "$(uname -m)" = x86_64
 . /etc/os-release
@@ -130,7 +131,7 @@ grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' tong-p1-dev/DO_NOT_INSTALL.txt
 ./tong-p1-dev/tests/api.test -test.v -test.timeout=4m
 ./tong-p1-dev/tests/sites.test -test.v -test.timeout=4m
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends nginx php-fpm mariadb-server
+sudo apt-get install -y --no-install-recommends nginx php-fpm mariadb-server curl
 sudo systemctl start mariadb
 TONG_NGINX_PREVIEW_PATH=/home/ci/nginx-site.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderNginxVhostRequiresVerifiedCanonicalDomains$' -test.timeout=1m
 TONG_PHP_FPM_PREVIEW_PATH=/home/ci/php-fpm-pool.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderPHPFPMPoolRequiresVerifiedIsolatedSite$' -test.timeout=1m
@@ -232,6 +233,7 @@ sudo nginx -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
 cleanup_site_services() {
   sudo systemctl stop mariadb >/dev/null 2>&1 || true
   sudo nginx -s quit -p /etc/nginx/ -c /home/ci/nginx-e2e.conf >/dev/null 2>&1 || true
+  sudo nginx -s quit -p /etc/nginx/ -c /home/ci/nginx-https-e2e.conf >/dev/null 2>&1 || true
   if [[ -f /run/tong/php-fpm-e2e.pid ]]; then
     sudo kill -TERM "$(cat /run/tong/php-fpm-e2e.pid)" 2>/dev/null || true
   fi
@@ -259,6 +261,43 @@ for host, marker in [
     assert hidden_status == 403, (host, hidden_status)
 print("two-tenant Nginx/PHP-FPM smoke passed; cross-tenant reads denied and hidden files blocked")
 PY
+sudo nginx -s quit -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
+sudo install -d -m 0755 /etc/tong/certs/tenant-a/site-a /etc/tong/certs/tenant-b/site-b
+sudo openssl req -x509 -nodes -days 1 -newkey rsa:2048 -subj "/CN=tenant-a.example.test" -addext "subjectAltName=DNS:tenant-a.example.test,DNS:www.tenant-a.example.test" -keyout /etc/tong/certs/tenant-a/site-a/privkey.pem -out /etc/tong/certs/tenant-a/site-a/fullchain.pem >/dev/null 2>&1
+sudo openssl req -x509 -nodes -days 1 -newkey rsa:2048 -subj "/CN=tenant-b.example.test" -addext "subjectAltName=DNS:tenant-b.example.test" -keyout /etc/tong/certs/tenant-b/site-b/privkey.pem -out /etc/tong/certs/tenant-b/site-b/fullchain.pem >/dev/null 2>&1
+sudo chmod 0600 /etc/tong/certs/tenant-a/site-a/privkey.pem /etc/tong/certs/tenant-b/site-b/privkey.pem
+TONG_NGINX_HTTPS_PREVIEW_PATH=/home/ci/site-e2e/nginx-https-sites.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderNginxHTTPSVhostRequiresVerifiedDomainsAndCanonicalRedirect$' -test.timeout=1m
+cat > /home/ci/nginx-https-e2e.conf <<'NGINX'
+user www-data;
+worker_processes 1;
+pid /run/tong/nginx-https-e2e.pid;
+error_log /tmp/tong-nginx-https-e2e.log;
+events { worker_connections 64; }
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    include /home/ci/site-e2e/nginx-https-sites.conf;
+}
+NGINX
+sudo nginx -t -p /etc/nginx/ -c /home/ci/nginx-https-e2e.conf
+sudo nginx -p /etc/nginx/ -c /home/ci/nginx-https-e2e.conf
+sudo install -d -o root -g root -m 0755 /srv/tong/tenants/tenant-a/sites/site-a/public/.well-known/acme-challenge
+sudo install -d -o root -g root -m 0755 /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge
+printf '%s\n' 'tenant-a-challenge' | sudo tee /srv/tong/tenants/tenant-a/sites/site-a/public/.well-known/acme-challenge/token >/dev/null
+printf '%s\n' 'tenant-b-challenge' | sudo tee /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge/token >/dev/null
+for host in tenant-a.example.test tenant-b.example.test; do
+  headers="$(curl --silent --show-error --resolve "$host:80:127.0.0.1" -D - -o /dev/null "http://$host/path?from=http")"
+  grep -qE '^HTTP/[^ ]+ 308' <<<"$headers"
+  grep -qi "^[Ll]ocation: https://$host/path?from=http" <<<"$headers"
+done
+body_a="$(curl --silent --show-error --insecure --resolve tenant-a.example.test:443:127.0.0.1 https://tenant-a.example.test/)"
+body_b="$(curl --silent --show-error --insecure --resolve tenant-b.example.test:443:127.0.0.1 https://tenant-b.example.test/)"
+[[ "$body_a" == *tenant-a-isolated* && "$body_b" == *tenant-b-isolated* ]]
+[[ "$(curl --silent --show-error --resolve tenant-a.example.test:80:127.0.0.1 http://tenant-a.example.test/.well-known/acme-challenge/token)" == tenant-a-challenge ]]
+[[ "$(curl --silent --show-error --resolve tenant-b.example.test:80:127.0.0.1 http://tenant-b.example.test/.well-known/acme-challenge/token)" == tenant-b-challenge ]]
+hidden_status="$(curl --silent --show-error --insecure --resolve tenant-a.example.test:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://tenant-a.example.test/.private.php)"
+[[ "$hidden_status" == 403 ]]
+printf '%s\n' 'two-tenant HTTPS smoke passed; HTTP redirects, ACME challenge path stays on HTTP, TLS sites remain isolated'
 bash ./tong-p1-dev/tests/mariadb-isolation.sh
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
