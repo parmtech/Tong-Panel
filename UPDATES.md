@@ -451,3 +451,10 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Exact head `f68c03e81f3007406d8a30cbc455b3704cef4dff` passed package fixture generation and disposable QEMU guest checks on Ubuntu 24.04 [job 123106800802](https://github.com/parmtech/Tong-Panel/actions/runs/40770709002/job/123106800802) and Debian 12 [job 123106800515](https://github.com/parmtech/Tong-Panel/actions/runs/40770709002/job/123106800515). Local shell syntax and whitespace checks pass.
 - **Failure/fix:** initial guest runs exposed accepted sockets being counted as extra listeners and a wrong expected port hex value. The final check filters `/proc/net/tcp*` to `LISTEN` entries and matches port `8090` as `1F9A`; exact-head Ubuntu and Debian reruns pass. CI also caught a truncated intermediate source upload; the complete shell scripts were restored and verified before these passing runs.
 - This remains package-lab evidence only, not an approved/signed installer, production service unit, distro support claim, or recovery/restore guarantee. ADR-001–009 and threat-model owner/security review remain pending; P1/P2 gates remain incomplete.
+
+
+## P2 site database metadata API — draft PR #75 (29 October 2026)
+
+- Adds authenticated tenant-scoped listing and metadata registration for site databases. The tenant is derived from the principal; database and username identifiers are deterministic and server-generated. No MariaDB instance/account is provisioned and no credential is stored or returned.
+- Focused tests cover anonymous denial, cross-tenant isolation, Auditor read-only access, identifier/field injection rejection, duplicate and concurrent create behavior, missing-site handling, empty-list behavior with one SQLite connection, and unsupported deletion. Exact-head Go/race/vet CI is pending.
+- Remaining DB lifecycle work includes actual privileged adapter design, MariaDB provisioning/removal, secret custody/rotation, backup/export/import, and integration tests. P0 ADR/threat-model owner/security decisions, P1 login/installer/recovery, and broader P2 acceptance remain open.
