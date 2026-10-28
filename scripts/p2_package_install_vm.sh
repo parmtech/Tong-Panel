@@ -59,7 +59,7 @@ for line in open("/proc/net/tcp", encoding="ascii").read().splitlines()[1:]:
     address, port = local.split(":")
     if int(port, 16) == 8090:
         entries.append(local)
-assert entries == ["0100007F:1F98"], entries
+assert entries == ["0100007F:1F9A"], entries
 assert not any(
     line.split()[3] == "0A" and int(line.split()[1].split(":")[1], 16) == 8090
     for line in open("/proc/net/tcp6", encoding="ascii").read().splitlines()[1:]
