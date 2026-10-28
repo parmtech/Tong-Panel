@@ -216,7 +216,6 @@ func TestConcurrentDomainVerificationCompletionHasOneWinner(t *testing.T) {
 	}
 }
 
-
 func TestSiteDomainAPIOnlyRemovesTenantAliasAndReleasesClaim(t *testing.T) {
 	server, _, _ := setupSiteAPI(t)
 	h := server.Handler()
@@ -260,7 +259,6 @@ func TestSiteDomainAPIOnlyRemovesTenantAliasAndReleasesClaim(t *testing.T) {
 		t.Fatalf("released alias could not be claimed: %d %s", reclaimed.Code, reclaimed.Body.String())
 	}
 }
-
 
 func TestConcurrentSiteAliasRemovalHasOneWinner(t *testing.T) {
 	server, _, _ := setupSiteAPI(t)
