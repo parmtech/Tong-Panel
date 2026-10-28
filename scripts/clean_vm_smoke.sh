@@ -289,8 +289,8 @@ sudo nginx -t -p /etc/nginx/ -c /home/ci/nginx-https-e2e.conf
 sudo nginx -p /etc/nginx/ -c /home/ci/nginx-https-e2e.conf
 sudo install -d -o root -g root -m 0755 /srv/tong/tenants/tenant-a/sites/site-a/public/.well-known/acme-challenge
 sudo install -d -o root -g root -m 0755 /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge
-printf '%s\\n' 'tenant-a-challenge' | sudo tee /srv/tong/tenants/tenant-a/sites/site-a/public/.well-known/acme-challenge/token >/dev/null
-printf '%s\\n' 'tenant-b-challenge' | sudo tee /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge/token >/dev/null
+printf '%s\n' 'tenant-a-challenge' | sudo tee /srv/tong/tenants/tenant-a/sites/site-a/public/.well-known/acme-challenge/token >/dev/null
+printf '%s\n' 'tenant-b-challenge' | sudo tee /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge/token >/dev/null
 for host in tenant-a.example.test tenant-b.example.test; do
   headers="$(curl --silent --show-error --resolve "$host:80:127.0.0.1" -D - -o /dev/null "http://$host/path?from=http")"
   grep -qE '^HTTP/[^ ]+ 308' <<<"$headers"
@@ -303,7 +303,7 @@ body_b="$(curl --silent --show-error --insecure --resolve tenant-b.example.test:
 [[ "$(curl --silent --show-error --resolve tenant-b.example.test:80:127.0.0.1 http://tenant-b.example.test/.well-known/acme-challenge/token)" == tenant-b-challenge ]]
 hidden_status="$(curl --silent --show-error --insecure --resolve tenant-a.example.test:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://tenant-a.example.test/.private.php)"
 [[ "$hidden_status" == 403 ]]
-printf '%s\\n' 'two-tenant HTTPS smoke passed; HTTP redirects, ACME challenge path stays on HTTP, TLS sites remain isolated'
+printf '%s\n' 'two-tenant HTTPS smoke passed; HTTP redirects, ACME challenge path stays on HTTP, TLS sites remain isolated'
 bash ./tong-p1-dev/tests/mariadb-isolation.sh
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
