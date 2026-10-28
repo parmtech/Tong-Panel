@@ -112,7 +112,8 @@ grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' tong-p1-dev/DO_NOT_INSTALL.txt
 ./tong-p1-dev/tests/api.test -test.v -test.timeout=4m
 ./tong-p1-dev/tests/sites.test -test.v -test.timeout=4m
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends nginx php-fpm
+sudo apt-get install -y --no-install-recommends nginx php-fpm mariadb-server
+sudo systemctl start mariadb
 TONG_NGINX_PREVIEW_PATH=/home/ci/nginx-site.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderNginxVhostRequiresVerifiedCanonicalDomains$' -test.timeout=1m
 TONG_PHP_FPM_PREVIEW_PATH=/home/ci/php-fpm-pool.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderPHPFPMPoolRequiresVerifiedIsolatedSite$' -test.timeout=1m
 cat > /home/ci/php-fpm-test.conf <<'FPM'
@@ -211,6 +212,7 @@ NGINX
 sudo nginx -t -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
 sudo nginx -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
 cleanup_site_services() {
+  sudo systemctl stop mariadb >/dev/null 2>&1 || true
   sudo nginx -s quit -p /etc/nginx/ -c /home/ci/nginx-e2e.conf >/dev/null 2>&1 || true
   if [[ -f /run/tong/php-fpm-e2e.pid ]]; then
     sudo kill -TERM "$(cat /run/tong/php-fpm-e2e.pid)" 2>/dev/null || true
@@ -239,6 +241,7 @@ for host, marker in [
     assert hidden_status == 403, (host, hidden_status)
 print("two-tenant Nginx/PHP-FPM smoke passed; cross-tenant reads denied and hidden files blocked")
 PY
+bash ./tong-p1-dev/tests/mariadb-isolation.sh
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
 python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
