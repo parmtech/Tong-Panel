@@ -2,7 +2,11 @@
 
 package files
 
-import "golang.org/x/sys/unix"
+import (
+	"time"
+
+	"golang.org/x/sys/unix"
+)
 
 // TenantRoots maps server-owned tenant identifiers to distinct pinned filesystem roots.
 // Callers must derive tenantID from an authenticated, authorized principal;
@@ -112,4 +116,17 @@ func (t *TenantRoots) ExtractGzipTarNewForTenant(tenantID, relative string, arch
 		return ErrTenantDenied
 	}
 	return root.ExtractGzipTarNew(relative, archive, limits)
+}
+
+// CleanupStaleArchiveStagesForTenant cleans only the archive staging directory
+// beneath the root selected by tenantID.
+func (t *TenantRoots) CleanupStaleArchiveStagesForTenant(tenantID string, olderThan time.Duration) (int, error) {
+	if t == nil || tenantID == "" {
+		return 0, ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return 0, ErrTenantDenied
+	}
+	return root.CleanupStaleArchiveStages(olderThan)
 }
