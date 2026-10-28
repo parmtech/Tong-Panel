@@ -391,7 +391,7 @@ The disposable Ubuntu/Debian guest database grant script now includes a tenant-s
 - Initial guest runs reached the new dump/restore assertions but exposed a package-smoke `curl | grep -q` SIGPIPE failure (curl exit 23). The smoke now captures the local page before matching; the corrected exact code head passed both clean-VM jobs: [Ubuntu 24.04](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135988) and [Debian 12](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135759).
 
 
-## P2 Nginx config rollback lab — draft PR pending (29 October 2026)
+## P2 Nginx config rollback lab — draft [PR #80](https://github.com/parmtech/Tong-Panel/pull/80) (29 October 2026)
 
 - Adds a disposable Ubuntu/Debian guest check around a separately launched temporary Nginx instance. Invalid staged syntax must leave the current config serving; a simulated reload failure must restore the previous config; a valid config must pass `nginx -t`, atomically replace the test include and reload successfully.
 - The test never writes `/etc/nginx` or touches the guest's system Nginx service. Exact PR head `2cc5efdee5c03d252760d2e64c3d35ab3dba756b` passed P2 clean-VM run [#40783997959](https://github.com/parmtech/Tong-Panel/actions/runs/40783997959): [Ubuntu 24.04 job 123152504585](https://github.com/parmtech/Tong-Panel/actions/runs/40783997959/job/123152504585) and [Debian 12 job 123152504984](https://github.com/parmtech/Tong-Panel/actions/runs/40783997959/job/123152504984). The Debian output confirms the raced logout denial test and Nginx rollback smoke passed. This is an isolated config lifecycle prototype only; the daemon still does not apply host configuration. P2 remains IN PROGRESS.
