@@ -67,9 +67,29 @@ for _ in {1..60}; do
   sleep 5
 done
 [[ "$ready" == true ]] || { echo "Timed out waiting for clean VM SSH"; exit 1; }
-ssh "${ssh_opts[@]}" "$guest" "cloud-init status --wait"
-scp "${scp_opts[@]}" "$VM_RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" "$VM_RUNNER_TEMP/SHA256SUMS" "$guest:/home/ci/"
-scp "${scp_opts[@]}" scripts/smoke_p1.py "$guest:/home/ci/smoke_p1.py"
+retry_guest_ssh() {
+  for attempt in {1..12}; do
+    if ssh "${ssh_opts[@]}" "$guest" "$@"; then return 0; fi
+    echo "SSH attempt $attempt interrupted while cloud-init may restart sshd; retrying" >&2
+    sleep 5
+  done
+  echo "SSH command did not recover after cloud-init startup" >&2
+  return 1
+}
+retry_guest_scp() {
+  for attempt in {1..12}; do
+    if scp "${scp_opts[@]}" "$@"; then return 0; fi
+    echo "SCP attempt $attempt interrupted during guest startup; retrying" >&2
+    sleep 5
+  done
+  echo "SCP transfer did not recover after guest startup" >&2
+  return 1
+}
+# cloud-init can restart sshd after its initial key becomes reachable. Retry the
+# wait command and file transfers across that expected one-time disconnect.
+retry_guest_ssh "cloud-init status --wait"
+retry_guest_scp "$VM_RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" "$VM_RUNNER_TEMP/SHA256SUMS" "$guest:/home/ci/"
+retry_guest_scp scripts/smoke_p1.py "$guest:/home/ci/smoke_p1.py"
 cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
 set -Eeuo pipefail
