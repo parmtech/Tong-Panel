@@ -32,7 +32,7 @@ func TestRenderPHPFPMPoolRequiresVerifiedIsolatedSite(t *testing.T) {
 		"[tp_", "user = tp_", "group = tp_", "listen = /run/tong/php/tenant-a/site-a.sock",
 		"listen.owner = www-data", "listen.mode = 0660", "pm = ondemand",
 		"pm.max_children = 5", "clear_env = yes", "security.limit_extensions = .php",
-		"open_basedir = /srv/tong/tenants/tenant-a/sites/site-a/public:/srv/tong/tenants/tenant-a/run/site-a:/tmp",
+		"php_admin_value[open_basedir] = /srv/tong/tenants/tenant-a/sites/site-a/public:/srv/tong/tenants/tenant-a/run/site-a:/tmp",
 		"upload_tmp_dir] = /srv/tong/tenants/tenant-a/run/site-a/tmp",
 		"session.save_path] = /srv/tong/tenants/tenant-a/run/site-a/sessions",
 		"request_terminate_timeout = 60s",
