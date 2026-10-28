@@ -20,7 +20,7 @@ func createTestSite(t *testing.T, catalog *Catalog, tenantID, siteID string) {
 	err := catalog.Create(context.Background(), SiteSpec{
 		TenantID: tenantID, SiteID: siteID,
 		PrimaryDomain: siteID + ".example.test",
-		DocumentRoot: "sites/" + siteID + "/public",
+		DocumentRoot:  "sites/" + siteID + "/public",
 	})
 	if err != nil {
 		t.Fatal(err)
