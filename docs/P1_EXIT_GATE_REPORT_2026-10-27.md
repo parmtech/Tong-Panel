@@ -397,3 +397,8 @@ The disposable Ubuntu/Debian guest database grant script now includes a tenant-s
 - The test never writes `/etc/nginx` or touches the guest's system Nginx service. Exact PR head `2cc5efdee5c03d252760d2e64c3d35ab3dba756b` passed P2 clean-VM run [#40783997959](https://github.com/parmtech/Tong-Panel/actions/runs/40783997959): [Ubuntu 24.04 job 123152504585](https://github.com/parmtech/Tong-Panel/actions/runs/40783997959/job/123152504585) and [Debian 12 job 123152504984](https://github.com/parmtech/Tong-Panel/actions/runs/40783997959/job/123152504984). The Debian output confirms the raced logout denial test and Nginx rollback smoke passed. This is an isolated config lifecycle prototype only; the daemon still does not apply host configuration. P2 remains IN PROGRESS.
 
 - Initial PR #80 Debian CI exposed a race in the existing logout test's status expectation: the loser can receive 401 if revocation precedes authentication, or 403 if it occurs between authentication and the CSRF check. The contract is one 204 winner, one denied loser, and exactly one audit event; the test now asserts that contract.
+
+
+## P2 encrypted backup core — draft PR pending (29 October 2026)
+
+A streaming authenticated envelope library and focused Go tests have been added, with an external-key boundary and no daemon/API wiring. Hosted verification is pending. This does not establish key custody/rotation/recovery, offsite delivery, retention/deletion or a clean-host restore drill. ADR-007/008 and the threat model remain unapproved. **P1 remains NOT COMPLETE; P2 remains IN PROGRESS.**
