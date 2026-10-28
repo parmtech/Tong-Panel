@@ -83,6 +83,10 @@ func (s *Server) siteResource(w http.ResponseWriter, r *http.Request, p rbac.Pri
 		s.siteGet(w, r, p, parts[0])
 		return
 	}
+	if len(parts) == 3 && parts[0] != "" && parts[1] == "preview" && parts[2] == "nginx" {
+		s.siteNginxPreview(w, r, p, parts[0])
+		return
+	}
 	if len(parts) == 2 && parts[0] != "" && parts[1] == "domains" {
 		s.siteDomainAdd(w, r, p, parts[0])
 		return
@@ -103,6 +107,36 @@ func (s *Server) siteResource(w http.ResponseWriter, r *http.Request, p rbac.Pri
 	fail(w, http.StatusNotFound, "not_found")
 }
 
+func (s *Server) siteNginxPreview(w http.ResponseWriter, r *http.Request, p rbac.Principal, siteID string) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		return
+	}
+	if !p.Can("sites:read", p.TenantID) {
+		fail(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if s.SiteCatalog == nil || s.SiteHostingPaths == nil {
+		fail(w, http.StatusServiceUnavailable, "site_preview_unavailable")
+		return
+	}
+	record, err := s.SiteCatalog.Get(r.Context(), p.TenantID, siteID)
+	if err != nil {
+		writeSiteError(w, err)
+		return
+	}
+	config, err := sites.RenderNginxVhost(record, *s.SiteHostingPaths)
+	if err != nil {
+		writeSiteError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	_, _ = io.WriteString(w, config)
+}
 func (s *Server) siteGet(w http.ResponseWriter, r *http.Request, p rbac.Principal, siteID string) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)
@@ -183,6 +217,10 @@ func (s *Server) siteDomainVerificationComplete(w http.ResponseWriter, r *http.R
 
 func writeSiteError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, sites.ErrSiteNotReady):
+		fail(w, http.StatusConflict, "site_not_ready")
+	case errors.Is(err, sites.ErrInvalidHostingPaths):
+		fail(w, http.StatusServiceUnavailable, "site_preview_unavailable")
 	case errors.Is(err, sites.ErrInvalidSpec), errors.Is(err, sites.ErrInvalidDomain):
 		fail(w, http.StatusBadRequest, "invalid_site_request")
 	case errors.Is(err, sites.ErrSiteExists), errors.Is(err, sites.ErrDomainClaimed),

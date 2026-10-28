@@ -29,3 +29,5 @@ Signed experimental artifacts for published exact OS/architecture matrix. Every 
 
 ## Evidence-based implementation checkpoint — 29 October 2026
 Verified component prototypes on unmerged drafts include Nginx/PHP-FPM renderers, two-tenant clean-VM HTTP/TLS checks, SQLite site/domain/database metadata, isolated MariaDB grant tests, one-time domain proof, authenticated loopback site/domain APIs and site alias create/remove. They are not wired into an installer or production host adapters. The full P2 acceptance below remains outstanding wherever lifecycle integration, rollback, data recovery, certificate issue/renew, UI or owner/security approval is required.
+
+**Additional evidence:** PR #69 adds verified-domain preview filtering and PR #70 exposes the tenant-scoped read-only preview API; their exact-head Go, daemon, archive and Ubuntu/Debian VM checks pass. The API remains disabled without explicit server-injected paths and does not apply host configuration.

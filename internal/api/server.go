@@ -27,6 +27,7 @@ type Server struct {
 	FileMutationBarrier FileMutationBarrier      // required for quota-sensitive file writes/deletes
 	SiteCatalog         *sites.Catalog           // opt-in tenant site/domain metadata API
 	DomainTXTLookup     sites.TXTLookup          // required for domain proof completion
+	SiteHostingPaths    *sites.HostingPaths      // optional read-only renderer config; never from request data
 }
 type failure struct {
 	Error struct {
