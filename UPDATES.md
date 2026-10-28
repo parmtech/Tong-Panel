@@ -473,7 +473,7 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - No login route, session issuer, trusted proxy, MFA recovery or production auth wiring is added. ADR/P0 owner-security review remains pending; the route does not make the developer build production-ready.
 
 
-## P2 disposable MariaDB export/restore isolation lab — draft PR pending (29 October 2026)
+## P2 disposable MariaDB export/restore isolation lab — draft [PR #79](https://github.com/parmtech/Tong-Panel/pull/79) (29 October 2026)
 
 - Extends the existing Ubuntu 24.04/Debian 12 disposable guest MariaDB grant check: each temporary tenant user dumps its own database, restores it after a controlled data change, and is denied reading, exporting, or importing into the other tenant's database. Dump files and client option files are guest-local with restrictive permissions; cleanup drops both temporary users/databases.
 - The database isolation script is now an explicit pull-request workflow path trigger. Exact executable code head `f63bac3b46de8775ae94032525b367e284b1ba74` passed both clean disposable VM jobs: [Ubuntu 24.04 job 123145135988](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135988) and [Debian 12 job 123145135759](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135759). This remains test infrastructure, not an application database lifecycle, secret custody design, offsite backup, retention policy, or clean-host restore guarantee. P2 remains IN PROGRESS; ADR/security owner decisions remain pending.
@@ -481,7 +481,7 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Initial guest runs reached the new dump/restore assertions but exposed a package-smoke `curl | grep -q` SIGPIPE failure (curl exit 23). The smoke now captures the local page before matching; the corrected exact code head passed both jobs: [Ubuntu 24.04](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135988) and [Debian 12](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135759).
 
 
-## P2 Nginx config rollback lab — draft PR pending (29 October 2026)
+## P2 Nginx config rollback lab — draft [PR #80](https://github.com/parmtech/Tong-Panel/pull/80) (29 October 2026)
 
 - Adds a disposable Ubuntu/Debian guest check around a separately launched temporary Nginx instance. Invalid staged syntax must leave the current config serving; a simulated reload failure must restore the previous config; a valid config must pass `nginx -t`, atomically replace the test include and reload successfully.
 - The test never writes `/etc/nginx` or touches the guest's system Nginx service. Exact PR head `2cc5efdee5c03d252760d2e64c3d35ab3dba756b` passed P2 clean-VM run [#40783997959](https://github.com/parmtech/Tong-Panel/actions/runs/40783997959): [Ubuntu 24.04 job 123152504585](https://github.com/parmtech/Tong-Panel/actions/runs/40783997959/job/123152504585) and [Debian 12 job 123152504984](https://github.com/parmtech/Tong-Panel/actions/runs/40783997959/job/123152504984). The Debian output confirms the raced logout denial test and Nginx rollback smoke passed. This is an isolated config lifecycle prototype only; the daemon still does not apply host configuration. P2 remains IN PROGRESS.
