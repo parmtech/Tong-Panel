@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	MaxReadBytes int64 = 16 << 20
-	writeStagePrefix = ".tong-stage-"
+	MaxReadBytes     int64 = 16 << 20
+	writeStagePrefix       = ".tong-stage-"
 )
 
 var (
