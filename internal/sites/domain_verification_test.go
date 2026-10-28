@@ -70,6 +70,12 @@ func TestDomainVerificationStoresDigestAndRequiresExactDNSProof(t *testing.T) {
 	if lookups != 1 {
 		t.Fatalf("TXT lookup count=%d", lookups)
 	}
+	if err := catalog.CompleteDomainVerification(context.Background(), "tenant-a", "site-a", "example.com", instruction.Value, lookup); !errors.Is(err, ErrDomainVerificationState) {
+		t.Fatalf("replayed proof error=%v, want consumed-state error", err)
+	}
+	if lookups != 1 {
+		t.Fatalf("replayed proof performed another TXT lookup: count=%d", lookups)
+	}
 	record, err := catalog.Get(context.Background(), "tenant-a", "site-a")
 	if err != nil {
 		t.Fatal(err)

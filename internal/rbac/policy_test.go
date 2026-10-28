@@ -75,3 +75,22 @@ func TestFilesWriteIsTenantBoundAndAuditorDenied(t *testing.T) {
 		}
 	}
 }
+
+func TestSitePermissionsAreTenantBoundAndAuditorReadOnly(t *testing.T) {
+	for _, role := range []Role{Owner, Admin, Reseller, Customer} {
+		p := Principal{UserID: "u", TenantID: "team-1", Role: role}
+		if !p.Can("sites:read", "team-1") || !p.Can("sites:write", "team-1") {
+			t.Errorf("role %s cannot manage own-tenant site metadata", role)
+		}
+		if p.Can("sites:read", "team-2") || p.Can("sites:write", "team-2") {
+			t.Errorf("role %s crossed tenant boundary for sites", role)
+		}
+	}
+	auditor := Principal{UserID: "audit", TenantID: "team-1", Role: Auditor}
+	if !auditor.Can("sites:read", "team-1") || auditor.Can("sites:write", "team-1") {
+		t.Fatal("auditor site permission is not read-only")
+	}
+	if (Principal{UserID: "u", TenantID: "team-1", Role: "unknown"}).Can("sites:read", "team-1") {
+		t.Fatal("unknown role unexpectedly received site access")
+	}
+}

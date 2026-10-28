@@ -109,7 +109,8 @@ func (c *Catalog) CompleteDomainVerification(ctx context.Context, tenantID, site
 	if err != nil {
 		return err
 	}
-	var state, storedDigest string
+	var state string
+	var storedDigest sql.NullString
 	var expires sql.NullInt64
 	err = c.db.QueryRowContext(ctx,
 		"SELECT ownership_state,verification_token_sha256,verification_expires_at FROM site_domains WHERE domain=? AND tenant_id=? AND site_id=?",
@@ -120,7 +121,7 @@ func (c *Catalog) CompleteDomainVerification(ctx context.Context, tenantID, site
 	if err != nil {
 		return fmt.Errorf("read domain proof state: %w", err)
 	}
-	if state != "pending" || storedDigest == "" || !expires.Valid {
+	if state != "pending" || !storedDigest.Valid || storedDigest.String == "" || !expires.Valid {
 		return ErrDomainVerificationState
 	}
 	now := c.now().Unix()
@@ -129,7 +130,7 @@ func (c *Catalog) CompleteDomainVerification(ctx context.Context, tenantID, site
 	}
 	digest := sha256.Sum256([]byte(value))
 	digestHex := hex.EncodeToString(digest[:])
-	if subtle.ConstantTimeCompare([]byte(storedDigest), []byte(digestHex)) != 1 {
+	if subtle.ConstantTimeCompare([]byte(storedDigest.String), []byte(digestHex)) != 1 {
 		return ErrDomainProofMismatch
 	}
 	records, err := lookup.LookupTXT(ctx, domainProofLabel+"."+domain)
@@ -147,7 +148,7 @@ func (c *Catalog) CompleteDomainVerification(ctx context.Context, tenantID, site
 	}
 	result, err := c.db.ExecContext(ctx,
 		"UPDATE site_domains SET ownership_state='verified', verification_token_sha256=NULL, verification_expires_at=NULL WHERE domain=? AND tenant_id=? AND site_id=? AND ownership_state='pending' AND verification_token_sha256=? AND verification_expires_at>? AND verification_expires_at=?",
-		domain, tenantID, siteID, storedDigest, c.now().Unix(), expires.Int64)
+		domain, tenantID, siteID, storedDigest.String, c.now().Unix(), expires.Int64)
 	if err != nil {
 		return fmt.Errorf("commit domain verification: %w", err)
 	}
