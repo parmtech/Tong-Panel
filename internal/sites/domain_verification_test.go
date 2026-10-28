@@ -89,7 +89,10 @@ func TestDomainVerificationRejectsWrongOwnerProofWrongTenantAndExpiry(t *testing
 		t.Fatal(err)
 	}
 	called := false
-	lookup := txtLookupFunc(func(context.Context, string) ([]string, error) { called = true; return []string{instruction.Value}, nil })
+	lookup := txtLookupFunc(func(context.Context, string) ([]string, error) {
+		called = true
+		return []string{instruction.Value}, nil
+	})
 	if err := catalog.CompleteDomainVerification(context.Background(), "tenant-a", "site-a", "example.com", "wrong-token", lookup); !errors.Is(err, ErrDomainProofMismatch) {
 		t.Fatalf("wrong token error=%v", err)
 	}
