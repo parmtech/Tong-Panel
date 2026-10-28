@@ -23,6 +23,10 @@ cleanup() {
     echo "QEMU serial log ($VM_DISTRO):"
     tail -n 120 "$serial" || true
   fi
+  if [[ $status -ne 0 && -f "$work/restore-serial.log" ]]; then
+    echo "QEMU restore guest serial log ($VM_DISTRO):"
+    tail -n 120 "$work/restore-serial.log" || true
+  fi
   rm -rf "$work"
   exit "$status"
 }
@@ -125,6 +129,7 @@ sha256sum -c SHA256SUMS
 tar -xzf tong-p1-UNSIGNED-dev-linux-amd64.tar.gz
 test -x tong-p1-dev/bin/tongd
 test -x tong-p1-dev/bin/tongctl
+test -x tong-p1-dev/bin/tongbackup
 test -x tong-p1-dev/tests/files.test
 test -x tong-p1-dev/tests/api.test
 test -x tong-p1-dev/tests/sites.test
@@ -312,6 +317,7 @@ fi
 [[ "$preflight_status" == 3 ]]
 python3 -c 'import json; d=json.load(open("install-preflight.json")); assert d["gate"]["allowed"] is False; assert "tcp_port_in_use:80" in d["gate"]["blockers"]; assert "tcp_port_in_use:443" in d["gate"]["blockers"]; assert "not installation authorization" in d["notice"]; print("clean-guest install preflight correctly blocked occupied web ports without host mutation")'
 bash ./tong-p1-dev/tests/mariadb-isolation.sh
+bash ./tong-p1-dev/tests/encrypted-backup-restore.sh
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
 python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
@@ -319,3 +325,77 @@ bash ./p2_package_install_vm.sh ./tong-panel-dev-v1.deb ./tong-panel-dev-v2.deb
 GUEST
 scp "${scp_opts[@]}" "$work/guest-check.sh" "$guest:/home/ci/guest-check.sh"
 ssh "${ssh_opts[@]}" "$guest" bash /home/ci/guest-check.sh "$VM_EXPECTED_ID" "$VM_EXPECTED_VERSION"
+
+# Copy only the ciphertext and its externally held, restrictive-permission
+# test key to the runner, destroy the source VM disk, and restore on a new
+# overlay from the pristine cloud image. The runner temp directory is transient
+# test staging; this is not a real offsite provider or durable backup service.
+retry_guest_scp "$guest:/home/ci/tenant-a.backup.tpbk" "$guest:/home/ci/wrapping.key" "$work/"
+chmod 600 "$work/tenant-a.backup.tpbk" "$work/wrapping.key"
+if grep -aFq 'private-tenant-restore-fixture-v1' "$work/tenant-a.backup.tpbk"; then
+  echo "runner staging received plaintext instead of an encrypted backup" >&2
+  exit 1
+fi
+source_vm_pid="$(cat "$pidfile")"
+ssh "${ssh_opts[@]}" "$guest" sudo poweroff >/dev/null 2>&1 || true
+for _ in {1..30}; do
+  kill -0 "$source_vm_pid" 2>/dev/null || break
+  sleep 1
+done
+if kill -0 "$source_vm_pid" 2>/dev/null; then
+  kill "$source_vm_pid" 2>/dev/null || true
+fi
+rm -f -- "$pidfile" "$disk"
+
+cat > "$work/restore-user-data" <<EOF
+#cloud-config
+users:
+  - name: ci
+    gecos: Tong clean restore guest
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - $pub
+ssh_pwauth: false
+disable_root: true
+EOF
+cat > "$work/restore-meta-data" <<EOF
+instance-id: tong-restore-$VM_DISTRO-$(date +%s)
+local-hostname: tong-restore-$VM_DISTRO
+EOF
+cloud-localds "$seed" "$work/restore-user-data" "$work/restore-meta-data"
+qemu-img create -q -f qcow2 -F qcow2 -b "$base" "$disk" 8G
+serial="$work/restore-serial.log"
+qemu-system-x86_64 -machine accel=tcg -cpu max -m 2048 -smp 2 -daemonize -pidfile "$pidfile" -serial "file:$serial" -monitor none -display none -drive "file=$disk,if=virtio,format=qcow2" -drive "file=$seed,if=virtio,format=raw,readonly=on" -netdev "user,id=net0,hostfwd=tcp:127.0.0.1:$port-:22" -device virtio-net-pci,netdev=net0
+ready=false
+for _ in {1..60}; do
+  if ssh "${ssh_opts[@]}" "$guest" true >/dev/null 2>&1; then ready=true; break; fi
+  if ! kill -0 "$(cat "$pidfile")" 2>/dev/null; then echo "restore QEMU exited before SSH"; exit 1; fi
+  sleep 5
+done
+[[ "$ready" == true ]] || { echo "Timed out waiting for fresh restore VM SSH"; exit 1; }
+retry_guest_ssh "cloud-init status --wait"
+retry_guest_scp "$work/tenant-a.backup.tpbk" "$work/wrapping.key" "$guest:/home/ci/"
+retry_guest_scp "$VM_RUNNER_TEMP/tong-p1-dev/bin/tongbackup" "$guest:/home/ci/tongbackup"
+cat > "$work/restore-check.sh" <<'RESTORE'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends mariadb-server
+sudo systemctl start mariadb
+sudo mariadb --protocol=socket -uroot -e 'CREATE DATABASE tp_backup_source'
+./tongbackup decrypt --tenant tenant-a --key-file /home/ci/wrapping.key --output /home/ci/restore.sql < /home/ci/tenant-a.backup.tpbk
+sudo mariadb --protocol=socket -uroot < /home/ci/restore.sql
+restored="$(sudo mariadb --protocol=socket -uroot --batch --skip-column-names tp_backup_source -e 'SELECT value FROM restore_marker')"
+[[ "$restored" == private-tenant-restore-fixture-v1 ]]
+if ./tongbackup decrypt --tenant tenant-b --key-file /home/ci/wrapping.key --output /home/ci/should-not-exist.sql < /home/ci/tenant-a.backup.tpbk >/dev/null 2>&1; then
+  echo 'fresh-host restore accepted the wrong tenant' >&2
+  exit 1
+fi
+[[ ! -e /home/ci/should-not-exist.sql ]]
+rm -f -- /home/ci/wrapping.key /home/ci/restore.sql
+printf '%s\n' 'PASS: encrypted MariaDB backup restored on a fresh VM from a pristine distro image'
+RESTORE
+retry_guest_scp "$work/restore-check.sh" "$guest:/home/ci/restore-check.sh"
+ssh "${ssh_opts[@]}" "$guest" bash /home/ci/restore-check.sh
