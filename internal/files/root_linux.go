@@ -31,6 +31,7 @@ var (
 	ErrClosed        = errors.New("file root is closed")
 	ErrTenantDenied  = errors.New("tenant file root unavailable")
 	ErrAlreadyExists = errors.New("file already exists")
+	ErrInvalidReader = errors.New("invalid file content reader")
 )
 
 // Root pins a trusted directory using an open descriptor. Close may be called
@@ -209,6 +210,41 @@ func (r *Root) WriteNew(relative string, content []byte) error {
 		return err
 	}
 	return unix.Fsync(parent)
+}
+
+// WriteNewFrom reads at most maxBytes+1 bytes before rejecting an oversized
+// input, then publishes a create-only file using WriteNew's atomic contract.
+// maxBytes may be lower than MaxReadBytes but cannot exceed it. The bounded
+// buffer is capped at MaxReadBytes; callers should pass request bodies directly
+// rather than buffering them first. This does not authorize the caller or
+// enforce a tenant-wide quota.
+func (r *Root) WriteNewFrom(relative string, src io.Reader, maxBytes int64) error {
+	if r == nil {
+		return ErrClosed
+	}
+	if !validRelativePath(relative) {
+		return ErrInvalidPath
+	}
+	if src == nil {
+		return ErrInvalidReader
+	}
+	if maxBytes < 0 || maxBytes > MaxReadBytes {
+		return ErrInvalidLimit
+	}
+	r.mu.RLock()
+	open := r.open
+	r.mu.RUnlock()
+	if !open {
+		return ErrClosed
+	}
+	content, err := io.ReadAll(io.LimitReader(src, maxBytes+1))
+	if err != nil {
+		return err
+	}
+	if int64(len(content)) > maxBytes {
+		return ErrTooLarge
+	}
+	return r.WriteNew(relative, content)
 }
 
 // RemoveFile unlinks one regular file or symlink entry below the pinned root.

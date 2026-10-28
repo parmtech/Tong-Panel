@@ -248,6 +248,96 @@ func TestWriteNewCreatesAtomicallyWithoutReplacing(t *testing.T) {
 	assertNoStagingDirectories(t, root)
 }
 
+func TestWriteNewFromBoundsInputAndPublishesOnlyCompleteFiles(t *testing.T) {
+	r, root := newTestRoot(t)
+	valid := bytes.NewReader([]byte("complete"))
+	if err := r.WriteNewFrom("stream.txt", valid, 8); err != nil {
+		t.Fatalf("exact-limit stream write failed: %v", err)
+	}
+	if valid.Len() != 0 {
+		t.Fatalf("exact-limit stream left %d bytes unread", valid.Len())
+	}
+	data, err := r.ReadFile("stream.txt", 8)
+	if err != nil || string(data) != "complete" {
+		t.Fatalf("published stream content = %q, %v", data, err)
+	}
+
+	tooLarge := bytes.NewReader([]byte("1234567890"))
+	if err := r.WriteNewFrom("oversized.txt", tooLarge, 8); !errors.Is(err, ErrTooLarge) {
+		t.Fatalf("oversized stream error = %v", err)
+	}
+	if tooLarge.Len() != 1 {
+		t.Fatalf("oversized stream remaining bytes = %d, want 1 (limit+1 consumed)", tooLarge.Len())
+	}
+	if _, err := os.Lstat(filepath.Join(root, "oversized.txt")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("oversized stream published a target: %v", err)
+	}
+	assertNoStagingDirectories(t, root)
+}
+
+func TestWriteNewFromRejectsInvalidInputsBeforeConsumption(t *testing.T) {
+	r, _ := newTestRoot(t)
+	for _, tc := range []struct {
+		name string
+		path string
+		max  int64
+		want error
+	}{
+		{name: "path", path: "../escape", max: 10, want: ErrInvalidPath},
+		{name: "limit", path: "file", max: MaxReadBytes + 1, want: ErrInvalidLimit},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			reader := bytes.NewReader([]byte("unread"))
+			if err := r.WriteNewFrom(tc.path, reader, tc.max); !errors.Is(err, tc.want) {
+				t.Fatalf("error = %v, want %v", err, tc.want)
+			}
+			if reader.Len() != len("unread") {
+				t.Fatalf("invalid input consumed %d bytes", len("unread")-reader.Len())
+			}
+		})
+	}
+	if err := r.WriteNewFrom("file", nil, 10); !errors.Is(err, ErrInvalidReader) {
+		t.Fatalf("nil reader error = %v", err)
+	}
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reader := bytes.NewReader([]byte("unread"))
+	if err := r.WriteNewFrom("file", reader, 10); !errors.Is(err, ErrClosed) {
+		t.Fatalf("closed-root error = %v", err)
+	}
+	if reader.Len() != len("unread") {
+		t.Fatal("closed root consumed stream data")
+	}
+}
+
+func TestConcurrentWriteNewFromHasOneWinner(t *testing.T) {
+	r, _ := newTestRoot(t)
+	const writers = 12
+	start := make(chan struct{})
+	results := make(chan error, writers)
+	for i := 0; i < writers; i++ {
+		content := []byte{byte('a' + i)}
+		go func() {
+			<-start
+			results <- r.WriteNewFrom("stream-winner.txt", bytes.NewReader(content), 1)
+		}()
+	}
+	close(start)
+	winners := 0
+	for i := 0; i < writers; i++ {
+		err := <-results
+		if err == nil {
+			winners++
+		} else if !errors.Is(err, ErrAlreadyExists) {
+			t.Fatalf("concurrent stream write returned unexpected error: %v", err)
+		}
+	}
+	if winners != 1 {
+		t.Fatalf("successful stream writers = %d, want exactly one", winners)
+	}
+}
+
 func TestConcurrentWriteNewHasOneWinner(t *testing.T) {
 	r, root := newTestRoot(t)
 	const writers = 16
@@ -444,6 +534,40 @@ func TestListDirSymlinkSwapNeverListsOutsideEntries(t *testing.T) {
 	}
 	close(stop)
 	wg.Wait()
+}
+
+func TestTenantRootsBoundedWriteSelectsTenantBeforeReading(t *testing.T) {
+	rootAPath, rootBPath := t.TempDir(), t.TempDir()
+	rootA, err := OpenRoot(rootAPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootA.Close()
+	rootB, err := OpenRoot(rootBPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootB.Close()
+	roots, err := NewTenantRoots(map[string]*Root{"tenant-a": rootA, "tenant-b": rootB})
+	if err != nil {
+		t.Fatal(err)
+	}
+	denied := bytes.NewReader([]byte("tenant secret"))
+	if err := roots.WriteNewFromForTenant("unknown", "upload.txt", denied, 32); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("unknown tenant write error = %v", err)
+	}
+	if denied.Len() != len("tenant secret") {
+		t.Fatal("unknown tenant stream was consumed before tenant selection")
+	}
+	if err := roots.WriteNewFromForTenant("tenant-a", "upload.txt", bytes.NewReader([]byte("tenant-a")), 32); err != nil {
+		t.Fatalf("tenant A stream write failed: %v", err)
+	}
+	if data, err := os.ReadFile(filepath.Join(rootAPath, "upload.txt")); err != nil || string(data) != "tenant-a" {
+		t.Fatalf("tenant A upload = %q, %v", data, err)
+	}
+	if _, err := os.Lstat(filepath.Join(rootBPath, "upload.txt")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("tenant B received tenant A upload: %v", err)
+	}
 }
 
 func TestTenantRootsKeepDirectoryListingsWithinAssignedRoot(t *testing.T) {
