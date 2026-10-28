@@ -40,7 +40,7 @@ func TestWriteTwoTenantSitePreviewsForCleanVM(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, data := range map[string]string{
-		"nginx-sites.conf": strings.Join(nginx, "\n"),
+		"nginx-sites.conf":   strings.Join(nginx, "\n"),
 		"php-fpm-pools.conf": strings.Join(pools, "\n"),
 	} {
 		if err := os.WriteFile(filepath.Join(out, name), []byte(data), 0600); err != nil {
