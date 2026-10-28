@@ -1019,3 +1019,39 @@ func TestCleanupStaleArchiveStagesSkipsActiveLockThenRemovesOrphan(t *testing.T)
 		t.Fatalf("orphan stage still exists: %v", err)
 	}
 }
+
+func TestRootOperationsReserveInternalStagingNames(t *testing.T) {
+	r, root := newTestRoot(t)
+	writeStage := ".tong-stage-0123456789abcdef0123456789abcdef"
+	archiveStage := ".tong-archive-stage-0123456789abcdef0123456789abcdef"
+	if err := os.Mkdir(filepath.Join(root, archiveStage), 0700); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := r.ListDir("", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.Name == archiveStage {
+			t.Fatal("internal archive staging name was exposed in root listing")
+		}
+	}
+	_ = os.Remove(filepath.Join(root, archiveStage))
+	for _, name := range []string{writeStage, archiveStage} {
+		if _, err := r.ReadFile(name, 1); !errors.Is(err, ErrInvalidPath) {
+			t.Errorf("read of reserved name %q error = %v", name, err)
+		}
+		if err := r.WriteNew(name+"/payload", []byte("x")); !errors.Is(err, ErrInvalidPath) {
+			t.Errorf("write under reserved name %q error = %v", name, err)
+		}
+		if err := r.RemoveFile(name); !errors.Is(err, ErrInvalidPath) {
+			t.Errorf("remove of reserved name %q error = %v", name, err)
+		}
+		if _, err := r.ListDir(name, 10); !errors.Is(err, ErrInvalidPath) {
+			t.Errorf("listing of reserved name %q error = %v", name, err)
+		}
+		if err := r.ExtractGzipTarNew(name, nil, ArchiveLimits{}); !errors.Is(err, ErrInvalidPath) {
+			t.Errorf("extract to reserved name %q error = %v", name, err)
+		}
+	}
+}
