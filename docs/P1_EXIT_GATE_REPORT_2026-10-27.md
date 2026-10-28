@@ -269,3 +269,10 @@ This is **combined branch evidence**, not just separate PR evidence:
 - `docs/P0_ENGINEERING_REVIEW_2026-10-29.md` records a non-owner engineering assessment of ADR-001–009 and the threat model. Repository issues #1 and #2 have no comments recording owner/security decisions as of this review.
 - Recommendations are not acceptances: ADR-007/008 and ADR-009 remain blockers for privileged host changes and public login. Record decisions in `docs/ADR_REGISTER.md` and issue #1; record threat-model review and accountable mitigations in issue #2.
 - No independent security audit or approval is claimed. The P2 barrier is a development primitive; no production host changed.
+
+
+## P2 declarative site/domain validation — draft PR #57 (29 October 2026)
+
+- The unprivileged `internal/sites.SiteSpec` validates ASCII DNS names, normalized aliases, bounded tenant/site identifiers and a fixed tenant-relative document-root path. Focused tests cover malformed domains, IP/wildcard/port/Unicode rejection, duplicate aliases, traversal/absolute paths and input immutability.
+- The clean-VM workflow was extended to build and run the site-spec tests in both candidate guests. Exact workflow head `eee4a97580edec4c3a475e981beac56582f98d12` passed Go format/full race/vet [#40721321482](https://github.com/parmtech/Tong-Panel/actions/runs/40721321482), daemon [#40721321541](https://github.com/parmtech/Tong-Panel/actions/runs/40721321541), unsigned archive [#40721321496](https://github.com/parmtech/Tong-Panel/actions/runs/40721321496), and Ubuntu 24.04/Debian 12 guests [#40721321486](https://github.com/parmtech/Tong-Panel/actions/runs/40721321486).
+- **Limits:** this validator does not prove domain control, persist claims, prevent cross-tenant name conflicts, configure Nginx/PHP-FPM, create sites/databases, issue certificates, install services or restore backups. P0 remains unapproved; P2 remains incomplete and no production host changed.
