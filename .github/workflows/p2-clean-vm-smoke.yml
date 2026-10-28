@@ -18,6 +18,7 @@ on:
       - 'scripts/build_deb.sh'
       - 'scripts/test_deb_package.sh'
       - 'scripts/p2_package_install_vm.sh'
+      - 'scripts/smoke_mariadb_isolation.sh'
       - 'packaging/debian/**'
       - '.github/workflows/p2-clean-vm-smoke.yml'
 permissions:
