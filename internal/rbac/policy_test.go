@@ -76,7 +76,6 @@ func TestFilesWriteIsTenantBoundAndAuditorDenied(t *testing.T) {
 	}
 }
 
-
 func TestSitePermissionsAreTenantBoundAndAuditorReadOnly(t *testing.T) {
 	for _, role := range []Role{Owner, Admin, Reseller, Customer} {
 		p := Principal{UserID: "u", TenantID: "team-1", Role: role}
