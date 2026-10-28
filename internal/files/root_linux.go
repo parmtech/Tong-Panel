@@ -258,37 +258,51 @@ func writeNewFromRootFD(rootFD int, relative string, src io.Reader, maxBytes int
 // successful unlink followed by a directory-sync error means durability is
 // uncertain even though the path may already be absent.
 func (r *Root) RemoveFile(relative string) error {
+	_, err := r.RemoveFileWithSize(relative)
+	return err
+}
+
+// RemoveFileWithSize removes one regular file or symlink entry and reports the
+// regular-file bytes removed. A symlink contributes no tenant file bytes.
+func (r *Root) RemoveFileWithSize(relative string) (int64, error) {
 	if r == nil {
-		return ErrClosed
+		return 0, ErrClosed
 	}
 	if !validRelativePath(relative) {
-		return ErrInvalidPath
+		return 0, ErrInvalidPath
 	}
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if !r.open {
-		return ErrClosed
+		return 0, ErrClosed
 	}
 	parent, base, err := r.openParent(relative)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer unix.Close(parent)
 
 	var stat unix.Stat_t
 	if err := unix.Fstatat(parent, base, &stat, unix.AT_SYMLINK_NOFOLLOW); err != nil {
-		return err
+		return 0, err
 	}
+	var removed int64
 	switch stat.Mode & unix.S_IFMT {
 	case unix.S_IFREG, unix.S_IFLNK:
 		// unlinkat removes the directory entry and never dereferences symlinks.
+		if stat.Mode&unix.S_IFMT == unix.S_IFREG {
+			removed = stat.Size
+		}
 	default:
-		return ErrNotRegular
+		return 0, ErrNotRegular
 	}
 	if err := unix.Unlinkat(parent, base, 0); err != nil {
-		return err
+		return 0, err
 	}
-	return unix.Fsync(parent)
+	if err := unix.Fsync(parent); err != nil {
+		return removed, fmt.Errorf("%w: %v", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	return removed, nil
 }
 
 func (r *Root) openParent(relative string) (int, string, error) {

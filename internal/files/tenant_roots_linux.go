@@ -110,14 +110,21 @@ func (t *TenantRoots) WriteNewFromForTenant(tenantID, relative string, src io.Re
 // RemoveFileForTenant removes one file only from the root mapped to tenantID.
 // The ID must be derived from the authorized server principal.
 func (t *TenantRoots) RemoveFileForTenant(tenantID, relative string) error {
+	_, err := t.RemoveFileWithSizeForTenant(tenantID, relative)
+	return err
+}
+
+// RemoveFileWithSizeForTenant removes one tenant entry and returns the regular
+// file bytes removed. Unknown tenants are rejected before touching any root.
+func (t *TenantRoots) RemoveFileWithSizeForTenant(tenantID, relative string) (int64, error) {
 	if t == nil || tenantID == "" {
-		return ErrTenantDenied
+		return 0, ErrTenantDenied
 	}
 	root, ok := t.roots[tenantID]
 	if !ok {
-		return ErrTenantDenied
+		return 0, ErrTenantDenied
 	}
-	return root.RemoveFile(relative)
+	return root.RemoveFileWithSize(relative)
 }
 
 // ExtractGzipTarNewForTenant extracts only beneath the pinned root selected by

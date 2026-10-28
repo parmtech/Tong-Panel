@@ -727,8 +727,8 @@ func TestRemoveFileUnlinksEntriesWithoutFollowingSymlinks(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "remove.txt"), []byte("remove"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.RemoveFile("remove.txt"); err != nil {
-		t.Fatal(err)
+	if removed, err := r.RemoveFileWithSize("remove.txt"); err != nil || removed != int64(len("remove")) {
+		t.Fatalf("remove regular file bytes=%d err=%v", removed, err)
 	}
 	if _, err := os.Lstat(filepath.Join(root, "remove.txt")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("removed file still exists: %v", err)
@@ -742,8 +742,8 @@ func TestRemoveFileUnlinksEntriesWithoutFollowingSymlinks(t *testing.T) {
 	if err := os.Symlink(outsideFile, filepath.Join(root, "link")); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.RemoveFile("link"); err != nil {
-		t.Fatal(err)
+	if removed, err := r.RemoveFileWithSize("link"); err != nil || removed != 0 {
+		t.Fatalf("remove symlink bytes=%d err=%v", removed, err)
 	}
 	if data, err := os.ReadFile(outsideFile); err != nil || string(data) != "outside secret" {
 		t.Fatalf("outside target changed to %q, %v", data, err)

@@ -41,6 +41,7 @@ type TenantFileService interface {
 	ListForTenant(tenantID, relative string, limit int) ([]TenantFileEntry, error)
 	ReadForTenant(tenantID, relative string, maxBytes int64) ([]byte, error)
 	WriteNewForTenant(tenantID, relative string, content io.Reader, maxBytes int64) (int64, error)
+	RemoveForTenant(tenantID, relative string) (int64, error)
 }
 
 // FileQuotaReservation accounts for bytes admitted for one upload. Commit must
@@ -57,6 +58,7 @@ type FileQuotaReservation interface {
 // reconcile existing files before enabling this API.
 type TenantFileQuota interface {
 	Reserve(tenantID string, bytes int64) (FileQuotaReservation, error)
+	RemoveUsed(tenantID string, bytes int64) error
 }
 
 func parseTenantFileQuery(r *http.Request, allowLimit, requirePath bool) (string, int, error) {
@@ -125,10 +127,38 @@ func (s *Server) fileContent(w http.ResponseWriter, r *http.Request, p rbac.Prin
 		s.fileRead(w, r, p)
 	case http.MethodPost:
 		s.fileWrite(w, r, p)
+	case http.MethodDelete:
+		s.fileDelete(w, r, p)
 	default:
-		w.Header().Set("Allow", "GET, POST")
+		w.Header().Set("Allow", "GET, POST, DELETE")
 		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
 	}
+}
+
+func (s *Server) fileDelete(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
+	if !p.Can("files:write", p.TenantID) {
+		fail(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if s.Files == nil || s.FileQuota == nil {
+		fail(w, http.StatusServiceUnavailable, "files_unavailable")
+		return
+	}
+	relative, _, err := parseTenantFileQuery(r, false, true)
+	if err != nil {
+		fail(w, http.StatusBadRequest, "invalid_file_request")
+		return
+	}
+	removed, err := s.Files.RemoveForTenant(p.TenantID, relative)
+	if err != nil {
+		writeFilesError(w, err)
+		return
+	}
+	if err := s.FileQuota.RemoveUsed(p.TenantID, removed); err != nil {
+		fail(w, http.StatusServiceUnavailable, "quota_unavailable")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) fileRead(w http.ResponseWriter, r *http.Request, p rbac.Principal) {

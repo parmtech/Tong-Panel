@@ -13,6 +13,7 @@ import (
 var (
 	ErrFileQuotaUnconfigured = errors.New("tenant file quota is not configured")
 	ErrFileQuotaReservation  = errors.New("file quota reservation is invalid or closed")
+	ErrFileQuotaAccounting   = errors.New("file quota accounting is inconsistent")
 )
 
 // SQLiteTenantFileQuota persists reservations so concurrent API processes that
@@ -22,6 +23,27 @@ var (
 type SQLiteTenantFileQuota struct {
 	db  *sql.DB
 	now func() time.Time
+}
+
+// RemoveUsed decrements accounted bytes only after a file has been durably
+// unlinked. Underflow is rejected so inconsistent disk/accounting state fails
+// closed and can be reconciled by a trusted scanner.
+func (q *SQLiteTenantFileQuota) RemoveUsed(tenantID string, bytes int64) error {
+	if strings.TrimSpace(tenantID) == "" || tenantID != strings.TrimSpace(tenantID) || bytes < 0 {
+		return ErrFileQuotaAccounting
+	}
+	result, err := q.db.Exec(`UPDATE tenant_file_quotas SET used_bytes=used_bytes-? WHERE tenant_id=? AND used_bytes>=?`, bytes, tenantID, bytes)
+	if err != nil {
+		return fmt.Errorf("account removed tenant file bytes: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read removed file accounting result: %w", err)
+	}
+	if changed != 1 {
+		return ErrFileQuotaAccounting
+	}
+	return nil
 }
 
 func NewSQLiteTenantFileQuota(db *sql.DB) (*SQLiteTenantFileQuota, error) {
