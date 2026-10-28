@@ -83,6 +83,10 @@ func (s *Server) siteResource(w http.ResponseWriter, r *http.Request, p rbac.Pri
 		s.siteGet(w, r, p, parts[0])
 		return
 	}
+	if len(parts) == 2 && parts[0] != "" && parts[1] == "domains" {
+		s.siteDomainAdd(w, r, p, parts[0])
+		return
+	}
 	if len(parts) == 3 && parts[0] != "" && parts[1] == "domains" && parts[2] != "" {
 		s.siteDomainRemove(w, r, p, parts[0], parts[2])
 		return
@@ -218,4 +222,38 @@ func (s *Server) siteDomainRemove(w http.ResponseWriter, r *http.Request, p rbac
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) siteDomainAdd(w http.ResponseWriter, r *http.Request, p rbac.Principal, siteID string) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		return
+	}
+	if !p.Can("sites:write", p.TenantID) {
+		fail(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if s.SiteCatalog == nil {
+		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
+		return
+	}
+	if r.Header.Get("Content-Type") != "application/json" {
+		fail(w, http.StatusUnsupportedMediaType, "json_required")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	var req struct {
+		Domain string `json:"domain"`
+	}
+	if err := decodeSiteJSON(r.Body, &req); err != nil || req.Domain == "" {
+		fail(w, http.StatusBadRequest, "invalid_site_request")
+		return
+	}
+	claim, err := s.SiteCatalog.AddAliasDomain(r.Context(), p.TenantID, siteID, req.Domain)
+	if err != nil {
+		writeSiteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, claim)
 }
