@@ -89,6 +89,10 @@ test('keeps navigation names and refresh control available at phone widths', asy
     assert.match(css, /\.sidebar nav a:nth-child\(2\),\.sidebar nav a:nth-child\(3\)\{display:flex\}/);
     assert.match(css, /\.sidebar nav\{[^}]*overflow-x:auto/);
     assert.match(app, /refreshStatusButton\?\.addEventListener\('click'/);
+    assert.match(html, /id="site-preview-form"/);
+    assert.match(html, /<p id="site-preview-status"[^>]*role="status"[^>]*aria-live="polite"/);
+    assert.match(app, /sitePreviewOutput\.textContent = config/);
+    assert.match(css, /\.site-preview-output\{[^}]*overflow/);
 });
 
 test('Refresh button announces a result, blocks duplicate clicks, then retries', async () => {
@@ -132,10 +136,12 @@ test('Refresh button announces a result, blocks duplicate clicks, then retries',
     };
     const source = (await readFile(new URL('../../cmd/tongd/ui/app.js', import.meta.url), 'utf8'))
         .replace("import { loadPanelStatus } from './panel-status.mjs';", 'const loadPanelStatus = globalThis.testLoadPanelStatus;')
+        .replace("import { loadNginxPreview } from './site-preview.mjs';", 'const loadNginxPreview = globalThis.testLoadNginxPreview;')
         .replace(/\nexport \{\};\s*$/, '\n');
     runInNewContext(source, {
         document,
         testLoadPanelStatus: () => loadPanelStatus(fetcher),
+        testLoadNginxPreview: async () => '',
     });
 
     const status = elements.get('#status');

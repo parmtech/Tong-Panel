@@ -22,6 +22,10 @@ func publicHandler(core *api.Server) http.Handler {
 		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 		uiStatic.ServeHTTP(w, r)
 	})
+	mux.HandleFunc("/ui/site-preview.mjs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		uiStatic.ServeHTTP(w, r)
+	})
 	mux.Handle("/ui/", uiStatic)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
