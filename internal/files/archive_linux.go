@@ -422,11 +422,11 @@ func removeArchiveTree(dirFD int) error {
 
 const archiveStagePrefix = ".tong-archive-stage-"
 
-// CleanupStaleArchiveStages removes abandoned extraction directories older
-// than olderThan. It skips recent, aliased, wrongly-owned, permissive, and
-// actively locked stages. Require a one-hour minimum age to avoid cleanup of
-// a recently interrupted operation.
-func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
+// CleanupStaleStages removes abandoned internal write and archive staging
+// directories older than olderThan. It skips recent, aliased, wrongly-owned,
+// permissive, and actively locked stages. Require a one-hour minimum age to
+// avoid cleanup of a recently interrupted operation.
+func (r *Root) CleanupStaleStages(olderThan time.Duration) (int, error) {
 	if r == nil {
 		return 0, ErrClosed
 	}
@@ -470,7 +470,7 @@ func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
 	cutoff := time.Now().Add(-olderThan)
 	removed := 0
 	for _, name := range names {
-		if !validArchiveStageName(name) {
+		if !validInternalStageName(name) {
 			continue
 		}
 		var before unix.Stat_t
@@ -480,7 +480,7 @@ func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
 			}
 			return removed, err
 		}
-		if !staleArchiveStage(before, cutoff) {
+		if !staleInternalStage(before, cutoff) {
 			continue
 		}
 		stageFD, err := unix.Openat2(r.fd, name, &unix.OpenHow{
@@ -498,7 +498,7 @@ func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
 			_ = unix.Close(stageFD)
 			return removed, err
 		}
-		if !sameArchiveStage(before, opened) || !staleArchiveStage(opened, cutoff) {
+		if !sameInternalStage(before, opened) || !staleInternalStage(opened, cutoff) {
 			_ = unix.Close(stageFD)
 			continue
 		}
@@ -511,7 +511,7 @@ func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
 		}
 		var current unix.Stat_t
 		statErr := unix.Fstatat(r.fd, name, &current, unix.AT_SYMLINK_NOFOLLOW)
-		if statErr != nil || !sameArchiveStage(opened, current) || !staleArchiveStage(current, cutoff) {
+		if statErr != nil || !sameInternalStage(opened, current) || !staleInternalStage(current, cutoff) {
 			_ = unix.Flock(stageFD, unix.LOCK_UN)
 			_ = unix.Close(stageFD)
 			if statErr != nil && !errors.Is(statErr, unix.ENOENT) {
@@ -542,19 +542,32 @@ func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
 	return removed, nil
 }
 
-func validArchiveStageName(name string) bool {
-	if !strings.HasPrefix(name, archiveStagePrefix) {
-		return false
-	}
-	suffix := strings.TrimPrefix(name, archiveStagePrefix)
-	if len(suffix) != 32 {
-		return false
-	}
-	_, err := hex.DecodeString(suffix)
-	return err == nil
+// CleanupStaleArchiveStages is retained for callers of the earlier prototype;
+// it now also cleans abandoned create-only write stages.
+func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
+	return r.CleanupStaleStages(olderThan)
 }
 
-func staleArchiveStage(stat unix.Stat_t, cutoff time.Time) bool {
+func validInternalStageName(name string) bool {
+	for _, prefix := range []string{writeStagePrefix, archiveStagePrefix} {
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+		suffix := strings.TrimPrefix(name, prefix)
+		if len(suffix) != 32 {
+			return false
+		}
+		for _, char := range suffix {
+			if (char < '0' || char > '9') && (char < 'a' || char > 'f') {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func staleInternalStage(stat unix.Stat_t, cutoff time.Time) bool {
 	modified := time.Unix(stat.Mtim.Sec, stat.Mtim.Nsec)
 	return stat.Mode&unix.S_IFMT == unix.S_IFDIR &&
 		stat.Uid == uint32(unix.Geteuid()) &&
@@ -562,6 +575,6 @@ func staleArchiveStage(stat unix.Stat_t, cutoff time.Time) bool {
 		!modified.After(cutoff)
 }
 
-func sameArchiveStage(a, b unix.Stat_t) bool {
+func sameInternalStage(a, b unix.Stat_t) bool {
 	return a.Dev == b.Dev && a.Ino == b.Ino
 }

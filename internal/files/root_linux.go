@@ -163,8 +163,14 @@ func (r *Root) WriteNew(relative string, content []byte) error {
 		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
 		return err
 	}
+	if err := unix.Flock(stageFD, unix.LOCK_EX|unix.LOCK_NB); err != nil {
+		_ = unix.Close(stageFD)
+		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		return err
+	}
 	defer func() {
 		_ = unix.Unlinkat(stageFD, "payload", 0)
+		_ = unix.Flock(stageFD, unix.LOCK_UN)
 		_ = unix.Close(stageFD)
 		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
 	}()
