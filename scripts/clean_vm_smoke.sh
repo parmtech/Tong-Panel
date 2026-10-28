@@ -107,7 +107,9 @@ retry_guest_scp() {
 # wait command and file transfers across that expected one-time disconnect.
 retry_guest_ssh "cloud-init status --wait"
 retry_guest_scp "$VM_RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" "$VM_RUNNER_TEMP/SHA256SUMS" "$guest:/home/ci/"
+retry_guest_scp "$VM_RUNNER_TEMP/tong-package-lab/tong-panel-dev-v1.deb" "$VM_RUNNER_TEMP/tong-package-lab/tong-panel-dev-v2.deb" "$VM_RUNNER_TEMP/tong-package-lab/PACKAGES.SHA256SUMS" "$guest:/home/ci/"
 retry_guest_scp scripts/smoke_p1.py "$guest:/home/ci/smoke_p1.py"
+retry_guest_scp scripts/p2_package_install_vm.sh "$guest:/home/ci/p2_package_install_vm.sh"
 cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -311,6 +313,7 @@ bash ./tong-p1-dev/tests/mariadb-isolation.sh
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
 python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
+bash ./p2_package_install_vm.sh ./tong-panel-dev-v1.deb ./tong-panel-dev-v2.deb
 GUEST
 scp "${scp_opts[@]}" "$work/guest-check.sh" "$guest:/home/ci/guest-check.sh"
 ssh "${ssh_opts[@]}" "$guest" bash /home/ci/guest-check.sh "$VM_EXPECTED_ID" "$VM_EXPECTED_VERSION"

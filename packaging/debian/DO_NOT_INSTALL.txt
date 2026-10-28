@@ -1,0 +1,7 @@
+TONG PANEL — UNSIGNED DEVELOPER PACKAGE FOR DISPOSABLE VM TESTS ONLY
+
+Do not install this package on a real VPS, customer host, or production system.
+It is unsupported and unsigned, has no production login, and is not a hosting
+panel. The service binds to 127.0.0.1:8090 and exposes no host-mutation API.
+Do not expose it through a reverse proxy, tunnel, firewall rule, or public IP.
+The P0 architecture/security review and Phase 1/2 release gates are incomplete.
