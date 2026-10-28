@@ -135,6 +135,7 @@ grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' tong-p1-dev/DO_NOT_INSTALL.txt
 sudo apt-get update
 sudo apt-get install -y --no-install-recommends nginx php-fpm mariadb-server curl
 sudo systemctl start mariadb
+bash ./tong-p1-dev/tests/nginx-config-rollback.sh
 TONG_NGINX_PREVIEW_PATH=/home/ci/nginx-site.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderNginxVhostRequiresVerifiedCanonicalDomains$' -test.timeout=1m
 TONG_PHP_FPM_PREVIEW_PATH=/home/ci/php-fpm-pool.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderPHPFPMPoolRequiresVerifiedIsolatedSite$' -test.timeout=1m
 cat > /home/ci/php-fpm-test.conf <<'FPM'
