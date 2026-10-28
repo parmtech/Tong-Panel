@@ -314,7 +314,10 @@ func ensureArchiveDirs(stageFD int, name string, directories, files map[string]s
 }
 
 func syncArchiveTree(dirFD int) error {
-	dup, err := unix.Dup(dirFD)
+	dup, err := unix.Openat2(dirFD, ".", &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
 	if err != nil {
 		return err
 	}
