@@ -42,3 +42,5 @@ Verified component prototypes on unmerged drafts include Nginx/PHP-FPM renderers
 
 
 **Disposable MariaDB export/restore checkpoint (draft PR pending, 29 October 2026):** the existing temporary tenant-grant check now dumps and restores tenant A's data after a controlled mutation, while checking tenant A cannot read, export, or import into tenant B's database. The clean-VM workflow triggers on the script change and will run on Ubuntu 24.04 and Debian 12. This is database engine/grant evidence only; it is not app-managed provisioning, encrypted offsite backup, retention, key custody, or fresh-host restore. P2 remains IN PROGRESS.
+
+- Exact-head Ubuntu and Debian guest runs reached the database dump/restore assertions successfully. Debian then exposed an unrelated package-smoke `curl | grep -q` SIGPIPE failure (curl exit 23). The smoke now captures the bounded local page before matching; fresh exact-head guest reruns are pending.
