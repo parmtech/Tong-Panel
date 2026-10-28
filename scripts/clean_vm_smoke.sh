@@ -85,9 +85,11 @@ test -x tong-p1-dev/bin/tongd
 test -x tong-p1-dev/bin/tongctl
 test -x tong-p1-dev/tests/files.test
 test -x tong-p1-dev/tests/api.test
+test -x tong-p1-dev/tests/sites.test
 grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' tong-p1-dev/DO_NOT_INSTALL.txt
 ./tong-p1-dev/tests/files.test -test.v -test.timeout=4m
 ./tong-p1-dev/tests/api.test -test.v -test.timeout=4m
+./tong-p1-dev/tests/sites.test -test.v -test.timeout=4m
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
 python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
