@@ -101,6 +101,44 @@ func (c *Catalog) Create(ctx context.Context, input SiteSpec) error {
 	return nil
 }
 
+// AddAliasDomain atomically adds a pending globally unique alias claim to an
+// existing site. It changes catalog metadata only; pending ownership does not
+// authorize certificate issuance or host configuration changes.
+func (c *Catalog) AddAliasDomain(ctx context.Context, tenantID, siteID, rawDomain string) (DomainClaim, error) {
+	if ctx == nil || c == nil || c.db == nil || !validID(tenantID) || !validID(siteID) {
+		return DomainClaim{}, ErrCatalogUnavailable
+	}
+	domain, err := NormalizeDomain(rawDomain)
+	if err != nil {
+		return DomainClaim{}, err
+	}
+	var siteExists bool
+	if err := c.db.QueryRowContext(ctx,
+		"SELECT EXISTS(SELECT 1 FROM sites WHERE tenant_id=? AND site_id=?)",
+		tenantID, siteID).Scan(&siteExists); err != nil {
+		return DomainClaim{}, fmt.Errorf("check alias site owner: %w", err)
+	}
+	if !siteExists {
+		return DomainClaim{}, ErrSiteNotFound
+	}
+	result, err := c.db.ExecContext(ctx,
+		"INSERT INTO site_domains(domain,tenant_id,site_id,kind,ownership_state) "+
+			"SELECT ?,?,?, 'alias','pending' WHERE EXISTS(SELECT 1 FROM sites WHERE tenant_id=? AND site_id=?) "+
+			"ON CONFLICT(domain) DO NOTHING",
+		domain, tenantID, siteID, tenantID, siteID)
+	if err != nil {
+		return DomainClaim{}, fmt.Errorf("insert site alias domain: %w", err)
+	}
+	inserted, err := result.RowsAffected()
+	if err != nil {
+		return DomainClaim{}, fmt.Errorf("read site alias insert result: %w", err)
+	}
+	if inserted != 1 {
+		return DomainClaim{}, ErrDomainClaimed
+	}
+	return DomainClaim{Name: domain, Kind: "alias", OwnershipState: "pending"}, nil
+}
+
 // Get returns only the requested tenant's site record.
 func (c *Catalog) Get(ctx context.Context, tenantID, siteID string) (SiteRecord, error) {
 	if ctx == nil || c == nil || c.db == nil || !validID(tenantID) || !validID(siteID) {
