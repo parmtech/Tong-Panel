@@ -42,6 +42,7 @@ cat > "$work/user-data" <<EOF
 users:
   - name: ci
     gecos: Tong disposable VM check
+    sudo: ALL=(ALL) NOPASSWD:ALL
     lock_passwd: true
     shell: /bin/bash
     ssh_authorized_keys:
