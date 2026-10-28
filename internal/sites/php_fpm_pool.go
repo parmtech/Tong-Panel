@@ -21,10 +21,10 @@ func validateHostingPaths(paths HostingPaths) error {
 	return nil
 }
 
-// RenderPHPFPMpool returns deterministic per-site PHP-FPM pool configuration
+// RenderPHPFPMPool returns deterministic per-site PHP-FPM pool configuration
 // for a verified site. It renders text only and never creates users, directories,
 // sockets, or service configuration on the host.
-func RenderPHPFPMpool(site SiteRecord, paths HostingPaths) (string, error) {
+func RenderPHPFPMPool(site SiteRecord, paths HostingPaths) (string, error) {
 	if _, err := verifiedSiteDomains(site); err != nil {
 		return "", err
 	}
