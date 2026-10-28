@@ -52,12 +52,18 @@ assert_loopback_only() {
   python3 - <<'PY'
 entries = []
 for line in open("/proc/net/tcp", encoding="ascii").read().splitlines()[1:]:
-    local = line.split()[1]
+    fields = line.split()
+    if fields[3] != "0A":  # only the listening socket; accepted connections repeat its local port
+        continue
+    local = fields[1]
     address, port = local.split(":")
     if int(port, 16) == 8090:
         entries.append(local)
 assert entries == ["0100007F:1F98"], entries
-assert not any(int(line.split()[1].split(":")[1], 16) == 8090 for line in open("/proc/net/tcp6", encoding="ascii").read().splitlines()[1:]), "IPv6 listener present"
+assert not any(
+    line.split()[3] == "0A" and int(line.split()[1].split(":")[1], 16) == 8090
+    for line in open("/proc/net/tcp6", encoding="ascii").read().splitlines()[1:]
+), "IPv6 listener present"
 print("Tong Panel service listens only on 127.0.0.1:8090")
 PY
 }
