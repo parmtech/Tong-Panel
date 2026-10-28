@@ -27,7 +27,25 @@ cleanup() {
   exit "$status"
 }
 trap cleanup EXIT
-sudo apt-get update
+if ! update_output="$(sudo apt-get update 2>&1)"; then
+  printf '%s\\n' "$update_output" >&2
+  if ! grep -Fq 'Failed to fetch https://packages.microsoft.com/' <<<"$update_output" ||
+     grep -E '^(Err:|E: Failed to fetch)' <<<"$update_output" | grep -v 'packages.microsoft.com' >/dev/null; then
+    echo "apt update failed outside the optional Microsoft package feed" >&2
+    exit 1
+  fi
+  mapfile -t microsoft_sources < <(sudo grep -RIlF -- 'packages.microsoft.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null || true)
+  if (("${#microsoft_sources[@]}" == 0)); then
+    echo "Microsoft package feed failed but its source file could not be identified" >&2
+    exit 1
+  fi
+  for source in "${microsoft_sources[@]}"; do
+    sudo mv "$source" "$source.disabled-for-clean-vm"
+  done
+  sudo apt-get update
+else
+  printf '%s\\n' "$update_output"
+fi
 sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils cloud-image-utils openssh-client curl ca-certificates
 base="$work/base-image"
 disk="$work/guest.qcow2"
