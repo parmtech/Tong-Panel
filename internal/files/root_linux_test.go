@@ -1629,3 +1629,84 @@ func TestTenantRootsTwoTenantFileLifecycleIsolation(t *testing.T) {
 		t.Fatalf("unknown tenant removal error = %v", err)
 	}
 }
+
+func TestTenantRootsConcurrentSameSiteExtractionRemainsIsolated(t *testing.T) {
+	rootAPath, rootBPath := t.TempDir(), t.TempDir()
+	rootA, err := OpenRoot(rootAPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootA.Close()
+	rootB, err := OpenRoot(rootBPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootB.Close()
+	roots, err := NewTenantRoots(map[string]*Root{"tenant-a": rootA, "tenant-b": rootB})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	archives := map[string][]byte{
+		"tenant-a": gzipTarForTest(t, archiveTestEntry{
+			header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg},
+			data:   []byte("site-a"),
+		}),
+		"tenant-b": gzipTarForTest(t, archiveTestEntry{
+			header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg},
+			data:   []byte("site-b"),
+		}),
+	}
+	type result struct {
+		tenant string
+		err    error
+	}
+	const attemptsPerTenant = 16
+	start := make(chan struct{})
+	results := make(chan result, 2*attemptsPerTenant)
+	var wg sync.WaitGroup
+	for tenant, archive := range archives {
+		for i := 0; i < attemptsPerTenant; i++ {
+			wg.Add(1)
+			go func(tenant string, archive []byte) {
+				defer wg.Done()
+				<-start
+				results <- result{tenant: tenant, err: roots.ExtractGzipTarNewForTenant(tenant, "site", archive, ArchiveLimits{})}
+			}(tenant, archive)
+		}
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+
+	winners := map[string]int{"tenant-a": 0, "tenant-b": 0}
+	for result := range results {
+		switch {
+		case result.err == nil:
+			winners[result.tenant]++
+		case errors.Is(result.err, ErrAlreadyExists):
+		default:
+			t.Errorf("%s extraction error = %v, want one success or ErrAlreadyExists", result.tenant, result.err)
+		}
+	}
+	for tenant, count := range winners {
+		if count != 1 {
+			t.Errorf("%s successful extractions = %d, want exactly one", tenant, count)
+		}
+	}
+
+	for _, tc := range []struct {
+		tenant string
+		want   string
+	}{
+		{tenant: "tenant-a", want: "site-a"},
+		{tenant: "tenant-b", want: "site-b"},
+	} {
+		got, err := roots.ReadFileForTenant(tc.tenant, "site/index.html", 32)
+		if err != nil || string(got) != tc.want {
+			t.Errorf("%s site content = %q, %v; want %q", tc.tenant, got, err, tc.want)
+		}
+	}
+	assertNoStagingDirectories(t, rootAPath)
+	assertNoStagingDirectories(t, rootBPath)
+}
