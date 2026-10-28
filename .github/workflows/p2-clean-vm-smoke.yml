@@ -1,0 +1,55 @@
+name: P2 clean disposable VM smoke
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'cmd/tongd/**'
+      - 'cmd/tongctl/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'LICENSE'
+      - 'scripts/smoke_p1.py'
+      - 'scripts/clean_vm_smoke.sh'
+      - '.github/workflows/p2-clean-vm-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  clean-vm:
+    name: ${{ matrix.distro }} clean VM smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu-24.04
+            image_url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+            os_id: ubuntu
+            version_id: '24.04'
+          - distro: debian-12
+            image_url: https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
+            os_id: debian
+            version_id: '12'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.3'
+          cache: false
+      - name: Build unsigned developer preview for isolated VM smoke
+        run: |
+          mkdir -p "$RUNNER_TEMP/tong-p1-dev/bin"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/bin/tongd" ./cmd/tongd
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/bin/tongctl" ./cmd/tongctl
+          cp LICENSE "$RUNNER_TEMP/tong-p1-dev/LICENSE"
+          printf '%s\\n' 'TONG PANEL — UNSIGNED DEVELOPER PREVIEW ONLY' 'DO NOT RUN ON A PRODUCTION SERVER OR EXPOSE TO THE INTERNET.' 'There is no production login, root host-agent action or verified installer.' 'The source is on unmerged development branches; do not use with customers.' 'This is NOT a supported distro package or signed release.' > "$RUNNER_TEMP/tong-p1-dev/DO_NOT_INSTALL.txt"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" tong-p1-dev
+          (cd "$RUNNER_TEMP" && sha256sum tong-p1-UNSIGNED-dev-linux-amd64.tar.gz > SHA256SUMS)
+      - name: Boot clean guest and run the extracted preview smoke
+        env:
+          VM_DISTRO: ${{ matrix.distro }}
+          VM_IMAGE_URL: ${{ matrix.image_url }}
+          VM_EXPECTED_ID: ${{ matrix.os_id }}
+          VM_EXPECTED_VERSION: ${{ matrix.version_id }}
+          VM_RUNNER_TEMP: ${{ runner.temp }}
+        run: bash scripts/clean_vm_smoke.sh
