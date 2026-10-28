@@ -131,6 +131,13 @@ This is **combined branch evidence**, not just separate PR evidence:
 - Both matrix jobs passed [clean VM run #40610418570](https://github.com/parmtech/Tong-Panel/actions/runs/40610418570) for workflow/code commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`.
 - This is clean-guest runtime evidence only. No installer, service install/restart, rollback, restore, supported OS matrix certification, or P2 end-to-end hosting lifecycle is tested. P0/P1 gates remain open; no live host was changed.
 - **Phase 2 status remains NOT COMPLETE and gated.** Do not treat this infrastructure or the unsigned preview as permission to install or deploy.
+## P2 root-close-safe streamed file upload — draft PR #42
+
+- Draft PR [#42](https://github.com/parmtech/Tong-Panel/pull/42), stacked on #41, duplicates the pinned root descriptor before consuming the caller's bounded stream. The root lifecycle lock is released before I/O; close prevents new operations but need not wait for a blocked upload, and the in-flight operation can finish using its pinned descriptor copy.
+- A gated-reader regression test verifies prompt close, safe completion/publication after close and rejection of post-close reads.
+- Code commit `faa220eed997f68b225dc105cc4386227d742dfe` passed [Go formatting/full race/vet #40613452838](https://github.com/parmtech/Tong-Panel/actions/runs/40613452838), [daemon smoke #40613452810](https://github.com/parmtech/Tong-Panel/actions/runs/40613452810), and [unsigned package lab #40613452879](https://github.com/parmtech/Tong-Panel/actions/runs/40613452879).
+- Caller cancellation/deadline and disk/concurrency quotas remain outside this primitive. No API/auth/ACL or host service changes; P0/P1 remain open and P2 incomplete.
+
 ## P2 bounded streaming create-only file upload — draft PR #41
 
 - Draft PR [#41](https://github.com/parmtech/Tong-Panel/pull/41), stacked on draft #40, refactors `WriteNewFrom` to stream request bytes directly into a private staging file, using constant application buffer memory and at most the caller cap+1 reads (cap ≤16 MiB). The file is published only after EOF within the cap through atomic no-replace rename; overflow or source error discards the stage.

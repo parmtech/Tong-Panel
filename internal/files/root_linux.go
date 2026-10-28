@@ -35,9 +35,10 @@ var (
 	ErrInvalidReader = errors.New("invalid file content reader")
 )
 
-// Root pins a trusted directory using an open descriptor. Close may be called
-// concurrently with ReadFile; later reads fail with ErrClosed. The configured
-// root and its parent path must be administrator-controlled.
+// Root pins a trusted directory using an open descriptor. Close prevents new
+// operations; already-started bounded writes retain a duplicate descriptor and
+// may finish independently. The configured root and its parent path must be
+// administrator-controlled.
 type Root struct {
 	mu   sync.RWMutex
 	fd   int
@@ -144,9 +145,11 @@ func (r *Root) WriteNew(relative string, content []byte) error {
 // WriteNewFrom stages a reader directly to a private file, using constant
 // memory, and reads at most maxBytes+1 bytes to detect overflow. It publishes
 // only after the stream finishes within its cap, via atomic no-replace rename.
-// maxBytes may be lower than MaxReadBytes but cannot exceed it. The source is
-// not closed. This method does not authorize the caller or enforce a
-// tenant-wide disk quota or request deadline.
+// It duplicates the pinned root descriptor before reading, so Close prevents
+// new operations but does not wait on an in-flight reader. maxBytes may be
+// lower than MaxReadBytes but cannot exceed it. The source is not closed. This
+// method does not authorize the caller or enforce a tenant-wide disk quota or
+// request deadline.
 func (r *Root) WriteNewFrom(relative string, src io.Reader, maxBytes int64) error {
 	if r == nil {
 		return ErrClosed
@@ -161,11 +164,21 @@ func (r *Root) WriteNewFrom(relative string, src io.Reader, maxBytes int64) erro
 		return ErrInvalidLimit
 	}
 	r.mu.RLock()
-	defer r.mu.RUnlock()
 	if !r.open {
+		r.mu.RUnlock()
 		return ErrClosed
 	}
-	parent, base, err := r.openParent(relative)
+	rootFD, err := unix.FcntlInt(uintptr(r.fd), unix.F_DUPFD_CLOEXEC, 0)
+	r.mu.RUnlock()
+	if err != nil {
+		return err
+	}
+	defer unix.Close(rootFD)
+	return writeNewFromRootFD(rootFD, relative, src, maxBytes)
+}
+
+func writeNewFromRootFD(rootFD int, relative string, src io.Reader, maxBytes int64) error {
+	parent, base, err := openParentFD(rootFD, relative)
 	if err != nil {
 		return err
 	}
@@ -176,27 +189,27 @@ func (r *Root) WriteNewFrom(relative string, src io.Reader, maxBytes int64) erro
 		return err
 	}
 	stage := writeStagePrefix + hex.EncodeToString(random[:])
-	if err := unix.Mkdirat(r.fd, stage, 0700); err != nil {
+	if err := unix.Mkdirat(rootFD, stage, 0700); err != nil {
 		return err
 	}
-	stageFD, err := unix.Openat2(r.fd, stage, &unix.OpenHow{
+	stageFD, err := unix.Openat2(rootFD, stage, &unix.OpenHow{
 		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
 		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
 	})
 	if err != nil {
-		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		_ = unix.Unlinkat(rootFD, stage, unix.AT_REMOVEDIR)
 		return err
 	}
 	if err := unix.Flock(stageFD, unix.LOCK_EX|unix.LOCK_NB); err != nil {
 		_ = unix.Close(stageFD)
-		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		_ = unix.Unlinkat(rootFD, stage, unix.AT_REMOVEDIR)
 		return err
 	}
 	defer func() {
 		_ = unix.Unlinkat(stageFD, "payload", 0)
 		_ = unix.Flock(stageFD, unix.LOCK_UN)
 		_ = unix.Close(stageFD)
-		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		_ = unix.Unlinkat(rootFD, stage, unix.AT_REMOVEDIR)
 	}()
 	const temp = "payload"
 	fd, err := unix.Openat2(stageFD, temp, &unix.OpenHow{
@@ -274,7 +287,11 @@ func (r *Root) RemoveFile(relative string) error {
 }
 
 func (r *Root) openParent(relative string) (int, string, error) {
-	fd, err := unix.Openat2(r.fd, path.Dir(relative), &unix.OpenHow{
+	return openParentFD(r.fd, relative)
+}
+
+func openParentFD(rootFD int, relative string) (int, string, error) {
+	fd, err := unix.Openat2(rootFD, path.Dir(relative), &unix.OpenHow{
 		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
 		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
 	})
