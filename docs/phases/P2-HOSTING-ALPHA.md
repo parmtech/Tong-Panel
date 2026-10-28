@@ -44,3 +44,9 @@ Verified component prototypes on unmerged drafts include Nginx/PHP-FPM renderers
 **Disposable MariaDB export/restore checkpoint (draft PR pending, 29 October 2026):** the existing temporary tenant-grant check now dumps and restores tenant A's data after a controlled mutation, while checking tenant A cannot read, export, or import into tenant B's database. The exact code head `f63bac3b46de8775ae94032525b367e284b1ba74` passed [Ubuntu 24.04](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135988) and [Debian 12](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135759). This is database engine/grant evidence only; it is not app-managed provisioning, encrypted offsite backup, retention, key custody, or fresh-host restore. P2 remains IN PROGRESS.
 
 - Initial guest runs reached the new dump/restore assertions but exposed a package-smoke `curl | grep -q` SIGPIPE failure (curl exit 23). The smoke now captures the local page before matching; the corrected exact code head passed both clean-VM jobs: [Ubuntu 24.04](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135988) and [Debian 12](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135759).
+
+
+## P2 Nginx config rollback lab — draft PR pending (29 October 2026)
+
+- Adds a disposable Ubuntu/Debian guest check around a separately launched temporary Nginx instance. Invalid staged syntax must leave the current config serving; a simulated reload failure must restore the previous config; a valid config must pass `nginx -t`, atomically replace the test include and reload successfully.
+- The test never writes `/etc/nginx` or touches the guest's system Nginx service. Hosted verification is pending. This is an isolated config lifecycle prototype only; the daemon still does not apply host configuration. P2 remains IN PROGRESS.
