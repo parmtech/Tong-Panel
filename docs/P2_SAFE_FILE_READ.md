@@ -10,14 +10,14 @@
 - `Root.WriteNew` creates a new regular file inside a random mode-0700 staging directory at the pinned root, then uses `renameat2(RENAME_NOREPLACE)` into the destination directory. This prevents a tenant-writable destination directory from swapping the temporary source path. It uses mode 0600, caps content at 16 MiB, and never overwrites an existing file or symlink. A parent-directory sync error can occur after the rename, in which case the file may be present while durability remains unknown.
 - `Root.RemoveFile` unlinks only regular-file or symlink directory entries and never follows a symlink; directories and special files are rejected. A successful unlink followed by parent-directory sync failure means the path may already be absent while durability remains uncertain. The operation is not an ACL or per-user object ownership decision.
 - A process crash can leave a private staging directory; automated orphan cleanup is not yet implemented.
-- `TenantRoots` copies a fixed server-owned tenant-to-root mapping and selects only the assigned root for reads, listings, create-only writes, and file removal. The caller must supply a tenant identifier derived from a verified server principal; this helper does not authenticate or authorize that principal.
+- `TenantRoots` copies a fixed server-owned tenant-to-root mapping, rejects closed or inode-aliased roots, and selects only the assigned root for reads, listings, create-only writes, and file removal. The caller must supply a tenant identifier derived from a verified server principal; this helper does not authenticate or authorize that principal.
 - Reads are limited to 16 MiB maximum, and only regular files are returned. FIFOs and devices are not treated as readable file content.
 - `Close` is synchronized with reads; reads after close fail.
 - The package is not wired to HTTP, the privileged agent, site identities, quotas, or ACLs. It must not be represented as cross-tenant file access control.
 
 ## Tests
 
-Linux tests cover parent traversal, absolute/non-normalized paths, symlink and root-symlink rejection, directory/FIFO inputs, byte limits, close behavior, tenant-root selection for reads/listings/writes, unknown-tenant denial, atomic create-only writes, concurrent single-winner creation, and concurrent reads/writes while an attacker repeatedly swaps paths for symlinks to an outside secret. Successful operations must never expose or change outside-root fixture data; kernel errors are expected to fail closed.
+Linux tests cover parent traversal, absolute/non-normalized paths, symlink and root-symlink rejection, directory/FIFO inputs, byte limits, close behavior, tenant-root selection for reads/listings/writes/removal, unknown-tenant denial, duplicate-root rejection, atomic create-only writes, concurrent single-winner creation, and concurrent reads/writes while an attacker repeatedly swaps paths for symlinks to an outside secret. Successful operations must never expose or change outside-root fixture data; kernel errors are expected to fail closed.
 
 ## Remaining P2 work
 
