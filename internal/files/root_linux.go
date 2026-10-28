@@ -5,6 +5,7 @@
 package files
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -137,6 +138,28 @@ func (r *Root) WriteNew(relative string, content []byte) error {
 	if len(content) > int(MaxReadBytes) {
 		return ErrTooLarge
 	}
+	return r.WriteNewFrom(relative, bytes.NewReader(content), int64(len(content)))
+}
+
+// WriteNewFrom stages a reader directly to a private file, using constant
+// memory, and reads at most maxBytes+1 bytes to detect overflow. It publishes
+// only after the stream finishes within its cap, via atomic no-replace rename.
+// maxBytes may be lower than MaxReadBytes but cannot exceed it. The source is
+// not closed. This method does not authorize the caller or enforce a
+// tenant-wide disk quota or request deadline.
+func (r *Root) WriteNewFrom(relative string, src io.Reader, maxBytes int64) error {
+	if r == nil {
+		return ErrClosed
+	}
+	if !validRelativePath(relative) {
+		return ErrInvalidPath
+	}
+	if src == nil {
+		return ErrInvalidReader
+	}
+	if maxBytes < 0 || maxBytes > MaxReadBytes {
+		return ErrInvalidLimit
+	}
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if !r.open {
@@ -189,9 +212,9 @@ func (r *Root) WriteNew(relative string, content []byte) error {
 		_ = unix.Close(fd)
 		return ErrInvalidPath
 	}
-	written, writeErr := f.Write(content)
-	if writeErr == nil && written != len(content) {
-		writeErr = io.ErrShortWrite
+	written, writeErr := io.Copy(f, io.LimitReader(src, maxBytes+1))
+	if writeErr == nil && written > maxBytes {
+		writeErr = ErrTooLarge
 	}
 	if writeErr == nil {
 		writeErr = f.Sync()
@@ -210,41 +233,6 @@ func (r *Root) WriteNew(relative string, content []byte) error {
 		return err
 	}
 	return unix.Fsync(parent)
-}
-
-// WriteNewFrom reads at most maxBytes+1 bytes before rejecting an oversized
-// input, then publishes a create-only file using WriteNew's atomic contract.
-// maxBytes may be lower than MaxReadBytes but cannot exceed it. The bounded
-// buffer is capped at MaxReadBytes; callers should pass request bodies directly
-// rather than buffering them first. This does not authorize the caller or
-// enforce a tenant-wide quota.
-func (r *Root) WriteNewFrom(relative string, src io.Reader, maxBytes int64) error {
-	if r == nil {
-		return ErrClosed
-	}
-	if !validRelativePath(relative) {
-		return ErrInvalidPath
-	}
-	if src == nil {
-		return ErrInvalidReader
-	}
-	if maxBytes < 0 || maxBytes > MaxReadBytes {
-		return ErrInvalidLimit
-	}
-	r.mu.RLock()
-	open := r.open
-	r.mu.RUnlock()
-	if !open {
-		return ErrClosed
-	}
-	content, err := io.ReadAll(io.LimitReader(src, maxBytes+1))
-	if err != nil {
-		return err
-	}
-	if int64(len(content)) > maxBytes {
-		return ErrTooLarge
-	}
-	return r.WriteNew(relative, content)
 }
 
 // RemoveFile unlinks one regular file or symlink entry below the pinned root.

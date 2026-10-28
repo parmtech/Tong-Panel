@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -308,6 +309,78 @@ func TestWriteNewFromRejectsInvalidInputsBeforeConsumption(t *testing.T) {
 	}
 	if reader.Len() != len("unread") {
 		t.Fatal("closed root consumed stream data")
+	}
+}
+
+var errInjectedReader = errors.New("injected stream failure")
+
+type partialFailureReader struct{}
+
+func (partialFailureReader) Read(p []byte) (int, error) {
+	return copy(p, []byte("partial")), errInjectedReader
+}
+
+func TestWriteNewFromReaderFailureDoesNotPublishPartialFile(t *testing.T) {
+	r, root := newTestRoot(t)
+	if err := r.WriteNewFrom("failed.txt", partialFailureReader{}, 64); !errors.Is(err, errInjectedReader) {
+		t.Fatalf("reader failure = %v, want injected error", err)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "failed.txt")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("reader failure published a partial file: %v", err)
+	}
+	assertNoStagingDirectories(t, root)
+}
+
+type gatedReader struct {
+	started chan struct{}
+	release chan struct{}
+	once    sync.Once
+	sent    bool
+}
+
+func (r *gatedReader) Read(p []byte) (int, error) {
+	r.once.Do(func() {
+		close(r.started)
+		<-r.release
+	})
+	if r.sent {
+		return 0, io.EOF
+	}
+	r.sent = true
+	return copy(p, []byte("safe")), nil
+}
+
+func TestRootCloseWaitsForStreamPublication(t *testing.T) {
+	r, root := newTestRoot(t)
+	src := &gatedReader{started: make(chan struct{}), release: make(chan struct{})}
+	writeDone := make(chan error, 1)
+	go func() { writeDone <- r.WriteNewFrom("stream.txt", src, 8) }()
+	<-src.started
+	closeDone := make(chan error, 1)
+	closeStarted := make(chan struct{})
+	go func() {
+		close(closeStarted)
+		closeDone <- r.Close()
+	}()
+	<-closeStarted
+	select {
+	case err := <-closeDone:
+		close(src.release)
+		t.Fatalf("Close returned while stream publication was in progress: %v", err)
+	case <-time.After(20 * time.Millisecond):
+	}
+	close(src.release)
+	if err := <-writeDone; err != nil {
+		t.Fatalf("stream write failed before Close: %v", err)
+	}
+	if err := <-closeDone; err != nil {
+		t.Fatalf("Close failed after stream publication: %v", err)
+	}
+	if data, err := os.ReadFile(filepath.Join(root, "stream.txt")); err != nil || string(data) != "safe" {
+		t.Fatalf("published stream after close = %q, %v", data, err)
+	}
+	if _, err := r.ReadFile("stream.txt", 8); !errors.Is(err, ErrClosed) {
+		t.Fatalf("read after close error = %v", err)
 	}
 }
 
