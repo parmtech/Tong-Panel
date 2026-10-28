@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -16,7 +17,7 @@ func TestOpenAppliesMigrationAndKeepsForeignKeysEnabled(t *testing.T) {
 	}
 	defer db.Close()
 	var version, foreignKeys int
-	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 7 {
+	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != SchemaVersion {
 		t.Fatalf("migration version=%d err=%v", version, err)
 	}
 	if err := db.QueryRow("PRAGMA foreign_keys").Scan(&foreignKeys); err != nil || foreignKeys != 1 {
@@ -70,7 +71,7 @@ func TestOpenMigratesV1JobsToFencedLeases(t *testing.T) {
 	var version int
 	var state string
 	var owner, tokenHash, availableAt sql.NullString
-	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 7 {
+	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != SchemaVersion {
 		t.Fatalf("migrated version=%d err=%v", version, err)
 	}
 	if err := db.QueryRow("SELECT state,lease_owner,lease_token_sha256,available_at FROM jobs WHERE id='legacy-job'").
@@ -88,7 +89,7 @@ func TestOpenRejectsNewerSchemaVersionWithoutDowngrade(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec("PRAGMA user_version = 8"); err != nil {
+	if _, err := db.Exec("PRAGMA user_version = " + fmt.Sprint(SchemaVersion+1)); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Close(); err != nil {
@@ -104,7 +105,7 @@ func TestOpenRejectsNewerSchemaVersionWithoutDowngrade(t *testing.T) {
 	}
 	defer db.Close()
 	var version int
-	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 8 {
+	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != SchemaVersion+1 {
 		t.Fatalf("newer schema version was changed: version=%d err=%v", version, err)
 	}
 }
@@ -139,7 +140,7 @@ func TestConcurrentOpenSerializesInitialMigrations(t *testing.T) {
 	}
 	defer db.Close()
 	var version int
-	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 7 {
+	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != SchemaVersion {
 		t.Fatalf("concurrent migration version=%d err=%v", version, err)
 	}
 }

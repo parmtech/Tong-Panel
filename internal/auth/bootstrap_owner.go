@@ -9,6 +9,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/parmtech/tong-panel/internal/database"
 )
 
 // ErrBootstrapUnavailable covers an already initialized panel, invalid
@@ -105,7 +107,7 @@ func BootstrapOwner(ctx context.Context, db *sql.DB, username, tenantName string
 	if err := conn.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return empty, err
 	}
-	if version != 7 {
+	if version != database.SchemaVersion {
 		return empty, ErrBootstrapUnavailable
 	}
 	var populated int
