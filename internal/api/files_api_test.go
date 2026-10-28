@@ -174,7 +174,7 @@ func TestFilesWriteAPIReservesQuotaBeforeCreateAndStaysTenantScoped(t *testing.T
 	rootA, rootB := attachTestTenantFiles(t, s)
 	quota := newTestFileQuota(5)
 	s.FileQuota = quota
-	tokenB, csrfB, _, err := sessions.Issue(rbac.Principal{UserID: "u2", TenantID: "tenant-b", Role: rbac.Customer}, time.Hour)
+	tokenB, csrfB, _, err := sessions.Issue(rbac.Principal{UserID: "u3", TenantID: "tenant-b", Role: rbac.Customer}, time.Hour)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +242,7 @@ func TestFilesWriteAPIFailureReleasesQuotaAndRejectsRolesAndPaths(t *testing.T) 
 			t.Errorf("invalid path %q status=%d body=%s", path, rec.Code, rec.Body.String())
 		}
 	}
-	auditorToken, auditorCSRF, _, err := sessions.Issue(rbac.Principal{UserID: "audit", TenantID: "tenant-a", Role: rbac.Auditor}, time.Hour)
+	auditorToken, auditorCSRF, _, err := sessions.Issue(rbac.Principal{UserID: "u4", TenantID: "tenant-a", Role: rbac.Auditor}, time.Hour)
 	if err != nil {
 		t.Fatal(err)
 	}
