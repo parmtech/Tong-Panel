@@ -13,12 +13,12 @@
 - **Verified code head:** `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed Go checks [#40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640) (gofmt, full `go test -race ./...`, vet), non-destructive daemon smoke [#40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840), and unsigned developer archive lab [#40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588). These validate this code head; they do not certify a release or security approval.
 - **Authentication boundary:** owner/security review must record ADR-009/P0 decisions before a public login route; keep public login and production deployment disabled. Isolated non-privileged prototypes can continue.
 
-## CURRENT P2 SLICE — concurrent two-tenant archive isolation
-- **Branch/PR:** `feature/p2-tenant-archive-race`, draft [PR #49](https://github.com/parmtech/Tong-Panel/pull/49), stacked on #48/#47/#46. Code commit: `141e0aab6119c346f2ff761c4bb1ecc2da62beae`.
-- **Change/tests:** two distinct pinned tenant roots concurrently receive 16 extraction attempts each to the same relative site path. The test requires one winner per tenant, `ErrAlreadyExists` for each same-tenant loser, tenant-specific site contents, and no staging leaks.
-- **Validation:** Go formatting/full race/vet [#40618958111](https://github.com/parmtech/Tong-Panel/actions/runs/40618958111), daemon [#40618958138](https://github.com/parmtech/Tong-Panel/actions/runs/40618958138), unsigned package [#40618957985](https://github.com/parmtech/Tong-Panel/actions/runs/40618957985), and Ubuntu 24.04/Debian 12 clean-VM matrix [#40618958036](https://github.com/parmtech/Tong-Panel/actions/runs/40618958036) all passed on the code head.
-- **Limits/status:** test-only proof of internal pinned-root isolation; not authenticated HTTP/API authorization, quotas, installer/service lifecycle or restore. ADR/threat-model owner-security review pending; P2 incomplete and no production host changed.
-- **Next:** continue isolated unprivileged vertical slices; privileged hosting features remain gated by approved P0/P1 boundaries.
+## CURRENT P2 SLICE — fail-closed pre-mutation gate
+- **Branch/PR:** `feature/p2-mutation-preflight-gate`, draft [PR #50](https://github.com/parmtech/Tong-Panel/pull/50), stacked on #49/#48/#47. Latest code head: `55544dcb3a6505a4967fa67ad44046e6111d1b0b`.
+- **Change/tests:** pure read-only evaluator requires an explicit minimum disk threshold and required ports; it blocks unsupported OS, malformed facts, low/unknown disk, occupied/unknown ports and missing/invalid policy. It does not mutate a host and no installer consumes it.
+- **Validation:** Go formatting/full race/vet [#40619972006](https://github.com/parmtech/Tong-Panel/actions/runs/40619972006), daemon [#40619972004](https://github.com/parmtech/Tong-Panel/actions/runs/40619972004), and unsigned package [#40619972005](https://github.com/parmtech/Tong-Panel/actions/runs/40619972005) all passed on the code head. A formatting issue in the initial draft was corrected before this passing head.
+- **Limits/status:** the thresholds/policy require owner review and no real pre-mutation installer exists. No install/rollback/restore evidence; ADR/threat-model owner-security review remains pending. P2 incomplete; no host changed.
+- **Next:** continue only explicitly scoped, unprivileged work pending the required P0/P1 trust decisions.
 
 ## PRIOR VERIFIED P2 SLICE — root-close-safe bounded file uploads
 - **Branch/PR:** `feature/p2-stream-close-safe`, draft [PR #42](https://github.com/parmtech/Tong-Panel/pull/42), stacked on draft #41/#40/#39/#38/#37/#36/#35. Executable code commit: `faa220eed997f68b225dc105cc4386227d742dfe`.
@@ -412,3 +412,10 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - It requires one successful publication per tenant, same-tenant losers to get `ErrAlreadyExists`, tenant-specific content on readback, and both stage areas clean.
 - Code commit `141e0aab6119c346f2ff761c4bb1ecc2da62beae` passed [Go/race/vet #40618958111](https://github.com/parmtech/Tong-Panel/actions/runs/40618958111), [daemon #40618958138](https://github.com/parmtech/Tong-Panel/actions/runs/40618958138), [package #40618957985](https://github.com/parmtech/Tong-Panel/actions/runs/40618957985), and Ubuntu/Debian clean guests [#40618958036](https://github.com/parmtech/Tong-Panel/actions/runs/40618958036).
 - This is internal Files primitive isolation evidence only. P0 owner/security review and P2 acceptance gates remain incomplete; no live host changed.
+
+
+### 2026-10-28 — P2 fail-closed pre-mutation gate
+- Draft [PR #50](https://github.com/parmtech/Tong-Panel/pull/50), stacked on #49/#48/#47, adds a pure evaluator for future installer callers with explicit disk and TCP-port requirements.
+- Focused negatives block unsupported OS, invalid facts, low/unknown disk, occupied/unknown required ports and missing/invalid policy. No installer or host mutation consumes this function.
+- Corrected code head `55544dcb3a6505a4967fa67ad44046e6111d1b0b` passed [Go/race/vet #40619972006](https://github.com/parmtech/Tong-Panel/actions/runs/40619972006), [daemon #40619972004](https://github.com/parmtech/Tong-Panel/actions/runs/40619972004), and [package #40619972005](https://github.com/parmtech/Tong-Panel/actions/runs/40619972005). Initial gofmt alignment was corrected.
+- Thresholds require owner review. This is a fail-closed helper, not installer, distro certification or P2 exit proof. P2 remains incomplete.
