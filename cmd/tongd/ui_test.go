@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/parmtech/tong-panel/internal/api"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/parmtech/tong-panel/internal/api"
 )
 
 func TestUIAndStaticRouting(t *testing.T) {
