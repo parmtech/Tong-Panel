@@ -32,7 +32,8 @@ func TestRenderPHPFPMPoolRequiresVerifiedIsolatedSite(t *testing.T) {
 		"[tp_", "user = tp_", "group = tp_", "listen = /run/tong/php/tenant-a/site-a.sock",
 		"listen.owner = www-data", "listen.mode = 0660", "pm = ondemand",
 		"pm.max_children = 5", "clear_env = yes", "security.limit_extensions = .php",
-		"php_admin_value[open_basedir] = /srv/tong/tenants/tenant-a/sites/site-a/public:/srv/tong/tenants/tenant-a/run/site-a:/tmp",
+		"php_admin_value[open_basedir] = /srv/tong/tenants/tenant-a/sites/site-a/public:/srv/tong/tenants/tenant-a/run/site-a",
+		"sys_temp_dir] = /srv/tong/tenants/tenant-a/run/site-a/tmp",
 		"upload_tmp_dir] = /srv/tong/tenants/tenant-a/run/site-a/tmp",
 		"session.save_path] = /srv/tong/tenants/tenant-a/run/site-a/sessions",
 		"request_terminate_timeout = 60s",
@@ -41,7 +42,8 @@ func TestRenderPHPFPMPoolRequiresVerifiedIsolatedSite(t *testing.T) {
 			t.Errorf("pool config missing %q:\n%s", expected, config)
 		}
 	}
-	if strings.Contains(config, "php_admin_value[disable_functions]") ||
+	if strings.Contains(config, "open_basedir] = /srv/tong/tenants/tenant-a/sites/site-a/public:/srv/tong/tenants/tenant-a/run/site-a:/tmp") ||
+		strings.Contains(config, "php_admin_value[disable_functions]") ||
 		strings.Contains(config, "listen = 127.0.0.1") {
 		t.Fatalf("unexpected unsafe or TCP listener in generated pool:\n%s", config)
 	}
