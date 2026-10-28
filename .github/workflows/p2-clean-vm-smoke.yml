@@ -15,6 +15,10 @@ on:
       - 'scripts/verify_vm_image_checksum.sh'
       - 'scripts/test_verify_vm_image_checksum.sh'
       - 'scripts/clean_vm_smoke.sh'
+      - 'scripts/build_deb.sh'
+      - 'scripts/test_deb_package.sh'
+      - 'scripts/p2_package_install_vm.sh'
+      - 'packaging/debian/**'
       - '.github/workflows/p2-clean-vm-smoke.yml'
 permissions:
   contents: read
@@ -61,6 +65,8 @@ jobs:
           (cd "$RUNNER_TEMP" && sha256sum tong-p1-UNSIGNED-dev-linux-amd64.tar.gz > SHA256SUMS)
       - name: Verify image checker rejects tampered and malformed input
         run: bash scripts/test_verify_vm_image_checksum.sh
+      - name: Build and validate unsigned developer package fixtures
+        run: bash scripts/test_deb_package.sh "$RUNNER_TEMP/tong-package-lab" "$RUNNER_TEMP/tong-p1-dev/bin/tongd" "$RUNNER_TEMP/tong-p1-dev/bin/tongctl"
       - name: Boot clean guest and run the extracted preview smoke
         env:
           VM_DISTRO: ${{ matrix.distro }}

@@ -107,7 +107,9 @@ retry_guest_scp() {
 # wait command and file transfers across that expected one-time disconnect.
 retry_guest_ssh "cloud-init status --wait"
 retry_guest_scp "$VM_RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" "$VM_RUNNER_TEMP/SHA256SUMS" "$guest:/home/ci/"
+retry_guest_scp "$VM_RUNNER_TEMP/tong-package-lab/tong-panel-dev-v1.deb" "$VM_RUNNER_TEMP/tong-package-lab/tong-panel-dev-v2.deb" "$VM_RUNNER_TEMP/tong-package-lab/PACKAGES.SHA256SUMS" "$guest:/home/ci/"
 retry_guest_scp scripts/smoke_p1.py "$guest:/home/ci/smoke_p1.py"
+retry_guest_scp scripts/p2_package_install_vm.sh "$guest:/home/ci/p2_package_install_vm.sh"
 cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -301,16 +303,18 @@ printf '%s\n' 'two-tenant HTTPS smoke passed; HTTP redirects, ACME challenge pat
 # The preflight is read-only: this intentionally reports the ports occupied by
 # the disposable Nginx fixture as blockers and exits 3 rather than authorizing
 # any installation step. The command has no mutation implementation.
-set +e
-/home/ci/tong-p1-dev/bin/tongctl preflight --min-disk-bytes 1 --required-tcp-ports 80,443 > install-preflight.json
-preflight_status=$?
-set -e
+if /home/ci/tong-p1-dev/bin/tongctl preflight --min-disk-bytes 1 --required-tcp-ports 80,443 > install-preflight.json; then
+  preflight_status=0
+else
+  preflight_status=$?
+fi
 [[ "$preflight_status" == 3 ]]
 python3 -c 'import json; d=json.load(open("install-preflight.json")); assert d["gate"]["allowed"] is False; assert "tcp_port_in_use:80" in d["gate"]["blockers"]; assert "tcp_port_in_use:443" in d["gate"]["blockers"]; assert "not installation authorization" in d["notice"]; print("clean-guest install preflight correctly blocked occupied web ports without host mutation")'
 bash ./tong-p1-dev/tests/mariadb-isolation.sh
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
 python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
+bash ./p2_package_install_vm.sh ./tong-panel-dev-v1.deb ./tong-panel-dev-v2.deb
 GUEST
 scp "${scp_opts[@]}" "$work/guest-check.sh" "$guest:/home/ci/guest-check.sh"
 ssh "${ssh_opts[@]}" "$guest" bash /home/ci/guest-check.sh "$VM_EXPECTED_ID" "$VM_EXPECTED_VERSION"
