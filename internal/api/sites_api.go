@@ -184,7 +184,7 @@ func writeSiteError(w http.ResponseWriter, err error) {
 	case errors.Is(err, sites.ErrSiteExists), errors.Is(err, sites.ErrDomainClaimed),
 		errors.Is(err, sites.ErrDomainVerificationState):
 		fail(w, http.StatusConflict, "site_conflict")
- 	case errors.Is(err, sites.ErrSiteNotFound), errors.Is(err, sites.ErrDomainNotFound):
+	case errors.Is(err, sites.ErrSiteNotFound), errors.Is(err, sites.ErrDomainNotFound):
 		fail(w, http.StatusNotFound, "not_found")
 	case errors.Is(err, sites.ErrPrimaryDomain):
 		fail(w, http.StatusConflict, "primary_domain_required")
@@ -199,7 +199,6 @@ func writeSiteError(w http.ResponseWriter, err error) {
 	}
 }
 
- 
 func (s *Server) siteDomainRemove(w http.ResponseWriter, r *http.Request, p rbac.Principal, siteID, domain string) {
 	if r.Method != http.MethodDelete {
 		w.Header().Set("Allow", http.MethodDelete)
