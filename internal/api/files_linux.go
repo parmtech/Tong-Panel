@@ -58,6 +58,14 @@ func (f tenantFileRoots) WriteNewForTenant(tenantID, relative string, content io
 	return counted.read, nil
 }
 
+func (f tenantFileRoots) RemoveForTenant(tenantID, relative string) (int64, error) {
+	removed, err := f.roots.RemoveFileWithSizeForTenant(tenantID, relative)
+	if err != nil {
+		return removed, mapTenantFileError(err)
+	}
+	return removed, nil
+}
+
 type countingReader struct {
 	reader io.Reader
 	read   int64

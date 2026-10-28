@@ -258,37 +258,127 @@ func writeNewFromRootFD(rootFD int, relative string, src io.Reader, maxBytes int
 // successful unlink followed by a directory-sync error means durability is
 // uncertain even though the path may already be absent.
 func (r *Root) RemoveFile(relative string) error {
+	_, err := r.RemoveFileWithSize(relative)
+	return err
+}
+
+// RemoveFileWithSize removes one regular file or symlink entry and reports the
+// regular-file bytes removed. A symlink contributes no tenant file bytes.
+func (r *Root) RemoveFileWithSize(relative string) (int64, error) {
 	if r == nil {
-		return ErrClosed
+		return 0, ErrClosed
 	}
 	if !validRelativePath(relative) {
-		return ErrInvalidPath
+		return 0, ErrInvalidPath
 	}
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if !r.open {
-		return ErrClosed
+		return 0, ErrClosed
 	}
 	parent, base, err := r.openParent(relative)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer unix.Close(parent)
+	rootFD, err := unix.Openat2(r.fd, ".", &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		return 0, err
+	}
+	defer unix.Close(rootFD)
+
+	stage, stageFD, err := newWriteStage(r.fd)
+	if err != nil {
+		return 0, err
+	}
+	locked := true
+	defer func() {
+		if locked {
+			_ = unix.Flock(stageFD, unix.LOCK_UN)
+		}
+		_ = unix.Close(stageFD)
+	}()
+	if err := unix.Renameat2(parent, base, stageFD, "entry", unix.RENAME_NOREPLACE); err != nil {
+		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		return 0, err
+	}
 
 	var stat unix.Stat_t
-	if err := unix.Fstatat(parent, base, &stat, unix.AT_SYMLINK_NOFOLLOW); err != nil {
-		return err
+	if err := unix.Fstatat(stageFD, "entry", &stat, unix.AT_SYMLINK_NOFOLLOW); err != nil {
+		_ = unix.Renameat2(stageFD, "entry", parent, base, unix.RENAME_NOREPLACE)
+		return 0, err
 	}
+	var removed int64
 	switch stat.Mode & unix.S_IFMT {
-	case unix.S_IFREG, unix.S_IFLNK:
-		// unlinkat removes the directory entry and never dereferences symlinks.
+	case unix.S_IFREG:
+		removed = stat.Size
+	case unix.S_IFLNK:
+		// Symlink entries do not contribute to regular-file quota usage.
 	default:
-		return ErrNotRegular
+		if restoreErr := unix.Renameat2(stageFD, "entry", parent, base, unix.RENAME_NOREPLACE); restoreErr != nil {
+			return 0, fmt.Errorf("%w: restore unsupported file after removal denial: %v", ErrPublishedDurabilityUnconfirmed, restoreErr)
+		}
+		return 0, ErrNotRegular
 	}
-	if err := unix.Unlinkat(parent, base, 0); err != nil {
-		return err
+	if err := unix.Unlinkat(stageFD, "entry", 0); err != nil {
+		if restoreErr := unix.Renameat2(stageFD, "entry", parent, base, unix.RENAME_NOREPLACE); restoreErr != nil {
+			return 0, fmt.Errorf("%w: restore file after unlink failure: %v", ErrPublishedDurabilityUnconfirmed, restoreErr)
+		}
+		return 0, err
 	}
-	return unix.Fsync(parent)
+	if err := unix.Fsync(stageFD); err != nil {
+		return removed, fmt.Errorf("%w: %v", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	_ = unix.Flock(stageFD, unix.LOCK_UN)
+	locked = false
+	if err := unix.Close(stageFD); err != nil {
+		return removed, fmt.Errorf("%w: close removal stage: %v", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	stageFD = -1
+	if err := unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR); err != nil {
+		return removed, fmt.Errorf("%w: remove empty deletion stage: %v", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	if err := unix.Fsync(rootFD); err != nil {
+		return removed, fmt.Errorf("%w: %v", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	if err := unix.Fsync(parent); err != nil {
+		return removed, fmt.Errorf("%w: %v", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	return removed, nil
+}
+
+func newWriteStage(rootFD int) (string, int, error) {
+	for attempt := 0; attempt < 4; attempt++ {
+		var random [16]byte
+		if _, err := rand.Read(random[:]); err != nil {
+			return "", -1, err
+		}
+		name := writeStagePrefix + hex.EncodeToString(random[:])
+		if err := unix.Mkdirat(rootFD, name, 0700); err != nil {
+			if errors.Is(err, unix.EEXIST) {
+				continue
+			}
+			return "", -1, err
+		}
+		fd, err := unix.Openat2(rootFD, name, &unix.OpenHow{
+			Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+			Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+		})
+		if err != nil {
+			_ = unix.Unlinkat(rootFD, name, unix.AT_REMOVEDIR)
+			return "", -1, err
+		}
+		if err := unix.Flock(fd, unix.LOCK_EX|unix.LOCK_NB); err != nil {
+			_ = unix.Close(fd)
+			_ = unix.Unlinkat(rootFD, name, unix.AT_REMOVEDIR)
+			return "", -1, err
+		}
+		return name, fd, nil
+	}
+	return "", -1, unix.EEXIST
 }
 
 func (r *Root) openParent(relative string) (int, string, error) {

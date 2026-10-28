@@ -91,6 +91,16 @@ func (q *testFileQuota) Reserve(tenantID string, bytes int64) (FileQuotaReservat
 	return &testFileQuotaReservation{quota: q, tenantID: tenantID, bytes: bytes}, nil
 }
 
+func (q *testFileQuota) RemoveUsed(tenantID string, bytes int64) error {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if bytes < 0 || q.used[tenantID] < bytes {
+		return ErrFileQuotaAccounting
+	}
+	q.used[tenantID] -= bytes
+	return nil
+}
+
 type testFileQuotaReservation struct {
 	quota    *testFileQuota
 	tenantID string
@@ -112,6 +122,8 @@ type failingCommitQuota struct{ reservation *failingCommitReservation }
 func (q failingCommitQuota) Reserve(string, int64) (FileQuotaReservation, error) {
 	return q.reservation, nil
 }
+
+func (q failingCommitQuota) RemoveUsed(string, int64) error { return io.ErrClosedPipe }
 
 type failingCommitReservation struct {
 	commitCalls  int
@@ -167,6 +179,72 @@ func fileWriteCall(h http.Handler, path, token, csrf, body string) *httptest.Res
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	return rec
+}
+
+func fileDeleteCall(h http.Handler, path, token, csrf string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodDelete, "https://panel.test"+path, nil)
+	req.TLS = &tls.ConnectionState{}
+	req.AddCookie(&http.Cookie{Name: auth.BrowserCookieName, Value: token})
+	req.Header.Set("X-CSRF-Token", csrf)
+	req.Header.Set("Origin", "https://panel.test")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestFilesDeleteIsTenantScopedAndReleasesUsedQuota(t *testing.T) {
+	s, sessions, _, tokenA, csrfA := setupCookieAPI(t)
+	rootA, rootB := attachTestTenantFiles(t, s)
+	quota := newTestFileQuota(16)
+	s.FileQuota = quota
+	h := s.Handler()
+	if rec := fileWriteCall(h, "/api/v1/files/content?path=delete-me.txt", tokenA, csrfA, "data"); rec.Code != http.StatusCreated {
+		t.Fatalf("seed write status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	tokenB, csrfB, _, err := sessions.Issue(rbac.Principal{UserID: "u3", TenantID: "tenant-b", Role: rbac.Customer}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec := fileDeleteCall(h, "/api/v1/files/content?path=delete-me.txt", tokenB, csrfB); rec.Code != http.StatusNotFound {
+		t.Fatalf("cross-tenant delete status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if rec := fileDeleteCall(h, "/api/v1/files/content?path=delete-me.txt", tokenA, csrfA); rec.Code != http.StatusNoContent {
+		t.Fatalf("delete status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if _, err := os.Stat(filepath.Join(rootA, "delete-me.txt")); !os.IsNotExist(err) {
+		t.Fatalf("deleted file still exists: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(rootB, "delete-me.txt")); !os.IsNotExist(err) {
+		t.Fatalf("cross-tenant file appeared: %v", err)
+	}
+	if used, reserved := quota.snapshot("tenant-a"); used != 0 || reserved != 0 {
+		t.Fatalf("quota after delete used=%d reserved=%d", used, reserved)
+	}
+	if rec := fileDeleteCall(h, "/api/v1/files/content?path=delete-me.txt", tokenA, csrfA); rec.Code != http.StatusNotFound {
+		t.Fatalf("duplicate delete status=%d", rec.Code)
+	}
+}
+
+func TestFilesDeleteRequiresWriterAndRejectsInvalidPathAndCSRF(t *testing.T) {
+	s, sessions, _, token, csrf := setupCookieAPI(t)
+	attachTestTenantFiles(t, s)
+	s.FileQuota = newTestFileQuota(16)
+	h := s.Handler()
+	for _, path := range []string{"/api/v1/files/content?path=../escape", "/api/v1/files/content?path=x&tenant=tenant-b"} {
+		if rec := fileDeleteCall(h, path, token, csrf); rec.Code != http.StatusBadRequest {
+			t.Errorf("invalid delete %q status=%d", path, rec.Code)
+		}
+	}
+	if rec := fileDeleteCall(h, "/api/v1/files/content?path=private.txt", token, "wrong"); rec.Code != http.StatusForbidden {
+		t.Fatalf("missing CSRF status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	auditor, auditorCSRF, _, err := sessions.Issue(rbac.Principal{UserID: "u4", TenantID: "tenant-a", Role: rbac.Auditor}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec := fileDeleteCall(h, "/api/v1/files/content?path=private.txt", auditor, auditorCSRF); rec.Code != http.StatusForbidden {
+		t.Fatalf("auditor delete status=%d", rec.Code)
+	}
 }
 
 func TestFilesWriteAPIReservesQuotaBeforeCreateAndStaysTenantScoped(t *testing.T) {
