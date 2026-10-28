@@ -1,5 +1,6 @@
 import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
+import { downloadTenantFile, listTenantFiles } from './files-explorer.mjs';
 
 const tiles = [
     { title: 'Websites', icon: '🌐', subtitle: 'Sites & PHP', stage: 'P2' },
@@ -28,6 +29,10 @@ const sitePreviewID = document.querySelector('#site-preview-id');
 const sitePreviewStatus = document.querySelector('#site-preview-status');
 const sitePreviewOutput = document.querySelector('#site-preview-output');
 const sitePreviewSubmit = document.querySelector('#site-preview-submit');
+const filesRefresh = document.querySelector('#files-refresh');
+const filesStatus = document.querySelector('#files-status');
+const filesList = document.querySelector('#files-list');
+const filesBreadcrumbs = document.querySelector('#files-breadcrumbs');
 const filterText = (text) => {
     if (!list)
         return;
@@ -122,4 +127,138 @@ sitePreviewForm?.addEventListener('submit', async (event) => {
         sitePreviewSubmit.removeAttribute('aria-busy');
     }
 });
+
+let filesPath = [];
+function formatFileSize(size) {
+    if (size < 1024)
+        return `${size} B`;
+    if (size < 1024 * 1024)
+        return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+function renderFilesBreadcrumbs() {
+    if (!filesBreadcrumbs)
+        return;
+    filesBreadcrumbs.replaceChildren();
+    const labels = ['Files', ...filesPath];
+    labels.forEach((label, index) => {
+        if (index > 0) {
+            const separator = document.createElement('span');
+            separator.textContent = '›';
+            separator.setAttribute('aria-hidden', 'true');
+            filesBreadcrumbs.append(separator);
+        }
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = label;
+        button.setAttribute('aria-current', index === labels.length - 1 ? 'location' : 'false');
+        button.addEventListener('click', () => {
+            filesPath = filesPath.slice(0, index);
+            void refreshFiles();
+        });
+        filesBreadcrumbs.append(button);
+    });
+}
+function renderFilesEntries(entries) {
+    if (!filesList)
+        return;
+    filesList.replaceChildren();
+    const sorted = [...entries].sort((a, b) => {
+        const aDirectory = a.kind === 'directory' ? 0 : 1;
+        const bDirectory = b.kind === 'directory' ? 0 : 1;
+        return aDirectory - bDirectory || a.name.localeCompare(b.name);
+    });
+    for (const entry of sorted) {
+        const item = document.createElement('li');
+        item.className = 'file-entry';
+        const name = document.createElement('span');
+        name.className = 'file-entry-name';
+        name.textContent = entry.kind === 'directory' ? `📁 ${entry.name}` : entry.name;
+        const detail = document.createElement('span');
+        detail.className = 'file-entry-detail';
+        detail.textContent = entry.kind === 'file' ? formatFileSize(entry.size) : entry.kind === 'directory' ? 'Folder' : entry.kind === 'symlink' ? 'Link · not followed' : 'Unsupported entry';
+        item.append(name, detail);
+        if (entry.kind === 'directory') {
+            const open = document.createElement('button');
+            open.type = 'button';
+            open.textContent = 'Open folder';
+            open.setAttribute('aria-label', `Open folder ${entry.name}`);
+            open.addEventListener('click', () => {
+                filesPath = [...filesPath, entry.name];
+                void refreshFiles();
+            });
+            item.append(open);
+        }
+        else if (entry.kind === 'file') {
+            const download = document.createElement('button');
+            download.type = 'button';
+            download.textContent = 'Download';
+            download.setAttribute('aria-label', `Download ${entry.name}`);
+            download.addEventListener('click', () => void downloadFile(entry.name, download));
+            item.append(download);
+        }
+        filesList.append(item);
+    }
+    if (sorted.length === 0) {
+        const empty = document.createElement('li');
+        empty.className = 'file-entry';
+        empty.textContent = 'This folder is empty.';
+        filesList.append(empty);
+    }
+}
+async function refreshFiles() {
+    if (!filesRefresh || !filesStatus || !filesList)
+        return;
+    filesRefresh.disabled = true;
+    filesRefresh.setAttribute('aria-busy', 'true');
+    filesStatus.dataset.state = 'loading';
+    filesStatus.textContent = 'Loading files…';
+    try {
+        const entries = await listTenantFiles(filesPath.join('/'));
+        renderFilesBreadcrumbs();
+        renderFilesEntries(entries);
+        filesStatus.dataset.state = 'available';
+        filesStatus.textContent = `${entries.length} ${entries.length === 1 ? 'item' : 'items'} loaded. Links are never followed.`;
+    }
+    catch (error) {
+        renderFilesBreadcrumbs();
+        filesList.replaceChildren();
+        filesStatus.dataset.state = 'unavailable';
+        filesStatus.textContent = error instanceof Error ? error.message : 'Files could not be loaded. Try again.';
+    }
+    finally {
+        filesRefresh.disabled = false;
+        filesRefresh.removeAttribute('aria-busy');
+    }
+}
+async function downloadFile(name, button) {
+    button.disabled = true;
+    try {
+        const file = await downloadTenantFile([...filesPath, name].join('/'));
+        const objectURL = URL.createObjectURL(file.blob);
+        const link = document.createElement('a');
+        link.href = objectURL;
+        link.download = file.name;
+        link.hidden = true;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectURL), 1000);
+        if (filesStatus) {
+            filesStatus.dataset.state = 'available';
+            filesStatus.textContent = `Downloaded ${file.name}.`;
+        }
+    }
+    catch (error) {
+        if (filesStatus) {
+            filesStatus.dataset.state = 'unavailable';
+            filesStatus.textContent = error instanceof Error ? error.message : 'The file could not be downloaded. Try again.';
+        }
+    }
+    finally {
+        button.disabled = false;
+    }
+}
+filesRefresh?.addEventListener('click', () => void refreshFiles());
+renderFilesBreadcrumbs();
 export {};
