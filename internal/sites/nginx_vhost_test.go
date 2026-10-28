@@ -2,6 +2,7 @@ package sites
 
 import (
 	"errors"
+	"os"
 	"strings"
 	"testing"
 )
@@ -17,6 +18,11 @@ func TestRenderNginxVhostRequiresVerifiedCanonicalDomains(t *testing.T) {
 	config, err := RenderNginxVhost(site, HostingPaths{TenantRoot: "/srv/tong", PHPSocketRoot: "/run/tong/php"})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if output := os.Getenv("TONG_NGINX_PREVIEW_PATH"); output != "" {
+		if err := os.WriteFile(output, []byte(config), 0600); err != nil {
+			t.Fatalf("write nginx config preview for clean-VM syntax check: %v", err)
+		}
 	}
 	for _, expected := range []string{
 		"server_name example.com www.example.com;",
