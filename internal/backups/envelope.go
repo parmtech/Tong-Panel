@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	FormatVersion          byte  = 1
-	ChunkSize                    = 64 << 10
-	DefaultMaxPlaintextBytes     = int64(64 << 30)
-	MaxPlaintextBytes            = int64(64 << 30)
-	wrappedKeySize               = 32 + 16
-	headerSize                   = 8 + 1 + 12 + wrappedKeySize + 8
+	FormatVersion            byte = 1
+	ChunkSize                     = 64 << 10
+	DefaultMaxPlaintextBytes      = int64(64 << 30)
+	MaxPlaintextBytes             = int64(64 << 30)
+	wrappedKeySize                = 32 + 16
+	headerSize                    = 8 + 1 + 12 + wrappedKeySize + 8
 )
 
 var (
