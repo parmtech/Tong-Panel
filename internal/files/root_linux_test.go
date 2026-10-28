@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
@@ -291,7 +292,7 @@ func assertNoStagingDirectories(t *testing.T, root string) {
 		t.Fatal(err)
 	}
 	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), ".tong-stage-") {
+		if strings.HasPrefix(entry.Name(), ".tong-stage-") || strings.HasPrefix(entry.Name(), ".tong-archive-stage-") {
 			t.Errorf("staging directory leaked after operation: %q", entry.Name())
 		}
 	}
@@ -920,5 +921,101 @@ func TestTenantRootsScopeArchiveExtraction(t *testing.T) {
 	}
 	if err := roots.ExtractGzipTarNewForTenant("tenant-a", "../tenant-b/site", archive, ArchiveLimits{}); !errors.Is(err, ErrInvalidPath) {
 		t.Fatalf("tenant traversal extraction error = %v", err)
+	}
+}
+
+func TestCleanupStaleArchiveStagesRemovesOnlyOldOwnedStages(t *testing.T) {
+	r, root := newTestRoot(t)
+	oldName := ".tong-archive-stage-0123456789abcdef0123456789abcdef"
+	recentName := ".tong-archive-stage-1123456789abcdef0123456789abcdef"
+	unrelatedName := ".tong-stage-2123456789abcdef"
+	outside := t.TempDir()
+	for _, name := range []string{oldName, recentName, unrelatedName} {
+		if err := os.Mkdir(filepath.Join(root, name), 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, oldName, "partial"), []byte("partial"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	oldTime := time.Now().Add(-2 * time.Hour)
+	if err := os.Chtimes(filepath.Join(root, oldName), oldTime, oldTime); err != nil {
+		t.Fatal(err)
+	}
+	linkName := ".tong-archive-stage-3123456789abcdef0123456789abcdef"
+	if err := os.Symlink(outside, filepath.Join(root, linkName)); err != nil {
+		t.Fatal(err)
+	}
+
+	removed, err := r.CleanupStaleArchiveStages(time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed != 1 {
+		t.Fatalf("removed stages = %d, want 1", removed)
+	}
+	if _, err := os.Lstat(filepath.Join(root, oldName)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("old stage still exists: %v", err)
+	}
+	for _, name := range []string{recentName, unrelatedName, linkName} {
+		if _, err := os.Lstat(filepath.Join(root, name)); err != nil {
+			t.Fatalf("non-stale/non-stage path %q was removed: %v", name, err)
+		}
+	}
+	entries, err := os.ReadDir(outside)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("outside directory changed: %#v, %v", entries, err)
+	}
+	if _, err := r.CleanupStaleArchiveStages(time.Minute); !errors.Is(err, ErrInvalidLimit) {
+		t.Fatalf("too-short cleanup age error = %v", err)
+	}
+}
+
+func TestCleanupStaleArchiveStagesSkipsActiveLockThenRemovesOrphan(t *testing.T) {
+	r, root := newTestRoot(t)
+	name := ".tong-archive-stage-4123456789abcdef0123456789abcdef"
+	stagePath := filepath.Join(root, name)
+	if err := os.Mkdir(stagePath, 0700); err != nil {
+		t.Fatal(err)
+	}
+	oldTime := time.Now().Add(-2 * time.Hour)
+	if err := os.Chtimes(stagePath, oldTime, oldTime); err != nil {
+		t.Fatal(err)
+	}
+	stageFD, err := unix.Openat2(r.fd, name, &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := unix.Flock(stageFD, unix.LOCK_EX|unix.LOCK_NB); err != nil {
+		_ = unix.Close(stageFD)
+		t.Fatal(err)
+	}
+	removed, err := r.CleanupStaleArchiveStages(time.Hour)
+	if err != nil || removed != 0 {
+		_ = unix.Flock(stageFD, unix.LOCK_UN)
+		_ = unix.Close(stageFD)
+		t.Fatalf("active stage cleanup = %d, %v", removed, err)
+	}
+	if _, err := os.Stat(stagePath); err != nil {
+		_ = unix.Flock(stageFD, unix.LOCK_UN)
+		_ = unix.Close(stageFD)
+		t.Fatalf("active stage was removed: %v", err)
+	}
+	if err := unix.Flock(stageFD, unix.LOCK_UN); err != nil {
+		_ = unix.Close(stageFD)
+		t.Fatal(err)
+	}
+	if err := unix.Close(stageFD); err != nil {
+		t.Fatal(err)
+	}
+	removed, err = r.CleanupStaleArchiveStages(time.Hour)
+	if err != nil || removed != 1 {
+		t.Fatalf("orphan cleanup = %d, %v", removed, err)
+	}
+	if _, err := os.Lstat(stagePath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("orphan stage still exists: %v", err)
 	}
 }
