@@ -76,10 +76,18 @@ func TestRenderNginxHTTPSVhostRejectsUnsafeInputs(t *testing.T) {
 		want error
 	}{
 		{"unverified domain", func(s *SiteRecord, _ *HostingPaths, _ *NginxTLSFiles) { s.Domains[0].OwnershipState = "pending" }, ErrSiteNotReady},
-		{"injected domain", func(s *SiteRecord, _ *HostingPaths, _ *NginxTLSFiles) { s.Domains[0].Name = "example.com; include /tmp/evil;" }, ErrInvalidSpec},
-		{"TLS path traversal", func(_ *SiteRecord, _ *HostingPaths, tls *NginxTLSFiles) { tls.PrivateKeyFile = "/etc/tong/certs/tenant-a/../privkey.pem" }, ErrInvalidTLSFiles},
-		{"cross-tenant certificate", func(_ *SiteRecord, _ *HostingPaths, tls *NginxTLSFiles) { tls.CertificateFile = "/etc/tong/certs/tenant-b/site-a/fullchain.pem" }, ErrInvalidTLSFiles},
-		{"certificate directive injection", func(_ *SiteRecord, _ *HostingPaths, tls *NginxTLSFiles) { tls.CertificateFile += "; include /tmp/evil;" }, ErrInvalidTLSFiles},
+		{"injected domain", func(s *SiteRecord, _ *HostingPaths, _ *NginxTLSFiles) {
+			s.Domains[0].Name = "example.com; include /tmp/evil;"
+		}, ErrInvalidSpec},
+		{"TLS path traversal", func(_ *SiteRecord, _ *HostingPaths, tls *NginxTLSFiles) {
+			tls.PrivateKeyFile = "/etc/tong/certs/tenant-a/../privkey.pem"
+		}, ErrInvalidTLSFiles},
+		{"cross-tenant certificate", func(_ *SiteRecord, _ *HostingPaths, tls *NginxTLSFiles) {
+			tls.CertificateFile = "/etc/tong/certs/tenant-b/site-a/fullchain.pem"
+		}, ErrInvalidTLSFiles},
+		{"certificate directive injection", func(_ *SiteRecord, _ *HostingPaths, tls *NginxTLSFiles) {
+			tls.CertificateFile += "; include /tmp/evil;"
+		}, ErrInvalidTLSFiles},
 		{"unsafe tenant root", func(_ *SiteRecord, p *HostingPaths, _ *NginxTLSFiles) { p.TenantRoot = "/srv/tong; include /tmp/evil;" }, ErrInvalidHostingPaths},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
