@@ -458,3 +458,9 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Adds authenticated tenant-scoped listing and metadata registration for site databases. The tenant is derived from the principal; database and username identifiers are deterministic and server-generated. No MariaDB instance/account is provisioned and no credential is stored or returned.
 - Focused tests cover anonymous denial, cross-tenant isolation, Auditor read-only access, identifier/field injection rejection, duplicate and concurrent create behavior, missing-site handling, empty-list behavior with one SQLite connection, and unsupported deletion. Exact-head Go/race/vet CI is pending.
 - Remaining DB lifecycle work includes actual privileged adapter design, MariaDB provisioning/removal, secret custody/rotation, backup/export/import, and integration tests. P0 ADR/threat-model owner/security decisions, P1 login/installer/recovery, and broader P2 acceptance remain open.
+
+
+## P2 site database metadata GET API — draft PR #77 (29 October 2026)
+
+- Stacked on #75, adds a read-only per-record endpoint. The handler obtains tenant scope from the authenticated principal; tests cover Auditor read access, cross-tenant and missing-record 404, query-based scope override rejection, and unsupported DELETE. The metadata remains credential-free and provisioning-free.
+- Exact-head CI is pending. This extends the metadata API surface but does not close MariaDB provisioning, credential custody/rotation, backup/restore, or owner/security gates.
