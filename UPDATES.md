@@ -477,3 +477,5 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 
 - Extends the existing Ubuntu 24.04/Debian 12 disposable guest MariaDB grant check: each temporary tenant user dumps its own database, restores it after a controlled data change, and is denied reading, exporting, or importing into the other tenant's database. Dump files and client option files are guest-local with restrictive permissions; cleanup drops both temporary users/databases.
 - The database isolation script is now an explicit pull-request workflow path trigger. Hosted validation is pending for the new branch. This remains test infrastructure, not an application database lifecycle, secret custody design, offsite backup, retention policy, or clean-host restore guarantee. P2 remains IN PROGRESS; ADR/security owner decisions remain pending.
+
+- Exact-head Ubuntu and Debian guest runs reached the database dump/restore assertions successfully. Debian then exposed an unrelated package-smoke `curl | grep -q` SIGPIPE failure (curl exit 23). The smoke now captures the bounded local page before matching; fresh exact-head guest reruns are pending.
