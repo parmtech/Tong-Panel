@@ -89,7 +89,7 @@ func TestOpenRejectsNewerSchemaVersionWithoutDowngrade(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec("PRAGMA user_version = "+fmt.Sprint(SchemaVersion+1)); err != nil {
+	if _, err := db.Exec("PRAGMA user_version = " + fmt.Sprint(SchemaVersion+1)); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Close(); err != nil {
