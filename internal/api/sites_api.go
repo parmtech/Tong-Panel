@@ -91,6 +91,10 @@ func (s *Server) siteResource(w http.ResponseWriter, r *http.Request, p rbac.Pri
 		s.siteDomainAdd(w, r, p, parts[0])
 		return
 	}
+	if len(parts) == 2 && parts[0] != "" && parts[1] == "databases" {
+		s.siteDatabaseCollection(w, r, p, parts[0])
+		return
+	}
 	if len(parts) == 3 && parts[0] != "" && parts[1] == "domains" && parts[2] != "" {
 		s.siteDomainRemove(w, r, p, parts[0], parts[2])
 		return
@@ -105,6 +109,65 @@ func (s *Server) siteResource(w http.ResponseWriter, r *http.Request, p rbac.Pri
 		return
 	}
 	fail(w, http.StatusNotFound, "not_found")
+}
+
+func (s *Server) siteDatabaseCollection(w http.ResponseWriter, r *http.Request, p rbac.Principal, siteID string) {
+	if r.URL.RawQuery != "" {
+		fail(w, http.StatusBadRequest, "invalid_database_request")
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		if !p.Can("sites:read", p.TenantID) {
+			fail(w, http.StatusForbidden, "forbidden")
+			return
+		}
+		if s.SiteCatalog == nil {
+			fail(w, http.StatusServiceUnavailable, "sites_unavailable")
+			return
+		}
+		records, err := s.SiteCatalog.ListDatabases(r.Context(), p.TenantID, siteID)
+		if err != nil {
+			writeSiteError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"databases": records})
+	case http.MethodPost:
+		if !p.Can("sites:write", p.TenantID) {
+			fail(w, http.StatusForbidden, "forbidden")
+			return
+		}
+		if s.SiteCatalog == nil {
+			fail(w, http.StatusServiceUnavailable, "sites_unavailable")
+			return
+		}
+		if r.Header.Get("Content-Type") != "application/json" {
+			fail(w, http.StatusUnsupportedMediaType, "json_required")
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		var req struct {
+			DatabaseID string `json:"database_id"`
+		}
+		if err := decodeSiteJSON(r.Body, &req); err != nil {
+			fail(w, http.StatusBadRequest, "invalid_database_request")
+			return
+		}
+		spec := sites.SiteDatabaseSpec{TenantID: p.TenantID, SiteID: siteID, DatabaseID: req.DatabaseID}
+		if err := s.SiteCatalog.CreateDatabase(r.Context(), spec); err != nil {
+			writeSiteError(w, err)
+			return
+		}
+		record, err := s.SiteCatalog.GetDatabase(r.Context(), p.TenantID, siteID, req.DatabaseID)
+		if err != nil {
+			writeSiteError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusCreated, record)
+	default:
+		w.Header().Set("Allow", "GET, POST")
+		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
+	}
 }
 
 func (s *Server) siteNginxPreview(w http.ResponseWriter, r *http.Request, p rbac.Principal, siteID string) {
@@ -223,10 +286,12 @@ func writeSiteError(w http.ResponseWriter, err error) {
 		fail(w, http.StatusServiceUnavailable, "site_preview_unavailable")
 	case errors.Is(err, sites.ErrInvalidSpec), errors.Is(err, sites.ErrInvalidDomain):
 		fail(w, http.StatusBadRequest, "invalid_site_request")
+	case errors.Is(err, sites.ErrInvalidDatabaseSpec):
+		fail(w, http.StatusBadRequest, "invalid_database_request")
 	case errors.Is(err, sites.ErrSiteExists), errors.Is(err, sites.ErrDomainClaimed),
-		errors.Is(err, sites.ErrDomainVerificationState):
+		errors.Is(err, sites.ErrDomainVerificationState), errors.Is(err, sites.ErrSiteDatabaseExists):
 		fail(w, http.StatusConflict, "site_conflict")
-	case errors.Is(err, sites.ErrSiteNotFound), errors.Is(err, sites.ErrDomainNotFound):
+	case errors.Is(err, sites.ErrSiteNotFound), errors.Is(err, sites.ErrDomainNotFound), errors.Is(err, sites.ErrSiteDatabaseNotFound):
 		fail(w, http.StatusNotFound, "not_found")
 	case errors.Is(err, sites.ErrPrimaryDomain):
 		fail(w, http.StatusConflict, "primary_domain_required")
@@ -234,7 +299,8 @@ func writeSiteError(w http.ResponseWriter, err error) {
 		fail(w, http.StatusForbidden, "domain_proof_invalid")
 	case errors.Is(err, sites.ErrDomainVerificationExpired):
 		fail(w, http.StatusGone, "domain_proof_expired")
-	case errors.Is(err, sites.ErrCatalogUnavailable), errors.Is(err, sites.ErrDomainVerifierUnavailable):
+	case errors.Is(err, sites.ErrCatalogUnavailable), errors.Is(err, sites.ErrDomainVerifierUnavailable),
+		errors.Is(err, sites.ErrSiteDatabaseNameCollision):
 		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
 	default:
 		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
