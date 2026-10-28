@@ -42,3 +42,13 @@ func RotateWrappingKey(dst io.Writer, src io.Reader, tenantID string, oldWrappin
 	}
 	return decryptErr
 }
+
+// RotateWrappingKeyFile stages a complete key rotation beside path and
+// publishes it only after the source envelope is authenticated and the new
+// envelope is fully written. The caller must choose a directory inaccessible
+// to tenants and other untrusted local users.
+func RotateWrappingKeyFile(path string, src io.Reader, tenantID string, oldWrappingKey, newWrappingKey []byte, options Options) error {
+	return stageAndPublish(path, func(dst io.Writer) error {
+		return RotateWrappingKey(dst, src, tenantID, oldWrappingKey, newWrappingKey, options)
+	})
+}
