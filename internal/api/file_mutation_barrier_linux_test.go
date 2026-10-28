@@ -23,6 +23,7 @@ func TestLinuxFileMutationBarrierSubprocessHelper(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer barrier.Close()
 	release, err := barrier.Acquire(context.Background(), "tenant-a", false)
 	if err != nil {
 		t.Fatal(err)
@@ -84,6 +85,7 @@ func TestLinuxFileMutationBarrierDrainsMutationsBeforeMaintenance(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { _ = maintenanceBarrier.Close() })
 	mutationRelease, err := apiBarrier.Acquire(context.Background(), "tenant-a", false)
 	if err != nil {
 		t.Fatal(err)
@@ -132,6 +134,36 @@ func TestLinuxFileMutationBarrierIsTenantScopedAndCancelable(t *testing.T) {
 	}
 }
 
+func TestLinuxFileMutationBarrierCloseKeepsActiveLeaseUntilRelease(t *testing.T) {
+	barrier, directory := newTestLinuxFileMutationBarrier(t)
+	release, err := barrier.Acquire(context.Background(), "tenant-a", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := barrier.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := barrier.Acquire(context.Background(), "tenant-a", false); err == nil {
+		t.Fatal("closed barrier accepted a new mutation")
+	}
+	peer, err := NewLinuxFileMutationBarrier(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peer.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if _, err := peer.Acquire(ctx, "tenant-a", true); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("active lease did not survive barrier close, error=%v", err)
+	}
+	release()
+	maintenanceRelease, err := peer.Acquire(context.Background(), "tenant-a", true)
+	if err != nil {
+		t.Fatalf("maintenance after lease release failed: %v", err)
+	}
+	maintenanceRelease()
+}
+
 func newTestLinuxFileMutationBarrier(t *testing.T) (*LinuxFileMutationBarrier, string) {
 	t.Helper()
 	directory := t.TempDir()
@@ -142,6 +174,7 @@ func newTestLinuxFileMutationBarrier(t *testing.T) (*LinuxFileMutationBarrier, s
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { _ = barrier.Close() })
 	return barrier, directory
 }
 
