@@ -37,6 +37,10 @@ func TestRenderNginxHTTPSVhostRequiresVerifiedDomainsAndCanonicalRedirect(t *tes
 		t.Fatal(err)
 	}
 	config := configA + "\n" + configB
+httpBlockEnd := strings.Index(configA, "\n}\n\n")
+if httpBlockEnd < 0 || !strings.Contains(configA[:httpBlockEnd], "root /srv/tong/tenants/tenant-a/sites/site-a/public;") {
+	t.Fatalf("HTTP ACME server does not serve from the verified tenant/site root:\n%s", configA)
+}
 	if output := os.Getenv("TONG_NGINX_HTTPS_PREVIEW_PATH"); output != "" {
 		if err := os.WriteFile(output, []byte(config), 0600); err != nil {
 			t.Fatalf("write HTTPS vhost preview for clean-VM syntax check: %v", err)
