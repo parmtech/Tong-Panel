@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
@@ -102,7 +103,7 @@ func (r *Root) ExtractGzipTarNew(relative string, archive []byte, limits Archive
 	if _, err := rand.Read(random[:]); err != nil {
 		return err
 	}
-	stage := ".tong-stage-" + hex.EncodeToString(random[:])
+	stage := ".tong-archive-stage-" + hex.EncodeToString(random[:])
 	if err := unix.Mkdirat(r.fd, stage, 0700); err != nil {
 		return err
 	}
@@ -111,6 +112,11 @@ func (r *Root) ExtractGzipTarNew(relative string, archive []byte, limits Archive
 		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
 	})
 	if err != nil {
+		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		return err
+	}
+	if err := unix.Flock(stageFD, unix.LOCK_EX|unix.LOCK_NB); err != nil {
+		_ = unix.Close(stageFD)
 		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
 		return err
 	}
@@ -412,4 +418,146 @@ func removeArchiveTree(dirFD int) error {
 		}
 	}
 	return nil
+}
+
+const archiveStagePrefix = ".tong-archive-stage-"
+
+// CleanupStaleArchiveStages removes abandoned extraction directories older
+// than olderThan. It skips recent, aliased, wrongly-owned, permissive, and
+// actively locked stages. Require a one-hour minimum age to avoid cleanup of
+// a recently interrupted operation.
+func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
+	if r == nil {
+		return 0, ErrClosed
+	}
+	if olderThan < time.Hour {
+		return 0, ErrInvalidLimit
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if !r.open {
+		return 0, ErrClosed
+	}
+	rootFD, err := unix.Openat2(r.fd, ".", &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		return 0, err
+	}
+	rootFile := os.NewFile(uintptr(rootFD), "file-root")
+	if rootFile == nil {
+		_ = unix.Close(rootFD)
+		return 0, ErrInvalidRoot
+	}
+	names, readErr := rootFile.Readdirnames(-1)
+	closeErr := rootFile.Close()
+	if readErr != nil {
+		return 0, readErr
+	}
+	if closeErr != nil {
+		return 0, closeErr
+	}
+
+	cutoff := time.Now().Add(-olderThan)
+	removed := 0
+	for _, name := range names {
+		if !validArchiveStageName(name) {
+			continue
+		}
+		var before unix.Stat_t
+		if err := unix.Fstatat(r.fd, name, &before, unix.AT_SYMLINK_NOFOLLOW); err != nil {
+			if errors.Is(err, unix.ENOENT) {
+				continue
+			}
+			return removed, err
+		}
+		if !staleArchiveStage(before, cutoff) {
+			continue
+		}
+		stageFD, err := unix.Openat2(r.fd, name, &unix.OpenHow{
+			Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+			Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+		})
+		if err != nil {
+			if errors.Is(err, unix.ENOENT) || errors.Is(err, unix.ELOOP) {
+				continue
+			}
+			return removed, err
+		}
+		var opened unix.Stat_t
+		if err := unix.Fstat(stageFD, &opened); err != nil {
+			_ = unix.Close(stageFD)
+			return removed, err
+		}
+		if !sameArchiveStage(before, opened) || !staleArchiveStage(opened, cutoff) {
+			_ = unix.Close(stageFD)
+			continue
+		}
+		if err := unix.Flock(stageFD, unix.LOCK_EX|unix.LOCK_NB); err != nil {
+			_ = unix.Close(stageFD)
+			if errors.Is(err, unix.EWOULDBLOCK) || errors.Is(err, unix.EAGAIN) {
+				continue
+			}
+			return removed, err
+		}
+		var current unix.Stat_t
+		statErr := unix.Fstatat(r.fd, name, &current, unix.AT_SYMLINK_NOFOLLOW)
+		if statErr != nil || !sameArchiveStage(opened, current) || !staleArchiveStage(current, cutoff) {
+			_ = unix.Flock(stageFD, unix.LOCK_UN)
+			_ = unix.Close(stageFD)
+			if statErr != nil && !errors.Is(statErr, unix.ENOENT) {
+				return removed, statErr
+			}
+			continue
+		}
+		if err := removeArchiveTree(stageFD); err != nil {
+			_ = unix.Flock(stageFD, unix.LOCK_UN)
+			_ = unix.Close(stageFD)
+			return removed, err
+		}
+		_ = unix.Flock(stageFD, unix.LOCK_UN)
+		_ = unix.Close(stageFD)
+		if err := unix.Unlinkat(r.fd, name, unix.AT_REMOVEDIR); err != nil {
+			if errors.Is(err, unix.ENOENT) {
+				continue
+			}
+			return removed, err
+		}
+		removed++
+	}
+	if removed > 0 {
+		if err := unix.Fsync(rootFD); err != nil {
+			_ = unix.Close(rootFD)
+			return removed, err
+		}
+	}
+	if err := unix.Close(rootFD); err != nil {
+		return removed, err
+	}
+	return removed, nil
+}
+
+func validArchiveStageName(name string) bool {
+	if !strings.HasPrefix(name, archiveStagePrefix) {
+		return false
+	}
+	suffix := strings.TrimPrefix(name, archiveStagePrefix)
+	if len(suffix) != 32 {
+		return false
+	}
+	_, err := hex.DecodeString(suffix)
+	return err == nil
+}
+
+func staleArchiveStage(stat unix.Stat_t, cutoff time.Time) bool {
+	modified := time.Unix(stat.Mtim.Sec, stat.Mtim.Nsec)
+	return stat.Mode&unix.S_IFMT == unix.S_IFDIR &&
+		stat.Uid == uint32(unix.Geteuid()) &&
+		stat.Mode&0077 == 0 &&
+		!modified.After(cutoff)
+}
+
+func sameArchiveStage(a, b unix.Stat_t) bool {
+	return a.Dev == b.Dev && a.Ino == b.Ino
 }
