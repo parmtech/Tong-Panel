@@ -13,7 +13,15 @@
 - **Verified code head:** `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed Go checks [#40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640) (gofmt, full `go test -race ./...`, vet), non-destructive daemon smoke [#40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840), and unsigned developer archive lab [#40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588). These validate this code head; they do not certify a release or security approval.
 - **Authentication boundary:** owner/security review must record ADR-009/P0 decisions before a public login route; keep public login and production deployment disabled. Isolated non-privileged prototypes can continue.
 
-## CURRENT P2 SLICE — bounded streamed create-only file uploads
+## CURRENT P2 SLICE — internal two-tenant Files lifecycle regression
+- **Branch/PR:** `feature/p2-tenant-files-lifecycle-test`, draft [PR #40](https://github.com/parmtech/Tong-Panel/pull/40), stacked on draft #39/#38/#37/#36/#35. Executable test commit: `28bde9fee671c0a8438337ec5017c5d564b778d7`.
+- **Scope:** adds one integration-style regression across two distinct temporary pinned tenant roots. It exercises bounded/create-only writes, gzip/tar extraction (buffered and streamed), per-tenant read/list, scoped removal, unknown-tenant denial and cross-root traversal rejection.
+- **Validation:** exact test commit passed Go formatting/full `go test -race ./...`/vet [#40612116106](https://github.com/parmtech/Tong-Panel/actions/runs/40612116106), daemon smoke [#40612116078](https://github.com/parmtech/Tong-Panel/actions/runs/40612116078), and unsigned package smoke [#40612116013](https://github.com/parmtech/Tong-Panel/actions/runs/40612116013).
+- **Limits/status:** this is integration coverage of the internal tenant-root selector, not authenticated HTTP, user/object ACL, real install/recovery or the roadmap's complete two-tenant acceptance gate. P0/P1 remain open and P2 is incomplete. No real host changed.
+- **Next:** continue only isolated Files primitive coverage until identity/ACL integration is approved; then full Files API/UI and hosting lifecycle acceptance still require implementation and review.
+
+## PRIOR VERIFIED P2 SLICE — bounded streamed create-only file uploads
+
 - **Branch/PR:** `feature/p2-bounded-file-writer`, draft [PR #39](https://github.com/parmtech/Tong-Panel/pull/39), stacked on draft #38/#37/#36/#35. Executable code commit: `aca299ed6090de6c327f78700be28086ee785502`.
 - **Scope:** adds `Root.WriteNewFrom` and `TenantRoots.WriteNewFromForTenant`. Reads only up to caller-selected cap+1 (cap max 16 MiB), rejects oversize content before target publication, then uses existing mode-0600 atomic create-only no-replace publication. Unknown tenant IDs are rejected before stream consumption.
 - **Focused tests:** exact cap success; cap+1 consumption and no partial target; invalid path/limit/nil reader; closed-root non-consumption; unknown-tenant non-consumption and tenant-root separation; concurrent same-target single winner.
@@ -47,6 +55,12 @@
 - **Validation:** code head `a2922cac5945f6ff8f47302ad8099754ba6bba5a` passed hosted Go checks [#40608916965](https://github.com/parmtech/Tong-Panel/actions/runs/40608916965) (gofmt, full `go test -race ./...`, vet), daemon smoke [#40608916946](https://github.com/parmtech/Tong-Panel/actions/runs/40608916946), and unsigned package lab [#40608917120](https://github.com/parmtech/Tong-Panel/actions/runs/40608917120). Local Go executable is unavailable.
 - **P2 status:** PLANNED/IN PROGRESS only. No UI/API, ACL/quotas integration, two-tenant E2E, site/domain/database/SSL lifecycle, installer, or restore drill exists. Replacement writes, automatic startup invocation of orphan cleanup, and HTTP upload/download/delete/authorization are not implemented. Directory listing is bounded to 1,000 entries and may be incomplete during concurrent mutations. The tenant selector now applies to listing and create-only write operations as well as reads. P1 approvals and host-agent/installer prerequisites remain open.
 - **Next action:** continue isolated archive/file-manager negative/race coverage and document crash/orphan recovery requirements; do not wire file operations into HTTP until P1 identity and API trust boundaries receive maintainer review.
+
+### 2026-10-28 — P2 internal two-tenant Files lifecycle regression
+- **Branch/PR:** `feature/p2-tenant-files-lifecycle-test`, draft [PR #40](https://github.com/parmtech/Tong-Panel/pull/40), stacked on #39.
+- **Change/tests:** one integration-style test runs both fixed tenant roots through bounded/create-only writes, buffered and streamed archive extraction, tenant read/list, removal, unknown-tenant denial, and cross-root traversal denial. It confirms distinct data remains isolated and tenant A deletion does not change tenant B's file.
+- **Validation:** test commit `28bde9fee671c0a8438337ec5017c5d564b778d7` passed gofmt/full race suite/vet [#40612116106](https://github.com/parmtech/Tong-Panel/actions/runs/40612116106), daemon smoke [#40612116078](https://github.com/parmtech/Tong-Panel/actions/runs/40612116078), and unsigned package smoke [#40612116013](https://github.com/parmtech/Tong-Panel/actions/runs/40612116013).
+- **Limits/next:** internal tenant-root integration only; no auth/API/ACL/real install. It does not satisfy the roadmap's end-to-end hosting gate. Continue safe internal file tests; review ADR/P0 gates before API/host work.
 
 ### 2026-10-28 — P2 bounded streamed create-only file writes
 - **Branch/PR:** `feature/p2-bounded-file-writer`, draft [PR #39](https://github.com/parmtech/Tong-Panel/pull/39), stacked on #38.

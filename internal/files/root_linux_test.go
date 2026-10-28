@@ -1350,3 +1350,80 @@ func TestTenantRootsScopeStaleArchiveCleanup(t *testing.T) {
 		t.Fatalf("unknown tenant cleanup error = %v", err)
 	}
 }
+
+func TestTenantRootsTwoTenantFileLifecycleIsolation(t *testing.T) {
+	rootAPath, rootBPath := t.TempDir(), t.TempDir()
+	if err := os.Mkdir(filepath.Join(rootAPath, "uploads"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(rootBPath, "uploads"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	rootA, err := OpenRoot(rootAPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootA.Close()
+	rootB, err := OpenRoot(rootBPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rootB.Close()
+	roots, err := NewTenantRoots(map[string]*Root{"tenant-a": rootA, "tenant-b": rootB})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := roots.WriteNewFromForTenant("tenant-a", "uploads/a.txt", bytes.NewReader([]byte("alpha")), 8); err != nil {
+		t.Fatalf("tenant A bounded upload failed: %v", err)
+	}
+	if err := roots.WriteNewForTenant("tenant-b", "uploads/b.txt", []byte("bravo")); err != nil {
+		t.Fatalf("tenant B create-only write failed: %v", err)
+	}
+	archiveA := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("site-a")})
+	archiveB := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("site-b")})
+	if err := roots.ExtractGzipTarNewForTenant("tenant-a", "site", archiveA, ArchiveLimits{}); err != nil {
+		t.Fatalf("tenant A site extraction failed: %v", err)
+	}
+	if err := roots.ExtractGzipTarNewFromForTenant("tenant-b", "site", bytes.NewReader(archiveB), ArchiveLimits{}); err != nil {
+		t.Fatalf("tenant B streamed site extraction failed: %v", err)
+	}
+
+	for _, tc := range []struct {
+		tenant, file, want string
+	}{
+		{"tenant-a", "uploads/a.txt", "alpha"},
+		{"tenant-b", "uploads/b.txt", "bravo"},
+		{"tenant-a", "site/index.html", "site-a"},
+		{"tenant-b", "site/index.html", "site-b"},
+	} {
+		got, err := roots.ReadFileForTenant(tc.tenant, tc.file, 32)
+		if err != nil || string(got) != tc.want {
+			t.Errorf("%s read %q = %q, %v; want %q", tc.tenant, tc.file, got, err, tc.want)
+		}
+	}
+	if _, err := roots.ReadFileForTenant("tenant-a", "uploads/b.txt", 32); err == nil {
+		t.Fatal("tenant A resolved tenant B's private upload")
+	}
+	if _, err := roots.ReadFileForTenant("tenant-b", "../tenant-a/uploads/a.txt", 32); !errors.Is(err, ErrInvalidPath) {
+		t.Fatalf("cross-root traversal error = %v", err)
+	}
+
+	listA, err := roots.ListDirForTenant("tenant-a", "uploads", 10)
+	if err != nil || len(listA) != 1 || listA[0].Name != "a.txt" {
+		t.Fatalf("tenant A upload listing = %#v, %v", listA, err)
+	}
+	listB, err := roots.ListDirForTenant("tenant-b", "uploads", 10)
+	if err != nil || len(listB) != 1 || listB[0].Name != "b.txt" {
+		t.Fatalf("tenant B upload listing = %#v, %v", listB, err)
+	}
+	if err := roots.RemoveFileForTenant("tenant-a", "uploads/a.txt"); err != nil {
+		t.Fatalf("tenant A file removal failed: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(rootBPath, "uploads", "b.txt")); err != nil {
+		t.Fatalf("tenant A removal affected tenant B: %v", err)
+	}
+	if err := roots.RemoveFileForTenant("unknown", "uploads/b.txt"); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("unknown tenant removal error = %v", err)
+	}
+}

@@ -131,6 +131,13 @@ This is **combined branch evidence**, not just separate PR evidence:
 - Both matrix jobs passed [clean VM run #40610418570](https://github.com/parmtech/Tong-Panel/actions/runs/40610418570) for workflow/code commit `de431b6ccbe6f5b418a11f94eb483f24a2b4e205`.
 - This is clean-guest runtime evidence only. No installer, service install/restart, rollback, restore, supported OS matrix certification, or P2 end-to-end hosting lifecycle is tested. P0/P1 gates remain open; no live host was changed.
 - **Phase 2 status remains NOT COMPLETE and gated.** Do not treat this infrastructure or the unsigned preview as permission to install or deploy.
+## P2 internal two-tenant Files lifecycle regression — draft PR #40
+
+- Draft PR [#40](https://github.com/parmtech/Tong-Panel/pull/40), stacked on draft #39, adds integration-style coverage across two distinct temporary pinned tenant roots.
+- The test exercises bounded and create-only writes, buffered and streamed archive extraction, per-tenant read/list, tenant-scoped removal, unknown-tenant denial and cross-root traversal denial.
+- Test commit `28bde9fee671c0a8438337ec5017c5d564b778d7` passed [Go formatting/full `go test -race ./...`/vet #40612116106](https://github.com/parmtech/Tong-Panel/actions/runs/40612116106), [daemon smoke #40612116078](https://github.com/parmtech/Tong-Panel/actions/runs/40612116078), and [unsigned package smoke #40612116013](https://github.com/parmtech/Tong-Panel/actions/runs/40612116013).
+- This is internal selector integration evidence, not authenticated HTTP, user/object authorization, clean install/recovery, or the roadmap's complete two-tenant acceptance gate. P0/P1 remain open and P2 remains incomplete. No production host changed.
+
 ## P2 bounded streamed create-only file writes — draft PR #39
 
 - Draft PR [#39](https://github.com/parmtech/Tong-Panel/pull/39), stacked on draft #38, adds bounded reader ingestion for create-only file writes through the pinned root and tenant-root selector.
