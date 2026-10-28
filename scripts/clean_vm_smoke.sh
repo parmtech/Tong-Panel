@@ -112,8 +112,61 @@ grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' tong-p1-dev/DO_NOT_INSTALL.txt
 ./tong-p1-dev/tests/api.test -test.v -test.timeout=4m
 ./tong-p1-dev/tests/sites.test -test.v -test.timeout=4m
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends nginx
-TONG_NGINX_PREVIEW_PATH=/home/ci/nginx-site.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderNginxVhostRequiresVerifiedCanonicalDomains$' -test.timeout=1m
+sudo apt-get install -y --no-install-recommends nginx php-fpm
+TONG_NGINX_PREVIEW_PATH=/home/ci/nginx-site.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderNginxVhostRequiresVerifiedCanonicalDomains
+cat > /home/ci/nginx-test.conf <<'NGINX'
+worker_processes 1;
+pid /tmp/tong-nginx-test.pid;
+error_log stderr;
+events { worker_connections 64; }
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    include /home/ci/nginx-site.conf;
+}
+NGINX
+sudo nginx -t -p /etc/nginx/ -c /home/ci/nginx-test.conf
+python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
+/home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
+python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
+GUEST
+scp "${scp_opts[@]}" "$work/guest-check.sh" "$guest:/home/ci/guest-check.sh"
+ssh "${ssh_opts[@]}" "$guest" bash /home/ci/guest-check.sh "$VM_EXPECTED_ID" "$VM_EXPECTED_VERSION"
+ -test.timeout=1m
+TONG_PHP_FPM_PREVIEW_PATH=/home/ci/php-fpm-pool.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderPHPFPMPoolRequiresVerifiedIsolatedSite
+cat > /home/ci/nginx-test.conf <<'NGINX'
+worker_processes 1;
+pid /tmp/tong-nginx-test.pid;
+error_log stderr;
+events { worker_connections 64; }
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    include /home/ci/nginx-site.conf;
+}
+NGINX
+sudo nginx -t -p /etc/nginx/ -c /home/ci/nginx-test.conf
+python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
+/home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
+python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
+GUEST
+scp "${scp_opts[@]}" "$work/guest-check.sh" "$guest:/home/ci/guest-check.sh"
+ssh "${ssh_opts[@]}" "$guest" bash /home/ci/guest-check.sh "$VM_EXPECTED_ID" "$VM_EXPECTED_VERSION"
+ -test.timeout=1m
+cat > /home/ci/php-fpm-test.conf <<'FPM'
+[global]
+daemonize = no
+error_log = /tmp/tong-php-fpm-test.log
+include = /home/ci/php-fpm-pool.conf
+FPM
+fpm_bin="$(command -v php-fpm || true)"
+if [[ -z "$fpm_bin" ]]; then
+  for candidate in /usr/sbin/php-fpm[0-9]*; do
+    if [[ -x "$candidate" ]]; then fpm_bin="$candidate"; break; fi
+  done
+fi
+test -n "$fpm_bin"
+sudo "$fpm_bin" -t -y /home/ci/php-fpm-test.conf
 cat > /home/ci/nginx-test.conf <<'NGINX'
 worker_processes 1;
 pid /tmp/tong-nginx-test.pid;
