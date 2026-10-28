@@ -137,11 +137,14 @@ test('Refresh button announces a result, blocks duplicate clicks, then retries',
     const source = (await readFile(new URL('../../cmd/tongd/ui/app.js', import.meta.url), 'utf8'))
         .replace("import { loadPanelStatus } from './panel-status.mjs';", 'const loadPanelStatus = globalThis.testLoadPanelStatus;')
         .replace("import { loadNginxPreview } from './site-preview.mjs';", 'const loadNginxPreview = globalThis.testLoadNginxPreview;')
+        .replace("import { downloadTenantFile, listTenantFiles } from './files-explorer.mjs';", 'const downloadTenantFile = globalThis.testDownloadTenantFile; const listTenantFiles = globalThis.testListTenantFiles;')
         .replace(/\nexport \{\};\s*$/, '\n');
     runInNewContext(source, {
         document,
         testLoadPanelStatus: () => loadPanelStatus(fetcher),
         testLoadNginxPreview: async () => '',
+        testDownloadTenantFile: async () => ({}),
+        testListTenantFiles: async () => [],
     });
 
     const status = elements.get('#status');
