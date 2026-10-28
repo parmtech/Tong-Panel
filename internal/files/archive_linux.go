@@ -19,10 +19,10 @@ import (
 
 const (
 	MaxArchiveCompressedBytes int64 = 32 << 20
-	MaxArchiveExpandedBytes  int64 = 80 << 20
-	MaxArchiveFileBytes      int64 = 16 << 20
-	MaxArchiveTotalBytes     int64 = 64 << 20
-	MaxArchiveEntries              = 2048
+	MaxArchiveExpandedBytes   int64 = 80 << 20
+	MaxArchiveFileBytes       int64 = 16 << 20
+	MaxArchiveTotalBytes      int64 = 64 << 20
+	MaxArchiveEntries               = 2048
 )
 
 var (
