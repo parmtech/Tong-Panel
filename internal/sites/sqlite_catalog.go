@@ -136,7 +136,6 @@ func (c *Catalog) Get(ctx context.Context, tenantID, siteID string) (SiteRecord,
 	return record, nil
 }
 
- 
 // RemoveAliasDomain releases an alias claim for the requested tenant/site.
 // The primary domain is immutable through this operation. This changes metadata
 // only; callers must not infer that any host configuration was changed.
