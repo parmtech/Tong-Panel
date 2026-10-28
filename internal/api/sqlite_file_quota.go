@@ -12,7 +12,7 @@ import (
 
 var (
 	ErrFileQuotaUnconfigured = errors.New("tenant file quota is not configured")
-	ErrFileQuotaReservation = errors.New("file quota reservation is invalid or closed")
+	ErrFileQuotaReservation  = errors.New("file quota reservation is invalid or closed")
 )
 
 // SQLiteTenantFileQuota persists reservations so concurrent API processes that
