@@ -154,4 +154,3 @@ func TestConcurrentEnvelopeOperationsUseIndependentKeysAndNonces(t *testing.T) {
 		t.Error(err)
 	}
 }
-
