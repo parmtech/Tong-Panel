@@ -2,8 +2,8 @@ package sites
 
 import (
 	"errors"
-	"strings"
 	"reflect"
+	"strings"
 	"testing"
 )
 
