@@ -84,7 +84,7 @@ if [[ "$restored_a" != tenant-a ]]; then
   exit 1
 fi
 
-printf '%s\\n' 'CREATE TABLE restore_probe (value INT);' 'INSERT INTO restore_probe VALUES (1);' > "$work/cross-tenant-import.sql"
+printf '%s\n' 'CREATE TABLE restore_probe (value INT);' 'INSERT INTO restore_probe VALUES (1);' > "$work/cross-tenant-import.sql"
 if mariadb --defaults-extra-file="$work/tenant-a.cnf" "$db_b" < "$work/cross-tenant-import.sql" >/dev/null 2>&1; then
   echo "tenant A unexpectedly imported data into tenant B database" >&2
   exit 1
@@ -96,4 +96,4 @@ else
   exit 1
 fi
 
-printf '%s\\n' "PASS: temporary users are database-scoped; tenant A can dump and restore its own data, and cannot read, export, or restore across tenants"
+printf '%s\n' "PASS: temporary users are database-scoped; tenant A can dump and restore its own data, and cannot read, export, or restore across tenants"
