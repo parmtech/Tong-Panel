@@ -1,5 +1,5 @@
 # Tong Panel — Development Roadmap
-**Date:** 2026-10-26 | **Current phase:** 0 — documentation/planning.  
+**Date:** 2026-10-28 | **Current phase:** P0 review remains pending; P1 prototypes and isolated, non-privileged P2 file/QA work continue on unmerged drafts.  
 All durations are intentionally uncommitted; phases are gated by evidence rather than time estimates.
 
 ## Milestone definitions
@@ -60,5 +60,13 @@ Multiple agents may work in independent branches. Use CODEOWNERS later; never si
 ## Version/release format
 0.0.x planning/prototypes (not installable); 0.1.x experimental; 0.5.x beta only with explicit caution; 1.0.0 stable only after P6. A tagged release is not a compatibility promise by itself.
 
-## Next concrete implementation action — NOT STARTED
-Write and review ADR-001 through ADR-008 and a threat model, then select P1 task boundaries. Do not produce installer scripts or alter real servers before approval. See UPDATES.md and AGENTS.md for current checkpoint.
+## Current gate evidence — 2026-10-28
+
+- P0 architecture ADRs and the threat model remain proposed/unapproved. Owner issue [#1](https://github.com/parmtech/Tong-Panel/issues/1) is open with no review comments. P1 authentication design issue [#6](https://github.com/parmtech/Tong-Panel/issues/6) is also open with no review comments.
+- P1 development prototypes are spread across unmerged draft PRs, including internal Argon2id/MFA/rate-limit/login/session work and the HTTPS cookie boundary. They do not constitute an approved public login or production authentication system.
+- Isolated P2 Files and QA prototypes are in draft PRs #35–#42. The clean VM workflow tests the unsigned preview runtime only; it is not an installer, service lifecycle, rollback or restore drill.
+- No supported production package, privileged host mutation path, authenticated Files API/UI, full hosting lifecycle, signed release or restore acceptance has been verified. Do not install or deploy to a real host.
+
+## Next concrete action — owner/security review required
+
+Record Accepted, Rejected or Needs revision for ADR-001 through ADR-009 and the threat model in the ADR register and owner issues. Then rebaseline the P1 exit gate against the actual unmerged prototypes. Do not expose public login, create privileged installer/service actions or claim P2 alpha completion before those trust and lifecycle decisions receive review. See UPDATES.md and AGENTS.md for the detailed current checkpoint.
