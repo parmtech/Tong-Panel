@@ -265,14 +265,7 @@ sudo install -d -m 0755 /etc/tong/certs/tenant-a/site-a /etc/tong/certs/tenant-b
 sudo openssl req -x509 -nodes -days 1 -newkey rsa:2048 -subj "/CN=tenant-a.example.test" -addext "subjectAltName=DNS:tenant-a.example.test,DNS:www.tenant-a.example.test" -keyout /etc/tong/certs/tenant-a/site-a/privkey.pem -out /etc/tong/certs/tenant-a/site-a/fullchain.pem >/dev/null 2>&1
 sudo openssl req -x509 -nodes -days 1 -newkey rsa:2048 -subj "/CN=tenant-b.example.test" -addext "subjectAltName=DNS:tenant-b.example.test" -keyout /etc/tong/certs/tenant-b/site-b/privkey.pem -out /etc/tong/certs/tenant-b/site-b/fullchain.pem >/dev/null 2>&1
 sudo chmod 0600 /etc/tong/certs/tenant-a/site-a/privkey.pem /etc/tong/certs/tenant-b/site-b/privkey.pem
-TONG_NGINX_HTTPS_PREVIEW_PATH=/home/ci/site-e2e/nginx-https-sites.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderNginxHTTPSVhostRequiresVerifiedDomainsAndCanonicalRedirect
-python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
-/home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
-python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
-GUEST
-scp "${scp_opts[@]}" "$work/guest-check.sh" "$guest:/home/ci/guest-check.sh"
-ssh "${ssh_opts[@]}" "$guest" bash /home/ci/guest-check.sh "$VM_EXPECTED_ID" "$VM_EXPECTED_VERSION"
- -test.timeout=1m
+TONG_NGINX_HTTPS_PREVIEW_PATH=/home/ci/site-e2e/nginx-https-sites.conf ./tong-p1-dev/tests/sites.test -test.run '^TestRenderNginxHTTPSVhostRequiresVerifiedDomainsAndCanonicalRedirect$' -test.timeout=1m
 cat > /home/ci/nginx-https-e2e.conf <<'NGINX'
 user www-data;
 worker_processes 1;
