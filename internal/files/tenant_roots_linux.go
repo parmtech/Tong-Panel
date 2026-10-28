@@ -118,9 +118,9 @@ func (t *TenantRoots) ExtractGzipTarNewForTenant(tenantID, relative string, arch
 	return root.ExtractGzipTarNew(relative, archive, limits)
 }
 
-// CleanupStaleArchiveStagesForTenant cleans only the archive staging directory
-// beneath the root selected by tenantID.
-func (t *TenantRoots) CleanupStaleArchiveStagesForTenant(tenantID string, olderThan time.Duration) (int, error) {
+// CleanupStaleStagesForTenant cleans only internal staging directories beneath
+// the root selected by tenantID.
+func (t *TenantRoots) CleanupStaleStagesForTenant(tenantID string, olderThan time.Duration) (int, error) {
 	if t == nil || tenantID == "" {
 		return 0, ErrTenantDenied
 	}
@@ -128,5 +128,11 @@ func (t *TenantRoots) CleanupStaleArchiveStagesForTenant(tenantID string, olderT
 	if !ok {
 		return 0, ErrTenantDenied
 	}
-	return root.CleanupStaleArchiveStages(olderThan)
+	return root.CleanupStaleStages(olderThan)
+}
+
+// CleanupStaleArchiveStagesForTenant is retained for callers of the earlier
+// prototype and now includes create-only write stages as well.
+func (t *TenantRoots) CleanupStaleArchiveStagesForTenant(tenantID string, olderThan time.Duration) (int, error) {
+	return t.CleanupStaleStagesForTenant(tenantID, olderThan)
 }

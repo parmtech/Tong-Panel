@@ -1020,6 +1020,77 @@ func TestCleanupStaleArchiveStagesSkipsActiveLockThenRemovesOrphan(t *testing.T)
 	}
 }
 
+func TestCleanupStaleStagesIncludesWriteStagesAndHonorsLock(t *testing.T) {
+	r, root := newTestRoot(t)
+	oldName := ".tong-stage-7123456789abcdef0123456789abcdef"
+	lockedName := ".tong-stage-8123456789abcdef0123456789abcdef"
+	unrelatedName := ".tong-stage-not-a-random-stage"
+	outside := t.TempDir()
+	for _, name := range []string{oldName, lockedName, unrelatedName} {
+		if err := os.Mkdir(filepath.Join(root, name), 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, oldName, "payload"), []byte("partial"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	oldTime := time.Now().Add(-2 * time.Hour)
+	for _, name := range []string{oldName, lockedName} {
+		if err := os.Chtimes(filepath.Join(root, name), oldTime, oldTime); err != nil {
+			t.Fatal(err)
+		}
+	}
+	linkName := ".tong-stage-9123456789abcdef0123456789abcdef"
+	if err := os.Symlink(outside, filepath.Join(root, linkName)); err != nil {
+		t.Fatal(err)
+	}
+	stageFD, err := unix.Openat2(r.fd, lockedName, &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := unix.Flock(stageFD, unix.LOCK_EX|unix.LOCK_NB); err != nil {
+		_ = unix.Close(stageFD)
+		t.Fatal(err)
+	}
+	removed, err := r.CleanupStaleStages(time.Hour)
+	if err != nil || removed != 1 {
+		_ = unix.Flock(stageFD, unix.LOCK_UN)
+		_ = unix.Close(stageFD)
+		t.Fatalf("cleanup with active writer = %d, %v; want 1", removed, err)
+	}
+	for _, name := range []string{oldName} {
+		if _, err := os.Lstat(filepath.Join(root, name)); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("stale write stage %q remained: %v", name, err)
+		}
+	}
+	for _, name := range []string{lockedName, unrelatedName, linkName} {
+		if _, err := os.Lstat(filepath.Join(root, name)); err != nil {
+			t.Errorf("active/unrelated stage %q was removed: %v", name, err)
+		}
+	}
+	if err := unix.Flock(stageFD, unix.LOCK_UN); err != nil {
+		_ = unix.Close(stageFD)
+		t.Fatal(err)
+	}
+	if err := unix.Close(stageFD); err != nil {
+		t.Fatal(err)
+	}
+	removed, err = r.CleanupStaleStages(time.Hour)
+	if err != nil || removed != 1 {
+		t.Fatalf("cleanup after writer unlock = %d, %v; want 1", removed, err)
+	}
+	if _, err := os.Lstat(filepath.Join(root, lockedName)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("orphan write stage still exists: %v", err)
+	}
+	entries, err := os.ReadDir(outside)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("outside directory changed: %#v, %v", entries, err)
+	}
+}
+
 func TestRootOperationsReserveInternalStagingNames(t *testing.T) {
 	r, root := newTestRoot(t)
 	writeStage := ".tong-stage-0123456789abcdef0123456789abcdef"
@@ -1073,8 +1144,8 @@ func TestTenantRootsScopeStaleArchiveCleanup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nameA := ".tong-archive-stage-5123456789abcdef0123456789abcdef"
-	nameB := ".tong-archive-stage-6123456789abcdef0123456789abcdef"
+	nameA := ".tong-stage-a123456789abcdef0123456789abcdef"
+	nameB := ".tong-stage-b123456789abcdef0123456789abcdef"
 	for _, target := range []string{filepath.Join(rootAPath, nameA), filepath.Join(rootBPath, nameB)} {
 		if err := os.Mkdir(target, 0700); err != nil {
 			t.Fatal(err)
@@ -1084,7 +1155,7 @@ func TestTenantRootsScopeStaleArchiveCleanup(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	removed, err := roots.CleanupStaleArchiveStagesForTenant("tenant-a", time.Hour)
+	removed, err := roots.CleanupStaleStagesForTenant("tenant-a", time.Hour)
 	if err != nil || removed != 1 {
 		t.Fatalf("tenant A cleanup = %d, %v", removed, err)
 	}
@@ -1094,7 +1165,7 @@ func TestTenantRootsScopeStaleArchiveCleanup(t *testing.T) {
 	if _, err := os.Lstat(filepath.Join(rootBPath, nameB)); err != nil {
 		t.Fatalf("tenant B orphan was modified: %v", err)
 	}
-	if _, err := roots.CleanupStaleArchiveStagesForTenant("unknown", time.Hour); !errors.Is(err, ErrTenantDenied) {
+	if _, err := roots.CleanupStaleStagesForTenant("unknown", time.Hour); !errors.Is(err, ErrTenantDenied) {
 		t.Fatalf("unknown tenant cleanup error = %v", err)
 	}
 }
