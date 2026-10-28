@@ -147,6 +147,98 @@ http {
 }
 NGINX
 sudo nginx -t -p /etc/nginx/ -c /home/ci/nginx-test.conf
+TONG_TWO_TENANT_SITE_PREVIEW_DIR=/home/ci/site-e2e ./tong-p1-dev/tests/sites.test -test.run '^TestWriteTwoTenantSitePreviewsForCleanVM$' -test.timeout=1m
+awk -F ' = ' '/^user = / { print $2 }' /home/ci/site-e2e/php-fpm-pools.conf > /home/ci/site-e2e/pool-users.txt
+test "$(wc -l < /home/ci/site-e2e/pool-users.txt)" -eq 2
+pool_user_a="$(sed -n '1p' /home/ci/site-e2e/pool-users.txt)"
+pool_user_b="$(sed -n '2p' /home/ci/site-e2e/pool-users.txt)"
+test -n "$pool_user_a"
+test -n "$pool_user_b"
+test "$pool_user_a" != "$pool_user_b"
+while IFS= read -r pool_user; do
+  if ! id -u "$pool_user" >/dev/null 2>&1; then
+    sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin "$pool_user"
+  fi
+done < /home/ci/site-e2e/pool-users.txt
+sudo install -d -m 0755 /run/tong/php/tenant-a /run/tong/php/tenant-b
+sudo install -d -o "$pool_user_a" -g "$pool_user_a" -m 0755 /srv/tong/tenants/tenant-a/sites/site-a/public
+sudo install -d -o "$pool_user_b" -g "$pool_user_b" -m 0755 /srv/tong/tenants/tenant-b/sites/site-b/public
+sudo install -d -o "$pool_user_a" -g "$pool_user_a" -m 0700 /srv/tong/tenants/tenant-a/run/site-a/tmp /srv/tong/tenants/tenant-a/run/site-a/sessions
+sudo install -d -o "$pool_user_b" -g "$pool_user_b" -m 0700 /srv/tong/tenants/tenant-b/run/site-b/tmp /srv/tong/tenants/tenant-b/run/site-b/sessions
+sudo tee /srv/tong/tenants/tenant-a/sites/site-a/public/index.php >/dev/null <<'PHP'
+<?php
+$other = @file_get_contents('/srv/tong/tenants/tenant-b/run/site-b/secret.txt');
+echo $other === false ? 'tenant-a-isolated' : 'tenant-a-leaked';
+PHP
+sudo tee /srv/tong/tenants/tenant-b/sites/site-b/public/index.php >/dev/null <<'PHP'
+<?php
+$other = @file_get_contents('/srv/tong/tenants/tenant-a/run/site-a/secret.txt');
+echo $other === false ? 'tenant-b-isolated' : 'tenant-b-leaked';
+PHP
+printf '%s\n' 'tenant-a-secret' | sudo tee /srv/tong/tenants/tenant-a/run/site-a/secret.txt >/dev/null
+printf '%s\n' 'tenant-b-secret' | sudo tee /srv/tong/tenants/tenant-b/run/site-b/secret.txt >/dev/null
+sudo chown "$pool_user_a:$pool_user_a" /srv/tong/tenants/tenant-a/sites/site-a/public/index.php /srv/tong/tenants/tenant-a/run/site-a/secret.txt
+sudo chown "$pool_user_b:$pool_user_b" /srv/tong/tenants/tenant-b/sites/site-b/public/index.php /srv/tong/tenants/tenant-b/run/site-b/secret.txt
+sudo chmod 0644 /srv/tong/tenants/tenant-a/sites/site-a/public/index.php /srv/tong/tenants/tenant-b/sites/site-b/public/index.php
+sudo chmod 0600 /srv/tong/tenants/tenant-a/run/site-a/secret.txt /srv/tong/tenants/tenant-b/run/site-b/secret.txt
+cat > /home/ci/php-fpm-e2e.conf <<'FPM'
+[global]
+daemonize = yes
+pid = /run/tong/php-fpm-e2e.pid
+error_log = /tmp/tong-php-fpm-e2e.log
+include = /home/ci/site-e2e/php-fpm-pools.conf
+FPM
+sudo "$fpm_bin" -D -y /home/ci/php-fpm-e2e.conf
+for _ in {1..30}; do
+  [[ -S /run/tong/php/tenant-a/site-a.sock && -S /run/tong/php/tenant-b/site-b.sock ]] && break
+  sleep 1
+done
+test -S /run/tong/php/tenant-a/site-a.sock
+test -S /run/tong/php/tenant-b/site-b.sock
+sudo systemctl stop nginx || true
+cat > /home/ci/nginx-e2e.conf <<'NGINX'
+user www-data;
+worker_processes 1;
+pid /run/tong/nginx-e2e.pid;
+error_log /tmp/tong-nginx-e2e.log;
+events { worker_connections 64; }
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    include /home/ci/site-e2e/nginx-sites.conf;
+}
+NGINX
+sudo nginx -t -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
+sudo nginx -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
+cleanup_site_services() {
+  sudo nginx -s quit -p /etc/nginx/ -c /home/ci/nginx-e2e.conf >/dev/null 2>&1 || true
+  if [[ -f /run/tong/php-fpm-e2e.pid ]]; then
+    sudo kill -TERM "$(cat /run/tong/php-fpm-e2e.pid)" 2>/dev/null || true
+  fi
+}
+trap cleanup_site_services EXIT
+python3 - <<'PY'
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+
+def get(host, path="/"):
+    req = Request("http://127.0.0.1" + path, headers={"Host": host})
+    try:
+        with urlopen(req, timeout=10) as response:
+            return response.status, response.read().decode()
+    except HTTPError as error:
+        return error.code, error.read().decode()
+
+for host, marker in [
+    ("tenant-a.example.test", "tenant-a-isolated"),
+    ("tenant-b.example.test", "tenant-b-isolated"),
+]:
+    status, body = get(host)
+    assert status == 200 and marker in body, (host, status, body)
+    hidden_status, _ = get(host, "/.private.php")
+    assert hidden_status == 403, (host, hidden_status)
+print("two-tenant Nginx/PHP-FPM smoke passed; cross-tenant reads denied and hidden files blocked")
+PY
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
 python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
