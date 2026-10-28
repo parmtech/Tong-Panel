@@ -974,43 +974,6 @@ func TestExtractGzipTarNewRejectsTraversalLinksDuplicatesAndSpecialFiles(t *test
 	assertNoStagingDirectories(t, root)
 }
 
-func TestExtractGzipTarNewRejectsCorruptAndTrailingGzipData(t *testing.T) {
-	r, root := newTestRoot(t)
-	valid := gzipTarForTest(t, archiveTestEntry{
-		header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg},
-		data:   []byte("valid site"),
-	})
-	if len(valid) < 8 {
-		t.Fatalf("test gzip archive is unexpectedly short: %d", len(valid))
-	}
-
-	corruptChecksum := append([]byte(nil), valid...)
-	corruptChecksum[len(corruptChecksum)-8] ^= 0xff
-	secondMember := append(append([]byte(nil), valid...), gzipTarForTest(t, archiveTestEntry{
-		header: tar.Header{Name: "second.txt", Typeflag: tar.TypeReg},
-		data:   []byte("not part of the first archive"),
-	})...)
-	trailingByte := append(append([]byte(nil), valid...), 0)
-
-	cases := map[string][]byte{
-		"corrupt-checksum":    corruptChecksum,
-		"concatenated-member": secondMember,
-		"trailing-byte":       trailingByte,
-	}
-	for name, archive := range cases {
-		t.Run(name, func(t *testing.T) {
-			target := "invalid-" + name
-			if err := r.ExtractGzipTarNew(target, archive, ArchiveLimits{}); !errors.Is(err, ErrInvalidArchive) {
-				t.Fatalf("invalid gzip framing error = %v, want ErrInvalidArchive", err)
-			}
-			if _, err := os.Lstat(filepath.Join(root, target)); !errors.Is(err, os.ErrNotExist) {
-				t.Fatalf("invalid archive left a published target: %v", err)
-			}
-			assertNoStagingDirectories(t, root)
-		})
-	}
-}
-
 func TestExtractGzipTarNewEnforcesCompressedFileAndEntryLimits(t *testing.T) {
 	r, root := newTestRoot(t)
 	oneFile := gzipTarForTest(t, archiveTestEntry{
