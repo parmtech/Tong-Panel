@@ -17,7 +17,7 @@
 - **Branch/PR:** `feature/p2-bounded-archive-reader`, draft [PR #38](https://github.com/parmtech/Tong-Panel/pull/38), stacked on draft #37/#36/#35. Executable code commit: `fd418e1769efef5e5b21a7e7e3ac722fe31aba51`.
 - **Scope:** adds `ReadGzipTarBounded`, `Root.ExtractGzipTarNewFrom`, and a tenant-scoped stream wrapper. The reader consumes at most the selected compressed-byte limit plus one byte before returning an oversize error. Unknown tenant IDs are rejected before the reader is consumed. Existing extraction path/atomic publication rules remain in force.
 - **Focused tests:** exact cap and limit+1 consumption; invalid caps/nil reader; over-limit request does not publish a target; successful bounded stream extraction; unknown tenant stream denial without consumption.
-- **Validation:** local Go/gofmt are unavailable in this Windows workspace. Exact-head Go/race/vet and existing daemon/package CI for `fd418e1769efef5e5b21a7e7e3ac722fe31aba51` are pending.
+- **Validation:** local Go/gofmt are unavailable in this Windows workspace. Executable code commit `fd418e1769efef5e5b21a7e7e3ac722fe31aba51` passed Go formatting/full `go test -race ./...`/vet [#40611138073](https://github.com/parmtech/Tong-Panel/actions/runs/40611138073), daemon smoke [#40611138018](https://github.com/parmtech/Tong-Panel/actions/runs/40611138018), and unsigned package lab [#40611138068](https://github.com/parmtech/Tong-Panel/actions/runs/40611138068). PR head follow-ups are documentation-only.
 - **Limits/status:** this helper is not wired to an HTTP route, authentication, ACL/object ownership, per-tenant quota, scanning or startup recovery. It bounds compressed bytes, not request duration. No public login, privileged operation or production deployment. P0/P1 remain open and P2 is incomplete.
 - **Next:** verify exact-head CI and continue only unprivileged P2 Files/hosting slices until reviewed identity/host-agent and installer prerequisites allow integration.
 
@@ -45,7 +45,7 @@
 - **Branch/PR:** `feature/p2-bounded-archive-reader`, draft [PR #38](https://github.com/parmtech/Tong-Panel/pull/38), stacked on #37.
 - **Change:** add a bounded `io.Reader` helper and root/tenant archive extraction methods. The request stream is limited to compressed cap plus one byte before erroring, and the tenant selector is resolved before reading. No HTTP route or identity is wired.
 - **Tests:** exact/over-limit read bounds, invalid limits and nil reader, no publication on oversize, valid stream extraction, and unknown-tenant non-consumption.
-- **Validation:** code commit `fd418e1769efef5e5b21a7e7e3ac722fe31aba51`; Go/race/vet and P1 smoke/package workflows are pending. Local Go/gofmt are unavailable.
+- **Validation:** executable code commit `fd418e1769efef5e5b21a7e7e3ac722fe31aba51` passed Go formatting/full `go test -race ./...`/vet [#40611138073](https://github.com/parmtech/Tong-Panel/actions/runs/40611138073), daemon smoke [#40611138018](https://github.com/parmtech/Tong-Panel/actions/runs/40611138018), and unsigned package lab [#40611138068](https://github.com/parmtech/Tong-Panel/actions/runs/40611138068). Local Go/gofmt are unavailable.
 - **Limits/next:** no HTTP, auth/ACL/quota, timeout, scanner, installer or service lifecycle integration. P0/P1 decisions remain unapproved; verify Actions before extending the slice.
 
 ### 2026-10-28 — P2 tenant-scoped archive-stage cleanup

@@ -134,7 +134,7 @@ This is **combined branch evidence**, not just separate PR evidence:
 ## P2 bounded archive stream primitive — draft PR #38
 
 - Draft PR [#38](https://github.com/parmtech/Tong-Panel/pull/38), stacked on the clean-VM smoke work, adds a bounded `io.Reader` entry point for gzip/tar extraction. Tests cover exact/over-limit reads, no target on oversize, successful extraction, and tenant denial before stream consumption.
-- Executable code commit: `fd418e1769efef5e5b21a7e7e3ac722fe31aba51`. Exact-head Go/race/vet, daemon smoke, and unsigned package workflows are pending. No local Go toolchain is available.
+- Executable code commit `fd418e1769efef5e5b21a7e7e3ac722fe31aba51` passed [Go formatting/full `go test -race ./...`/vet #40611138073](https://github.com/parmtech/Tong-Panel/actions/runs/40611138073), [daemon smoke #40611138018](https://github.com/parmtech/Tong-Panel/actions/runs/40611138018), and [unsigned package lab #40611138068](https://github.com/parmtech/Tong-Panel/actions/runs/40611138068). Local Go is unavailable; subsequent PR-head changes are documentation-only.
 - This does not add an HTTP upload route, user/object authorization, quotas, request timeouts, scanning, installation, or service lifecycle. It is not a P2 acceptance result.
 **STOP: do NOT merge/release as an installable hosting panel or begin Phase 2 implementation against real hosts yet.** Review of the stacked PR chain must preserve dependencies; independent password and UI branches (#18/#19) are not automatically integrated by stacked PR #25.
 
