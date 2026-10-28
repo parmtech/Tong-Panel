@@ -82,6 +82,9 @@ func (r *Root) ListDir(relative string, limit int) ([]Entry, error) {
 
 	entries := make([]Entry, 0, len(names))
 	for _, name := range names {
+		if relative == "" && (strings.HasPrefix(name, writeStagePrefix) || strings.HasPrefix(name, archiveStagePrefix)) {
+			continue
+		}
 		var stat unix.Stat_t
 		if err := unix.Fstatat(fd, name, &stat, unix.AT_SYMLINK_NOFOLLOW); err != nil {
 			if errors.Is(err, unix.ENOENT) {
