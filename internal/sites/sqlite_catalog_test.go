@@ -146,3 +146,24 @@ func TestCatalogConcurrentCrossTenantDomainClaimHasSingleWinner(t *testing.T) {
 		t.Fatalf("successes=%d conflicts=%d, want one each", success, conflict)
 	}
 }
+
+func TestSiteCatalogSchemaRejectsUncanonicalizedDomainAndPath(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "panel.db")
+	db, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err := db.Exec("INSERT INTO tenants(id,name) VALUES('tenant-a','Tenant A')"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("INSERT INTO sites(tenant_id,site_id,document_root,created_at) VALUES('tenant-a','site-a','sites/../escape',1)"); err == nil {
+		t.Fatal("database accepted a document root outside the constrained site path")
+	}
+	if _, err := db.Exec("INSERT INTO sites(tenant_id,site_id,document_root,created_at) VALUES('tenant-a','site-a','sites/site-a/public',1)"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("INSERT INTO site_domains(domain,tenant_id,site_id,kind) VALUES('UPPER.example','tenant-a','site-a','primary')"); err == nil {
+		t.Fatal("database accepted a noncanonical uppercase domain")
+	}
+}
