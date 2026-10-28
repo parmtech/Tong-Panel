@@ -2,13 +2,13 @@
 CREATE TABLE sites (
     tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT,
     site_id TEXT NOT NULL,
-    document_root TEXT NOT NULL,
+    document_root TEXT NOT NULL CHECK (document_root = 'sites/' || site_id || '/public'),
     created_at INTEGER NOT NULL CHECK (created_at > 0),
     PRIMARY KEY (tenant_id, site_id)
 ) STRICT;
 
 CREATE TABLE site_domains (
-    domain TEXT PRIMARY KEY COLLATE BINARY,
+    domain TEXT NOT NULL PRIMARY KEY COLLATE NOCASE CHECK (domain = lower(domain)),
     tenant_id TEXT NOT NULL,
     site_id TEXT NOT NULL,
     kind TEXT NOT NULL CHECK (kind IN ('primary', 'alias')),
