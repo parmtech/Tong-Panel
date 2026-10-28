@@ -30,8 +30,10 @@ func (p Principal) Can(action, resourceTenant string) bool {
 		return (p.Role == Owner || p.Role == Admin || p.Role == Reseller || p.Role == Customer)
 	case "files:read":
 		return (p.Role == Owner || p.Role == Admin || p.Role == Reseller || p.Role == Customer)
-	case "files:write":
+	case "files:write", "sites:write":
 		return (p.Role == Owner || p.Role == Admin || p.Role == Reseller || p.Role == Customer)
+	case "sites:read":
+		return (p.Role == Owner || p.Role == Admin || p.Role == Reseller || p.Role == Customer || p.Role == Auditor)
 	default:
 		return false
 	}
