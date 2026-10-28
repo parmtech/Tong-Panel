@@ -72,6 +72,12 @@
 - **P2 status:** PLANNED/IN PROGRESS only. No UI/API, ACL/quotas integration, two-tenant E2E, site/domain/database/SSL lifecycle, installer, or restore drill exists. Replacement writes, automatic startup invocation of orphan cleanup, and HTTP upload/download/delete/authorization are not implemented. Directory listing is bounded to 1,000 entries and may be incomplete during concurrent mutations. The tenant selector now applies to listing and create-only write operations as well as reads. P1 approvals and host-agent/installer prerequisites remain open.
 - **Next action:** continue isolated archive/file-manager negative/race coverage and document crash/orphan recovery requirements; do not wire file operations into HTTP until P1 identity and API trust boundaries receive maintainer review.
 
+### 2026-10-28 — P0/P1 status reconciliation for owner review
+- **Branch/PR:** `docs/phase-status-2026-10-28`, draft [PR #43](https://github.com/parmtech/Tong-Panel/pull/43), stacked on draft #42.
+- **Change:** update `docs/ROADMAP.md` to reflect that P0/P1 drafts exist but owner review remains pending, and correct the stale “ADR work not started” next action. Update ADR-009’s implementation status to distinguish internal draft prototypes #27–#34 from production HTTPS login; no proposed architecture choice is approved.
+- **Evidence:** rechecked draft PR states #27–#42 and open issues [#1](https://github.com/parmtech/Tong-Panel/issues/1) and [#6](https://github.com/parmtech/Tong-Panel/issues/6); both issues remain open without review comments. Documentation only; no code/CI behavior or live host changed.
+- **Next:** owner/security reviewers must record ADR/threat-model decisions before production authentication, privileged installer/service integration, or full P2 acceptance can proceed.
+
 ### 2026-10-28 — P2 root-close-safe streamed file upload
 - **Branch/PR:** `feature/p2-stream-close-safe`, draft [PR #42](https://github.com/parmtech/Tong-Panel/pull/42), stacked on #41.
 - **Change:** duplicate the pinned root descriptor while protected by the lifecycle lock, then release the lock before reading caller input. Staging continues through the retained descriptor; `Close` can return without waiting on a blocked stream, while the already-started operation can complete safely.
