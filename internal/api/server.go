@@ -23,6 +23,7 @@ type Server struct {
 	Sessions  *auth.SQLiteSessionStore // separately issued sessions, HTTPS only; no login route
 	Files     TenantFileService        // optional, tenant-scoped Files API
 	FileQuota TenantFileQuota          // required for any Files upload; nil fails closed
+	FileMutationBarrier FileMutationBarrier // required for quota-sensitive file writes/deletes
 }
 type failure struct {
 	Error struct {
@@ -270,3 +271,4 @@ func (s *Server) jobDetail(w http.ResponseWriter, r *http.Request, p rbac.Princi
 		fail(w, 405, "method_not_allowed")
 	}
 }
+

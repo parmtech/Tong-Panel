@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -59,6 +60,14 @@ type FileQuotaReservation interface {
 type TenantFileQuota interface {
 	Reserve(tenantID string, bytes int64) (FileQuotaReservation, error)
 	RemoveUsed(tenantID string, bytes int64) error
+}
+
+// FileMutationBarrier coordinates quota-sensitive file mutations with
+// cross-process maintenance. Acquire(shared) must cover reservation, disk
+// mutation and quota finalization; maintenance uses exclusive mode across
+// scanning and reconciliation. It is required for all mutating Files routes.
+type FileMutationBarrier interface {
+	Acquire(ctx context.Context, tenantID string, exclusive bool) (release func(), err error)
 }
 
 func parseTenantFileQuery(r *http.Request, allowLimit, requirePath bool) (string, int, error) {
@@ -140,7 +149,7 @@ func (s *Server) fileDelete(w http.ResponseWriter, r *http.Request, p rbac.Princ
 		fail(w, http.StatusForbidden, "forbidden")
 		return
 	}
-	if s.Files == nil || s.FileQuota == nil {
+	if s.Files == nil || s.FileQuota == nil || s.FileMutationBarrier == nil {
 		fail(w, http.StatusServiceUnavailable, "files_unavailable")
 		return
 	}
@@ -149,6 +158,12 @@ func (s *Server) fileDelete(w http.ResponseWriter, r *http.Request, p rbac.Princ
 		fail(w, http.StatusBadRequest, "invalid_file_request")
 		return
 	}
+	release, err := s.FileMutationBarrier.Acquire(r.Context(), p.TenantID, false)
+	if err != nil {
+		fail(w, http.StatusServiceUnavailable, "files_unavailable")
+		return
+	}
+	defer release()
 	removed, err := s.Files.RemoveForTenant(p.TenantID, relative)
 	if err != nil {
 		writeFilesError(w, err)
@@ -193,7 +208,7 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 		fail(w, http.StatusForbidden, "forbidden")
 		return
 	}
-	if s.Files == nil || s.FileQuota == nil {
+	if s.Files == nil || s.FileQuota == nil || s.FileMutationBarrier == nil {
 		fail(w, http.StatusServiceUnavailable, "files_unavailable")
 		return
 	}
@@ -214,6 +229,12 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 		fail(w, http.StatusRequestEntityTooLarge, "file_limit_exceeded")
 		return
 	}
+	release, err := s.FileMutationBarrier.Acquire(r.Context(), p.TenantID, false)
+	if err != nil {
+		fail(w, http.StatusServiceUnavailable, "files_unavailable")
+		return
+	}
+	defer release()
 	reservation, err := s.FileQuota.Reserve(p.TenantID, reserveBytes)
 	if err != nil {
 		if errors.Is(err, ErrFileQuotaExceeded) {
@@ -290,3 +311,4 @@ func writeFilesError(w http.ResponseWriter, err error) {
 		fail(w, http.StatusServiceUnavailable, "files_unavailable")
 	}
 }
+
