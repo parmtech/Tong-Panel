@@ -20,15 +20,15 @@ var (
 // SiteSpec is declarative metadata for a site. DocumentRoot is relative to the
 // tenant's pinned site storage root and is constrained to sites/<site-id>/public.
 type SiteSpec struct {
-	TenantID     string
-	SiteID       string
+	TenantID      string
+	SiteID        string
 	PrimaryDomain string
-	Aliases      []string
-	DocumentRoot string
+	Aliases       []string
+	DocumentRoot  string
 }
 
 // NormalizeDomain returns a lower-case ASCII DNS name suitable for exact
-// ownership lookup. Unicode must be supplied as IDNA A-labels (xn-- form).
+// ownership lookup. Unicode input is rejected; callers must canonicalize it with a vetted IDNA library first.
 func NormalizeDomain(input string) (string, error) {
 	domain := strings.TrimSuffix(input, ".")
 	if domain == "" || len(domain) > 253 || strings.TrimSpace(domain) != input {
