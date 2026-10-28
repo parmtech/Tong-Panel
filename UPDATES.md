@@ -464,3 +464,10 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 
 - Stacked on #75, adds a read-only per-record endpoint. The handler obtains tenant scope from the authenticated principal; tests cover Auditor read access, cross-tenant and missing-record 404, query-based scope override rejection, and unsupported DELETE. The metadata remains credential-free and provisioning-free.
 - Exact code head `c990e4ed6b0a41377306cf4181ede635afa2c2ce` passed Go/race/vet [#40774254765](https://github.com/parmtech/Tong-Panel/actions/runs/40774254765), unsigned archive [#40774254706](https://github.com/parmtech/Tong-Panel/actions/runs/40774254706), daemon smoke [#40774254763](https://github.com/parmtech/Tong-Panel/actions/runs/40774254763), and Ubuntu 24.04/Debian 12 clean VMs [job 123119250721](https://github.com/parmtech/Tong-Panel/actions/runs/40774254715/job/123119250721), [job 123119250373](https://github.com/parmtech/Tong-Panel/actions/runs/40774254715/job/123119250373). This extends the metadata API surface but does not close MariaDB provisioning, credential custody/rotation, backup/restore, or owner/security gates.
+
+
+## P1 trusted HTTPS session logout — draft PR #78 (29 October 2026)
+
+- Adds `POST /api/v1/session/logout` for an already authenticated browser session. The existing middleware enforces actual TLS, one host-only session cookie, exact same-origin and CSRF; the handler atomically revokes the session and writes the logout audit event before clearing the cookie with its Secure/HttpOnly/SameSite flags.
+- Tests cover successful revocation/audit/cookie expiry, invalid Origin/CSRF, duplicate-cookie rejection, developer-bearer denial, and a concurrent single-winner logout. Exact-head CI is pending.
+- No login route, session issuer, trusted proxy, MFA recovery or production auth wiring is added. ADR/P0 owner-security review remains pending; the route does not make the developer build production-ready.
