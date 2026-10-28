@@ -103,7 +103,16 @@ func TestSQLiteFileQuotaReleaseAndReconciliationRefuseActiveReservation(t *testi
 }
 
 func TestSQLiteFileQuotaTenantIsolationAndConcurrentAdmission(t *testing.T) {
-	db, quota, _ := openFileQuota(t)
+	db, quota, path := openFileQuota(t)
+	peerDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = peerDB.Close() })
+	peerQuota, err := NewSQLiteTenantFileQuota(peerDB)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := quota.ConfigureTenantQuota("tenant-a", 10, 0); err != nil {
 		t.Fatal(err)
 	}
@@ -116,10 +125,11 @@ func TestSQLiteFileQuotaTenantIsolationAndConcurrentAdmission(t *testing.T) {
 	var successes int
 	reservations := make([]FileQuotaReservation, 0, workers)
 	for i := 0; i < workers; i++ {
+		workerQuota := []*SQLiteTenantFileQuota{quota, peerQuota}[i%2]
 		wg.Add(1)
-		go func() {
+		go func(q *SQLiteTenantFileQuota) {
 			defer wg.Done()
-			r, err := quota.Reserve("tenant-a", 2)
+			r, err := q.Reserve("tenant-a", 2)
 			if err == nil {
 				mu.Lock()
 				successes++
@@ -130,7 +140,7 @@ func TestSQLiteFileQuotaTenantIsolationAndConcurrentAdmission(t *testing.T) {
 			if !errors.Is(err, ErrFileQuotaExceeded) {
 				t.Errorf("unexpected reserve error: %v", err)
 			}
-		}()
+		}(workerQuota)
 	}
 	wg.Wait()
 	if successes != 5 {
