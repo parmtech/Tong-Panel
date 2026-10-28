@@ -73,7 +73,7 @@ func RenderNginxVhost(site SiteRecord, paths HostingPaths) (string, error) {
 	b.WriteString("    location ^~ /.well-known/acme-challenge/ {\n        try_files $uri =404;\n    }\n\n")
 	b.WriteString("    location ~ /\\. {\n        deny all;\n    }\n\n")
 	b.WriteString("    location / {\n        try_files $uri $uri/ /index.php?$query_string;\n    }\n\n")
-	fmt.Fprintf(&b, "    location ~ \\.php$ {\n        try_files $uri =404;\n        include fastcgi_params;\n        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;\n        fastcgi_param HTTP_PROXY \"\";\n        fastcgi_pass unix:%s;\n    }\n", socket)
+	fmt.Fprintf(&b, "    location ~ \\.php$ {\n        try_files $uri =404;\n        include /etc/nginx/fastcgi_params;\n        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;\n        fastcgi_param HTTP_PROXY \"\";\n        fastcgi_pass unix:%s;\n    }\n", socket)
 	b.WriteString("}\n")
 	return b.String(), nil
 }
