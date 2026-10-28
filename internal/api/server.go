@@ -14,6 +14,7 @@ import (
 	"github.com/parmtech/tong-panel/internal/auth"
 	"github.com/parmtech/tong-panel/internal/jobs"
 	"github.com/parmtech/tong-panel/internal/rbac"
+	"github.com/parmtech/tong-panel/internal/sites"
 )
 
 type Server struct {
@@ -24,6 +25,8 @@ type Server struct {
 	Files               TenantFileService        // optional, tenant-scoped Files API
 	FileQuota           TenantFileQuota          // required for any Files upload; nil fails closed
 	FileMutationBarrier FileMutationBarrier      // required for quota-sensitive file writes/deletes
+	SiteCatalog         *sites.Catalog             // opt-in tenant site/domain metadata API
+	DomainTXTLookup     sites.TXTLookup             // required for domain proof completion
 }
 type failure struct {
 	Error struct {
@@ -68,6 +71,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/v1/jobs/", s.protected(s.jobDetail))
 	mux.HandleFunc("/api/v1/files", s.protected(s.fileList))
 	mux.HandleFunc("/api/v1/files/content", s.protected(s.fileContent))
+	mux.HandleFunc("/api/v1/sites", s.protected(s.siteCollection))
+	mux.HandleFunc("/api/v1/sites/", s.protected(s.siteResource))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var raw [8]byte
 		_, _ = rand.Read(raw[:])
