@@ -1010,6 +1010,42 @@ func TestExtractGzipTarNewEnforcesCompressedFileAndEntryLimits(t *testing.T) {
 	assertNoStagingDirectories(t, root)
 }
 
+func TestExtractGzipTarNewExpandedLimitIsInclusive(t *testing.T) {
+	r, root := newTestRoot(t)
+	archive := gzipTarForTest(t,
+		archiveTestEntry{header: tar.Header{Name: "site/", Typeflag: tar.TypeDir}},
+		archiveTestEntry{header: tar.Header{Name: "site/index.html", Typeflag: tar.TypeReg}, data: []byte("bounded content")},
+	)
+	gz, err := gzip.NewReader(bytes.NewReader(archive))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expandedBytes, err := io.Copy(io.Discard, gz)
+	closeErr := gz.Close()
+	if err != nil || closeErr != nil {
+		t.Fatalf("measure expanded archive: copy=%v close=%v", err, closeErr)
+	}
+	if expandedBytes < 2 || expandedBytes > MaxArchiveExpandedBytes {
+		t.Fatalf("test archive expanded size = %d", expandedBytes)
+	}
+
+	if err := r.ExtractGzipTarNew("exact-limit", archive, ArchiveLimits{ExpandedBytes: expandedBytes}); err != nil {
+		t.Fatalf("archive at the inclusive expanded-byte limit rejected: %v", err)
+	}
+	content, err := os.ReadFile(filepath.Join(root, "exact-limit", "site", "index.html"))
+	if err != nil || string(content) != "bounded content" {
+		t.Fatalf("exact-limit extraction content = %q, %v", content, err)
+	}
+
+	if err := r.ExtractGzipTarNew("one-byte-over", archive, ArchiveLimits{ExpandedBytes: expandedBytes - 1}); !errors.Is(err, ErrArchiveLimit) {
+		t.Fatalf("archive one byte over expanded limit error = %v, want ErrArchiveLimit", err)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "one-byte-over")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("over-limit extraction published a target: %v", err)
+	}
+	assertNoStagingDirectories(t, root)
+}
+
 func TestReadGzipTarBoundedReadsAtMostLimitPlusOne(t *testing.T) {
 	exact := bytes.NewReader([]byte("1234"))
 	data, err := ReadGzipTarBounded(exact, 4)
