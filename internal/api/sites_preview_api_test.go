@@ -72,7 +72,7 @@ func TestSiteNginxPreviewUsesTenantVerifiedDomainsAndKeepsPendingAliasesOut(t *t
 }
 
 func TestSiteNginxPreviewFailsClosedWhenConfigOrOwnershipIsMissing(t *testing.T) {
-	server, _, _ := setupSiteAPI(t)
+	server, lookup, _ := setupSiteAPI(t)
 	h := server.Handler()
 	if r := createTestSite(t, h, secret, "site-pending", "pending.example.test"); r.Code != http.StatusCreated {
 		t.Fatalf("create pending site: %d %s", r.Code, r.Body.String())
@@ -88,6 +88,7 @@ func TestSiteNginxPreviewFailsClosedWhenConfigOrOwnershipIsMissing(t *testing.T)
 		t.Fatalf("pending-primary preview returned %d: %s", r.Code, r.Body.String())
 	}
 
+	verifySiteDomainViaAPI(t, server.Handler(), lookup, secret, "site-pending", "pending.example.test")
 	server.SiteHostingPaths = &sites.HostingPaths{TenantRoot: "/srv/../etc", PHPSocketRoot: "/run/tong/php"}
 	r = call(server.Handler(), http.MethodGet, previewPath, secret, "", "")
 	if r.Code != http.StatusServiceUnavailable {
