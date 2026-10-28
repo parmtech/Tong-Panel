@@ -238,7 +238,7 @@ func TestFilesDeleteRequiresWriterAndRejectsInvalidPathAndCSRF(t *testing.T) {
 	if rec := fileDeleteCall(h, "/api/v1/files/content?path=private.txt", token, "wrong"); rec.Code != http.StatusForbidden {
 		t.Fatalf("missing CSRF status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	auditor, auditorCSRF, _, err := sessions.Issue(rbac.Principal{UserID: "audit", TenantID: "tenant-a", Role: rbac.Auditor}, time.Hour)
+	auditor, auditorCSRF, _, err := sessions.Issue(rbac.Principal{UserID: "u4", TenantID: "tenant-a", Role: rbac.Auditor}, time.Hour)
 	if err != nil {
 		t.Fatal(err)
 	}
