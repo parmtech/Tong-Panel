@@ -19,6 +19,9 @@ func openFileQuota(t *testing.T) (*sql.DB, *SQLiteTenantFileQuota, string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
+	if _, err := db.Exec(`INSERT INTO tenants(id,name) VALUES('tenant-a','Quota test A'),('tenant-b','Quota test B')`); err != nil {
+		t.Fatal(err)
+	}
 	quota, err := NewSQLiteTenantFileQuota(db)
 	if err != nil {
 		t.Fatal(err)
