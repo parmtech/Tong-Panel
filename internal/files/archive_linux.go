@@ -109,6 +109,8 @@ func (r *Root) ExtractGzipTarNew(relative string, archive []byte, limits Archive
 		return ErrArchiveLimit
 	}
 
+	r.operations.RLock()
+	defer r.operations.RUnlock()
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if !r.open {
@@ -483,6 +485,8 @@ func (r *Root) CleanupStaleStages(olderThan time.Duration) (int, error) {
 	if olderThan < time.Hour {
 		return 0, ErrInvalidLimit
 	}
+	r.operations.RLock()
+	defer r.operations.RUnlock()
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if !r.open {

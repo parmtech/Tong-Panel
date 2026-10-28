@@ -387,6 +387,96 @@ func TestRootCloseDoesNotBlockOnStreamAndWriteFinishes(t *testing.T) {
 	}
 }
 
+func TestMeasureUsageCountsRegularFilesSkipsSymlinksAndPrivateStages(t *testing.T) {
+	r, root := newTestRoot(t)
+	if err := os.WriteFile(filepath.Join(root, "root.bin"), []byte("four"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	nested := filepath.Join(root, "nested")
+	if err := os.Mkdir(nested, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nested, "child.bin"), []byte("sixsix"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(t.TempDir(), "outside.bin")
+	if err := os.WriteFile(outside, []byte("must not count"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, "linked.bin")); err != nil {
+		t.Fatal(err)
+	}
+	stage := writeStagePrefix + strings.Repeat("a", 32)
+	if err := os.Mkdir(filepath.Join(root, stage), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, stage, "payload"), []byte(strings.Repeat("x", 50)), 0600); err != nil {
+		t.Fatal(err)
+	}
+	usage, err := r.MeasureUsage(100, 8)
+	if err != nil || usage != 10 {
+		t.Fatalf("measured usage=%d err=%v, want 10", usage, err)
+	}
+}
+
+func TestMeasureUsageFailsClosedOnLimitsAndSpecialFiles(t *testing.T) {
+	r, root := newTestRoot(t)
+	if err := os.Mkdir(filepath.Join(root, "nested"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(root, "nested", "deep"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "nested", "deep", "file"), []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.MeasureUsage(1, 8); !errors.Is(err, ErrUsageScanLimit) {
+		t.Fatalf("entry limit error=%v", err)
+	}
+	if _, err := r.MeasureUsage(10, 1); !errors.Is(err, ErrUsageScanLimit) {
+		t.Fatalf("depth limit error=%v", err)
+	}
+	if err := unix.Mkfifo(filepath.Join(root, "pipe"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.MeasureUsage(10, 8); !errors.Is(err, ErrUsageUnsupported) {
+		t.Fatalf("special file error=%v", err)
+	}
+	if _, err := r.MeasureUsage(0, 1); !errors.Is(err, ErrInvalidLimit) {
+		t.Fatalf("invalid scan limits error=%v", err)
+	}
+}
+
+func TestMeasureUsageWaitsForInFlightRootMutation(t *testing.T) {
+	r, _ := newTestRoot(t)
+	source := &gatedReader{started: make(chan struct{}), release: make(chan struct{})}
+	writeDone := make(chan error, 1)
+	go func() { writeDone <- r.WriteNewFrom("stream.bin", source, 8) }()
+	<-source.started
+	scanStarted := make(chan struct{})
+	scanDone := make(chan struct {
+		bytes int64
+		err   error
+	}, 1)
+	go func() {
+		close(scanStarted)
+		bytes, err := r.MeasureUsage(100, 8)
+		scanDone <- struct {
+			bytes int64
+			err   error
+		}{bytes: bytes, err: err}
+	}()
+	<-scanStarted
+	close(source.release)
+	if err := <-writeDone; err != nil {
+		t.Fatalf("write failed: %v", err)
+	}
+	result := <-scanDone
+	if result.err != nil || result.bytes != 4 {
+		t.Fatalf("scan after writer drain bytes=%d err=%v, want 4", result.bytes, result.err)
+	}
+}
+
 func TestConcurrentWriteNewFromHasOneWinner(t *testing.T) {
 	r, _ := newTestRoot(t)
 	const writers = 12
@@ -833,11 +923,23 @@ func TestTenantRootsScopeFileRemoval(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if usage, err := roots.MeasureUsageForTenant("tenant-a", 100, 8); err != nil || usage != 1 {
+		t.Fatalf("tenant A usage=%d err=%v, want 1", usage, err)
+	}
+	if usage, err := roots.MeasureUsageForTenant("tenant-b", 100, 8); err != nil || usage != 1 {
+		t.Fatalf("tenant B usage=%d err=%v, want 1", usage, err)
+	}
+	if _, err := roots.MeasureUsageForTenant("unknown-tenant", 100, 8); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("unknown tenant usage error = %v", err)
+	}
 	if err := roots.RemoveFileForTenant("tenant-a", "a.txt"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Lstat(filepath.Join(rootAPath, "a.txt")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("tenant A file remains: %v", err)
+	}
+	if usage, err := roots.MeasureUsageForTenant("tenant-a", 100, 8); err != nil || usage != 0 {
+		t.Fatalf("tenant A usage after delete=%d err=%v, want 0", usage, err)
 	}
 	if data, err := os.ReadFile(filepath.Join(rootBPath, "b.txt")); err != nil || string(data) != "b" {
 		t.Fatalf("tenant B file changed to %q, %v", data, err)

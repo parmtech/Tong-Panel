@@ -127,6 +127,20 @@ func (t *TenantRoots) RemoveFileWithSizeForTenant(tenantID, relative string) (in
 	return root.RemoveFileWithSize(relative)
 }
 
+// MeasureUsageForTenant scans only the root selected by the server-owned
+// tenant identifier. Callers must quiesce filesystem writers outside this
+// Root before treating the result as a reconciliation snapshot.
+func (t *TenantRoots) MeasureUsageForTenant(tenantID string, maxEntries, maxDepth int) (int64, error) {
+	if t == nil || tenantID == "" {
+		return 0, ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return 0, ErrTenantDenied
+	}
+	return root.MeasureUsage(maxEntries, maxDepth)
+}
+
 // ExtractGzipTarNewForTenant extracts only beneath the pinned root selected by
 // tenantID. The ID must come from an authenticated and authorized principal.
 func (t *TenantRoots) ExtractGzipTarNewForTenant(tenantID, relative string, archive []byte, limits ArchiveLimits) error {
