@@ -167,20 +167,20 @@ sudo install -d -o "$pool_user_a" -g "$pool_user_a" -m 0700 /srv/tong/tenants/te
 sudo install -d -o "$pool_user_b" -g "$pool_user_b" -m 0700 /srv/tong/tenants/tenant-b/run/site-b/tmp /srv/tong/tenants/tenant-b/run/site-b/sessions
 sudo tee /srv/tong/tenants/tenant-a/sites/site-a/public/index.php >/dev/null <<'PHP'
 <?php
-$other = @file_get_contents('/srv/tong/tenants/tenant-b/sites/site-b/public/secret.txt');
+$other = @file_get_contents('/srv/tong/tenants/tenant-b/run/site-b/secret.txt');
 echo $other === false ? 'tenant-a-isolated' : 'tenant-a-leaked';
 PHP
 sudo tee /srv/tong/tenants/tenant-b/sites/site-b/public/index.php >/dev/null <<'PHP'
 <?php
-$other = @file_get_contents('/srv/tong/tenants/tenant-a/sites/site-a/public/secret.txt');
+$other = @file_get_contents('/srv/tong/tenants/tenant-a/run/site-a/secret.txt');
 echo $other === false ? 'tenant-b-isolated' : 'tenant-b-leaked';
 PHP
-printf '%s\n' 'tenant-a-secret' | sudo tee /srv/tong/tenants/tenant-a/sites/site-a/public/secret.txt >/dev/null
-printf '%s\n' 'tenant-b-secret' | sudo tee /srv/tong/tenants/tenant-b/sites/site-b/public/secret.txt >/dev/null
-sudo chown "$pool_user_a:$pool_user_a" /srv/tong/tenants/tenant-a/sites/site-a/public/index.php /srv/tong/tenants/tenant-a/sites/site-a/public/secret.txt
-sudo chown "$pool_user_b:$pool_user_b" /srv/tong/tenants/tenant-b/sites/site-b/public/index.php /srv/tong/tenants/tenant-b/sites/site-b/public/secret.txt
+printf '%s\n' 'tenant-a-secret' | sudo tee /srv/tong/tenants/tenant-a/run/site-a/secret.txt >/dev/null
+printf '%s\n' 'tenant-b-secret' | sudo tee /srv/tong/tenants/tenant-b/run/site-b/secret.txt >/dev/null
+sudo chown "$pool_user_a:$pool_user_a" /srv/tong/tenants/tenant-a/sites/site-a/public/index.php /srv/tong/tenants/tenant-a/run/site-a/secret.txt
+sudo chown "$pool_user_b:$pool_user_b" /srv/tong/tenants/tenant-b/sites/site-b/public/index.php /srv/tong/tenants/tenant-b/run/site-b/secret.txt
 sudo chmod 0644 /srv/tong/tenants/tenant-a/sites/site-a/public/index.php /srv/tong/tenants/tenant-b/sites/site-b/public/index.php
-sudo chmod 0600 /srv/tong/tenants/tenant-a/sites/site-a/public/secret.txt /srv/tong/tenants/tenant-b/sites/site-b/public/secret.txt
+sudo chmod 0600 /srv/tong/tenants/tenant-a/run/site-a/secret.txt /srv/tong/tenants/tenant-b/run/site-b/secret.txt
 cat > /home/ci/php-fpm-e2e.conf <<'FPM'
 [global]
 daemonize = yes
