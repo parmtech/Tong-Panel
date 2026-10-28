@@ -202,17 +202,27 @@ func TestFilesDeleteIsTenantScopedAndReleasesUsedQuota(t *testing.T) {
 		t.Fatalf("seed write status=%d body=%s", rec.Code, rec.Body.String())
 	}
 	tokenB, csrfB, _, err := sessions.Issue(rbac.Principal{UserID: "u3", TenantID: "tenant-b", Role: rbac.Customer}, time.Hour)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if rec := fileDeleteCall(h, "/api/v1/files/content?path=delete-me.txt", tokenB, csrfB); rec.Code != http.StatusNotFound {
 		t.Fatalf("cross-tenant delete status=%d body=%s", rec.Code, rec.Body.String())
 	}
 	if rec := fileDeleteCall(h, "/api/v1/files/content?path=delete-me.txt", tokenA, csrfA); rec.Code != http.StatusNoContent {
 		t.Fatalf("delete status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if _, err := os.Stat(filepath.Join(rootA, "delete-me.txt")); !os.IsNotExist(err) { t.Fatalf("deleted file still exists: %v", err) }
-	if _, err := os.Stat(filepath.Join(rootB, "delete-me.txt")); !os.IsNotExist(err) { t.Fatalf("cross-tenant file appeared: %v", err) }
-	if used, reserved := quota.snapshot("tenant-a"); used != 0 || reserved != 0 { t.Fatalf("quota after delete used=%d reserved=%d", used, reserved) }
-	if rec := fileDeleteCall(h, "/api/v1/files/content?path=delete-me.txt", tokenA, csrfA); rec.Code != http.StatusNotFound { t.Fatalf("duplicate delete status=%d", rec.Code) }
+	if _, err := os.Stat(filepath.Join(rootA, "delete-me.txt")); !os.IsNotExist(err) {
+		t.Fatalf("deleted file still exists: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(rootB, "delete-me.txt")); !os.IsNotExist(err) {
+		t.Fatalf("cross-tenant file appeared: %v", err)
+	}
+	if used, reserved := quota.snapshot("tenant-a"); used != 0 || reserved != 0 {
+		t.Fatalf("quota after delete used=%d reserved=%d", used, reserved)
+	}
+	if rec := fileDeleteCall(h, "/api/v1/files/content?path=delete-me.txt", tokenA, csrfA); rec.Code != http.StatusNotFound {
+		t.Fatalf("duplicate delete status=%d", rec.Code)
+	}
 }
 
 func TestFilesDeleteRequiresWriterAndRejectsInvalidPathAndCSRF(t *testing.T) {
@@ -221,12 +231,20 @@ func TestFilesDeleteRequiresWriterAndRejectsInvalidPathAndCSRF(t *testing.T) {
 	s.FileQuota = newTestFileQuota(16)
 	h := s.Handler()
 	for _, path := range []string{"/api/v1/files/content?path=../escape", "/api/v1/files/content?path=x&tenant=tenant-b"} {
-		if rec := fileDeleteCall(h, path, token, csrf); rec.Code != http.StatusBadRequest { t.Errorf("invalid delete %q status=%d", path, rec.Code) }
+		if rec := fileDeleteCall(h, path, token, csrf); rec.Code != http.StatusBadRequest {
+			t.Errorf("invalid delete %q status=%d", path, rec.Code)
+		}
 	}
-	if rec := fileDeleteCall(h, "/api/v1/files/content?path=private.txt", token, "wrong"); rec.Code != http.StatusForbidden { t.Fatalf("missing CSRF status=%d body=%s", rec.Code, rec.Body.String()) }
+	if rec := fileDeleteCall(h, "/api/v1/files/content?path=private.txt", token, "wrong"); rec.Code != http.StatusForbidden {
+		t.Fatalf("missing CSRF status=%d body=%s", rec.Code, rec.Body.String())
+	}
 	auditor, auditorCSRF, _, err := sessions.Issue(rbac.Principal{UserID: "audit", TenantID: "tenant-a", Role: rbac.Auditor}, time.Hour)
-	if err != nil { t.Fatal(err) }
-	if rec := fileDeleteCall(h, "/api/v1/files/content?path=private.txt", auditor, auditorCSRF); rec.Code != http.StatusForbidden { t.Fatalf("auditor delete status=%d", rec.Code) }
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec := fileDeleteCall(h, "/api/v1/files/content?path=private.txt", auditor, auditorCSRF); rec.Code != http.StatusForbidden {
+		t.Fatalf("auditor delete status=%d", rec.Code)
+	}
 }
 
 func TestFilesWriteAPIReservesQuotaBeforeCreateAndStaysTenantScoped(t *testing.T) {

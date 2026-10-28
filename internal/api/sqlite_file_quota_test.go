@@ -104,13 +104,27 @@ func TestSQLiteFileQuotaReleaseAndReconciliationRefuseActiveReservation(t *testi
 
 func TestSQLiteFileQuotaAccountsDurableRemovalWithoutUnderflow(t *testing.T) {
 	db, quota, _ := openFileQuota(t)
-	if err := quota.ConfigureTenantQuota("tenant-a", 20, 8); err != nil { t.Fatal(err) }
-	if err := quota.ConfigureTenantQuota("tenant-b", 20, 3); err != nil { t.Fatal(err) }
-	if err := quota.RemoveUsed("tenant-a", 5); err != nil { t.Fatal(err) }
-	if used, reserved := quotaCounts(t, db, "tenant-a"); used != 3 || reserved != 0 { t.Fatalf("tenant A after removal used=%d reserved=%d", used, reserved) }
-	if used, reserved := quotaCounts(t, db, "tenant-b"); used != 3 || reserved != 0 { t.Fatalf("tenant B changed used=%d reserved=%d", used, reserved) }
-	if err := quota.RemoveUsed("tenant-a", 4); !errors.Is(err, ErrFileQuotaAccounting) { t.Fatalf("underflow removal err=%v", err) }
-	if err := quota.RemoveUsed("tenant-a", -1); !errors.Is(err, ErrFileQuotaAccounting) { t.Fatalf("negative removal err=%v", err) }
+	if err := quota.ConfigureTenantQuota("tenant-a", 20, 8); err != nil {
+		t.Fatal(err)
+	}
+	if err := quota.ConfigureTenantQuota("tenant-b", 20, 3); err != nil {
+		t.Fatal(err)
+	}
+	if err := quota.RemoveUsed("tenant-a", 5); err != nil {
+		t.Fatal(err)
+	}
+	if used, reserved := quotaCounts(t, db, "tenant-a"); used != 3 || reserved != 0 {
+		t.Fatalf("tenant A after removal used=%d reserved=%d", used, reserved)
+	}
+	if used, reserved := quotaCounts(t, db, "tenant-b"); used != 3 || reserved != 0 {
+		t.Fatalf("tenant B changed used=%d reserved=%d", used, reserved)
+	}
+	if err := quota.RemoveUsed("tenant-a", 4); !errors.Is(err, ErrFileQuotaAccounting) {
+		t.Fatalf("underflow removal err=%v", err)
+	}
+	if err := quota.RemoveUsed("tenant-a", -1); !errors.Is(err, ErrFileQuotaAccounting) {
+		t.Fatalf("negative removal err=%v", err)
+	}
 }
 
 func TestSQLiteFileQuotaTenantIsolationAndConcurrentAdmission(t *testing.T) {
