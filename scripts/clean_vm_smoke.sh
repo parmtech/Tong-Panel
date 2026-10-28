@@ -112,9 +112,3 @@ python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"
 GUEST
 scp "${scp_opts[@]}" "$work/guest-check.sh" "$guest:/home/ci/guest-check.sh"
 ssh "${ssh_opts[@]}" "$guest" bash /home/ci/guest-check.sh "$VM_EXPECTED_ID" "$VM_EXPECTED_VERSION"
-python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
-/home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
-python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
-GUEST
-scp "${scp_opts[@]}" "$work/guest-check.sh" "$guest:/home/ci/guest-check.sh"
-ssh "${ssh_opts[@]}" "$guest" bash /home/ci/guest-check.sh "$VM_EXPECTED_ID" "$VM_EXPECTED_VERSION"
