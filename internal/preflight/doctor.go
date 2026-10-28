@@ -151,6 +151,61 @@ func Evaluate(s Snapshot) (Report, error) {
 	return r, nil
 }
 
+// MutationRequirements makes installation-specific blocking thresholds explicit.
+// Callers must use an owner-reviewed policy; this package does not certify OS support.
+type MutationRequirements struct {
+	MinimumDiskBytes uint64
+	RequiredTCPPorts []uint16
+}
+
+// MutationGate is a fail-closed decision over a read-only Snapshot. Allowed only
+// means the supplied facts meet the supplied policy; it does not perform or
+// authorize a host mutation.
+type MutationGate struct {
+	Allowed  bool     `json:"allowed"`
+	Blockers []string `json:"blockers"`
+}
+
+// EvaluateMutationGate reports blockers that must be resolved before a future
+// installer or host mutator acts. Missing facts and incomplete policies fail
+// closed. The function is pure and never changes host state.
+func EvaluateMutationGate(s Snapshot, requirements MutationRequirements) MutationGate {
+	gate := MutationGate{Blockers: []string{}}
+	report, err := Evaluate(s)
+	if err != nil {
+		gate.Blockers = append(gate.Blockers, "invalid_os_facts")
+	} else if !report.Candidate {
+		gate.Blockers = append(gate.Blockers, "unsupported_os")
+	}
+
+	if requirements.MinimumDiskBytes == 0 {
+		gate.Blockers = append(gate.Blockers, "disk_requirement_missing")
+	} else if !s.DiskKnown {
+		gate.Blockers = append(gate.Blockers, "disk_unknown")
+	} else if s.DiskAvailableBytes < requirements.MinimumDiskBytes {
+		gate.Blockers = append(gate.Blockers, "disk_below_minimum")
+	}
+
+	if len(requirements.RequiredTCPPorts) == 0 {
+		gate.Blockers = append(gate.Blockers, "port_requirements_missing")
+	} else if !s.PortsKnown {
+		gate.Blockers = append(gate.Blockers, "ports_unknown")
+	} else {
+		for _, port := range requirements.RequiredTCPPorts {
+			if port == 0 {
+				gate.Blockers = append(gate.Blockers, "invalid_required_port")
+				continue
+			}
+			if s.TCPListening[port] {
+				gate.Blockers = append(gate.Blockers, fmt.Sprintf("tcp_port_in_use:%d", port))
+			}
+		}
+	}
+
+	gate.Allowed = len(gate.Blockers) == 0
+	return gate
+}
+
 // Detect returns a best-effort, READ-ONLY host report. It never binds ports,
 // changes packages, writes files, modifies firewall rules or probes credentials.
 func Detect(path string) (Report, error) {

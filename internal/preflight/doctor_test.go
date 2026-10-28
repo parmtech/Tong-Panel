@@ -72,6 +72,62 @@ func TestEvaluationMatrixAndUnknownReadings(t *testing.T) {
 	}
 }
 
+func TestMutationGateFailsClosedBeforeHostChanges(t *testing.T) {
+	valid := Snapshot{
+		OSRelease: ubuntu, GOOS: "linux", Arch: "amd64",
+		DiskAvailableBytes: 12 * 1024 * 1024 * 1024, DiskKnown: true,
+		TCPListening: map[uint16]bool{}, PortsKnown: true,
+	}
+	requirements := MutationRequirements{MinimumDiskBytes: 8 * 1024 * 1024 * 1024, RequiredTCPPorts: []uint16{80, 443}}
+	if gate := EvaluateMutationGate(valid, requirements); !gate.Allowed || len(gate.Blockers) != 0 {
+		t.Fatalf("valid candidate gate = %#v, want allowed", gate)
+	}
+
+	assertBlocked := func(name, want string, snapshot Snapshot, policy MutationRequirements) {
+		t.Helper()
+		gate := EvaluateMutationGate(snapshot, policy)
+		if gate.Allowed {
+			t.Errorf("%s gate allowed mutation: %#v", name, gate)
+		}
+		for _, blocker := range gate.Blockers {
+			if blocker == want {
+				return
+			}
+		}
+		t.Errorf("%s blockers = %#v, want %q", name, gate.Blockers, want)
+	}
+
+	unsupported := valid
+	unsupported.OSRelease = "ID=debian\nVERSION_ID=13\n"
+	assertBlocked("unsupported OS", "unsupported_os", unsupported, requirements)
+
+	lowDisk := valid
+	lowDisk.DiskAvailableBytes = requirements.MinimumDiskBytes - 1
+	assertBlocked("low disk", "disk_below_minimum", lowDisk, requirements)
+
+	occupied := valid
+	occupied.TCPListening = map[uint16]bool{443: true}
+	assertBlocked("occupied port", "tcp_port_in_use:443", occupied, requirements)
+
+	unknownDisk := valid
+	unknownDisk.DiskKnown = false
+	assertBlocked("unknown disk", "disk_unknown", unknownDisk, requirements)
+
+	unknownPorts := valid
+	unknownPorts.PortsKnown = false
+	assertBlocked("unknown ports", "ports_unknown", unknownPorts, requirements)
+
+	assertBlocked("missing policy", "disk_requirement_missing", valid, MutationRequirements{})
+	assertBlocked("missing port requirements", "port_requirements_missing", valid,
+		MutationRequirements{MinimumDiskBytes: requirements.MinimumDiskBytes})
+	assertBlocked("zero port", "invalid_required_port", valid,
+		MutationRequirements{MinimumDiskBytes: requirements.MinimumDiskBytes, RequiredTCPPorts: []uint16{0}})
+
+	malformedOS := valid
+	malformedOS.OSRelease = "not an os release"
+	assertBlocked("malformed OS facts", "invalid_os_facts", malformedOS, requirements)
+}
+
 func TestDoctorDoesNotModifyOSFixture(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "os-release")
 	if err := os.WriteFile(path, []byte(ubuntu), 0600); err != nil {
