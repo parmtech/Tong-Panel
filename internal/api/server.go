@@ -25,8 +25,8 @@ type Server struct {
 	Files               TenantFileService        // optional, tenant-scoped Files API
 	FileQuota           TenantFileQuota          // required for any Files upload; nil fails closed
 	FileMutationBarrier FileMutationBarrier      // required for quota-sensitive file writes/deletes
-	SiteCatalog         *sites.Catalog             // opt-in tenant site/domain metadata API
-	DomainTXTLookup     sites.TXTLookup             // required for domain proof completion
+	SiteCatalog         *sites.Catalog           // opt-in tenant site/domain metadata API
+	DomainTXTLookup     sites.TXTLookup          // required for domain proof completion
 }
 type failure struct {
 	Error struct {
