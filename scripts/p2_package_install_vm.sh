@@ -80,7 +80,8 @@ wait_for_service
 assert_default_deny
 assert_loopback_only
 assert_non_root_service
-curl --silent --show-error --fail http://127.0.0.1:8090/ | grep -q 'Development preview'
+page="$(curl --silent --show-error --fail http://127.0.0.1:8090/)"
+[[ "$page" == *'Development preview'* ]]
 sudo sh -c 'printf "%s\n" "keep-through-package-rollback" > /var/lib/tong-panel-dev/package-lab-marker'
 
 sudo dpkg --install "$v2"
