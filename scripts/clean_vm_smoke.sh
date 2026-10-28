@@ -111,6 +111,7 @@ retry_guest_scp scripts/smoke_p1.py "$guest:/home/ci/smoke_p1.py"
 cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
 set -Eeuo pipefail
+trap 'status=$?; echo "clean guest smoke failed (status=$status) at: $BASH_COMMAND" >&2' ERR
 test "$(id -u)" -ne 0
 test "$(uname -m)" = x86_64
 . /etc/os-release
