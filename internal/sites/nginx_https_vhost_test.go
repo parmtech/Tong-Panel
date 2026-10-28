@@ -11,8 +11,8 @@ func TestRenderNginxHTTPSVhostRequiresVerifiedDomainsAndCanonicalRedirect(t *tes
 	site := SiteRecord{
 		TenantID: "tenant-a", SiteID: "site-a", DocumentRoot: "sites/site-a/public",
 		Domains: []DomainClaim{
-			{Name: "example.com", Kind: "primary", OwnershipState: "verified"},
-			{Name: "www.example.com", Kind: "alias", OwnershipState: "verified"},
+			{Name: "tenant-a.example.test", Kind: "primary", OwnershipState: "verified"},
+			{Name: "www.tenant-a.example.test", Kind: "alias", OwnershipState: "verified"},
 		},
 	}
 	paths := HostingPaths{TenantRoot: "/srv/tong", PHPSocketRoot: "/run/tong/php"}
@@ -20,10 +20,23 @@ func TestRenderNginxHTTPSVhostRequiresVerifiedDomainsAndCanonicalRedirect(t *tes
 		CertificateFile: "/etc/tong/certs/tenant-a/site-a/fullchain.pem",
 		PrivateKeyFile:  "/etc/tong/certs/tenant-a/site-a/privkey.pem",
 	}
-	config, err := RenderNginxHTTPSVhost(site, paths, tls)
+	configA, err := RenderNginxHTTPSVhost(site, paths, tls)
 	if err != nil {
 		t.Fatal(err)
 	}
+	siteB := SiteRecord{
+		TenantID: "tenant-b", SiteID: "site-b", DocumentRoot: "sites/site-b/public",
+		Domains: []DomainClaim{{Name: "tenant-b.example.test", Kind: "primary", OwnershipState: "verified"}},
+	}
+	tlsB := NginxTLSFiles{
+		CertificateFile: "/etc/tong/certs/tenant-b/site-b/fullchain.pem",
+		PrivateKeyFile:  "/etc/tong/certs/tenant-b/site-b/privkey.pem",
+	}
+	configB, err := RenderNginxHTTPSVhost(siteB, paths, tlsB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := configA + "\n" + configB
 	if output := os.Getenv("TONG_NGINX_HTTPS_PREVIEW_PATH"); output != "" {
 		if err := os.WriteFile(output, []byte(config), 0600); err != nil {
 			t.Fatalf("write HTTPS vhost preview for clean-VM syntax check: %v", err)
@@ -31,8 +44,8 @@ func TestRenderNginxHTTPSVhostRequiresVerifiedDomainsAndCanonicalRedirect(t *tes
 	}
 	for _, expected := range []string{
 		"listen 80;",
-		"server_name example.com www.example.com;",
-		"return 308 https://example.com$request_uri;",
+		"server_name tenant-a.example.test www.tenant-a.example.test;",
+		"return 308 https://tenant-a.example.test$request_uri;",
 		"location ^~ /.well-known/acme-challenge/",
 		"listen 443 ssl;",
 		"ssl_certificate /etc/tong/certs/tenant-a/site-a/fullchain.pem;",
