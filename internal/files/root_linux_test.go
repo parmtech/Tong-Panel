@@ -785,6 +785,15 @@ func TestExtractGzipTarNewEnforcesCompressedFileAndEntryLimits(t *testing.T) {
 	if err := r.ExtractGzipTarNew("file-limit", oneFile, ArchiveLimits{FileBytes: 3}); !errors.Is(err, ErrArchiveLimit) {
 		t.Fatalf("per-file size error = %v", err)
 	}
+	if err := r.ExtractGzipTarNew("total-limit", oneFile, ArchiveLimits{TotalBytes: 3}); !errors.Is(err, ErrArchiveLimit) {
+		t.Fatalf("total file data error = %v", err)
+	}
+	if err := r.ExtractGzipTarNew("expanded-limit", oneFile, ArchiveLimits{ExpandedBytes: 512}); !errors.Is(err, ErrArchiveLimit) {
+		t.Fatalf("expanded size error = %v", err)
+	}
+	if err := r.ExtractGzipTarNew("invalid-limit", oneFile, ArchiveLimits{ExpandedBytes: MaxArchiveExpandedBytes + 1}); !errors.Is(err, ErrInvalidLimit) {
+		t.Fatalf("above-hard-limit error = %v", err)
+	}
 	twoFiles := gzipTarForTest(t,
 		archiveTestEntry{header: tar.Header{Name: "one.txt", Typeflag: tar.TypeReg}, data: []byte("1")},
 		archiveTestEntry{header: tar.Header{Name: "two.txt", Typeflag: tar.TypeReg}, data: []byte("2")},
@@ -792,7 +801,7 @@ func TestExtractGzipTarNewEnforcesCompressedFileAndEntryLimits(t *testing.T) {
 	if err := r.ExtractGzipTarNew("entry-limit", twoFiles, ArchiveLimits{Entries: 1}); !errors.Is(err, ErrArchiveLimit) {
 		t.Fatalf("entry count error = %v", err)
 	}
-	for _, name := range []string{"compressed-limit", "file-limit", "entry-limit"} {
+	for _, name := range []string{"compressed-limit", "file-limit", "total-limit", "expanded-limit", "invalid-limit", "entry-limit"} {
 		if _, err := os.Lstat(filepath.Join(root, name)); !errors.Is(err, os.ErrNotExist) {
 			t.Fatalf("failed extraction %q left target: %v", name, err)
 		}
