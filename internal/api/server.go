@@ -21,6 +21,7 @@ type Server struct {
 	Jobs     *jobs.Store
 	SQLJobs  *jobs.SQLiteStore        // explicit dev-only, no automatic users or login
 	Sessions *auth.SQLiteSessionStore // separately issued sessions, HTTPS only; no login route
+	Files    TenantFileService        // optional, read-only tenant-scoped Files API
 }
 type failure struct {
 	Error struct {
@@ -63,6 +64,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/v1/me", s.protected(s.me))
 	mux.HandleFunc("/api/v1/jobs", s.protected(s.jobListCreate))
 	mux.HandleFunc("/api/v1/jobs/", s.protected(s.jobDetail))
+	mux.HandleFunc("/api/v1/files", s.protected(s.fileList))
+	mux.HandleFunc("/api/v1/files/content", s.protected(s.fileContent))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var raw [8]byte
 		_, _ = rand.Read(raw[:])

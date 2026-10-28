@@ -40,3 +40,21 @@ func TestOwnerIsTenantBoundAndAuditorIsReadOnly(t *testing.T) {
 		t.Fatal("auditor gained mutation permission")
 	}
 }
+
+func TestFilesReadIsTenantBoundAndAuditorDenied(t *testing.T) {
+	for _, role := range []Role{Owner, Admin, Reseller, Customer} {
+		p := Principal{UserID: "u", TenantID: "team-1", Role: role}
+		if !p.Can("files:read", "team-1") {
+			t.Errorf("role %s cannot read own tenant files", role)
+		}
+		if p.Can("files:read", "team-2") {
+			t.Errorf("role %s crossed tenant boundary for files", role)
+		}
+	}
+	if (Principal{UserID: "audit", TenantID: "team-1", Role: Auditor}).Can("files:read", "team-1") {
+		t.Fatal("auditor unexpectedly received customer file access")
+	}
+	if (Principal{UserID: "u", TenantID: "team-1", Role: "unknown"}).Can("files:read", "team-1") {
+		t.Fatal("unknown role unexpectedly received file access")
+	}
+}
