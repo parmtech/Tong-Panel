@@ -458,3 +458,9 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Adds authenticated tenant-scoped listing and metadata registration for site databases. The tenant is derived from the principal; database and username identifiers are deterministic and server-generated. No MariaDB instance/account is provisioned and no credential is stored or returned.
 - Focused tests cover anonymous denial, cross-tenant isolation, Auditor read-only access, identifier/field injection rejection, duplicate and concurrent create behavior, missing-site handling, empty-list behavior with one SQLite connection, and unsupported deletion. Exact-head Go/race/vet CI is pending.
 - Remaining DB lifecycle work includes actual privileged adapter design, MariaDB provisioning/removal, secret custody/rotation, backup/export/import, and integration tests. P0 ADR/threat-model owner/security decisions, P1 login/installer/recovery, and broader P2 acceptance remain open.
+
+
+## P0 architecture technical review — draft PR #76 (29 October 2026)
+
+- Reviewed ADR-001–009 and the initial threat model in `docs/reviews/P0_ARCHITECTURE_TECHNICAL_REVIEW_2026-10-29.md`. The non-owner engineering recommendation is **Needs revision** before a formal owner/security decision, especially for privileged-agent protocol, SQLite recovery, tenant workload isolation, external key custody, release-signing lifecycle, and authentication recovery/proxy controls.
+- This review is recommendations only. It does not change the ADR proposals to Accepted/Rejected, does not constitute security approval, and does not authorize public login or privileged host operations. Owner/security review and threat-model approval remain pending.
