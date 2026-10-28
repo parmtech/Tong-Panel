@@ -143,7 +143,7 @@ func TestFilesReadAPIDefaultClosedAuthRoleAndReadOnlyMethods(t *testing.T) {
 		t.Fatalf("authenticated list status=%d body=%s", rec.Code, rec.Body.String())
 	}
 
-	_, _, _, auditorToken, err := sessions.Issue(rbac.Principal{UserID: "u4", TenantID: "tenant-a", Role: rbac.Auditor}, time.Hour)
+	auditorToken, _, _, err := sessions.Issue(rbac.Principal{UserID: "u4", TenantID: "tenant-a", Role: rbac.Auditor}, time.Hour)
 	if err != nil {
 		t.Fatal(err)
 	}
