@@ -177,3 +177,9 @@ This is **combined branch evidence**, not just separate PR evidence:
 **Next actionable step after CI:** review the complete unmerged PR stack plus P0 ADR-009, scope the rate-limited Argon2id + replay-protected MFA + reviewed TLS login vertical slice, and run clean supported-distro installer/recovery evidence before exit signoff. Do not close Phase 1 from a green smoke test alone.
 
 **Responsible project:** ParmTech. Status authored from available repository/CI evidence, not an independent pen-test or signed owner release decision.
+## P2 clean-VM image pinning — draft PR #45 (28 October 2026)
+
+- Draft PR [#45](https://github.com/parmtech/Tong-Panel/pull/45) is stacked on #44. It pins Ubuntu 24.04 to official release `20261017` with SHA-256 and Debian 12 to official build `20261026-2643` with SHA-512. The downloaded image is verified before QEMU overlay creation or guest boot.
+- Focused Bash checks cover both algorithms and reject malformed/wrong digests, altered images and missing files. Local checksum tests, shell syntax checks and `git diff --check` passed.
+- Both fresh guest jobs passed on exact code commit `c9b4767eaa6722af22f31e742c50600ea2b31440`: [clean-VM matrix #40615254194](https://github.com/parmtech/Tong-Panel/actions/runs/40615254194). The matrix also ran the internal Files suite, daemon/SQLite smoke and read-only doctor.
+- **Gate status:** this is repeatable unsigned developer-preview execution and image-integrity evidence only. It does not validate an installer, service lifecycle, rollback, restore, distro certification, authenticated API/ACL or the P2 end-to-end hosting lifecycle. ADR-001–009/threat-model owner-security review remains pending; Phase 1 and P2 remain incomplete. No production host changed.

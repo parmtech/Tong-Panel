@@ -10,6 +10,8 @@ on:
       - 'internal/files/**'
       - 'LICENSE'
       - 'scripts/smoke_p1.py'
+      - 'scripts/verify_vm_image_checksum.sh'
+      - 'scripts/test_verify_vm_image_checksum.sh'
       - 'scripts/clean_vm_smoke.sh'
       - '.github/workflows/p2-clean-vm-smoke.yml'
 permissions:
@@ -24,11 +26,15 @@ jobs:
       matrix:
         include:
           - distro: ubuntu-24.04
-            image_url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+            image_url: https://cloud-images.ubuntu.com/releases/server/24.04/release-20261017/ubuntu-24.04-server-cloudimg-amd64.img
+            checksum_algorithm: sha256
+            image_checksum: 04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94
             os_id: ubuntu
             version_id: '24.04'
           - distro: debian-12
-            image_url: https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
+            image_url: https://cloud.debian.org/images/cloud/bookworm/20261026-2643/debian-12-genericcloud-amd64-20261026-2643.qcow2
+            checksum_algorithm: sha512
+            image_checksum: 0464b5d4ae3aa4f658468d88da83af7857b71548b30d46dcb6282770955a747fb95a983476db90d25afd0653af607224c7ebd05122ab71faa106fd712aaad652
             os_id: debian
             version_id: '12'
     steps:
@@ -48,10 +54,14 @@ jobs:
           printf '%s\n' 'TONG PANEL — UNSIGNED DEVELOPER PREVIEW ONLY' 'DO NOT RUN ON A PRODUCTION SERVER OR EXPOSE TO THE INTERNET.' 'There is no production login, root host-agent action or verified installer.' 'The source is on unmerged development branches; do not use with customers.' 'This is NOT a supported distro package or signed release.' > "$RUNNER_TEMP/tong-p1-dev/DO_NOT_INSTALL.txt"
           tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" tong-p1-dev
           (cd "$RUNNER_TEMP" && sha256sum tong-p1-UNSIGNED-dev-linux-amd64.tar.gz > SHA256SUMS)
+      - name: Verify image checker rejects tampered and malformed input
+        run: bash scripts/test_verify_vm_image_checksum.sh
       - name: Boot clean guest and run the extracted preview smoke
         env:
           VM_DISTRO: ${{ matrix.distro }}
           VM_IMAGE_URL: ${{ matrix.image_url }}
+          VM_CHECKSUM_ALGORITHM: ${{ matrix.checksum_algorithm }}
+          VM_IMAGE_CHECKSUM: ${{ matrix.image_checksum }}
           VM_EXPECTED_ID: ${{ matrix.os_id }}
           VM_EXPECTED_VERSION: ${{ matrix.version_id }}
           VM_RUNNER_TEMP: ${{ runner.temp }}

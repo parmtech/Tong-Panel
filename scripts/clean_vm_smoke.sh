@@ -2,6 +2,8 @@
 set -Eeuo pipefail
 : "${VM_DISTRO:?}"
 : "${VM_IMAGE_URL:?}"
+: "${VM_CHECKSUM_ALGORITHM:?}"
+: "${VM_IMAGE_CHECKSUM:?}"
 : "${VM_EXPECTED_ID:?}"
 : "${VM_EXPECTED_VERSION:?}"
 : "${VM_RUNNER_TEMP:?}"
@@ -32,6 +34,7 @@ disk="$work/guest.qcow2"
 seed="$work/seed.iso"
 key="$work/ci_ed25519"
 curl --fail --location --retry 3 --output "$base" "$VM_IMAGE_URL"
+bash scripts/verify_vm_image_checksum.sh "$VM_CHECKSUM_ALGORITHM" "$VM_IMAGE_CHECKSUM" "$base"
 ssh-keygen -q -t ed25519 -N "" -f "$key"
 pub="$(cat "$key.pub")"
 cat > "$work/user-data" <<EOF
