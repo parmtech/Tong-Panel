@@ -105,9 +105,6 @@ func TestCatalogConcurrentCrossTenantDomainClaimHasSingleWinner(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer dbB.Close()
-	if _, err := dbB.Exec("INSERT INTO tenants(id,name) VALUES(?,?)", "tenant-b", "Tenant B"); err != nil {
-		t.Fatal(err)
-	}
 	catalogB, err := NewCatalog(dbB)
 	if err != nil {
 		t.Fatal(err)
