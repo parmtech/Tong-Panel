@@ -17,7 +17,10 @@ func NewTenantRoots(roots map[string]*Root) (*TenantRoots, error) {
 	if len(roots) == 0 {
 		return nil, ErrTenantDenied
 	}
-	type rootIdentity struct { dev uint64; ino uint64 }
+	type rootIdentity struct {
+		dev uint64
+		ino uint64
+	}
 	seen := make(map[rootIdentity]struct{}, len(roots))
 	copied := make(map[string]*Root, len(roots))
 	for tenantID, root := range roots {
