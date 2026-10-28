@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -193,7 +192,3 @@ func writeSiteError(w http.ResponseWriter, err error) {
 		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
 	}
 }
-
-// Silence static analysis from treating bytes as an accidental request-body
-// dependency if a future decoder refactor changes the io.Reader boundary.
-var _ = bytes.MinRead
