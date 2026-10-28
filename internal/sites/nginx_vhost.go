@@ -10,11 +10,11 @@ import (
 
 var (
 	ErrInvalidHostingPaths = errors.New("invalid hosting paths")
-	ErrSiteNotReady         = errors.New("site domains are not verified")
+	ErrSiteNotReady        = errors.New("site domains are not verified")
 )
 
 type HostingPaths struct {
-	TenantRoot  string
+	TenantRoot    string
 	PHPSocketRoot string
 }
 
