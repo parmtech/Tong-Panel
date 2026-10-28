@@ -32,7 +32,7 @@ func NewLinuxFileMutationBarrier(directory string) (*LinuxFileMutationBarrier, e
 		return nil, fmt.Errorf("inspect file mutation lock directory: %w", err)
 	}
 	if st.Mode&unix.S_IFMT != unix.S_IFDIR || st.Uid != uint32(unix.Geteuid()) || st.Mode&0022 != 0 {
-		return nil, errors.New("file mutation lock directory must be owned by the service user and not group/other writable")
+		return nil, fmt.Errorf("file mutation lock directory is unsafe (mode=%#o owner=%d euid=%d)", st.Mode, st.Uid, unix.Geteuid())
 	}
 	return &LinuxFileMutationBarrier{directory: directory}, nil
 }

@@ -34,11 +34,7 @@ func TestLinuxFileMutationBarrierSubprocessHelper(t *testing.T) {
 }
 
 func TestLinuxFileMutationBarrierCoordinatesAcrossProcesses(t *testing.T) {
-	directory := t.TempDir()
-	barrier, err := NewLinuxFileMutationBarrier(directory)
-	if err != nil {
-		t.Fatal(err)
-	}
+	barrier, directory := newTestLinuxFileMutationBarrier(t)
 	maintenanceRelease, err := barrier.Acquire(context.Background(), "tenant-a", true)
 	if err != nil {
 		t.Fatal(err)
@@ -83,11 +79,7 @@ func waitForFile(path string, timeout time.Duration) bool {
 }
 
 func TestLinuxFileMutationBarrierDrainsMutationsBeforeMaintenance(t *testing.T) {
-	barrierDir := t.TempDir()
-	apiBarrier, err := NewLinuxFileMutationBarrier(barrierDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	apiBarrier, barrierDir := newTestLinuxFileMutationBarrier(t)
 	maintenanceBarrier, err := NewLinuxFileMutationBarrier(barrierDir)
 	if err != nil {
 		t.Fatal(err)
@@ -122,10 +114,7 @@ func TestLinuxFileMutationBarrierDrainsMutationsBeforeMaintenance(t *testing.T) 
 }
 
 func TestLinuxFileMutationBarrierIsTenantScopedAndCancelable(t *testing.T) {
-	barrier, err := NewLinuxFileMutationBarrier(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	barrier, _ := newTestLinuxFileMutationBarrier(t)
 	releaseA, err := barrier.Acquire(context.Background(), "tenant-a", true)
 	if err != nil {
 		t.Fatal(err)
@@ -141,6 +130,19 @@ func TestLinuxFileMutationBarrierIsTenantScopedAndCancelable(t *testing.T) {
 	if _, err := barrier.Acquire(ctx, "tenant-a", false); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("waiting mutation cancellation error = %v", err)
 	}
+}
+
+func newTestLinuxFileMutationBarrier(t *testing.T) (*LinuxFileMutationBarrier, string) {
+	t.Helper()
+	directory := t.TempDir()
+	if err := os.Chmod(directory, 0700); err != nil {
+		t.Fatal(err)
+	}
+	barrier, err := NewLinuxFileMutationBarrier(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return barrier, directory
 }
 
 func TestNewLinuxFileMutationBarrierRejectsUnsafeDirectory(t *testing.T) {

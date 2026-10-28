@@ -58,10 +58,7 @@ func attachTestTenantFiles(t *testing.T, s *Server) (string, string) {
 		t.Fatal(err)
 	}
 	s.Files = NewTenantFileService(roots)
-	barrier, err := NewLinuxFileMutationBarrier(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	barrier, _ := newTestLinuxFileMutationBarrier(t)
 	s.FileMutationBarrier = barrier
 	return rootAPath, rootBPath
 }
