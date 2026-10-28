@@ -386,7 +386,7 @@ sudo apt-get install -y --no-install-recommends mariadb-server
 sudo systemctl start mariadb
 sudo mariadb --protocol=socket -uroot -e 'CREATE DATABASE tp_backup_source'
 ./tongbackup decrypt --tenant tenant-a --key-file /home/ci/wrapping.key --output /home/ci/restore.sql < /home/ci/tenant-a.backup.tpbk
-sudo mariadb --protocol=socket -uroot < /home/ci/restore.sql
+sudo mariadb --protocol=socket -uroot tp_backup_source < /home/ci/restore.sql
 restored="$(sudo mariadb --protocol=socket -uroot --batch --skip-column-names tp_backup_source -e 'SELECT value FROM restore_marker')"
 [[ "$restored" == private-tenant-restore-fixture-v1 ]]
 if ./tongbackup decrypt --tenant tenant-b --key-file /home/ci/wrapping.key --output /home/ci/should-not-exist.sql < /home/ci/tenant-a.backup.tpbk >/dev/null 2>&1; then
