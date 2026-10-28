@@ -56,21 +56,12 @@ func (c *Catalog) CreateDatabase(ctx context.Context, input SiteDatabaseSpec) er
 	}
 	defer tx.Rollback()
 
-	var exists int
-	err = tx.QueryRowContext(ctx,
-		"SELECT 1 FROM sites WHERE tenant_id=? AND site_id=?",
-		spec.TenantID, spec.SiteID).Scan(&exists)
-	if errors.Is(err, sql.ErrNoRows) {
-		return ErrSiteNotFound
-	}
-	if err != nil {
-		return fmt.Errorf("check site database owner: %w", err)
-	}
-
 	result, err := tx.ExecContext(ctx,
 		"INSERT INTO site_databases(tenant_id,site_id,database_id,database_name,username,created_at) "+
-			"VALUES(?,?,?,?,?,?) ON CONFLICT(tenant_id,site_id,database_id) DO NOTHING",
-		spec.TenantID, spec.SiteID, spec.DatabaseID, databaseName, username, c.now().Unix())
+			"SELECT ?,?,?,?,?,? FROM sites WHERE tenant_id=? AND site_id=? "+
+			"ON CONFLICT(tenant_id,site_id,database_id) DO NOTHING",
+		spec.TenantID, spec.SiteID, spec.DatabaseID, databaseName, username, c.now().Unix(),
+		spec.TenantID, spec.SiteID)
 	if err != nil {
 		if strings.Contains(err.Error(), "site_databases.database_name") ||
 			strings.Contains(err.Error(), "site_databases.username") {
@@ -83,6 +74,15 @@ func (c *Catalog) CreateDatabase(ctx context.Context, input SiteDatabaseSpec) er
 		return fmt.Errorf("read site database insert result: %w", err)
 	}
 	if inserted != 1 {
+		var siteExists bool
+		if err := tx.QueryRowContext(ctx,
+			"SELECT EXISTS(SELECT 1 FROM sites WHERE tenant_id=? AND site_id=?)",
+			spec.TenantID, spec.SiteID).Scan(&siteExists); err != nil {
+			return fmt.Errorf("check site database owner after insert: %w", err)
+		}
+		if !siteExists {
+			return ErrSiteNotFound
+		}
 		return ErrSiteDatabaseExists
 	}
 	if err := tx.Commit(); err != nil {
