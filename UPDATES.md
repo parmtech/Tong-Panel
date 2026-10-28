@@ -13,12 +13,12 @@
 - **Verified code head:** `6c983a22de1e5b1ea0de133ea28c6d1daadc490c` passed Go checks [#40599907640](https://github.com/parmtech/Tong-Panel/actions/runs/40599907640) (gofmt, full `go test -race ./...`, vet), non-destructive daemon smoke [#40599907840](https://github.com/parmtech/Tong-Panel/actions/runs/40599907840), and unsigned developer archive lab [#40599907588](https://github.com/parmtech/Tong-Panel/actions/runs/40599907588). These validate this code head; they do not certify a release or security approval.
 - **Authentication boundary:** owner/security review must record ADR-009/P0 decisions before a public login route; keep public login and production deployment disabled. Isolated non-privileged prototypes can continue.
 
-## CURRENT P2 SLICE — inclusive expanded archive limit
-- **Branch/PR:** `feature/p2-archive-exact-limit`, draft [PR #46](https://github.com/parmtech/Tong-Panel/pull/46), stacked on draft #45 and clean-VM/Files chain #44–#35. Code commit: `07d18da765610c4ccc185f4b96358bf95a8cee13`.
-- **Change:** the gzip/tar extractor now reads one byte beyond the inclusive expanded-size cap to distinguish exact-limit EOF from overflow. Regression coverage verifies exact-cap extraction succeeds and a one-byte-smaller cap rejects without publishing a target or leaving stages.
-- **Validation:** local Go tests unavailable (`go` is not installed). Hosted [Go formatting/full race/vet #40616565133](https://github.com/parmtech/Tong-Panel/actions/runs/40616565133), [daemon smoke #40616565143](https://github.com/parmtech/Tong-Panel/actions/runs/40616565143), [unsigned package #40616565239](https://github.com/parmtech/Tong-Panel/actions/runs/40616565239), and [clean Ubuntu/Debian VM matrix #40616565111](https://github.com/parmtech/Tong-Panel/actions/runs/40616565111) all passed on the code head.
-- **Limits/status:** this closes an inclusive-boundary bug in internal archive extraction. It adds no HTTP/auth/ACL, quota, installer, host lifecycle, restore or full two-tenant P2 E2E. ADR/security owner decisions remain pending; P0/P1 unapproved, P2 incomplete, no real host changed.
-- **Next:** continue safe P2 Files security and tenant-isolation work; keep API/host lifecycle behind recorded architecture/security review.
+## CURRENT P2 SLICE — strict gzip archive framing
+- **Branch/PR:** `feature/p2-gzip-framing`, draft [PR #47](https://github.com/parmtech/Tong-Panel/pull/47), stacked on draft #46. Code commit: `12ee26f28b038e64a9930be4dc77ef55a85339ae`.
+- **Change/tests:** corrupted gzip trailer checksum, concatenated second gzip member, and trailing byte are rejected as `ErrInvalidArchive`; every negative case asserts no target publication or staging-directory leak.
+- **Validation:** hosted Go formatting/full race/vet [#40617596259](https://github.com/parmtech/Tong-Panel/actions/runs/40617596259), daemon dry-run [#40617596170](https://github.com/parmtech/Tong-Panel/actions/runs/40617596170), unsigned developer archive [#40617596192](https://github.com/parmtech/Tong-Panel/actions/runs/40617596192), and clean Ubuntu 24.04/Debian 12 VM matrix [#40617596202](https://github.com/parmtech/Tong-Panel/actions/runs/40617596202) all passed on the code head.
+- **Limits/status:** internal archive parser coverage only; no HTTP Files API, auth/ACL, quotas, hosting lifecycle, installer, rollback, or restore. ADR/threat-model owner-security review is pending; P2 remains incomplete and no production host changed.
+- **Next:** continue P2 lifecycle work only behind reviewed identity and host-agent boundaries.
 
 ## PRIOR VERIFIED P2 SLICE — root-close-safe bounded file uploads
 - **Branch/PR:** `feature/p2-stream-close-safe`, draft [PR #42](https://github.com/parmtech/Tong-Panel/pull/42), stacked on draft #41/#40/#39/#38/#37/#36/#35. Executable code commit: `faa220eed997f68b225dc105cc4386227d742dfe`.
@@ -392,3 +392,9 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Security and third-party licence impact:
 - Blockers / constraints:
 - Next ONE step for handoff:
+
+
+### 2026-10-28 — P2 gzip framing rejection tests
+- Draft [PR #47](https://github.com/parmtech/Tong-Panel/pull/47), stacked on #46, adds negative coverage for corrupted checksum, concatenated gzip member and trailing bytes, with no-publication and stage-cleanup assertions.
+- Code commit `12ee26f28b038e64a9930be4dc77ef55a85339ae` passed [Go/race/vet #40617596259](https://github.com/parmtech/Tong-Panel/actions/runs/40617596259), [daemon #40617596170](https://github.com/parmtech/Tong-Panel/actions/runs/40617596170), [package #40617596192](https://github.com/parmtech/Tong-Panel/actions/runs/40617596192), and [Ubuntu/Debian clean-VM matrix #40617596202](https://github.com/parmtech/Tong-Panel/actions/runs/40617596202).
+- This is parser regression evidence, not P2 completion or security approval. Owner/security ADR and threat-model decisions remain pending; no live host changed.
