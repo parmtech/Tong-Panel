@@ -154,7 +154,7 @@ func Evaluate(s Snapshot) (Report, error) {
 // MutationRequirements makes installation-specific blocking thresholds explicit.
 // Callers must use an owner-reviewed policy; this package does not certify OS support.
 type MutationRequirements struct {
-	MinimumDiskBytes  uint64
+	MinimumDiskBytes uint64
 	RequiredTCPPorts []uint16
 }
 
