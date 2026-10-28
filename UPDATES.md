@@ -485,3 +485,5 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 
 - Adds a disposable Ubuntu/Debian guest check around a separately launched temporary Nginx instance. Invalid staged syntax must leave the current config serving; a simulated reload failure must restore the previous config; a valid config must pass `nginx -t`, atomically replace the test include and reload successfully.
 - The test never writes `/etc/nginx` or touches the guest's system Nginx service. Hosted verification is pending. This is an isolated config lifecycle prototype only; the daemon still does not apply host configuration. P2 remains IN PROGRESS.
+
+- Initial PR #80 Debian CI exposed a race in the existing logout test's status expectation: the loser can receive 401 if revocation precedes authentication, or 403 if it occurs between authentication and the CSRF check. The contract is one 204 winner, one denied loser, and exactly one audit event; the test now asserts that contract.
