@@ -2,6 +2,7 @@ package sites
 
 import (
 	"path"
+	"sort"
 )
 
 func verifiedSiteDomains(site SiteRecord) ([]string, error) {
@@ -14,32 +15,49 @@ func verifiedSiteDomains(site SiteRecord) ([]string, error) {
 	if len(site.Domains) == 0 || len(site.Domains) > MaxAliases+1 {
 		return nil, ErrSiteNotReady
 	}
-	domains := make([]string, 0, len(site.Domains))
+	aliases := make([]string, 0, len(site.Domains)-1)
 	seen := make(map[string]struct{}, len(site.Domains))
-	primaryCount := 0
+	primary := ""
 	for _, claim := range site.Domains {
 		domain, err := NormalizeDomain(claim.Name)
 		if err != nil || domain != claim.Name {
 			return nil, ErrInvalidSpec
 		}
-		if claim.OwnershipState != "verified" {
-			return nil, ErrSiteNotReady
-		}
 		if _, exists := seen[domain]; exists {
 			return nil, ErrInvalidSpec
 		}
 		seen[domain] = struct{}{}
+
 		switch claim.Kind {
 		case "primary":
-			primaryCount++
+			if primary != "" {
+				return nil, ErrInvalidSpec
+			}
+			if claim.OwnershipState == "pending" {
+				return nil, ErrSiteNotReady
+			}
+			if claim.OwnershipState != "verified" {
+				return nil, ErrInvalidSpec
+			}
+			primary = domain
 		case "alias":
+			switch claim.OwnershipState {
+			case "verified":
+				aliases = append(aliases, domain)
+			case "pending":
+				// Pending claims are metadata only; never activate them in a vhost.
+			default:
+				return nil, ErrInvalidSpec
+			}
 		default:
 			return nil, ErrInvalidSpec
 		}
-		domains = append(domains, domain)
 	}
-	if primaryCount != 1 {
+	if primary == "" {
 		return nil, ErrInvalidSpec
 	}
-	return domains, nil
+	sort.Strings(aliases)
+	domains := make([]string, 1, 1+len(aliases))
+	domains[0] = primary
+	return append(domains, aliases...), nil
 }
