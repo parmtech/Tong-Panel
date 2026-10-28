@@ -3,8 +3,12 @@
 package files
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"errors"
 	"os"
+	"path/filepath"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -670,4 +674,176 @@ func TestNewTenantRootsRejectsAliasedDirectories(t *testing.T) {
 	if _, err := NewTenantRoots(map[string]*Root{"tenant-a": first, "tenant-b": second}); !errors.Is(err, ErrTenantDenied) {
 		t.Fatalf("closed root mapping error = %v", err)
 	}
+}
+
+type archiveTestEntry struct {
+	header tar.Header
+	data   []byte
+}
+
+func gzipTarForTest(t *testing.T, entries ...archiveTestEntry) []byte {
+	t.Helper()
+	var buffer bytes.Buffer
+	gz := gzip.NewWriter(&buffer)
+	tw := tar.NewWriter(gz)
+	for _, entry := range entries {
+		header := entry.header
+		if header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeRegA {
+			header.Size = int64(len(entry.data))
+		}
+		if err := tw.WriteHeader(&header); err != nil {
+			t.Fatal(err)
+		}
+		if len(entry.data) > 0 {
+			if _, err := tw.Write(entry.data); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buffer.Bytes()
+}
+
+func TestExtractGzipTarNewPublishesCompletePrivateTree(t *testing.T) {
+	r, root := newTestRoot(t)
+	archive := gzipTarForTest(t,
+		archiveTestEntry{header: tar.Header{Name: "public/", Typeflag: tar.TypeDir}},
+		archiveTestEntry{header: tar.Header{Name: "public/index.html", Typeflag: tar.TypeReg}, data: []byte("complete")},
+	)
+	if err := r.ExtractGzipTarNew("unpacked", archive, ArchiveLimits{}); err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(root, "unpacked", "public", "index.html"))
+	if err != nil || string(content) != "complete" {
+		t.Fatalf("extracted file = %q, %v", content, err)
+	}
+	info, err := os.Stat(filepath.Join(root, "unpacked", "public", "index.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0600 {
+		t.Fatalf("extracted file permissions = %04o", info.Mode().Perm())
+	}
+	if err := r.ExtractGzipTarNew("unpacked", archive, ArchiveLimits{}); !errors.Is(err, ErrAlreadyExists) {
+		t.Fatalf("existing target error = %v", err)
+	}
+	content, err = os.ReadFile(filepath.Join(root, "unpacked", "public", "index.html"))
+	if err != nil || string(content) != "complete" {
+		t.Fatalf("existing tree changed = %q, %v", content, err)
+	}
+	assertNoStagingDirectories(t, root)
+}
+
+func TestExtractGzipTarNewRejectsTraversalLinksDuplicatesAndSpecialFiles(t *testing.T) {
+	r, root := newTestRoot(t)
+	outside := t.TempDir()
+	outsideFile := filepath.Join(outside, "secret.txt")
+	if err := os.WriteFile(outsideFile, []byte("outside secret"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	cases := map[string][]archiveTestEntry{
+		"traversal": {{header: tar.Header{Name: "../escape.txt", Typeflag: tar.TypeReg}, data: []byte("x")}},
+		"absolute":  {{header: tar.Header{Name: "/etc/escape", Typeflag: tar.TypeReg}, data: []byte("x")}},
+		"symlink":   {{header: tar.Header{Name: "link", Typeflag: tar.TypeSymlink, Linkname: outsideFile}}},
+		"hardlink":  {{header: tar.Header{Name: "link", Typeflag: tar.TypeLink, Linkname: "target"}}},
+		"fifo":      {{header: tar.Header{Name: "pipe", Typeflag: tar.TypeFifo}}},
+		"duplicate": {
+			{header: tar.Header{Name: "same.txt", Typeflag: tar.TypeReg}, data: []byte("one")},
+			{header: tar.Header{Name: "same.txt", Typeflag: tar.TypeReg}, data: []byte("two")},
+		},
+	}
+	for name, entries := range cases {
+		t.Run(name, func(t *testing.T) {
+			archive := gzipTarForTest(t, entries...)
+			if err := r.ExtractGzipTarNew("bad-"+name, archive, ArchiveLimits{}); !errors.Is(err, ErrInvalidArchive) {
+				t.Fatalf("unsafe archive error = %v", err)
+			}
+			if _, err := os.Lstat(filepath.Join(root, "bad-"+name)); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("failed extraction left target: %v", err)
+			}
+		})
+	}
+	if data, err := os.ReadFile(outsideFile); err != nil || string(data) != "outside secret" {
+		t.Fatalf("outside file changed = %q, %v", data, err)
+	}
+	assertNoStagingDirectories(t, root)
+}
+
+func TestExtractGzipTarNewEnforcesCompressedFileAndEntryLimits(t *testing.T) {
+	r, root := newTestRoot(t)
+	oneFile := gzipTarForTest(t, archiveTestEntry{
+		header: tar.Header{Name: "one.txt", Typeflag: tar.TypeReg},
+		data:   []byte("four"),
+	})
+	if err := r.ExtractGzipTarNew("compressed-limit", oneFile, ArchiveLimits{CompressedBytes: 1}); !errors.Is(err, ErrArchiveLimit) {
+		t.Fatalf("compressed size error = %v", err)
+	}
+	if err := r.ExtractGzipTarNew("file-limit", oneFile, ArchiveLimits{FileBytes: 3}); !errors.Is(err, ErrArchiveLimit) {
+		t.Fatalf("per-file size error = %v", err)
+	}
+	twoFiles := gzipTarForTest(t,
+		archiveTestEntry{header: tar.Header{Name: "one.txt", Typeflag: tar.TypeReg}, data: []byte("1")},
+		archiveTestEntry{header: tar.Header{Name: "two.txt", Typeflag: tar.TypeReg}, data: []byte("2")},
+	)
+	if err := r.ExtractGzipTarNew("entry-limit", twoFiles, ArchiveLimits{Entries: 1}); !errors.Is(err, ErrArchiveLimit) {
+		t.Fatalf("entry count error = %v", err)
+	}
+	for _, name := range []string{"compressed-limit", "file-limit", "entry-limit"} {
+		if _, err := os.Lstat(filepath.Join(root, name)); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("failed extraction %q left target: %v", name, err)
+		}
+	}
+	assertNoStagingDirectories(t, root)
+}
+
+func TestExtractGzipTarNewSymlinkSwapNeverChangesOutsideTarget(t *testing.T) {
+	r, root := newTestRoot(t)
+	outside := t.TempDir()
+	outsideFile := filepath.Join(outside, "secret.txt")
+	if err := os.WriteFile(outsideFile, []byte("outside secret"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	archive := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("safe")})
+	target := filepath.Join(root, "site")
+	stop := make(chan struct{})
+	ready := make(chan struct{}, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			_ = os.Remove(target)
+			if err := os.Symlink(outside, target); err == nil {
+				select {
+				case ready <- struct{}{}:
+				default:
+				}
+			}
+		}
+	}()
+	<-ready
+	for i := 0; i < 50; i++ {
+		err := r.ExtractGzipTarNew("site", archive, ArchiveLimits{})
+		if err != nil && !errors.Is(err, ErrAlreadyExists) && !errors.Is(err, unix.ENOENT) {
+			close(stop)
+			wg.Wait()
+			t.Fatalf("extract during symlink swap returned %v", err)
+		}
+	}
+	close(stop)
+	wg.Wait()
+	if data, err := os.ReadFile(outsideFile); err != nil || string(data) != "outside secret" {
+		t.Fatalf("outside target changed = %q, %v", data, err)
+	}
+	assertNoStagingDirectories(t, root)
 }
