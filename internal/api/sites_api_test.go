@@ -282,3 +282,85 @@ func TestConcurrentSiteAliasRemovalHasOneWinner(t *testing.T) {
 		t.Fatalf("concurrent alias removal statuses=(%d,%d), want one removal and one not found", a, b)
 	}
 }
+
+
+func TestSiteDomainAPIAddsTenantScopedPendingAlias(t *testing.T) {
+	server, _, _ := setupSiteAPI(t)
+	h := server.Handler()
+	if r := createTestSite(t, h, secret, "site-a", "a.example.test"); r.Code != http.StatusCreated {
+		t.Fatalf("create site A: %d %s", r.Code, r.Body.String())
+	}
+	const path = "/api/v1/sites/site-a/domains"
+	if r := call(h, http.MethodPost, path, "", "", `{"domain":"alias.example.test"}`); r.Code != http.StatusUnauthorized {
+		t.Fatalf("anonymous alias add returned %d", r.Code)
+	}
+	if r := call(h, http.MethodPost, path, sqlOtherToken, "", `{"domain":"alias.example.test"}`); r.Code != http.StatusNotFound {
+		t.Fatalf("cross-tenant alias add returned %d", r.Code)
+	}
+	if r := call(h, http.MethodPost, path, sqlAuditorToken, "", `{"domain":"alias.example.test"}`); r.Code != http.StatusForbidden {
+		t.Fatalf("auditor alias add returned %d", r.Code)
+	}
+	added := call(h, http.MethodPost, path, secret, "", `{"domain":"ALIAS.Example.Test."}`)
+	if added.Code != http.StatusCreated {
+		t.Fatalf("alias add returned %d: %s", added.Code, added.Body.String())
+	}
+	var claim sites.DomainClaim
+	if err := json.Unmarshal(added.Body.Bytes(), &claim); err != nil {
+		t.Fatal(err)
+	}
+	if claim.Name != "alias.example.test" || claim.Kind != "alias" || claim.OwnershipState != "pending" {
+		t.Fatalf("unexpected alias claim: %+v", claim)
+	}
+	if r := call(h, http.MethodPost, path, secret, "", `{"domain":"alias.example.test"}`); r.Code != http.StatusConflict {
+		t.Fatalf("duplicate alias add returned %d", r.Code)
+	}
+	if r := call(h, http.MethodPost, path, secret, "", `{"domain":"other.example.test","tenant_id":"tenant-b"}`); r.Code != http.StatusBadRequest {
+		t.Fatalf("tenant injection returned %d", r.Code)
+	}
+	if r := call(h, http.MethodPost, path, secret, "", `{"domain":"bad..example.test"}`); r.Code != http.StatusBadRequest {
+		t.Fatalf("invalid alias returned %d", r.Code)
+	}
+	got := call(h, http.MethodGet, "/api/v1/sites/site-a", secret, "", "")
+	var record sites.SiteRecord
+	if got.Code != http.StatusOK || json.Unmarshal(got.Body.Bytes(), &record) != nil {
+		t.Fatalf("site read after alias add: %d %s", got.Code, got.Body.String())
+	}
+	found := false
+	for _, d := range record.Domains {
+		if d.Name == "alias.example.test" {
+			found = d.Kind == "alias" && d.OwnershipState == "pending"
+		}
+	}
+	if !found {
+		t.Fatalf("pending alias missing from tenant site record: %+v", record.Domains)
+	}
+	if r := createTestSite(t, h, sqlOtherToken, "site-b", "b.example.test"); r.Code != http.StatusCreated {
+		t.Fatalf("create site B: %d %s", r.Code, r.Body.String())
+	}
+	if r := call(h, http.MethodPost, "/api/v1/sites/site-b/domains", sqlOtherToken, "", `{"domain":"ALIAS.Example.Test."}`); r.Code != http.StatusConflict {
+		t.Fatalf("cross-tenant duplicate alias claim returned %d", r.Code)
+	}
+}
+
+func TestConcurrentSiteAliasAddHasSingleWinner(t *testing.T) {
+	server, _, _ := setupSiteAPI(t)
+	h := server.Handler()
+	if r := createTestSite(t, h, secret, "site-a", "a.example.test"); r.Code != http.StatusCreated {
+		t.Fatalf("create site: %d %s", r.Code, r.Body.String())
+	}
+	path := "/api/v1/sites/site-a/domains"
+	start := make(chan struct{})
+	codes := make(chan int, 2)
+	for range 2 {
+		go func() {
+			<-start
+			codes <- call(h, http.MethodPost, path, secret, "", `{"domain":"race.example.test"}`).Code
+		}()
+	}
+	close(start)
+	a, b := <-codes, <-codes
+	if !((a == http.StatusCreated && b == http.StatusConflict) ||
+		(a == http.StatusConflict && b == http.StatusCreated)) {
+		t.Fatalf("concurrent alias creation statuses=(%d,%d), want one claim and one conflict", a, b)
+	}
+}
