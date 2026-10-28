@@ -1,5 +1,5 @@
 # P2 — Secure Single-Server Hosting Alpha
-**Status:** PLANNED, not implemented. **Depends:** P1 auth, typed jobs/host agent, installer lab and secret handling.
+**Status:** IN PROGRESS. Component prototypes exist on unmerged draft PRs, but P2 is not an integrated or installable alpha. **Depends:** P1 auth, reviewed typed jobs/host agent, installer lab and secret handling.
 
 ## Implementation slices
 1. Supported distro package/installer, preflight, journal and recovery.
@@ -25,3 +25,7 @@
 
 ## Alpha release gate
 Signed experimental artifacts for published exact OS/architecture matrix. Every limitation visible. Not marketed as production ready; email/DNS authoritative host and Node/Python deferred to P3/P4.
+
+
+## Evidence-based implementation checkpoint — 29 October 2026
+Verified component prototypes on unmerged drafts include Nginx/PHP-FPM renderers, two-tenant clean-VM HTTP/TLS checks, SQLite site/domain/database metadata, isolated MariaDB grant tests, one-time domain proof, authenticated loopback site/domain APIs and site alias create/remove. They are not wired into an installer or production host adapters. The full P2 acceptance below remains outstanding wherever lifecycle integration, rollback, data recovery, certificate issue/renew, UI or owner/security approval is required.
