@@ -31,7 +31,7 @@ type SiteSpec struct {
 // ownership lookup. Unicode input is rejected; callers must canonicalize it with a vetted IDNA library first.
 func NormalizeDomain(input string) (string, error) {
 	domain := strings.TrimSuffix(input, ".")
-	if domain == "" || len(domain) > 253 || strings.TrimSpace(domain) != input {
+	if domain == "" || len(domain) > 253 || strings.TrimSpace(input) != input {
 		return "", ErrInvalidDomain
 	}
 	if strings.ContainsAny(domain, " /\\:\t\r\n\x00") || net.ParseIP(domain) != nil {
