@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 	"time"
 )
 
@@ -162,6 +161,3 @@ func (c *Catalog) CompleteDomainVerification(ctx context.Context, tenantID, site
 	return nil
 }
 
-func validProofLookupName(name string) bool {
-	return strings.HasPrefix(name, domainProofLabel+".")
-}
