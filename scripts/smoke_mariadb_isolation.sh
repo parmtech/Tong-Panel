@@ -14,8 +14,8 @@ cleanup() {
   sudo mariadb --protocol=socket -uroot >/dev/null 2>&1 <<SQL || true
 DROP USER IF EXISTS '$user_a'@'localhost';
 DROP USER IF EXISTS '$user_b'@'localhost';
-DROP DATABASE IF EXISTS `$db_a`;
-DROP DATABASE IF EXISTS `$db_b`;
+DROP DATABASE IF EXISTS \`$db_a\`;
+DROP DATABASE IF EXISTS \`$db_b\`;
 SQL
   rm -rf "$work"
   exit "$status"
@@ -23,16 +23,16 @@ SQL
 trap cleanup EXIT
 
 sudo mariadb --protocol=socket -uroot <<SQL
-CREATE DATABASE `$db_a`;
-CREATE DATABASE `$db_b`;
+CREATE DATABASE \`$db_a\`;
+CREATE DATABASE \`$db_b\`;
 CREATE USER '$user_a'@'localhost' IDENTIFIED BY '$password_a';
 CREATE USER '$user_b'@'localhost' IDENTIFIED BY '$password_b';
-GRANT ALL PRIVILEGES ON `$db_a`.* TO '$user_a'@'localhost';
-GRANT ALL PRIVILEGES ON `$db_b`.* TO '$user_b'@'localhost';
-CREATE TABLE `$db_a`.tenant_marker (owner_name VARCHAR(32) NOT NULL);
-CREATE TABLE `$db_b`.tenant_marker (owner_name VARCHAR(32) NOT NULL);
-INSERT INTO `$db_a`.tenant_marker VALUES ('tenant-a');
-INSERT INTO `$db_b`.tenant_marker VALUES ('tenant-b');
+GRANT ALL PRIVILEGES ON \`$db_a\`.* TO '$user_a'@'localhost';
+GRANT ALL PRIVILEGES ON \`$db_b\`.* TO '$user_b'@'localhost';
+CREATE TABLE \`$db_a\`.tenant_marker (owner_name VARCHAR(32) NOT NULL);
+CREATE TABLE \`$db_b\`.tenant_marker (owner_name VARCHAR(32) NOT NULL);
+INSERT INTO \`$db_a\`.tenant_marker VALUES ('tenant-a');
+INSERT INTO \`$db_b\`.tenant_marker VALUES ('tenant-b');
 SQL
 
 write_client_config() {
