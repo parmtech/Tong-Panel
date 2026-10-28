@@ -389,3 +389,9 @@ The draft adds a TLS-only, CSRF- and same-origin-protected logout route for sess
 The disposable Ubuntu/Debian guest database grant script now includes a tenant-scoped dump/restore round trip and negative cross-tenant read/export/import checks. Exact code head `f63bac3b46de8775ae94032525b367e284b1ba74` passed [Ubuntu 24.04](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135988) and [Debian 12](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135759) clean-VM jobs. It is not product backup/restore, offsite encryption, app-managed DB provisioning, or P2 acceptance evidence. **P1 remains NOT COMPLETE; P2 remains IN PROGRESS; ADR/security owner decisions remain pending.**
 
 - Initial guest runs reached the new dump/restore assertions but exposed a package-smoke `curl | grep -q` SIGPIPE failure (curl exit 23). The smoke now captures the local page before matching; the corrected exact code head passed both clean-VM jobs: [Ubuntu 24.04](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135988) and [Debian 12](https://github.com/parmtech/Tong-Panel/actions/runs/40781823676/job/123145135759).
+
+
+## P2 Nginx config rollback lab — draft PR pending (29 October 2026)
+
+- Adds a disposable Ubuntu/Debian guest check around a separately launched temporary Nginx instance. Invalid staged syntax must leave the current config serving; a simulated reload failure must restore the previous config; a valid config must pass `nginx -t`, atomically replace the test include and reload successfully.
+- The test never writes `/etc/nginx` or touches the guest's system Nginx service. Hosted verification is pending. This is an isolated config lifecycle prototype only; the daemon still does not apply host configuration. P2 remains IN PROGRESS.
