@@ -202,7 +202,7 @@ func TestHTTPSCookieLogoutRejectsBadOriginCSRFAndBearerFallback(t *testing.T) {
 	h := s.Handler()
 	for _, tc := range []struct {
 		name, token, csrf, origin string
-		mutate                     func(*http.Request)
+		mutate                    func(*http.Request)
 	}{
 		{name: "wrong csrf", token: token, csrf: strings.Repeat("a", 64), origin: "https://panel.test"},
 		{name: "wrong origin", token: token, csrf: csrf, origin: "https://evil.test"},
