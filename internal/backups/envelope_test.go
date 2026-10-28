@@ -65,9 +65,9 @@ func TestEnvelopeRejectsTamperingTruncationAndTrailingBytes(t *testing.T) {
 	firstChunk := headerSize + 4 + 7
 	finalTag := len(sealed) - 1
 	cases := map[string]func([]byte){
-		"format header": func(v []byte) { v[0] ^= 0x80 },
-		"wrapped data key": func(v []byte) { v[24] ^= 0x01 },
-		"chunk ciphertext": func(v []byte) { v[firstChunk] ^= 0x01 },
+		"format header":       func(v []byte) { v[0] ^= 0x80 },
+		"wrapped data key":    func(v []byte) { v[24] ^= 0x01 },
+		"chunk ciphertext":    func(v []byte) { v[firstChunk] ^= 0x01 },
 		"final authenticator": func(v []byte) { v[finalTag] ^= 0x01 },
 	}
 	for name, mutate := range cases {
