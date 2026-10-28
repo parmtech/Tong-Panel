@@ -100,3 +100,16 @@ func (t *TenantRoots) RemoveFileForTenant(tenantID, relative string) error {
 	}
 	return root.RemoveFile(relative)
 }
+
+// ExtractGzipTarNewForTenant extracts only beneath the pinned root selected by
+// tenantID. The ID must come from an authenticated and authorized principal.
+func (t *TenantRoots) ExtractGzipTarNewForTenant(tenantID, relative string, archive []byte, limits ArchiveLimits) error {
+	if t == nil || tenantID == "" {
+		return ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ErrTenantDenied
+	}
+	return root.ExtractGzipTarNew(relative, archive, limits)
+}
