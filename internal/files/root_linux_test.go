@@ -810,6 +810,50 @@ func TestExtractGzipTarNewEnforcesCompressedFileAndEntryLimits(t *testing.T) {
 	assertNoStagingDirectories(t, root)
 }
 
+func TestReadGzipTarBoundedReadsAtMostLimitPlusOne(t *testing.T) {
+	exact := bytes.NewReader([]byte("1234"))
+	data, err := ReadGzipTarBounded(exact, 4)
+	if err != nil || string(data) != "1234" || exact.Len() != 0 {
+		t.Fatalf("exact-limit read = %q, remaining=%d, err=%v", data, exact.Len(), err)
+	}
+	oversized := bytes.NewReader([]byte("123456789"))
+	data, err = ReadGzipTarBounded(oversized, 4)
+	if !errors.Is(err, ErrArchiveLimit) || data != nil {
+		t.Fatalf("oversized read = %q, %v; want nil, ErrArchiveLimit", data, err)
+	}
+	if oversized.Len() != 4 {
+		t.Fatalf("oversized reader consumed beyond limit+1: %d bytes remain", oversized.Len())
+	}
+	for _, limit := range []int64{0, MaxArchiveCompressedBytes + 1} {
+		if _, err := ReadGzipTarBounded(bytes.NewReader(nil), limit); !errors.Is(err, ErrInvalidLimit) {
+			t.Errorf("invalid max %d error = %v", limit, err)
+		}
+	}
+	if _, err := ReadGzipTarBounded(nil, 1); !errors.Is(err, ErrInvalidArchive) {
+		t.Fatalf("nil input error = %v", err)
+	}
+}
+
+func TestExtractGzipTarNewFromBoundsBeforePublishing(t *testing.T) {
+	r, root := newTestRoot(t)
+	archive := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("safe")})
+	limit := int64(len(archive) - 1)
+	reader := bytes.NewReader(archive)
+	if err := r.ExtractGzipTarNewFrom("too-large", reader, ArchiveLimits{CompressedBytes: limit}); !errors.Is(err, ErrArchiveLimit) {
+		t.Fatalf("oversized stream error = %v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "too-large")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("rejected stream published a target: %v", err)
+	}
+	reader = bytes.NewReader(archive)
+	if err := r.ExtractGzipTarNewFrom("accepted", reader, ArchiveLimits{}); err != nil {
+		t.Fatalf("bounded valid stream extraction failed: %v", err)
+	}
+	if data, err := os.ReadFile(filepath.Join(root, "accepted", "index.html")); err != nil || string(data) != "safe" {
+		t.Fatalf("extracted stream content = %q, %v", data, err)
+	}
+}
+
 func TestExtractGzipTarNewSymlinkSwapNeverChangesOutsideTarget(t *testing.T) {
 	r, root := newTestRoot(t)
 	outside := t.TempDir()
@@ -907,6 +951,19 @@ func TestTenantRootsScopeArchiveExtraction(t *testing.T) {
 		t.Fatal(err)
 	}
 	archive := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("tenant-a")})
+	deniedReader := bytes.NewReader(archive)
+	if err := roots.ExtractGzipTarNewFromForTenant("unknown", "site", deniedReader, ArchiveLimits{}); !errors.Is(err, ErrTenantDenied) {
+		t.Fatalf("unknown tenant stream extraction error = %v", err)
+	}
+	if deniedReader.Len() != len(archive) {
+		t.Fatal("unknown tenant stream was consumed before tenant selection")
+	}
+	if err := roots.ExtractGzipTarNewFromForTenant("tenant-a", "stream-site", bytes.NewReader(archive), ArchiveLimits{}); err != nil {
+		t.Fatalf("tenant stream extraction failed: %v", err)
+	}
+	if data, err := os.ReadFile(filepath.Join(rootAPath, "stream-site", "index.html")); err != nil || string(data) != "tenant-a" {
+		t.Fatalf("tenant stream content = %q, %v", data, err)
+	}
 	if err := roots.ExtractGzipTarNewForTenant("tenant-a", "site", archive, ArchiveLimits{}); err != nil {
 		t.Fatal(err)
 	}

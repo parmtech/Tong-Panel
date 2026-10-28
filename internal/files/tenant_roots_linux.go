@@ -3,6 +3,7 @@
 package files
 
 import (
+	"io"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -116,6 +117,20 @@ func (t *TenantRoots) ExtractGzipTarNewForTenant(tenantID, relative string, arch
 		return ErrTenantDenied
 	}
 	return root.ExtractGzipTarNew(relative, archive, limits)
+}
+
+// ExtractGzipTarNewFromForTenant reads and extracts a bounded archive only
+// beneath the pinned root selected by tenantID. The ID must come from an
+// authenticated and authorized server-side principal.
+func (t *TenantRoots) ExtractGzipTarNewFromForTenant(tenantID, relative string, src io.Reader, limits ArchiveLimits) error {
+	if t == nil || tenantID == "" {
+		return ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ErrTenantDenied
+	}
+	return root.ExtractGzipTarNewFrom(relative, src, limits)
 }
 
 // CleanupStaleStagesForTenant cleans only internal staging directories beneath
