@@ -913,4 +913,3 @@ func TestTenantRootsScopeArchiveExtraction(t *testing.T) {
 		t.Fatalf("tenant traversal extraction error = %v", err)
 	}
 }
-
