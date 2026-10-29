@@ -81,7 +81,7 @@ func readWrappingKey(path string) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("cannot read wrapping-key file")
 	}
-	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm()&0o177 != 0 {
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm()&0o400 == 0 || info.Mode().Perm()&0o177 != 0 {
 		return nil, errors.New("wrapping-key file must be regular, owner-readable, and have no group, other, or execute permissions")
 	}
 	file, err := os.Open(path)
