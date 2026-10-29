@@ -148,6 +148,35 @@ func TestCookieRequiresActualTLSRejectsAmbiguousCredentials(t *testing.T) {
 	}
 }
 
+func TestCookieMutationDoesNotTrustForwardedOriginHeaders(t *testing.T) {
+	s, sessions, _, token, csrf := setupCookieAPI(t)
+	forwardingHeaders := [][]string{
+		{"X-Forwarded-Proto", "https"},
+		{"X-Forwarded-Host", "panel.test"},
+		{"Forwarded", "host=panel.test;proto=https"},
+	}
+	for _, header := range forwardingHeaders {
+		t.Run(header[0], func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "https://panel.test/api/v1/jobs", strings.NewReader(`{"kind":"validation.noop"}`))
+			req.TLS = &tls.ConnectionState{}
+			req.AddCookie(&http.Cookie{Name: auth.BrowserCookieName, Value: token})
+			req.Header.Set("Origin", "https://attacker.test")
+			req.Header.Set("X-CSRF-Token", csrf)
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Idempotency-Key", "forwarded-origin-negative-test")
+			req.Header.Set(header[0], header[1])
+			rec := httptest.NewRecorder()
+			s.Handler().ServeHTTP(rec, req)
+			if rec.Code != http.StatusForbidden {
+				t.Fatalf("forged forwarding header authorized mutation: %d %s", rec.Code, rec.Body.String())
+			}
+		})
+	}
+	if _, ok := sessions.Check(token); !ok {
+		t.Fatal("rejected forwarded-header request revoked the session")
+	}
+}
+
 func TestCookieMutationRejectsDuplicateOriginHeaders(t *testing.T) {
 	s, _, _, token, csrf := setupCookieAPI(t)
 	req := httptest.NewRequest("POST", "https://panel.test/api/v1/jobs", strings.NewReader(`{"kind":"validation.noop"}`))

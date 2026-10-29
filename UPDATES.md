@@ -506,3 +506,32 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Adds `RotateWrappingKey` to decrypt with the old externally supplied key and re-encrypt through a bounded pipe with a new key and fresh data key/nonce set; plaintext is not written to disk by the primitive. `RotateWrappingKeyFile` composes this with private staging and exclusive atomic publication, so tampered input does not create a destination.
 - Tests cover successful stream/file rotation and restore, old-key rejection, invalid new-key denial before output, tampered-input error propagation and no-publication, plus temporary-file cleanup. Local Go 1.27.3 `go test ./internal/backups` and `go vet ./internal/backups` pass. Exact code head `d0f6c045a7dc11aaa5e653b1de8d486ac8200262` passed hosted Go/race/vet [#40787813247](https://github.com/parmtech/Tong-Panel/actions/runs/40787813247), daemon [#40787819656](https://github.com/parmtech/Tong-Panel/actions/runs/40787819656), and unsigned archive [#40787819650](https://github.com/parmtech/Tong-Panel/actions/runs/40787819650).
 - No key selection/storage/recovery, rotation cadence or authorization policy is defined. Caller must choose a tenant-inaccessible directory. ADR-007/security owner review remains pending; P2 remains IN PROGRESS.
+## P2 clean-host encrypted MariaDB restore — draft PR #84 (29 October 2026)
+
+- Adds the experimental Linux `tongbackup` operator command, restrictive external 32-byte key-file checks, and clean disposable guest coverage for encrypted MariaDB dump, wrong-tenant/key denial, tamper/no-overwrite behavior, and restoring onto a fresh overlay from the pristine distro image after destroying the source VM disk.
+- Current exact PR head `23fd89f7e4237211e13644152405466cfc4ddb24` passed hosted Go/race/vet [run #40788803537](https://github.com/parmtech/Tong-Panel/actions/runs/40788803537), daemon dry-run [run #40788803517](https://github.com/parmtech/Tong-Panel/actions/runs/40788803517), and unsigned archive [run #40788803519](https://github.com/parmtech/Tong-Panel/actions/runs/40788803519). the earlier head failed its fresh-host SQL import because it omitted the target database; corrected head `95257da5d1faaae5cc07f27125b64c20b24c8e49` passes Debian 12 [job #123172500626](https://github.com/parmtech/Tong-Panel/actions/runs/40789979352/job/123172500626), and Ubuntu 24.04 [job #123172500141](https://github.com/parmtech/Tong-Panel/actions/runs/40789979352/job/123172500141) both pass.
+- Runner temporary storage is test staging only, not a real offsite provider or durable backup service. No scheduler, retention/deletion, product API/agent integration, production key custody/recovery, complete multi-tenant recovery, or customer restore guarantee is provided. P2 remains IN PROGRESS.
+
+## Advisory ADR/threat-model review (29 October 2026)
+
+`docs/ADR_SECURITY_REVIEW_2026-10-29.md` records a technical recommendation of Needs revision across ADR-001–009 and the threat-model exit gate, with concrete evidence still required. This is an AI advisory review, not an owner decision, independent security review or approval. Formal reviewer identities, outcomes and dates remain pending; P0 is not closed.
+
+## P2 evidence audit (29 October 2026)
+
+Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pass-test disposition. It records component evidence without treating it as integrated acceptance. PR #84 clean-host MariaDB restore passed Ubuntu 24.04 and Debian 12 at code head `95257da5d1faaae5cc07f27125b64c20b24c8e49`; a follow-on owner-read key permission negative test is included in current head `d7780bd8e4c203b3a3a86aefded8d3739aba4a59`, whose hosted checks were queued when this audit was written. Offsite provider, schedule/retention, production key custody/recovery, complete restore and integrated multi-tenant acceptance remain open. P2 remains IN PROGRESS.
+
+## Session handoff — 2026-10-29 11:09 Australia/Sydney
+
+- **Agent/workstream/task:** Codex / F + G / encrypted MariaDB fresh-host restore and P2 exit-gate evidence.
+- **Branch/PR:** `feature/p2-encrypted-backup-restore-vm`, draft [PR #84](https://github.com/parmtech/Tong-Panel/pull/84), stacked on PR #83. Current remote head at handoff: `a8a46539b861341df22a8717a2d93f5e1bb73da1`.
+- **State/change:** encrypted dump/restore command and clean-VM drill implemented; explicit target database fixed after CI failure. The restore passed both Ubuntu 24.04 and Debian 12 on code head `95257da5d1faaae5cc07f27125b64c20b24c8e49`. Latest code adds denial of owner-write-only key files, including when run as root. Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md`, `docs/ADR_SECURITY_REVIEW_2026-10-29.md`, and updated P1/P2 reports and this journal.
+- **Tests:** local Go test/vet, shell syntax and `git diff --check` passed. On code head `95257da`, hosted Go/race/vet, daemon, archive and both clean-VM restore jobs passed; both VM logs confirm the marker on a fresh VM. Latest head `a8a4653` checks were queued at handoff; see PR #84 before claiming that head verified.
+- **Security/licence:** no privileged operations, public login, deployment or merge. The ADR review is advisory and recommends Needs revision; human owner/security outcomes are still pending. Test runner temp staging is not offsite storage. No third-party source was added.
+- **Blockers:** P2 still needs durable offsite provider, scheduler, retention/deletion, production external-key custody/recovery, app/agent integration, full settings/sites/multi-tenant restore, integrated isolation/UX acceptance and all P0 owner/security decisions.
+- **Next action:** inspect exact-head PR #84 Actions checks; fix any failures before selecting the next P2 gate.
+
+
+## P1 trusted browser origin proxy-header negative case — stacked draft PR #84 (29 October 2026)
+
+- Adds a security regression test on the existing cookie-authenticated mutation boundary: forged Forwarded, X-Forwarded-Host, or X-Forwarded-Proto values cannot authorize an attacker Origin or revoke the valid session. This adds no session issuer, trusted proxy configuration, or public login route.
+- Code commit: c61b366185622a541daac799033057c022a3729f. Exact-head GitHub Go/race/vet, daemon, archive, and Ubuntu/Debian clean-VM checks are required before reporting this test verified. ADR-009 and human owner/security decisions remain pending.
