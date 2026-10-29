@@ -519,3 +519,13 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 ## P2 evidence audit (29 October 2026)
 
 Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pass-test disposition. It records component evidence without treating it as integrated acceptance. PR #84 clean-host MariaDB restore passed Ubuntu 24.04 and Debian 12 at code head `95257da5d1faaae5cc07f27125b64c20b24c8e49`; a follow-on owner-read key permission negative test is included in current head `d7780bd8e4c203b3a3a86aefded8d3739aba4a59`, whose hosted checks were queued when this audit was written. Offsite provider, schedule/retention, production key custody/recovery, complete restore and integrated multi-tenant acceptance remain open. P2 remains IN PROGRESS.
+
+## Session handoff — 2026-10-29 11:09 Australia/Sydney
+
+- **Agent/workstream/task:** Codex / F + G / encrypted MariaDB fresh-host restore and P2 exit-gate evidence.
+- **Branch/PR:** `feature/p2-encrypted-backup-restore-vm`, draft [PR #84](https://github.com/parmtech/Tong-Panel/pull/84), stacked on PR #83. Current remote head at handoff: `a8a46539b861341df22a8717a2d93f5e1bb73da1`.
+- **State/change:** encrypted dump/restore command and clean-VM drill implemented; explicit target database fixed after CI failure. The restore passed both Ubuntu 24.04 and Debian 12 on code head `95257da5d1faaae5cc07f27125b64c20b24c8e49`. Latest code adds denial of owner-write-only key files, including when run as root. Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md`, `docs/ADR_SECURITY_REVIEW_2026-10-29.md`, and updated P1/P2 reports and this journal.
+- **Tests:** local Go test/vet, shell syntax and `git diff --check` passed. On code head `95257da`, hosted Go/race/vet, daemon, archive and both clean-VM restore jobs passed; both VM logs confirm the marker on a fresh VM. Latest head `a8a4653` checks were queued at handoff; see PR #84 before claiming that head verified.
+- **Security/licence:** no privileged operations, public login, deployment or merge. The ADR review is advisory and recommends Needs revision; human owner/security outcomes are still pending. Test runner temp staging is not offsite storage. No third-party source was added.
+- **Blockers:** P2 still needs durable offsite provider, scheduler, retention/deletion, production external-key custody/recovery, app/agent integration, full settings/sites/multi-tenant restore, integrated isolation/UX acceptance and all P0 owner/security decisions.
+- **Next action:** inspect exact-head PR #84 Actions checks; fix any failures before selecting the next P2 gate.
