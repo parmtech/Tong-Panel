@@ -40,3 +40,8 @@ The 2026-10-29 advisory review recommends **Needs revision** for ADR-001–009 a
 ## Exit decision
 
 P2 remains **IN PROGRESS**. Do not merge draft PRs, deploy to a real VPS, claim distro support/security approval, or declare Phase 1/Phase 2 production-ready on this evidence. Revisit this report only when each open slice and must-pass test has authoritative integrated evidence and the responsible human owners record the required architecture/security decisions.
+
+
+## P2 package preflight ordering lab — draft PR #86 (29 October 2026)
+
+A follow-up disposable-package test now extracts the unsigned `tongctl` binary without installing it, proves low-disk and occupied-port policies deny, and asserts package metadata/service files/state directories remain absent before the first `dpkg --install`. It then proves the supported clean guest satisfies the lab policy immediately before installation. This adds test-harness ordering evidence only; it does not create a supported installer or prove upgrade/recovery authorization. Exact-head Ubuntu/Debian CI is pending, so the gate remains **partial and open**.
