@@ -535,3 +535,9 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 
 - Adds a security regression test on the existing cookie-authenticated mutation boundary: forged Forwarded, X-Forwarded-Host, or X-Forwarded-Proto values cannot authorize an attacker Origin or revoke the valid session. This adds no session issuer, trusted proxy configuration, or public login route.
 - Code commit: c61b366185622a541daac799033057c022a3729f. Exact-head GitHub Go/race/vet, daemon, archive, and Ubuntu/Debian clean-VM checks are required before reporting this test verified. ADR-009 and human owner/security decisions remain pending.
+
+
+## P2 disposable installer preflight ordering lab — draft PR #86 (29 October 2026)
+
+- Extends the clean-VM package lifecycle drill to extract `tongctl` from the unsigned `.deb` without installing it, deny impossible free-disk and occupied-loopback-service-port policies, and assert package metadata, service binaries/unit, and state directory remain absent after each denial. A passing facts/policy check is then required immediately before the first package install.
+- Code commits: `25aa89837e5813d6b612a1a7c4cec2007c7861c9`, `f8c230cfc8a71d346e7e4b0fe3b56e96738b5ea0`. The exit report correctly treats this as lab ordering evidence, not an approved production installer, upgrade authorization, distro certification, or complete rollback guarantee. Exact-head GitHub checks are pending.
