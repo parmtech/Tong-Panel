@@ -542,3 +542,6 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - PR #85 had no exact-head workflow runs after its base PR #84 advanced. The branch is being restacked on PR #84 head `955a61098ea4a40b95bbc4e521f1a4c96542168c` so the PR diff and checks include the current parent changes.
 - Coverage now includes the configured resolver loopback request/response, context cancellation, and a forged TXT response that cannot move domain ownership from pending. No public DNS or system resolver is used.
 - This remains a resolver adapter test, not public DNS propagation, DNSSEC, ACME issuance, or a privileged vhost lifecycle. Exact-head CI must pass before treating the test as verified.
+
+
+- Follow-up `394dbce9dd8e56d834c7e8b2e285b9d7a284adc7` corrected formatting in the new DNS test before CI; verification remains pending on the updated stacked head.
