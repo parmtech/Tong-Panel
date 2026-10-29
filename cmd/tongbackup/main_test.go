@@ -66,6 +66,14 @@ func TestRunRejectsInsecureOrMalformedKeyFilesWithoutPublishing(t *testing.T) {
 	if strings.Contains(stderr.String(), string(bytes.Repeat([]byte{0x41}, 32))) {
 		t.Fatal("stderr exposed key material")
 	}
+	unreadableKey := writeKeyFile(t, dir, "owner-write-only.key", bytes.Repeat([]byte{0x42}, 32), 0o200)
+	err = run([]string{"encrypt", "--tenant", "tenant-a", "--key-file", unreadableKey, "--output", destination}, strings.NewReader("secret"), &bytes.Buffer{}, &stderr)
+	if err == nil || !strings.Contains(err.Error(), "permissions") {
+		t.Fatalf("run() error = %v, want owner-read permission denial", err)
+	}
+	if _, err := os.Lstat(destination); !os.IsNotExist(err) {
+		t.Fatalf("owner-write-only key created output (Lstat error = %v)", err)
+	}
 	shortKey := writeKeyFile(t, dir, "short.key", []byte("too short"), 0o600)
 	err = run([]string{"encrypt", "--tenant", "tenant-a", "--key-file", shortKey, "--output", destination}, strings.NewReader("secret"), &bytes.Buffer{}, &stderr)
 	if err == nil || !strings.Contains(err.Error(), "exactly 32 bytes") {
