@@ -6,6 +6,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"crypto/sha256"
 	"errors"
 	"io"
 	"os"
@@ -1279,6 +1280,26 @@ func TestExtractGzipTarNewFromBoundsBeforePublishing(t *testing.T) {
 	}
 	if data, err := os.ReadFile(filepath.Join(root, "accepted", "index.html")); err != nil || string(data) != "safe" {
 		t.Fatalf("extracted stream content = %q, %v", data, err)
+	}
+}
+
+func TestExtractVerifiedGzipTarNewChecksDigestBeforePublishing(t *testing.T) {
+	r, root := newTestRoot(t)
+	archive := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "wordpress/index.php", Typeflag: tar.TypeReg}, data: []byte("core")})
+	expected := sha256.Sum256(archive)
+	wrong := expected
+	wrong[0] ^= 0xff
+	if err := r.ExtractVerifiedGzipTarNew("rejected", archive, wrong); !errors.Is(err, ErrInvalidArchive) {
+		t.Fatalf("mismatched verified archive digest error = %v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "rejected")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("mismatched verified archive published target: %v", err)
+	}
+	if err := r.ExtractVerifiedGzipTarNew("accepted", archive, expected); err != nil {
+		t.Fatalf("verified archive extraction failed: %v", err)
+	}
+	if data, err := os.ReadFile(filepath.Join(root, "accepted", "wordpress", "index.php")); err != nil || string(data) != "core" {
+		t.Fatalf("verified archive file = %q, %v", data, err)
 	}
 }
 

@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -19,11 +21,16 @@ import (
 )
 
 const (
-	MaxArchiveCompressedBytes int64 = 32 << 20
-	MaxArchiveExpandedBytes   int64 = 80 << 20
-	MaxArchiveFileBytes       int64 = 16 << 20
-	MaxArchiveTotalBytes      int64 = 64 << 20
-	MaxArchiveEntries               = 2048
+	MaxArchiveCompressedBytes         int64 = 32 << 20
+	MaxArchiveExpandedBytes           int64 = 80 << 20
+	MaxArchiveFileBytes               int64 = 16 << 20
+	MaxArchiveTotalBytes              int64 = 64 << 20
+	MaxArchiveEntries                       = 2048
+	MaxVerifiedArchiveCompressedBytes int64 = 64 << 20
+	MaxVerifiedArchiveExpandedBytes   int64 = 160 << 20
+	MaxVerifiedArchiveFileBytes       int64 = 32 << 20
+	MaxVerifiedArchiveTotalBytes      int64 = 128 << 20
+	MaxVerifiedArchiveEntries               = 4096
 )
 
 var (
@@ -42,26 +49,46 @@ type ArchiveLimits struct {
 }
 
 func (l ArchiveLimits) withDefaults() (ArchiveLimits, error) {
+	return l.withCaps(ArchiveLimits{
+		CompressedBytes: MaxArchiveCompressedBytes,
+		ExpandedBytes:   MaxArchiveExpandedBytes,
+		FileBytes:       MaxArchiveFileBytes,
+		TotalBytes:      MaxArchiveTotalBytes,
+		Entries:         MaxArchiveEntries,
+	})
+}
+
+func (l ArchiveLimits) withVerifiedDefaults() (ArchiveLimits, error) {
+	return l.withCaps(ArchiveLimits{
+		CompressedBytes: MaxVerifiedArchiveCompressedBytes,
+		ExpandedBytes:   MaxVerifiedArchiveExpandedBytes,
+		FileBytes:       MaxVerifiedArchiveFileBytes,
+		TotalBytes:      MaxVerifiedArchiveTotalBytes,
+		Entries:         MaxVerifiedArchiveEntries,
+	})
+}
+
+func (l ArchiveLimits) withCaps(max ArchiveLimits) (ArchiveLimits, error) {
 	if l.CompressedBytes == 0 {
-		l.CompressedBytes = MaxArchiveCompressedBytes
+		l.CompressedBytes = max.CompressedBytes
 	}
 	if l.ExpandedBytes == 0 {
-		l.ExpandedBytes = MaxArchiveExpandedBytes
+		l.ExpandedBytes = max.ExpandedBytes
 	}
 	if l.FileBytes == 0 {
-		l.FileBytes = MaxArchiveFileBytes
+		l.FileBytes = max.FileBytes
 	}
 	if l.TotalBytes == 0 {
-		l.TotalBytes = MaxArchiveTotalBytes
+		l.TotalBytes = max.TotalBytes
 	}
 	if l.Entries == 0 {
-		l.Entries = MaxArchiveEntries
+		l.Entries = max.Entries
 	}
-	if l.CompressedBytes < 1 || l.CompressedBytes > MaxArchiveCompressedBytes ||
-		l.ExpandedBytes < 1 || l.ExpandedBytes > MaxArchiveExpandedBytes ||
-		l.FileBytes < 1 || l.FileBytes > MaxArchiveFileBytes ||
-		l.TotalBytes < 1 || l.TotalBytes > MaxArchiveTotalBytes ||
-		l.Entries < 1 || l.Entries > MaxArchiveEntries {
+	if l.CompressedBytes < 1 || l.CompressedBytes > max.CompressedBytes ||
+		l.ExpandedBytes < 1 || l.ExpandedBytes > max.ExpandedBytes ||
+		l.FileBytes < 1 || l.FileBytes > max.FileBytes ||
+		l.TotalBytes < 1 || l.TotalBytes > max.TotalBytes ||
+		l.Entries < 1 || l.Entries > max.Entries {
 		return ArchiveLimits{}, ErrInvalidLimit
 	}
 	return l, nil
@@ -94,6 +121,26 @@ func ReadGzipTarBounded(src io.Reader, maxBytes int64) ([]byte, error) {
 // accepted; symlinks, hardlinks, devices, FIFOs, traversal and duplicate paths
 // fail closed. Files use mode 0600 and directories mode 0700.
 func (r *Root) ExtractGzipTarNew(relative string, archive []byte, limits ArchiveLimits) error {
+	return r.extractGzipTarNew(relative, archive, limits, false)
+}
+
+// ExtractVerifiedGzipTarNew verifies a caller-pinned SHA-256 before extracting
+// a larger vendor artifact. It retains the same path, type, no-replace and
+// atomic-publication protections as ExtractGzipTarNew, with larger but still
+// bounded archive limits appropriate for a checksum-pinned application core.
+// Callers must obtain expectedSHA256 from a reviewed, immutable release pin.
+func (r *Root) ExtractVerifiedGzipTarNew(relative string, archive []byte, expectedSHA256 [sha256.Size]byte) error {
+	if int64(len(archive)) > MaxVerifiedArchiveCompressedBytes {
+		return ErrArchiveLimit
+	}
+	actual := sha256.Sum256(archive)
+	if subtle.ConstantTimeCompare(actual[:], expectedSHA256[:]) != 1 {
+		return ErrInvalidArchive
+	}
+	return r.extractGzipTarNew(relative, archive, ArchiveLimits{}, true)
+}
+
+func (r *Root) extractGzipTarNew(relative string, archive []byte, limits ArchiveLimits, verified bool) error {
 	if r == nil {
 		return ErrClosed
 	}
@@ -101,7 +148,11 @@ func (r *Root) ExtractGzipTarNew(relative string, archive []byte, limits Archive
 		return ErrInvalidPath
 	}
 	var err error
-	limits, err = limits.withDefaults()
+	if verified {
+		limits, err = limits.withVerifiedDefaults()
+	} else {
+		limits, err = limits.withDefaults()
+	}
 	if err != nil {
 		return err
 	}
