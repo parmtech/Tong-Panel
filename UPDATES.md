@@ -545,3 +545,9 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 
 
 - Follow-up `394dbce9dd8e56d834c7e8b2e285b9d7a284adc7` corrected formatting in the new DNS test before CI; verification remains pending on the updated stacked head.
+
+
+## P2 domain ownership query hardening — draft PR #85 (29 October 2026)
+
+- The ownership verifier now roots its DNS challenge lookup with a trailing dot, preventing configured resolver search suffixes from changing the query name. The unit test asserts the exact absolute challenge FQDN; the loopback integration test exercises the production verifier with a wrong TXT answer and requires ownership to stay pending.
+- Implementation commit `1ddd297bdabc6b370f2386febb222f1769119779`; assertion commit `c1d0e4d599ac5c02b61298280c3c3d8d899f882e`. Exact-head Go/race/vet and stack checks are pending; P2 ownership/certificate lifecycle remains incomplete.
