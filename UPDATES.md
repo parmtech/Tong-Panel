@@ -529,3 +529,9 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - **Security/licence:** no privileged operations, public login, deployment or merge. The ADR review is advisory and recommends Needs revision; human owner/security outcomes are still pending. Test runner temp staging is not offsite storage. No third-party source was added.
 - **Blockers:** P2 still needs durable offsite provider, scheduler, retention/deletion, production external-key custody/recovery, app/agent integration, full settings/sites/multi-tenant restore, integrated isolation/UX acceptance and all P0 owner/security decisions.
 - **Next action:** inspect exact-head PR #84 Actions checks; fix any failures before selecting the next P2 gate.
+
+
+## P1 trusted browser origin proxy-header negative case — stacked draft PR #84 (29 October 2026)
+
+- Adds a security regression test on the existing cookie-authenticated mutation boundary: forged Forwarded, X-Forwarded-Host, or X-Forwarded-Proto values cannot authorize an attacker Origin or revoke the valid session. This adds no session issuer, trusted proxy configuration, or public login route.
+- Code commit: c61b366185622a541daac799033057c022a3729f. Exact-head GitHub Go/race/vet, daemon, archive, and Ubuntu/Debian clean-VM checks are required before reporting this test verified. ADR-009 and human owner/security decisions remain pending.
