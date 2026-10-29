@@ -133,7 +133,9 @@ func (c *Catalog) CompleteDomainVerification(ctx context.Context, tenantID, site
 	if subtle.ConstantTimeCompare([]byte(storedDigest.String), []byte(digestHex)) != 1 {
 		return ErrDomainProofMismatch
 	}
-	records, err := lookup.LookupTXT(ctx, domainProofLabel+"."+domain)
+	// Root the challenge name so resolver search suffixes cannot change the ownership query.
+	challengeFQDN := domainProofLabel + "." + domain + "."
+	records, err := lookup.LookupTXT(ctx, challengeFQDN)
 	if err != nil {
 		return fmt.Errorf("lookup domain proof TXT: %w", err)
 	}

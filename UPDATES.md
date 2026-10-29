@@ -535,3 +535,22 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 
 - Adds a security regression test on the existing cookie-authenticated mutation boundary: forged Forwarded, X-Forwarded-Host, or X-Forwarded-Proto values cannot authorize an attacker Origin or revoke the valid session. This adds no session issuer, trusted proxy configuration, or public login route.
 - Code commit: c61b366185622a541daac799033057c022a3729f. Exact-head GitHub Go/race/vet, daemon, archive, and Ubuntu/Debian clean-VM checks are required before reporting this test verified. ADR-009 and human owner/security decisions remain pending.
+
+
+## P2 DNS TXT resolver integration — draft PR #85 restack (29 October 2026)
+
+- PR #85 had no exact-head workflow runs after its base PR #84 advanced. The branch is being restacked on PR #84 head `955a61098ea4a40b95bbc4e521f1a4c96542168c` so the PR diff and checks include the current parent changes.
+- Coverage now includes the configured resolver loopback request/response, context cancellation, and a forged TXT response that cannot move domain ownership from pending. No public DNS or system resolver is used.
+- This remains a resolver adapter test, not public DNS propagation, DNSSEC, ACME issuance, or a privileged vhost lifecycle. Exact-head CI must pass before treating the test as verified.
+
+
+- Follow-up `394dbce9dd8e56d834c7e8b2e285b9d7a284adc7` corrected formatting in the new DNS test before CI; verification remains pending on the updated stacked head.
+
+
+## P2 domain ownership query hardening — draft PR #85 (29 October 2026)
+
+- The ownership verifier now roots its DNS challenge lookup with a trailing dot, preventing configured resolver search suffixes from changing the query name. The unit test asserts the exact absolute challenge FQDN; the loopback integration test exercises the production verifier with a wrong TXT answer and requires ownership to stay pending.
+- Implementation commit `1ddd297bdabc6b370f2386febb222f1769119779`; assertion commit `c1d0e4d599ac5c02b61298280c3c3d8d899f882e`. Exact-head Go/race/vet and stack checks are pending; P2 ownership/certificate lifecycle remains incomplete.
+
+
+- First exact-head Go/race run `40794732669` correctly caught five API integration tests whose in-memory TXT stubs still keyed records by the display name without the new root dot. Updated API and preview fixture keys in commits `8197195103c8da984c65d8d4774c95c4d04514b3` and `537c77b1f5c327f9ad777de3fbcc9167798a27de`; production FQDN behavior remains strict. Awaiting rerun on the newest head.

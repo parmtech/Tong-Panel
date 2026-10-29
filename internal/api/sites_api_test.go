@@ -268,7 +268,7 @@ func TestDomainVerificationAPIIsSingleUseTenantBoundAndStoresOnlyDigest(t *testi
 	if lookup.callCount() != 0 {
 		t.Fatal("DNS lookup occurred before the submitted proof was authenticated")
 	}
-	lookup.set(instruction.Name, "unrelated", instruction.Value)
+	lookup.set(instruction.Name+".", "unrelated", instruction.Value)
 	if r := call(h, http.MethodPost, completePath, secret, "", fmt.Sprintf(`{"value":%q}`, instruction.Value)); r.Code != http.StatusOK {
 		t.Fatalf("valid TXT proof returned %d: %s", r.Code, r.Body.String())
 	}
@@ -298,7 +298,7 @@ func TestConcurrentDomainVerificationCompletionHasOneWinner(t *testing.T) {
 	if err := json.Unmarshal(begin.Body.Bytes(), &instruction); err != nil {
 		t.Fatal(err)
 	}
-	lookup.set(instruction.Name, instruction.Value)
+	lookup.set(instruction.Name+".", instruction.Value)
 	path := "/api/v1/sites/site-race/domains/race.example.test/verification/complete"
 	body := fmt.Sprintf(`{"value":%q}`, instruction.Value)
 	start := make(chan struct{})
@@ -494,7 +494,7 @@ func TestAddedAliasUsesItsOwnDNSProofBeforeBecomingVerified(t *testing.T) {
 	if instruction.Name != "_tong-panel-challenge.alias.example.test" {
 		t.Fatalf("alias challenge name=%q", instruction.Name)
 	}
-	lookup.set(instruction.Name, instruction.Value)
+	lookup.set(instruction.Name+".", instruction.Value)
 	completePath := beginPath + "/complete"
 	completeBody := fmt.Sprintf(`{"value":%q}`, instruction.Value)
 	if r := call(h, http.MethodPost, completePath, secret, "", completeBody); r.Code != http.StatusOK {

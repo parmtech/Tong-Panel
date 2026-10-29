@@ -59,7 +59,7 @@ func TestDomainVerificationStoresDigestAndRequiresExactDNSProof(t *testing.T) {
 	lookups := 0
 	lookup := txtLookupFunc(func(_ context.Context, name string) ([]string, error) {
 		lookups++
-		if name != instruction.Name {
+		if name != instruction.Name+"." {
 			t.Fatalf("lookup name=%q", name)
 		}
 		return []string{"unrelated", instruction.Value}, nil
