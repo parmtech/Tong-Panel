@@ -551,3 +551,6 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 
 - The ownership verifier now roots its DNS challenge lookup with a trailing dot, preventing configured resolver search suffixes from changing the query name. The unit test asserts the exact absolute challenge FQDN; the loopback integration test exercises the production verifier with a wrong TXT answer and requires ownership to stay pending.
 - Implementation commit `1ddd297bdabc6b370f2386febb222f1769119779`; assertion commit `c1d0e4d599ac5c02b61298280c3c3d8d899f882e`. Exact-head Go/race/vet and stack checks are pending; P2 ownership/certificate lifecycle remains incomplete.
+
+
+- First exact-head Go/race run `40794732669` correctly caught five API integration tests whose in-memory TXT stubs still keyed records by the display name without the new root dot. Updated API and preview fixture keys in commits `8197195103c8da984c65d8d4774c95c4d04514b3` and `537c77b1f5c327f9ad777de3fbcc9167798a27de`; production FQDN behavior remains strict. Awaiting rerun on the newest head.
