@@ -30,6 +30,8 @@ const (
 // The SHA-256 pin was calculated from the official 7.1.4 tarball after its
 // SHA-1 matched the checksum published by WordPress.org:
 // https://wordpress.org/wordpress-7.1.4.tar.gz.sha1
+// That archive has 4,250 tar entries, so the verified-artifact extractor uses
+// an 8,192-entry bound while ordinary user archives remain capped at 2,048.
 
 var ErrInvalidWordPressRelease = errors.New("invalid or unauthenticated WordPress release archive")
 

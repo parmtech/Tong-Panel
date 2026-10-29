@@ -30,7 +30,7 @@ const (
 	MaxVerifiedArchiveExpandedBytes   int64 = 160 << 20
 	MaxVerifiedArchiveFileBytes       int64 = 32 << 20
 	MaxVerifiedArchiveTotalBytes      int64 = 128 << 20
-	MaxVerifiedArchiveEntries               = 4096
+	MaxVerifiedArchiveEntries               = 8192
 )
 
 var (
