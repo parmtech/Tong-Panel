@@ -98,8 +98,8 @@ func TestDomainVerificationRejectsWrongLoopbackDNSProof(t *testing.T) {
 			var response []byte
 			response, err = txtDNSResponse(buf[:n], "attacker-controlled-value")
 			if err == nil {
-		_, err = server.WriteTo(response, addr)
-	}
+				_, err = server.WriteTo(response, addr)
+			}
 		}
 		serverErr <- err
 	}()
@@ -115,7 +115,9 @@ func TestDomainVerificationRejectsWrongLoopbackDNSProof(t *testing.T) {
 		t.Fatalf("wrong loopback TXT proof error = %v, want ErrDomainProofMismatch", err)
 	}
 	record, err := catalog.Get(context.Background(), "tenant-a", "site-a")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if record.Domains[0].OwnershipState != "pending" {
 		t.Fatalf("wrong DNS proof changed ownership state to %q", record.Domains[0].OwnershipState)
 	}
