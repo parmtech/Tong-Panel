@@ -39,6 +39,9 @@ assert_package_absent() {
     echo "package was installed before preflight authorization" >&2
     exit 1
   fi
+  [[ ! -e /usr/lib/systemd/system/tong-panel-dev.service ]]
+  [[ ! -e /usr/libexec/tong-panel-dev/tongd ]]
+  [[ ! -e /var/lib/tong-panel-dev ]]
 }
 assert_preflight_blocker() {
   python3 - "$1" "$2" <<'PY'
