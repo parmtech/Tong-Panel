@@ -515,3 +515,7 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 ## Advisory ADR/threat-model review (29 October 2026)
 
 `docs/ADR_SECURITY_REVIEW_2026-10-29.md` records a technical recommendation of Needs revision across ADR-001–009 and the threat-model exit gate, with concrete evidence still required. This is an AI advisory review, not an owner decision, independent security review or approval. Formal reviewer identities, outcomes and dates remain pending; P0 is not closed.
+
+## P2 evidence audit (29 October 2026)
+
+Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pass-test disposition. It records component evidence without treating it as integrated acceptance. PR #84 clean-host MariaDB restore passed Ubuntu 24.04 and Debian 12 at code head `95257da5d1faaae5cc07f27125b64c20b24c8e49`; a follow-on owner-read key permission negative test is included in current head `d7780bd8e4c203b3a3a86aefded8d3739aba4a59`, whose hosted checks were queued when this audit was written. Offsite provider, schedule/retention, production key custody/recovery, complete restore and integrated multi-tenant acceptance remain open. P2 remains IN PROGRESS.
