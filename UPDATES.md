@@ -535,3 +535,10 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 
 - Adds a security regression test on the existing cookie-authenticated mutation boundary: forged Forwarded, X-Forwarded-Host, or X-Forwarded-Proto values cannot authorize an attacker Origin or revoke the valid session. This adds no session issuer, trusted proxy configuration, or public login route.
 - Code commit: c61b366185622a541daac799033057c022a3729f. Exact-head GitHub Go/race/vet, daemon, archive, and Ubuntu/Debian clean-VM checks are required before reporting this test verified. ADR-009 and human owner/security decisions remain pending.
+
+
+## P2 DNS TXT resolver integration — draft PR #85 restack (29 October 2026)
+
+- PR #85 had no exact-head workflow runs after its base PR #84 advanced. The branch is being restacked on PR #84 head `955a61098ea4a40b95bbc4e521f1a4c96542168c` so the PR diff and checks include the current parent changes.
+- Coverage now includes the configured resolver loopback request/response, context cancellation, and a forged TXT response that cannot move domain ownership from pending. No public DNS or system resolver is used.
+- This remains a resolver adapter test, not public DNS propagation, DNSSEC, ACME issuance, or a privileged vhost lifecycle. Exact-head CI must pass before treating the test as verified.
