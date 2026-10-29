@@ -402,3 +402,7 @@ The disposable Ubuntu/Debian guest database grant script now includes a tenant-s
 ## P2 encrypted backup core — draft PR pending (29 October 2026)
 
 A streaming authenticated envelope library and focused Go tests have been added, with an external-key boundary and no daemon/API wiring. Hosted verification is pending. This does not establish key custody/rotation/recovery, offsite delivery, retention/deletion or a clean-host restore drill. ADR-007/008 and the threat model remain unapproved. **P1 remains NOT COMPLETE; P2 remains IN PROGRESS.**
+
+## Current P0 / P2 disposition — 29 October 2026
+
+An advisory technical review of ADR-001–009 and the draft threat model is recorded in `docs/ADR_SECURITY_REVIEW_2026-10-29.md`; recommendations are Needs revision, not Accepted/Rejected decisions. Reviewer authority is Codex advisory only. No human owner/security reviewer, decision date or linked approval evidence was established, so P0 remains pending. Draft PR #84 adds an encrypted MariaDB restore drill on fresh disposable hosts; see `docs/phases/P2-HOSTING-ALPHA.md` for exact-head CI state and limits. This remains a component checkpoint, not an exit-gate pass: P1 is NOT COMPLETE, P2 is IN PROGRESS, and no production readiness or security approval is claimed.
