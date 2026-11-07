@@ -130,7 +130,6 @@ func TestConcurrentWordPressConfigWritesPublishOnlyOneFile(t *testing.T) {
 	}
 }
 
-
 func TestWordPressDatabaseConfigParsesWithPHP(t *testing.T) {
 	php, err := exec.LookPath("php")
 	if err != nil {
@@ -145,7 +144,7 @@ func TestWordPressDatabaseConfigParsesWithPHP(t *testing.T) {
 	config := WordPressDatabaseConfig{
 		Name: "tenant_db", User: "tenant_user",
 		Password: "literal $value \\' ; //",
-		Host: "localhost:3306",
+		Host:     "localhost:3306",
 	}
 	if err := WriteWordPressDatabaseConfigNew(root, "wp-config.php", config); err != nil {
 		t.Fatal(err)
