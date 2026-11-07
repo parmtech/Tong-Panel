@@ -5,6 +5,7 @@ package sites
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -126,5 +127,34 @@ func TestConcurrentWordPressConfigWritesPublishOnlyOneFile(t *testing.T) {
 	}
 	if successes != 1 || exists != attempts-1 {
 		t.Fatalf("success=%d already-exists=%d; want 1 and %d", successes, exists, attempts-1)
+	}
+}
+
+
+func TestWordPressDatabaseConfigParsesWithPHP(t *testing.T) {
+	php, err := exec.LookPath("php")
+	if err != nil {
+		t.Skip("PHP CLI is installed only in the disposable hosting guest")
+	}
+	rootPath := t.TempDir()
+	root, err := files.OpenRoot(rootPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	config := WordPressDatabaseConfig{
+		Name: "tenant_db", User: "tenant_user",
+		Password: "literal $value \\' ; //",
+		Host: "localhost:3306",
+	}
+	if err := WriteWordPressDatabaseConfigNew(root, "wp-config.php", config); err != nil {
+		t.Fatal(err)
+	}
+	output, err := exec.Command(php, "-l", filepath.Join(rootPath, "wp-config.php")).CombinedOutput()
+	if err != nil {
+		t.Fatalf("php -l rejected generated WordPress config: %v: %s", err, output)
+	}
+	if !strings.Contains(string(output), "No syntax errors detected") {
+		t.Fatalf("unexpected php -l output: %s", output)
 	}
 }
