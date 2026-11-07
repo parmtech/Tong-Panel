@@ -70,7 +70,7 @@ func TestWriteWordPressDatabaseConfigNewRejectsInvalidInputWithoutPublishing(t *
 		{"oversized", WordPressDatabaseConfig{Name: "db", User: "u", Password: strings.Repeat("x", maxWordPressConfigValueBytes+1), Host: "localhost"}},
 		{"invalid table prefix", WordPressDatabaseConfig{Name: "db", User: "u", Password: "p", Host: "localhost", TablePrefix: "1bad;"}},
 	}
-	for index, tc := range cases {
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			rootPath := t.TempDir()
 			root, err := files.OpenRoot(rootPath)
@@ -84,7 +84,6 @@ func TestWriteWordPressDatabaseConfigNewRejectsInvalidInputWithoutPublishing(t *
 			if _, err := os.Lstat(filepath.Join(rootPath, "wp-config.php")); !errors.Is(err, os.ErrNotExist) {
 				t.Fatalf("invalid configuration published a file: %v", err)
 			}
-			_ = index
 		})
 	}
 }

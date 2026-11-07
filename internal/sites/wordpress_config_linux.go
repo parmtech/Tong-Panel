@@ -16,8 +16,7 @@ import (
 
 const (
 	maxWordPressConfigValueBytes = 512
-	wordpressConfigFileMode      = 0600
-)
+	)
 
 var ErrInvalidWordPressConfig = errors.New("invalid WordPress database configuration")
 
@@ -44,7 +43,7 @@ func WriteWordPressDatabaseConfigNew(root *files.Root, relative string, config W
 	}
 	if !validWordPressConfigValue(config.Name, false) ||
 		!validWordPressConfigValue(config.User, false) ||
-		!validWordPressConfigValue(config.Password, true) ||
+		!validWordPressConfigValue(config.Password, false) ||
 		!validWordPressConfigValue(config.Host, false) ||
 		!validWordPressTablePrefix(config.TablePrefix) {
 		return ErrInvalidWordPressConfig
