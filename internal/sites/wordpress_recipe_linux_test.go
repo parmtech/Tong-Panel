@@ -66,7 +66,7 @@ func wordpressTestArchiveType(t *testing.T, name string, entryType byte) []byte 
 func wordpressFixtureRelease(archive []byte) wordPressRelease {
 	digest := sha256.Sum256(archive)
 	return wordPressRelease{
-		url:    "https://downloads.wordpress.org/release/wordpress-fixture.tar.gz",
+		url:    "https://downloads.wordpress.org/release/wordpress-9.9.9.tar.gz",
 		sha256: hex.EncodeToString(digest[:]),
 	}
 }
@@ -170,8 +170,8 @@ func TestWordPressCoreInstallRejectsUntrustedURLsStatusAndRedirects(t *testing.T
 		url       string
 		transport http.RoundTripper
 	}{
-		{"plain HTTP", "http://downloads.wordpress.org/release/wordpress-fixture.tar.gz", wordpressFixtureTransport(archive)},
-		{"untrusted host", "https://attacker.invalid/release/wordpress-fixture.tar.gz", wordpressFixtureTransport(archive)},
+		{"plain HTTP", "http://downloads.wordpress.org/release/wordpress-9.9.9.tar.gz", wordpressFixtureTransport(archive)},
+		{"untrusted host", "https://attacker.invalid/release/wordpress-9.9.9.tar.gz", wordpressFixtureTransport(archive)},
 		{"path traversal version", "https://downloads.wordpress.org/release/wordpress-../payload.tar.gz", wordpressFixtureTransport(archive)},
 		{"redirect status", release.url, wordPressRoundTripper(func(request *http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: http.StatusFound, Header: http.Header{"Location": []string{"https://attacker.invalid/payload"}}, Body: io.NopCloser(strings.NewReader("")), Request: request}, nil
