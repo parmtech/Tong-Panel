@@ -14,9 +14,7 @@ import (
 	"github.com/parmtech/tong-panel/internal/files"
 )
 
-const (
-	maxWordPressConfigValueBytes = 512
-	)
+const maxWordPressConfigValueBytes = 512
 
 var ErrInvalidWordPressConfig = errors.New("invalid WordPress database configuration")
 
