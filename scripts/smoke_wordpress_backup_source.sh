@@ -24,6 +24,22 @@ umask 077
 [[ "$admin_user" =~ ^[a-z0-9_]{1,64}$ ]]
 mkdir -m 0700 "$payload"
 
+# Put the upload marker in the installed source site's content tree before the
+# snapshot, using the same account that owns its WordPress content.
+content_owner="$(stat -c '%U' "$site/wp-content")"
+[[ "$content_owner" =~ ^[a-z_][a-z0-9_-]*$ ]]
+[[ "$content_owner" != root ]]
+upload_marker="$site/wp-content/uploads/tong-restore-marker.txt"
+sudo -u "$content_owner" install -d -m 0755 "$site/wp-content/uploads"
+printf '%s\n' 'private-wp-restore-upload-v1' |
+  sudo -u "$content_owner" tee "$upload_marker" >/dev/null
+sudo -u "$content_owner" chmod 0644 "$upload_marker"
+[[ "$(cat "$upload_marker")" == private-wp-restore-upload-v1 ]]
+source_upload="$(curl --silent --show-error --insecure --fail --max-time 15 \
+  --resolve tenant-a.example.test:443:127.0.0.1 \
+  https://tenant-a.example.test/wordpress/wp-content/uploads/tong-restore-marker.txt)"
+[[ "$source_upload" == private-wp-restore-upload-v1 ]]
+
 # This disposable fixture has no live users or background writers. Stop web
 # and FPM service before creating the coordinated database/filesystem snapshot.
 for nginx_config in /home/ci/nginx-e2e.conf /home/ci/nginx-https-e2e.conf; do
@@ -62,8 +78,6 @@ mariadb-dump --defaults-extra-file="$db_client_config" --single-transaction "$db
 install -m 0600 "$site/wp-config.php" "$payload/wp-config.php"
 cp -a "$site/wp-content" "$payload/wp-content"
 rm -f "$payload/wp-content/mu-plugins/tong-lab-isolation.php"
-install -d -m 0700 "$payload/wp-content/uploads"
-printf '%s\n' 'private-wp-restore-upload-v1' > "$payload/wp-content/uploads/tong-restore-marker.txt"
 
 python3 - "$payload" "$db_name" "$table_prefix" "$admin_user" <<'PY'
 import configparser
@@ -95,10 +109,13 @@ for path in root.rglob('*'):
     info = path.lstat()
     if relative.split('/')[0] not in allowed or not (stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode)):
         raise SystemExit('unsafe WordPress backup member')
+    count += 1
+    # Reserve one archive entry for manifest.json, which is written below.
+    if count > 2047:
+        raise SystemExit('WordPress backup exceeds the archive entry cap')
     if stat.S_ISREG(info.st_mode):
-        count += 1
         total += info.st_size
-        if info.st_size > 16 * 1024 * 1024 or count > 2048 or total > 64 * 1024 * 1024:
+        if info.st_size > 16 * 1024 * 1024 or total > 64 * 1024 * 1024:
             raise SystemExit('WordPress backup exceeds file or expanded-size cap')
         seen.add(relative)
 if not {'database.sql', 'wp-config.php', 'wp-content/uploads/tong-restore-marker.txt'} <= seen:
