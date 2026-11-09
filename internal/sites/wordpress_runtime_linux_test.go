@@ -52,8 +52,15 @@ func TestPrepareWordPressRuntimeForCleanVM(t *testing.T) {
 	if os.Getenv("TONG_WORDPRESS_RUNTIME_INSTALL") == "1" {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		defer cancel()
-		if err := InstallPinnedWordPressCore(ctx, root, "wordpress"); err != nil {
+		if err := InstallPinnedWordPressCore(ctx, root, "core"); err != nil {
 			t.Fatalf("install pinned WordPress core: %v", err)
+		}
+		// The verified archive preserves its canonical wordpress/ root.
+		if err := os.Rename(filepath.Join(rootPath, "core", "wordpress"), filepath.Join(rootPath, "wordpress")); err != nil {
+			t.Fatalf("publish disposable WordPress document root: %v", err)
+		}
+		if err := os.Remove(filepath.Join(rootPath, "core")); err != nil {
+			t.Fatalf("remove empty disposable staging directory: %v", err)
 		}
 	} else if _, err := os.Stat(filepath.Join(rootPath, "wordpress", "wp-settings.php")); err != nil {
 		t.Fatalf("pinned WordPress core is unavailable: %v", err)
