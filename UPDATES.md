@@ -602,3 +602,9 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - No production VPS changes. Caller reauthentication, source admission, external pepper custody/rotation and reviewed recovery UI/API remain gates. P1/product incomplete.
 
 - Final review follow-up: add real v11-to-v12 upgrade preservation, explicit caller-cancellation/nonbusy startup tests, and system provenance for denied recovery attempts. Agent local `go test ./internal/auth ./internal/database -count=1` passed auth5.389s/database3.087s, vet/format/whitespace passed. Schema CI #42630902990 passed the earlier code head; new final-head race/smoke checks remain pending.
+
+
+### 2026-11-10 — Verified hosted recovery checks and partial WordPress VM evidence
+- Recovery code head `57d339abecf1ec538f1e1f7ea8d1ec713bd7fcda`: [Go format/full race/vet #42631077357](https://github.com/parmtech/Tong-Panel/actions/runs/42631077357), [SQLite schema #42631076939](https://github.com/parmtech/Tong-Panel/actions/runs/42631076939), [daemon #42631077230](https://github.com/parmtech/Tong-Panel/actions/runs/42631077230), and [unsigned package #42631076941](https://github.com/parmtech/Tong-Panel/actions/runs/42631076941) all passed. VM run #42631077090 remains active at this observation.
+- Debian job #129201789514 in full-install run #42629491699 logged successful two-tenant installer/DB runtime checks and successful full WordPress installs with distinct persisted rows and served homepages, then failed the later public ACME-token content assertion. This is partial runtime evidence, not a successful full workflow or phase acceptance.
+- Public disposable challenge fixtures now explicitly use mode0644 in commits PR88 `35158c6`, PR89 `51e12ab`, PR90 `1d75205`; private WordPress config remains0600. Fresh full-workflow checks pending. No production VPS changes.
