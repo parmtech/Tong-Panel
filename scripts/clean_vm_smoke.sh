@@ -408,6 +408,7 @@ sudo install -d -o root -g root -m 0755 /srv/tong/tenants/tenant-a/sites/site-a/
 sudo install -d -o root -g root -m 0755 /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge
 printf '%s\n' 'tenant-a-challenge' | sudo tee /srv/tong/tenants/tenant-a/sites/site-a/public/.well-known/acme-challenge/token >/dev/null
 printf '%s\n' 'tenant-b-challenge' | sudo tee /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge/token >/dev/null
+sudo chmod 0644 /srv/tong/tenants/tenant-a/sites/site-a/public/.well-known/acme-challenge/token /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge/token
 for host in tenant-a.example.test tenant-b.example.test; do
   headers="$(curl --silent --show-error --resolve "$host:80:127.0.0.1" -D - -o /dev/null "http://$host/path?from=http")"
   grep -qE '^HTTP/[^ ]+ 308' <<<"$headers"
