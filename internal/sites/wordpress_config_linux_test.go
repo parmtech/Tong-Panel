@@ -3,6 +3,8 @@
 package sites
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"os"
 	"os/exec"
@@ -141,19 +143,72 @@ func TestWordPressDatabaseConfigParsesWithPHP(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
+	markerPath := filepath.Join(rootPath, "unexpected-execution")
 	config := WordPressDatabaseConfig{
-		Name: "tenant_db", User: "tenant_user",
-		Password: "literal $value \\' ; //",
-		Host:     "localhost:3306",
+		Name:        "tenant'db\\$name",
+		User:        "tenant\\'user",
+		Password:    `literal $value \\' ); file_put_contents(` + phpSingleQuoted(markerPath) + `, 'unexpected'); //`,
+		Host:        "db\\'host:3306",
+		TablePrefix: "tenant_7_",
 	}
 	if err := WriteWordPressDatabaseConfigNew(root, "wp-config.php", config); err != nil {
 		t.Fatal(err)
 	}
-	output, err := exec.Command(php, "-l", filepath.Join(rootPath, "wp-config.php")).CombinedOutput()
-	if err != nil {
-		t.Fatalf("php -l rejected generated WordPress config: %v: %s", err, output)
+	wpSettings := `<?php
+echo json_encode([
+    'name' => DB_NAME,
+    'user' => DB_USER,
+    'password' => DB_PASSWORD,
+    'host' => DB_HOST,
+    'prefix' => $table_prefix,
+    'charset' => DB_CHARSET,
+    'collate' => DB_COLLATE,
+    'debug' => WP_DEBUG,
+    'salts' => [AUTH_KEY, SECURE_AUTH_KEY, LOGGED_IN_KEY, NONCE_KEY, AUTH_SALT, SECURE_AUTH_SALT, LOGGED_IN_SALT, NONCE_SALT],
+], JSON_THROW_ON_ERROR);
+`
+	if err := os.WriteFile(filepath.Join(rootPath, "wp-settings.php"), []byte(wpSettings), 0600); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(string(output), "No syntax errors detected") {
-		t.Fatalf("unexpected php -l output: %s", output)
+	output, err := exec.Command(php, filepath.Join(rootPath, "wp-config.php")).Output()
+	if err != nil {
+		t.Fatalf("PHP rejected or failed to execute generated WordPress config against the harmless settings stub: %v", err)
+	}
+	var got struct {
+		Name     string   `json:"name"`
+		User     string   `json:"user"`
+		Password string   `json:"password"`
+		Host     string   `json:"host"`
+		Prefix   string   `json:"prefix"`
+		Charset  string   `json:"charset"`
+		Collate  string   `json:"collate"`
+		Debug    bool     `json:"debug"`
+		Salts    []string `json:"salts"`
+	}
+	if err := json.Unmarshal(output, &got); err != nil {
+		t.Fatalf("generated configuration did not pass values to the settings stub as valid JSON: %v", err)
+	}
+	if got.Name != config.Name || got.User != config.User || got.Password != config.Password ||
+		got.Host != config.Host || got.Prefix != config.TablePrefix || got.Charset != "utf8mb4" ||
+		got.Collate != "" || got.Debug {
+		t.Fatal("generated configuration values did not round-trip exactly through PHP")
+	}
+	if _, err := os.Lstat(markerPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("database configuration value executed PHP code instead of remaining literal data")
+	}
+	if len(got.Salts) != 8 {
+		t.Fatal("generated configuration did not contain all eight authentication keys and salts")
+	}
+	seen := make(map[string]struct{}, len(got.Salts))
+	for _, salt := range got.Salts {
+		decoded, err := base64.RawURLEncoding.DecodeString(salt)
+		if err != nil || len(decoded) != 64 || base64.RawURLEncoding.EncodeToString(decoded) != salt {
+			t.Fatal("generated authentication key or salt is not a canonical encoding of 64 random bytes")
+		}
+		if _, exists := seen[salt]; exists {
+			t.Fatal("generated authentication keys and salts were not independent")
+		}
+		seen[salt] = struct{}{}
 	}
 }
+
