@@ -22,6 +22,8 @@ on:
       - 'scripts/p2_package_install_vm.sh'
       - 'scripts/smoke_mariadb_isolation.sh'
       - 'scripts/smoke_encrypted_backup_restore.sh'
+      - 'scripts/smoke_wordpress_backup_source.sh'
+      - 'scripts/smoke_wordpress_restore_target.sh'
       - 'scripts/smoke_nginx_config_rollback.sh'
       - 'packaging/debian/**'
       - '.github/workflows/p2-clean-vm-smoke.yml'

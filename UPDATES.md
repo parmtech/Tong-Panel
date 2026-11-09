@@ -593,3 +593,10 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - Checks installed option/admin/post rows, distinct HTTP homepages, and reciprocal database denial only after both schemas exist. Lab-only mu-plugin suppresses cron, mail and external WordPress HTTP. Cleanup removes runtime credentials/runners/logs and SQL fixtures.
 - Local Bash syntax and whitespace checks passed; PHP/WordPress/MariaDB execution awaits hosted Ubuntu/Debian CI. No full-install runtime success claimed, no production provisioning or VPS change. Complete application restore and phase gates remain open.
 
+
+
+### 2026-11-10 — WordPress encrypted full-site fresh-guest restore lab
+- Branch feature/lab-wordpress-fresh-restore, based on draft PR89. Quiesces source Nginx/FPM, bundles bounded SQL/config/wp-content and strict manifest, encrypts with tenant-bound tongbackup, and transfers only ciphertext plus the existing ephemeral test wrapping key through runner staging.
+- Fresh guest rejects wrong tenant/key before provisioning, authenticates/decrypts privately, uses bounded no-link extraction, validates manifest and digests, reinstalls pinned core, imports SQL as scoped tenant DB user, restores exact config/content and checks real homepage/upload marker plus config/privileged-DB denial. Cleanup removes private staging/key/client files and SQL/service fixtures.
+- Meaningful negative manifest/member tests added. Local outer/source/target Bash syntax and whitespace checks passed; Linux-amd64 test binary crosscompile and GOOS=linux vet internal/sites passed. Local Linux/PHP/MariaDB execution unavailable. Hosted Ubuntu/Debian runtime and Linux race tests pending; no full-site restore success or phase completion claimed.
+- Limits: disposable idle-site consistency only; ephemeral runner key is a lab handoff, not production key custody/offsite retention. No production API/agent provisioning or live VPS changes.
