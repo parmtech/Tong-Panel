@@ -177,8 +177,14 @@ func TestRecoveryActiveStateScopeAndEnrollmentBinding(t *testing.T) {
 			}
 		})
 	}
-	_, _, store := recoveryFixture(t)
+	_, db, store := recoveryFixture(t)
+	if _, err := db.Exec("INSERT INTO memberships(tenant_id,identity_id,role) VALUES('tenant-b','user-a','customer')"); err != nil {
+		t.Fatal(err)
+	}
 	codes, _ := store.IssueTrusted(context.Background(), "tenant-a", "user-a")
+	if _, err := store.IssueTrusted(context.Background(), "tenant-b", "user-a"); err != nil {
+		t.Fatal(err)
+	}
 	if err := store.ConsumeTrusted(context.Background(), "tenant-b", "user-a", codes[0]); !errors.Is(err, ErrRecoveryDenied) {
 		t.Fatal("cross-tenant recovery accepted")
 	}
