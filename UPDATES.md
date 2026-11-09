@@ -571,3 +571,8 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - No production VPS access or changes. Product and phase acceptance remain incomplete.
 
 - Follow-up code commit `a8fd4b95745268369af525639abf5484efe5def2` explicitly installs `php-cli` and requires the interpreter before the config check, preventing a silent skip. Current VM run [#42625887081](https://github.com/parmtech/Tong-Panel/actions/runs/42625887081) is confirmed live: Ubuntu and Debian jobs are building/validating package fixtures; guest execution is pending. No VM pass claimed.
+
+### 2026-11-10 — WordPress configuration runtime fidelity test
+- Code commit `ea73329f9efb68b6a2c22a827aec09a438b74f9e`, draft PR #87: the existing PHP guest test now executes generated config against a harmless settings stub and asserts exact database values, prefix, charset/debug flags, canonical 64-byte encodings and uniqueness of all eight salts. Quote/backslash/dollar-sign and PHP-like input must remain literal data; an execution marker must stay absent.
+- Diagnostics avoid printing generated credentials or captured PHP output. The guest already explicitly installs/requires PHP CLI and invokes this test by name.
+- Local Go/PHP execution unavailable; hosted checks on this new test are pending. Earlier script-repair code a8fd4b9 passed Go/race/vet, daemon smoke and package lab; clean-VM run #42625887081 remains active. No product acceptance or production readiness claimed.
