@@ -585,10 +585,11 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 
 - Review follow-up: `6620c71` adjusts lab public core directories/files to 0755/0644 after tenant ownership, retaining each wp-config.php at 0600. `fe3aae8` checks www-data can read public readme.html but cannot read config, and requests the static file over both tenant vhosts. This addresses extractor-private permissions blocking Nginx. Hosted validation is pending; no runtime success claimed.
 
+- Verified failure and correction: runtime VM run #42627756672 failed because the archive's preserved top-level wordpress directory produced a nested document root. The lab now extracts into core/ and moves core/wordpress into the intended document root before writing configuration. Fix commits: PR #88 `8161c46`; PR #89 `1234330`. Fresh hosted checks are pending; previous VM failure is not a pass. No production changes.
+
 
 ### 2026-11-10 — Full WordPress installation in disposable lab
 - Branch `feature/lab-wordpress-full-install`, stacked on draft PR #88. Uses WordPress wp_install as each tenant UID with random admin credentials passed through private runtime files, bounded execution and withheld diagnostics.
 - Checks installed option/admin/post rows, distinct HTTP homepages, and reciprocal database denial only after both schemas exist. Lab-only mu-plugin suppresses cron, mail and external WordPress HTTP. Cleanup removes runtime credentials/runners/logs and SQL fixtures.
 - Local Bash syntax and whitespace checks passed; PHP/WordPress/MariaDB execution awaits hosted Ubuntu/Debian CI. No full-install runtime success claimed, no production provisioning or VPS change. Complete application restore and phase gates remain open.
 
-- Verified failure and correction: runtime VM run #42627756672 failed because the archive's preserved top-level wordpress directory produced a nested document root. The lab now extracts into core/ and moves core/wordpress into the intended document root before writing configuration. Fix commits: PR #88 `8161c46`; PR #89 `1234330`. Fresh hosted checks are pending; previous VM failure is not a pass. No production changes.
