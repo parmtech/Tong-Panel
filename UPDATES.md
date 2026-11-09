@@ -576,3 +576,9 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - Code commit `ea73329f9efb68b6a2c22a827aec09a438b74f9e`, draft PR #87: the existing PHP guest test now executes generated config against a harmless settings stub and asserts exact database values, prefix, charset/debug flags, canonical 64-byte encodings and uniqueness of all eight salts. Quote/backslash/dollar-sign and PHP-like input must remain literal data; an execution marker must stay absent.
 - Diagnostics avoid printing generated credentials or captured PHP output. The guest already explicitly installs/requires PHP CLI and invokes this test by name.
 - Local Go/PHP execution unavailable; hosted checks on this new test are pending. Earlier script-repair code a8fd4b9 passed Go/race/vet, daemon smoke and package lab; clean-VM run #42625887081 remains active. No product acceptance or production readiness claimed.
+
+
+### 2026-11-10 — Disposable two-tenant WordPress runtime lab
+- Branch `feature/lab-wordpress-runtime`, code commit `5e8d9d17707a265568ea189b9fefa7eb6095184f`, based on draft PR #87.
+- Wires pinned core and generated configuration to two disposable MariaDB database users and existing tenant PHP-FPM/vhosts. Checks installer HTTP readiness, each runtime's own DB marker and reciprocal SQL denial. Temporary credentials use private bounded files; cleanup removes SQL users/databases and private client files.
+- Local shell syntax and whitespace checks passed. Go/PHP and actual VM execution are pending hosted CI; no runtime success claimed. This lab does not complete WordPress installation, lifecycle/restore, approved secret custody, production host adapters or phase acceptance. No live VPS changed.
