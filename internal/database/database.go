@@ -12,15 +12,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
 )
 
 //go:embed migrations/*.sql
 var migrations embed.FS
 
 // SchemaVersion is the newest schema version supported by this binary.
-const SchemaVersion = 11
+const SchemaVersion = 12
 
 // Open creates the parent directory, enables foreign-key enforcement on every
 // SQLite connection, applies embedded migrations, and rejects databases created
@@ -50,7 +51,7 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 	// makes pragma behavior deterministic for this development prototype.
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
-	if err := db.PingContext(ctx); err != nil {
+	if err := pingSQLite(ctx, db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("connect SQLite: %w", err)
 	}
@@ -59,6 +60,32 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+// Opening concurrent handles can contend while the driver's per-connection
+// WAL pragma initializes a new database. SQLite may return SQLITE_BUSY from
+// that pragma without waiting for busy_timeout. Retry only this transient
+// startup condition, within a bounded caller-cancellable five-second window.
+func pingSQLite(ctx context.Context, db *sql.DB) error {
+	startup, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	for {
+		err := db.PingContext(startup)
+		if err == nil {
+			return nil
+		}
+		var sqliteErr *sqlite.Error
+		if !errors.As(err, &sqliteErr) || sqliteErr.Code()&0xff != 5 {
+			return err
+		}
+		timer := time.NewTimer(25 * time.Millisecond)
+		select {
+		case <-startup.Done():
+			timer.Stop()
+			return startup.Err()
+		case <-timer.C:
+		}
+	}
 }
 
 func applyMigrations(ctx context.Context, db *sql.DB) error {
@@ -90,7 +117,7 @@ func applyMigrations(ctx context.Context, db *sql.DB) error {
 			return nil
 		}
 		next := version + 1
-		name := fmt.Sprintf("migrations/%04d_%s.sql", next, map[int]string{1: "initial", 2: "job_leases", 3: "audit_actor_provenance", 4: "totp_replay_state", 5: "mfa_enrollment", 6: "login_attempt_buckets", 7: "session_idle", 8: "tenant_file_quota", 9: "site_catalog", 10: "domain_verification", 11: "site_database_catalog"}[next])
+		name := fmt.Sprintf("migrations/%04d_%s.sql", next, map[int]string{1: "initial", 2: "job_leases", 3: "audit_actor_provenance", 4: "totp_replay_state", 5: "mfa_enrollment", 6: "login_attempt_buckets", 7: "session_idle", 8: "tenant_file_quota", 9: "site_catalog", 10: "domain_verification", 11: "site_database_catalog", 12: "mfa_recovery"}[next])
 		script, err := migrations.ReadFile(name)
 		if err != nil {
 			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")

@@ -593,3 +593,10 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - Checks installed option/admin/post rows, distinct HTTP homepages, and reciprocal database denial only after both schemas exist. Lab-only mu-plugin suppresses cron, mail and external WordPress HTTP. Cleanup removes runtime credentials/runners/logs and SQL fixtures.
 - Local Bash syntax and whitespace checks passed; PHP/WordPress/MariaDB execution awaits hosted Ubuntu/Debian CI. No full-install runtime success claimed, no production provisioning or VPS change. Complete application restore and phase gates remain open.
 
+
+
+### 2026-11-10 — Durable MFA recovery primitive
+- Branch feature/p1-mfa-recovery-codes: migration12 and trusted-caller-only recovery registry. Eight random256-bit codes, tenant/account-domain-separated keyed hashes, active MFA/enrollment binding, durable five-attempt/15-minute admission, atomic one-time consume + identity-wide session revocation + audit. No recovery/login HTTP route or new session issuance.
+- Tests cover persistence, replay, concurrent independent DB handles, disabled/suspended/membership/enrollment changes, pepper mismatch, replacement, clock rollback, budget persistence and audit rollback.
+- Local Go1.27.3 Windows auth/database tests and vet passed; last independent run auth4.198s/db1.359s. Startup SQLITE_BUSY reproduced before bounded caller-cancellable typed-busy retry; agent repeated DB suite five times successfully. Added startup cancellation/nonbusy tests. Linux race/schema/smoke checks remain pending.
+- No production VPS changes. Caller reauthentication, source admission, external pepper custody/rotation and reviewed recovery UI/API remain gates. P1/product incomplete.
