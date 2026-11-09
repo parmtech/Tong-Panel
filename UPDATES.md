@@ -561,3 +561,11 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - Exact code head Go race/vet and gofmt passed [run 42344239716](https://github.com/parmtech/Tong-Panel/actions/runs/42344239716); daemon [run 42344239685](https://github.com/parmtech/Tong-Panel/actions/runs/42344239685) and unsigned archive [run 42344239718](https://github.com/parmtech/Tong-Panel/actions/runs/42344239718) passed. Ubuntu/Debian clean guest job [run 42344239745](https://github.com/parmtech/Tong-Panel/actions/runs/42344239745) is still running; the PHP syntax step is not yet verified.
 - ADR-001–009 and threat-model owner/security decisions remain pending. No host mutation or real deployment was performed. P2 remains open.
 - Next action: inspect both clean-VM results and confirm the PHP lint step ran successfully; fix failures before selecting the next P2 lifecycle gate.
+
+
+### 2026-11-10 — WordPress clean-guest smoke script repair
+- Code commit: `3e293ba8459c2088943323d52fcace861aff30ad`, draft PR #87.
+- Diagnosed clean-VM run #42344509749: both guests failed because a PHP-test insertion broke shell quoting and duplicated the script tail.
+- Reconstructed the parent lifecycle script with the intended WordPress release and PHP syntax tests, removed the duplicate tail, and added generated-guest syntax validation before QEMU boot.
+- Local validation: outer script and extracted guest script both passed `bash -n` using Git Bash. Full Ubuntu/Debian VM reruns are pending; no success claimed yet.
+- No production VPS access or changes. Product and phase acceptance remain incomplete.
