@@ -97,54 +97,8 @@ func (s *SQLiteRecoveryStore) ConsumeTrusted(ctx context.Context, tenant, identi
 		if err != nil {
 			return err
 		}
-		hash := sha256.Sum256([]byte(enrollment))
-		var start int64
-		var attempts int
-		err = conn.QueryRowContext(ctx, "SELECT window_started_unix,attempts FROM mfa_recovery_sets WHERE tenant_id=? AND identity_id=? AND enrollment_sha256=?", tenant, identity, hash[:]).Scan(&start, &attempts)
-		if errors.Is(err, sql.ErrNoRows) {
-			return ErrRecoveryDenied
-		}
-		if err != nil {
-			return err
-		}
-		now := s.now().UTC().Unix()
-		if now < start {
-			return ErrRecoveryDenied
-		}
-		if now-start >= 15*60 {
-			start, attempts = now, 0
-		}
-		if attempts >= 5 {
-			return ErrRecoveryDenied
-		}
-		if _, err := conn.ExecContext(ctx, "UPDATE mfa_recovery_sets SET window_started_unix=?,attempts=? WHERE tenant_id=? AND identity_id=?", start, attempts+1, tenant, identity); err != nil {
-			return err
-		}
-		// Reject noncanonical inputs while still charging the admission budget.
-		var raw []byte
-		decodeErr := ErrRecoveryDenied
-		if len(code) == 64 {
-			raw, decodeErr = hex.DecodeString(code)
-		}
-		if decodeErr == nil && len(raw) == 32 && hex.EncodeToString(raw) == code {
-			result, err := conn.ExecContext(ctx, "DELETE FROM mfa_recovery_codes WHERE tenant_id=? AND identity_id=? AND code_sha256=?", tenant, identity, s.digest(tenant, identity, code))
-			if err != nil {
-				return err
-			}
-			n, err := result.RowsAffected()
-			if err != nil {
-				return err
-			}
-			accepted = n == 1
-		}
-		clear(raw)
-		if !accepted {
-			return recoveryAudit(ctx, conn, tenant, identity, "auth.recovery_denied")
-		}
-		if _, err := conn.ExecContext(ctx, "UPDATE sessions SET revoked_at=? WHERE identity_id=? AND revoked_at IS NULL", time.Unix(now, 0).UTC().Format(time.RFC3339Nano), identity); err != nil {
-			return err
-		}
-		return recoveryAudit(ctx, conn, tenant, identity, "auth.recovery_consumed")
+		accepted, err = s.consumeInTransaction(ctx, conn, tenant, identity, code, enrollment, s.now().UTC())
+		return err
 	})
 	if err != nil {
 		return err
@@ -153,6 +107,64 @@ func (s *SQLiteRecoveryStore) ConsumeTrusted(ctx context.Context, tenant, identi
 		return ErrRecoveryDenied
 	}
 	return nil
+}
+
+// consumeInTransaction consumes one recovery code using a connection already
+// protected by the caller's SQLite writer transaction. It deliberately does
+// not begin or commit a transaction so credential rechecks, consumption,
+// session revocation and audit can be made atomic by a trusted coordinator.
+func (s *SQLiteRecoveryStore) consumeInTransaction(ctx context.Context, conn *sql.Conn, tenant, identity, code, enrollment string, nowTime time.Time) (bool, error) {
+	hash := sha256.Sum256([]byte(enrollment))
+	var start int64
+	var attempts int
+	err := conn.QueryRowContext(ctx, "SELECT window_started_unix,attempts FROM mfa_recovery_sets WHERE tenant_id=? AND identity_id=? AND enrollment_sha256=?", tenant, identity, hash[:]).Scan(&start, &attempts)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, ErrRecoveryDenied
+	}
+	if err != nil {
+		return false, err
+	}
+	now := nowTime.UTC().Unix()
+	if now < start {
+		return false, ErrRecoveryDenied
+	}
+	if now-start >= 15*60 {
+		start, attempts = now, 0
+	}
+	if attempts >= 5 {
+		return false, ErrRecoveryDenied
+	}
+	if _, err := conn.ExecContext(ctx, "UPDATE mfa_recovery_sets SET window_started_unix=?,attempts=? WHERE tenant_id=? AND identity_id=?", start, attempts+1, tenant, identity); err != nil {
+		return false, err
+	}
+	// Reject noncanonical inputs while still charging the admission budget.
+	var raw []byte
+	decodeErr := ErrRecoveryDenied
+	if len(code) == 64 {
+		raw, decodeErr = hex.DecodeString(code)
+	}
+	accepted := false
+	if decodeErr == nil && len(raw) == 32 && hex.EncodeToString(raw) == code {
+		result, err := conn.ExecContext(ctx, "DELETE FROM mfa_recovery_codes WHERE tenant_id=? AND identity_id=? AND code_sha256=?", tenant, identity, s.digest(tenant, identity, code))
+		if err != nil {
+			clear(raw)
+			return false, err
+		}
+		n, err := result.RowsAffected()
+		if err != nil {
+			clear(raw)
+			return false, err
+		}
+		accepted = n == 1
+	}
+	clear(raw)
+	if !accepted {
+		return false, recoveryAudit(ctx, conn, tenant, identity, "auth.recovery_denied")
+	}
+	if _, err := conn.ExecContext(ctx, "UPDATE sessions SET revoked_at=? WHERE identity_id=? AND revoked_at IS NULL", nowTime.UTC().Format(time.RFC3339Nano), identity); err != nil {
+		return false, err
+	}
+	return true, recoveryAudit(ctx, conn, tenant, identity, "auth.recovery_consumed")
 }
 
 func recoveryEnrollment(ctx context.Context, conn *sql.Conn, tenant, identity string) (string, error) {
