@@ -584,3 +584,9 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - Local shell syntax and whitespace checks passed. Go/PHP and actual VM execution are pending hosted CI; no runtime success claimed. This lab does not complete WordPress installation, lifecycle/restore, approved secret custody, production host adapters or phase acceptance. No live VPS changed.
 
 - Review follow-up: `6620c71` adjusts lab public core directories/files to 0755/0644 after tenant ownership, retaining each wp-config.php at 0600. `fe3aae8` checks www-data can read public readme.html but cannot read config, and requests the static file over both tenant vhosts. This addresses extractor-private permissions blocking Nginx. Hosted validation is pending; no runtime success claimed.
+
+
+### 2026-11-10 — Full WordPress installation in disposable lab
+- Branch `feature/lab-wordpress-full-install`, stacked on draft PR #88. Uses WordPress wp_install as each tenant UID with random admin credentials passed through private runtime files, bounded execution and withheld diagnostics.
+- Checks installed option/admin/post rows, distinct HTTP homepages, and reciprocal database denial only after both schemas exist. Lab-only mu-plugin suppresses cron, mail and external WordPress HTTP. Cleanup removes runtime credentials/runners/logs and SQL fixtures.
+- Local Bash syntax and whitespace checks passed; PHP/WordPress/MariaDB execution awaits hosted Ubuntu/Debian CI. No full-install runtime success claimed, no production provisioning or VPS change. Complete application restore and phase gates remain open.
