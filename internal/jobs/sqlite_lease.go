@@ -23,7 +23,7 @@ const (
 )
 
 // Claim is a short-lived worker capability. Token is returned once and only its
-// SHA-256 hash is persisted. It must be kept secret by a future worker.
+// SHA-256 hash is persisted. Workers must keep it private and out of logs.
 type Claim struct {
 	Job       Job
 	WorkerID  string

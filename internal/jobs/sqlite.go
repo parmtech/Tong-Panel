@@ -11,7 +11,8 @@ import (
 )
 
 // SQLiteStore persists no-op jobs and their bounded lease lifecycle in the shared
-// metadata DB. It deliberately does not execute jobs or mutate the host.
+// metadata DB. Its opt-in development worker advances only validation.noop;
+// neither the store nor that worker executes host operations.
 type SQLiteStore struct {
 	db          *sql.DB
 	ctx         context.Context
