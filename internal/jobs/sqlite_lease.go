@@ -56,7 +56,7 @@ func (s *SQLiteStore) ClaimNext(workerID string, duration time.Duration) (Claim,
 		var attempts int
 		err := q.QueryRowContext(s.ctx, `SELECT j.id,j.tenant_id,j.kind,j.state,j.idempotency_key,j.created_at,j.updated_at,j.requested_by,j.attempt_count
 			FROM jobs j
-			JOIN memberships m ON m.tenant_id=j.tenant_id AND m.identity_id=j.requested_by
+			JOIN memberships m ON m.tenant_id=j.tenant_id AND m.identity_id=j.requested_by AND `+jobExecutionRolePredicate+`
 			JOIN tenants t ON t.id=j.tenant_id AND t.status='active'
 			JOIN identities i ON i.id=j.requested_by AND i.disabled=0
 			WHERE (j.state='queued' AND COALESCE(julianday(j.available_at),julianday(j.created_at))<=julianday(?))
@@ -282,7 +282,7 @@ func loadClaimedJobWithAttempt(ctx context.Context, q sqliteSession, claim Claim
 	var attempts int
 	err := q.QueryRowContext(ctx, `SELECT j.id,j.tenant_id,j.kind,j.state,j.idempotency_key,j.created_at,j.updated_at,j.requested_by,j.attempt_count
 		FROM jobs j
-		JOIN memberships m ON m.tenant_id=j.tenant_id AND m.identity_id=j.requested_by
+		JOIN memberships m ON m.tenant_id=j.tenant_id AND m.identity_id=j.requested_by AND `+jobExecutionRolePredicate+`
 		JOIN tenants t ON t.id=j.tenant_id AND t.status='active'
 		JOIN identities i ON i.id=j.requested_by AND i.disabled=0
 		WHERE j.id=? AND j.tenant_id=? AND j.lease_owner=? AND j.lease_token_sha256=?

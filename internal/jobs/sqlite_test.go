@@ -50,6 +50,9 @@ func TestSQLiteCreateIdempotencyScopeAndTransactions(t *testing.T) {
 	if _, err := store.CreateFor("tenant-a", "user-a", "different.work", "request-0001"); err == nil {
 		t.Fatal("unsupported work kind accepted")
 	}
+	if _, err := store.db.Exec("INSERT INTO memberships(tenant_id,identity_id,role) VALUES('tenant-a','user-b','customer')"); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := store.CreateFor("tenant-a", "user-b", KindNoop, "request-0001"); err != ErrConflict {
 		t.Fatalf("different requester should conflict: %v", err)
 	}

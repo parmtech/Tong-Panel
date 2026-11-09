@@ -235,6 +235,12 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 			fail(w, 409, "idempotency_conflict")
 			return
 		}
+		if errors.Is(err, jobs.ErrRequesterDenied) {
+			// Membership may change after HTTP authentication; the SQLite
+			// transaction remains authoritative over the earlier principal.
+			fail(w, 403, "forbidden")
+			return
+		}
 		if err != nil {
 			// The API never converts failed SQLite membership checks to
 			// trusted user identities, even with an existing dev token.

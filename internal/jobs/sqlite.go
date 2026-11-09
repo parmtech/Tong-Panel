@@ -38,6 +38,9 @@ func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error
 		return Job{}, err
 	}
 	defer tx.Rollback()
+	if err := authorizedRequester(s.ctx, tx, tenant, requester, "jobs:create"); err != nil {
+		return Job{}, err
+	}
 	var existing Job
 	existing, err = scanJob(tx.QueryRowContext(s.ctx, `SELECT id,tenant_id,kind,state,idempotency_key,created_at,updated_at,requested_by
 		FROM jobs WHERE tenant_id=? AND idempotency_key=?`, tenant, key))
@@ -45,18 +48,12 @@ func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error
 		if existing.Kind != kind || existing.RequestedBy != requester {
 			return Job{}, ErrConflict
 		}
-		if err := activeRequester(s.ctx, tx, tenant, requester); err != nil {
-			return Job{}, err
-		}
 		if err := tx.Commit(); err != nil {
 			return Job{}, err
 		}
 		return existing, nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		return Job{}, err
-	}
-	if err := activeRequester(s.ctx, tx, tenant, requester); err != nil {
 		return Job{}, err
 	}
 	var raw [16]byte

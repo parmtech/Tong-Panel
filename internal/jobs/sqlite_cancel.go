@@ -25,7 +25,7 @@ func (s *SQLiteStore) CancelFor(tenant, requester, id string) (Job, error) {
 	err := withImmediate(s.ctx, s.db, func(q sqliteSession) error {
 		// Recheck current access, not just the identity that created the job.
 		// Never reveal another tenant's or another requester's job IDs.
-		if err := activeRequester(s.ctx, q, tenant, requester); err != nil {
+		if err := authorizedRequester(s.ctx, q, tenant, requester, "jobs:cancel"); err != nil {
 			return ErrNotFound
 		}
 		var err error
