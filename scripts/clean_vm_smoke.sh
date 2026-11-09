@@ -358,6 +358,21 @@ for host, marker in [
     assert hidden_status == 403, (host, hidden_status)
 print("two-tenant Nginx/PHP-FPM smoke passed; cross-tenant reads denied and hidden files blocked")
 PY
+# Install lab isolation before the first WordPress HTTP request, including
+# installer readiness which may otherwise perform translation lookups.
+for tenant in a b; do
+  if [[ "$tenant" == a ]]; then pool_user="$pool_user_a"; else pool_user="$pool_user_b"; fi
+  plugin_dir="/srv/tong/tenants/tenant-$tenant/sites/site-$tenant/public/wordpress/wp-content/mu-plugins"
+  sudo install -d -o "$pool_user" -g "$pool_user" -m 0700 "$plugin_dir"
+  sudo tee "$plugin_dir/tong-lab-isolation.php" >/dev/null <<'PHP'
+<?php
+if (!defined('DISABLE_WP_CRON')) define('DISABLE_WP_CRON', true);
+if (!defined('WP_HTTP_BLOCK_EXTERNAL')) define('WP_HTTP_BLOCK_EXTERNAL', true);
+add_filter('pre_wp_mail', static function () { return true; });
+PHP
+  sudo chown "$pool_user:$pool_user" "$plugin_dir/tong-lab-isolation.php"
+  sudo chmod 0644 "$plugin_dir/tong-lab-isolation.php"
+done
 # Verify the public/private split through the actual web worker identity.
 for tenant in a b; do
   wp_root="/srv/tong/tenants/tenant-$tenant/sites/site-$tenant/public/wordpress"
@@ -428,16 +443,6 @@ for tenant in a b; do
   fi
   credentials="/srv/tong/tenants/tenant-$tenant/run/site-$tenant/wp-install.json"
   runner="/srv/tong/tenants/tenant-$tenant/run/site-$tenant/wp-install-lab.php"
-  plugin_dir="/srv/tong/tenants/tenant-$tenant/sites/site-$tenant/public/wordpress/wp-content/mu-plugins"
-  sudo install -d -o "$pool_user" -g "$pool_user" -m 0700 "$plugin_dir"
-  sudo tee "$plugin_dir/tong-lab-isolation.php" >/dev/null <<'PHP'
-<?php
-if (!defined('DISABLE_WP_CRON')) define('DISABLE_WP_CRON', true);
-if (!defined('WP_HTTP_BLOCK_EXTERNAL')) define('WP_HTTP_BLOCK_EXTERNAL', true);
-add_filter('pre_wp_mail', static function () { return true; });
-PHP
-  sudo chown "$pool_user:$pool_user" "$plugin_dir/tong-lab-isolation.php"
-  sudo chmod 0644 "$plugin_dir/tong-lab-isolation.php"
   sudo install -o "$pool_user" -g "$pool_user" -m 0700 /home/ci/wp-install-lab.php "$runner"
   printf '{"root":"/srv/tong/tenants/tenant-%s/sites/site-%s/public/wordpress","host":"%s","title":"%s","admin_user":"%s","admin_email":"admin-%s@example.invalid","admin_password":"%s"}\n' \
     "$tenant" "$tenant" "$host" "$title" "$admin_user" "$tenant" "$admin_password" | sudo tee "$credentials" >/dev/null
