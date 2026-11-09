@@ -8,6 +8,7 @@ on:
       - 'cmd/tongd/ui/**'
       - 'scripts/smoke_p1.py'
       - 'scripts/smoke_bootstrap_owner.py'
+      - 'scripts/smoke_support_bundle.py'
       - 'scripts/verify_binary_sbom.py'
       - 'scripts/test_verify_binary_sbom.py'
       - '.github/workflows/p1-preview-package.yml'
@@ -19,6 +20,7 @@ on:
       - 'cmd/tongd/ui/**'
       - 'scripts/smoke_p1.py'
       - 'scripts/smoke_bootstrap_owner.py'
+      - 'scripts/smoke_support_bundle.py'
       - 'scripts/verify_binary_sbom.py'
       - 'scripts/test_verify_binary_sbom.py'
       - '.github/workflows/p1-preview-package.yml'
@@ -82,6 +84,8 @@ jobs:
         run: python3 scripts/smoke_p1.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd"
       - name: Verify extracted CLI creates one audited owner without default credentials
         run: python3 scripts/smoke_bootstrap_owner.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl"
+      - name: Verify extracted CLI exports only allowlisted support facts
+        run: python3 scripts/smoke_support_bundle.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl"
       - name: Verify extracted doctor remains read only
         run: |
           "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl" doctor > "$RUNNER_TEMP/extracted-doctor.json"

@@ -211,10 +211,7 @@ func EvaluateMutationGate(s Snapshot, requirements MutationRequirements) Mutatio
 // credentials. Unknown resource readings remain unknown so a future gate can
 // fail closed instead of interpreting an unreadable resource as available.
 func DetectSnapshot(path string) (Snapshot, error) {
-	osRelease, err := os.ReadFile(path)
-	if err != nil {
-		return Snapshot{}, err
-	}
+	osRelease, osErr := os.ReadFile(path)
 	s := Snapshot{OSRelease: string(osRelease), GOOS: runtime.GOOS, Arch: runtime.GOARCH}
 	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
 		if kb, err := ParseMemAvailableKB(string(data)); err == nil {
@@ -245,7 +242,7 @@ func DetectSnapshot(path string) (Snapshot, error) {
 		seen++
 	}
 	s.TCPListening, s.PortsKnown = listeners, seen == 2
-	return s, nil
+	return s, osErr
 }
 
 // Detect returns the existing best-effort, READ-ONLY developer doctor report.

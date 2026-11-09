@@ -15,6 +15,16 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "support-bundle" {
+		if err := runSupportBundle(os.Args[2:], os.Stdout, collectSupportSnapshot); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			if errors.Is(err, errSupportBundleUsage) {
+				os.Exit(2)
+			}
+			os.Exit(1)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "bootstrap-owner" {
 		if err := localOwnerBootstrap(os.Args[2:], os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintln(os.Stderr, "local bootstrap:", err)
@@ -39,7 +49,7 @@ func main() {
 		return
 	}
 	if len(os.Args) != 2 || os.Args[1] != "doctor" {
-		fmt.Fprintln(os.Stderr, "usage: tongctl doctor | tongctl preflight --min-disk-bytes BYTES --required-tcp-ports PORT[,PORT...] | tongctl bootstrap-owner --db PATH --username NAME --tenant NAME --password-stdin")
+		fmt.Fprintln(os.Stderr, "usage: tongctl doctor | tongctl support-bundle | tongctl preflight --min-disk-bytes BYTES --required-tcp-ports PORT[,PORT...] | tongctl bootstrap-owner --db PATH --username NAME --tenant NAME --password-stdin")
 		os.Exit(2)
 	}
 	r, err := preflight.Detect("/etc/os-release")
