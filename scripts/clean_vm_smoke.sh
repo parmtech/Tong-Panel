@@ -260,6 +260,13 @@ TONG_WORDPRESS_RUNTIME_ROOT=/srv/tong/tenants/tenant-b/sites/site-b/public TONG_
 TONG_WORDPRESS_RUNTIME_ROOT=/srv/tong/tenants/tenant-a/sites/site-a/public TONG_WORDPRESS_RUNTIME_CREDENTIALS=/home/ci/wp-tenant-a.json ./tong-p1-dev/tests/sites.test -test.run '^TestPrepareWordPressRuntimeForCleanVM$' -test.timeout=1m
 sudo chown -R "$pool_user_a:$pool_user_a" /srv/tong/tenants/tenant-a/sites/site-a/public/wordpress
 sudo chown -R "$pool_user_b:$pool_user_b" /srv/tong/tenants/tenant-b/sites/site-b/public/wordpress
+# The extractor stages privately; grant web traversal/read access only after
+# assigning each tree to its tenant, keeping database credentials private.
+for tenant in a b; do
+  wp_root="/srv/tong/tenants/tenant-$tenant/sites/site-$tenant/public/wordpress"
+  sudo find "$wp_root" -type d -exec chmod 0755 {} +
+  sudo find "$wp_root" -type f ! -name wp-config.php -exec chmod 0644 {} +
+done
 sudo chmod 0600 /srv/tong/tenants/tenant-a/sites/site-a/public/wordpress/wp-config.php /srv/tong/tenants/tenant-b/sites/site-b/public/wordpress/wp-config.php
 if mariadb --defaults-extra-file=/home/ci/wp-tenant-a.cnf "$wp_db_b" -e 'SELECT value FROM tong_lab_marker' >/dev/null 2>&1; then
   echo 'WordPress tenant A database user unexpectedly read tenant B data' >&2
