@@ -569,3 +569,5 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - Reconstructed the parent lifecycle script with the intended WordPress release and PHP syntax tests, removed the duplicate tail, and added generated-guest syntax validation before QEMU boot.
 - Local validation: outer script and extracted guest script both passed `bash -n` using Git Bash. Full Ubuntu/Debian VM reruns are pending; no success claimed yet.
 - No production VPS access or changes. Product and phase acceptance remain incomplete.
+
+- Follow-up code commit `a8fd4b95745268369af525639abf5484efe5def2` explicitly installs `php-cli` and requires the interpreter before the config check, preventing a silent skip. Current VM run [#42625887081](https://github.com/parmtech/Tong-Panel/actions/runs/42625887081) is confirmed live: Ubuntu and Debian jobs are building/validating package fixtures; guest execution is pending. No VM pass claimed.
