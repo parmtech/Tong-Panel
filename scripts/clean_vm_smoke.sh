@@ -149,7 +149,8 @@ grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' tong-p1-dev/DO_NOT_INSTALL.txt
 ./tong-p1-dev/tests/sites.test -test.v -test.timeout=4m
 TONG_TEST_PINNED_WORDPRESS_RELEASE=1 ./tong-p1-dev/tests/sites.test -test.run '^TestPinnedWordPressCoreReleaseOnCleanGuest$' -test.timeout=5m
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends nginx php-fpm mariadb-server curl
+sudo apt-get install -y --no-install-recommends nginx php-fpm php-cli mariadb-server curl
+command -v php >/dev/null
 ./tong-p1-dev/tests/sites.test -test.run '^TestWordPressDatabaseConfigParsesWithPHP$' -test.timeout=1m
 sudo systemctl start mariadb
 bash ./tong-p1-dev/tests/nginx-config-rollback.sh
