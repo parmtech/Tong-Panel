@@ -353,7 +353,15 @@ for host, marker in [
     assert hidden_status == 403, (host, hidden_status)
 print("two-tenant Nginx/PHP-FPM smoke passed; cross-tenant reads denied and hidden files blocked")
 PY
+# Verify the public/private split through the actual web worker identity.
+for tenant in a b; do
+  wp_root="/srv/tong/tenants/tenant-$tenant/sites/site-$tenant/public/wordpress"
+  sudo -u www-data test -r "$wp_root/readme.html"
+  sudo -u www-data test ! -r "$wp_root/wp-config.php"
+done
 for host in tenant-a.example.test tenant-b.example.test; do
+  static_response="$(curl --silent --show-error --fail --resolve "$host:80:127.0.0.1" "http://$host/wordpress/readme.html")"
+  [[ "$static_response" == *WordPress* ]]
   response="$(curl --silent --show-error --fail --resolve "$host:80:127.0.0.1" "http://$host/wordpress/wp-admin/install.php")"
   [[ "$response" == *"Welcome to the famous five-minute WordPress installation process"* ]]
 done
