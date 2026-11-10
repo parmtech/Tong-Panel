@@ -34,6 +34,24 @@ Evidence below is scoped to the P1 source snapshot at `4dab4c60cc86186935e9a7d98
 | Binary SBOM | The P1-only draft `docs/P1_DEVELOPER_SBOM.md` describes CycloneDX 1.6 SBOMs for exact Linux amd64 CGO-disabled `tongd` and `tongctl` binaries in an unsigned preview archive, checked against binary build metadata. It explicitly excludes complete source, licence, embedded UI/asset, OS-package and deployment inventory; licence detection is disabled; it does not establish build provenance, reproducibility, signatures, or release approval. | Treat binary SBOM as a limited component inventory only. Decide on source/UI/npm/OS/deployment coverage, licence findings, provenance attestation, signatures and a reviewable distribution record. This file is on the P1 branch, not on main at the P0 draft base. |
 | Upstream study | Main `docs/UPSTREAM_RESEARCH.md` is dated 2026-10-26 and explicitly says it is research, not copying permission; exact versions/licences must be revalidated. Its checklist asks for exact URL, version/tag, commit, SPDX ID, notices/copyright, integration/derivative analysis, brand/asset rights, security status, pins, SBOM, tests and removal path. | Refresh any upstream facts at the point of proposed integration. Feature research must not be mistaken for code or asset provenance. |
 
+Exact upstream licence/companion-file links checked for the 15 indirect Go modules:
+
+- `github.com/dustin/go-humanize v1.0.1`: [LICENSE](https://github.com/dustin/go-humanize/blob/v1.0.1/LICENSE).
+- `github.com/google/uuid v1.6.0`: [LICENSE](https://github.com/google/uuid/blob/v1.6.0/LICENSE).
+- `github.com/mattn/go-isatty v0.0.20`: [LICENSE](https://github.com/mattn/go-isatty/blob/v0.0.20/LICENSE).
+- `github.com/ncruces/go-strftime v0.1.9`: [LICENSE](https://github.com/ncruces/go-strftime/blob/v0.1.9/LICENSE).
+- `github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec`: [LICENSE at exact commit](https://github.com/remyoudompheng/bigfft/blob/24d4a6f8daece64d3c9a7660d4ee0974c4e31021/LICENSE).
+- `golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b`: [LICENSE](https://github.com/golang/exp/blob/b7579e27df2b8f70ede8041e7f4e69f0b099221f/LICENSE), [PATENTS](https://github.com/golang/exp/blob/b7579e27df2b8f70ede8041e7f4e69f0b099221f/PATENTS).
+- `modernc.org/libc v1.66.3`: [LICENSE](https://gitlab.com/cznic/libc/-/blob/v1.66.3/LICENSE), [listed companion file](https://gitlab.com/cznic/libc/-/blob/v1.66.3/LICENSE-3RD-PARTY.md) (viewer did not expose contents).
+- `modernc.org/mathutil v1.7.1`: [LICENSE](https://gitlab.com/cznic/mathutil/-/blob/v1.7.1/LICENSE).
+- `modernc.org/memory v1.11.0`: [LICENSE](https://gitlab.com/cznic/memory/-/blob/v1.11.0/LICENSE).
+- `github.com/go-openapi/jsonpointer v0.22.5`: [LICENSE](https://github.com/go-openapi/jsonpointer/blob/v0.22.5/LICENSE).
+- `github.com/go-openapi/swag/jsonname v0.25.5`: [LICENSE at submodule tag](https://github.com/go-openapi/swag/blob/jsonname/v0.25.5/LICENSE).
+- `github.com/gorilla/mux v1.8.0`: [LICENSE](https://github.com/gorilla/mux/blob/v1.8.0/LICENSE).
+- `github.com/santhosh-tekuri/jsonschema/v6 v6.0.3`: [LICENSE](https://github.com/santhosh-tekuri/jsonschema/blob/v6.0.3/LICENSE).
+- `go.yaml.in/yaml/v4 v4.0.0`: [LICENSE](https://github.com/yaml/go-yaml/blob/v4.0.0/LICENSE), [NOTICE](https://github.com/yaml/go-yaml/blob/v4.0.0/NOTICE).
+- `golang.org/x/text v0.14.0`: [LICENSE](https://github.com/golang/text/blob/v0.14.0/LICENSE), [PATENTS](https://github.com/golang/text/blob/v0.14.0/PATENTS).
+
 ### WordPress upstream notice cross-check
 
 Read-only check of WordPress.org primary pages on 2026-11-10:
@@ -66,7 +84,7 @@ At P1 source commit `4dab4c60cc86186935e9a7d987b9fe1ca97a1f23`:
 - `web/tsconfig.json:8–11` sets `outDir` to `../cmd/tongd/ui`, and `cmd/tongd/ui/app.js` has TypeScript-stripping characteristics and matching UI imports with `web/src/app.ts`. `.github/workflows/ui-checks.yml:25–26` runs a type check with `--noEmit`; separately, `.github/workflows/ui-browser-checks.yml:34–37` compiles using TypeScript 5.9.3 to a temporary directory and compares emitted `app.js` with the embedded file using `cmp`. This CI check supports the generated-output relationship. A generated-file header or documented local update/regeneration command was not found in the inspected files.
 - No file-level source-origin manifest was found. The tracked-tree scan cannot establish absence of copied snippets in inline source, historic commits, generated files, or material not matched by these extensions and names. It also does not inspect P1's uncommitted paths.
 
-The P1 source branch's `README.md:41–42` describes cPanel/WHM as third-party marks and says the project is unaffiliated; `README.md:10` and `docs/UX_UI_SPEC.md:5` call for original design. `CONTRIBUTING.md:29` requires original UI/icons and prohibits cPanel assets and commercial/proprietary source while requiring contributor rights and dependency notices. `docs/UPSTREAM_RESEARCH.md:37–40,47` says permission/licence compatibility does not automatically clear icons, screenshots, brands, designs, plugins or exceptions. These are policy declarations. This audit did not perform a legal trademark search or inspect every visible string, screenshot, commit, or binary.
+The P1 source branch's `README.md:2` uses “a future cPanel/WHM alternative” as product positioning; `README.md:39,42` describes cPanel as a third-party hosting provider and includes an unaffiliated/trademark disclaimer. In the visible UI, `cmd/tongd/ui/index.html:3,12` names “Tong Panel” and “by ParmTech”, uses a text `T` brandmark styled in `cmd/tongd/ui/style.css:3`, and links to the publisher; `web/src/app.ts:8–21,44` uses Unicode tile symbols. `packaging/debian/tong-panel-dev.control:7` names ParmTech as maintainer. The bounded UI and Debian paths searched contained no cPanel/WHM reference, and publisher/GitHub URLs were navigation links rather than identified logo resources. A tracked-path scan found no logo/screenshot/icon/brand paths or searched image/font file extensions. `CONTRIBUTING.md:28–29`, `docs/UX_UI_SPEC.md:5`, and `docs/UPSTREAM_RESEARCH.md:31,40,47` declare original-UI expectations and prohibit copying specified cPanel materials; these are policy declarations, not provenance or legal determinations. This audit did not perform a legal trademark search or inspect every visible string, screenshot, commit, or binary.
 
 ## Gaps and questions for owner/security/licence reviewers
 
