@@ -313,3 +313,7 @@ Expanded the manual operator review for exit scenario 9 with observable pass con
 ## P3 secret lifecycle acceptance oracle — 2026-11-10
 
 Expanded P3-06 with seven synthetic-canary lifecycle cases: scope denial, active-process rotation, queued/running build version binding, revoke/delete, decryption failure, backup/restore after revocation, and audit/support-export redaction. The matrix deliberately leaves key custody, activation/reload and restore policy unresolved; cases without an approved policy remain not run/blocked. Structural check and `git diff --check` passed. No real secrets or app processes were used; P3 remains gated.
+
+## P3 webhook admission acceptance oracle — 2026-11-10
+
+Expanded P3-02 with eight provider-neutral delivery cases, each tied to durable job/build/artifact/route counts and redacted audit outcomes. It separates webhook signature verification from deploy credential fetch and leaves freshness, canonicalization, delivery-ID namespace and outage policy unresolved. The future cases use a disposable simulator/repository only; no live provider or secret is authorized. Structural check and `git diff --check` passed. P3 remains gated.

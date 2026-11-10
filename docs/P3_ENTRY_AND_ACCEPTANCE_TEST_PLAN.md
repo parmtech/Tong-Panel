@@ -148,6 +148,23 @@ Use disposable Linux VMs corresponding to the eventually approved OS matrix. No 
 - Verify cancellation and retry do not duplicate publication or leave ambiguous current-release state.
 - Evidence: captured redacted audit/log assertions, replay/negative test results, and exact credential scopes (never the secret value).
 
+#### Webhook admission decision matrix
+
+Use a disposable provider simulator/repository after the signature, freshness-window, and delivery-ID policy has been reviewed. Keep signature and replay validation separate from repository deploy-credential fetch. No live provider, real repository, or credential is used in these tests.
+
+| Delivery case | Queue/job oracle | Retry/audit oracle |
+|---|---|---|
+| Valid signature, current accepted timestamp, authorized repository/ref, new delivery ID | Exactly one durable job bound to the authorized tenant/app/repository/ref and immutable source revision | Store delivery identity and decision metadata; never log signing/deploy secret values |
+| Same delivery ID and identical signed request repeated | Return the existing operation/result; no second job or publication | Record duplicate/replay decision without treating it as a new deploy |
+| Same delivery ID reused with a different payload/repository/ref | Reject; do not mutate the original job binding | Bounded conflict response; attributable denial without disclosing another tenant's objects |
+| Missing/invalid signature, stale/future timestamp, or revoked signing key | Reject before creating a job | Record only safe delivery/key identifiers and denial reason; never echo signature material |
+| Validly signed but unauthorized repository/ref or app/tenant binding | Reject before fetch/build; no job visible to the unauthorized tenant | Cross-tenant and wrong-ref denial results are indistinguishable where object existence is sensitive |
+| Oversized, malformed, duplicate-field, or ambiguous payload | Reject before job admission; no partial job or body-dependent side effect | Bound parsing/error work; redact body fields and credentials |
+| Deploy credential revoked/rotated after admission but before source fetch | Worker rechecks approved credential state and fails closed; no stale credential fallback | Existing job reaches an explicit typed outcome; logs remain redacted and retry requires valid authorization |
+| Provider verification service unavailable or trust metadata stale | Fail closed or enter an explicitly reviewed non-admitted state; never treat uncertainty as valid | Bounded operator-visible status; no build starts until a later independently verified delivery/retry |
+
+For every rejected case, assert durable job count, process/build count, artifact count, route pointer, and audit contents before/after. Freshness tolerance, signature canonicalization, delivery-ID namespace, and outage/retry policy remain design decisions until recorded in the reviewed contract; absent that decision, mark the corresponding case **not run / blocked by design policy**.
+
 ### P3-03: Isolated build execution and hostile build inputs
 
 - Run builds under a dedicated unprivileged per-app/build identity or the reviewed isolated runner contract; no root, host-root mounts, Docker socket, panel DB, agent socket, signing key, or other tenant paths.
