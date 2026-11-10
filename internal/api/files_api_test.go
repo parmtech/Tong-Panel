@@ -105,6 +105,13 @@ func (q *waitingContextQuota) ReserveContext(ctx context.Context, _ string, _ in
 	return nil, ctx.Err()
 }
 
+type cancelOnAcquireBarrier struct{ cancel context.CancelFunc }
+
+func (b cancelOnAcquireBarrier) Acquire(context.Context, string, bool) (func(), error) {
+	b.cancel()
+	return func() {}, nil
+}
+
 func (q *testFileQuota) RemoveUsed(tenantID string, bytes int64) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -447,6 +454,55 @@ func TestFilesWritePassesRequestCancellationToContextQuota(t *testing.T) {
 	}
 	if used, reserved := quota.snapshot("tenant-a"); used != 0 || reserved != 0 {
 		t.Fatalf("canceled quota reservation changed accounting: used=%d reserved=%d", used, reserved)
+	}
+}
+
+func TestFilesMutationStopsWhenRequestIsCanceledAtBarrierRelease(t *testing.T) {
+	s, _, _, token, csrf := setupCookieAPI(t)
+	root, _ := attachTestTenantFiles(t, s)
+	quota := newTestFileQuota(16)
+	s.FileQuota = quota
+
+	writeCtx, cancelWrite := context.WithCancel(context.Background())
+	s.FileMutationBarrier = cancelOnAcquireBarrier{cancel: cancelWrite}
+	body := &countingReader{reader: strings.NewReader("upload")}
+	writeReq := httptest.NewRequest(http.MethodPost, "https://panel.test/api/v1/files/content?path=canceled.txt", nil).WithContext(writeCtx)
+	writeReq.Body = io.NopCloser(body)
+	writeReq.ContentLength = -1
+	writeReq.TLS = &tls.ConnectionState{}
+	writeReq.AddCookie(&http.Cookie{Name: auth.BrowserCookieName, Value: token})
+	writeReq.Header.Set("X-CSRF-Token", csrf)
+	writeReq.Header.Set("Origin", "https://panel.test")
+	writeReq.Header.Set("Content-Type", "application/octet-stream")
+	writeRec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(writeRec, writeReq)
+	if writeRec.Body.Len() != 0 {
+		t.Fatalf("canceled upload wrote a response: %s", writeRec.Body.String())
+	}
+	if body.read != 0 {
+		t.Fatalf("canceled upload consumed %d request bytes", body.read)
+	}
+	if used, reserved := quota.snapshot("tenant-a"); used != 0 || reserved != 0 {
+		t.Fatalf("canceled upload changed quota: used=%d reserved=%d", used, reserved)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "canceled.txt")); !os.IsNotExist(err) {
+		t.Fatalf("canceled upload published a file: %v", err)
+	}
+
+	deleteCtx, cancelDelete := context.WithCancel(context.Background())
+	s.FileMutationBarrier = cancelOnAcquireBarrier{cancel: cancelDelete}
+	deleteReq := httptest.NewRequest(http.MethodDelete, "https://panel.test/api/v1/files/content?path=private.txt", nil).WithContext(deleteCtx)
+	deleteReq.TLS = &tls.ConnectionState{}
+	deleteReq.AddCookie(&http.Cookie{Name: auth.BrowserCookieName, Value: token})
+	deleteReq.Header.Set("X-CSRF-Token", csrf)
+	deleteReq.Header.Set("Origin", "https://panel.test")
+	deleteRec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(deleteRec, deleteReq)
+	if deleteRec.Body.Len() != 0 {
+		t.Fatalf("canceled delete wrote a response: %s", deleteRec.Body.String())
+	}
+	if content, err := os.ReadFile(filepath.Join(root, "private.txt")); err != nil || string(content) != "tenant-a-secret" {
+		t.Fatalf("canceled delete changed file: content=%q err=%v", content, err)
 	}
 }
 

@@ -6,6 +6,7 @@ package files
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -34,6 +35,7 @@ var (
 	ErrTenantDenied                   = errors.New("tenant file root unavailable")
 	ErrAlreadyExists                  = errors.New("file already exists")
 	ErrInvalidReader                  = errors.New("invalid file content reader")
+	ErrInvalidContext                 = errors.New("invalid file operation context")
 	ErrPublishedDurabilityUnconfirmed = errors.New("file published but directory durability is unconfirmed")
 )
 
@@ -154,6 +156,18 @@ func (r *Root) WriteNew(relative string, content []byte) error {
 // method does not authorize the caller or enforce a tenant-wide disk quota or
 // request deadline.
 func (r *Root) WriteNewFrom(relative string, src io.Reader, maxBytes int64) error {
+	return r.WriteNewFromContext(context.Background(), relative, src, maxBytes)
+}
+
+// WriteNewFromContext stages a bounded reader and publishes it only if the
+// caller context is still active immediately before the atomic rename.
+func (r *Root) WriteNewFromContext(ctx context.Context, relative string, src io.Reader, maxBytes int64) error {
+	if ctx == nil {
+		return ErrInvalidContext
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if r == nil {
 		return ErrClosed
 	}
@@ -179,10 +193,10 @@ func (r *Root) WriteNewFrom(relative string, src io.Reader, maxBytes int64) erro
 		return err
 	}
 	defer unix.Close(rootFD)
-	return writeNewFromRootFD(rootFD, relative, src, maxBytes)
+	return writeNewFromRootFD(ctx, rootFD, relative, src, maxBytes)
 }
 
-func writeNewFromRootFD(rootFD int, relative string, src io.Reader, maxBytes int64) error {
+func writeNewFromRootFD(ctx context.Context, rootFD int, relative string, src io.Reader, maxBytes int64) error {
 	parent, base, err := openParentFD(rootFD, relative)
 	if err != nil {
 		return err
@@ -230,12 +244,18 @@ func writeNewFromRootFD(rootFD int, relative string, src io.Reader, maxBytes int
 		_ = unix.Close(fd)
 		return ErrInvalidPath
 	}
-	written, writeErr := io.Copy(f, io.LimitReader(src, maxBytes+1))
+	written, writeErr := io.Copy(f, io.LimitReader(contextReader{ctx: ctx, reader: src}, maxBytes+1))
 	if writeErr == nil && written > maxBytes {
 		writeErr = ErrTooLarge
 	}
+	if writeErr == nil && ctx.Err() != nil {
+		writeErr = ctx.Err()
+	}
 	if writeErr == nil {
 		writeErr = f.Sync()
+	}
+	if writeErr == nil && ctx.Err() != nil {
+		writeErr = ctx.Err()
 	}
 	closeErr := f.Close()
 	if writeErr != nil {
@@ -243,6 +263,9 @@ func writeNewFromRootFD(rootFD int, relative string, src io.Reader, maxBytes int
 	}
 	if closeErr != nil {
 		return closeErr
+	}
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 	if err := unix.Renameat2(stageFD, temp, parent, base, unix.RENAME_NOREPLACE); err != nil {
 		if errors.Is(err, unix.EEXIST) {
@@ -254,6 +277,22 @@ func writeNewFromRootFD(rootFD int, relative string, src io.Reader, maxBytes int
 		return fmt.Errorf("%w: %v", ErrPublishedDurabilityUnconfirmed, err)
 	}
 	return nil
+}
+
+type contextReader struct {
+	ctx    context.Context
+	reader io.Reader
+}
+
+func (r contextReader) Read(p []byte) (int, error) {
+	if err := r.ctx.Err(); err != nil {
+		return 0, err
+	}
+	n, err := r.reader.Read(p)
+	if ctxErr := r.ctx.Err(); ctxErr != nil {
+		return n, ctxErr
+	}
+	return n, err
 }
 
 // RemoveFile unlinks one regular file or symlink entry below the pinned root.
@@ -268,6 +307,18 @@ func (r *Root) RemoveFile(relative string) error {
 // RemoveFileWithSize removes one regular file or symlink entry and reports the
 // regular-file bytes removed. A symlink contributes no tenant file bytes.
 func (r *Root) RemoveFileWithSize(relative string) (int64, error) {
+	return r.RemoveFileWithSizeContext(context.Background(), relative)
+}
+
+// RemoveFileWithSizeContext checks cancellation before quarantining the
+// requested entry and again before unlinking it from the private stage.
+func (r *Root) RemoveFileWithSizeContext(ctx context.Context, relative string) (int64, error) {
+	if ctx == nil {
+		return 0, ErrInvalidContext
+	}
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
 	if r == nil {
 		return 0, ErrClosed
 	}
@@ -306,6 +357,10 @@ func (r *Root) RemoveFileWithSize(relative string) (int64, error) {
 		}
 		_ = unix.Close(stageFD)
 	}()
+	if err := ctx.Err(); err != nil {
+		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		return 0, err
+	}
 	if err := unix.Renameat2(parent, base, stageFD, "entry", unix.RENAME_NOREPLACE); err != nil {
 		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
 		return 0, err
@@ -327,6 +382,13 @@ func (r *Root) RemoveFileWithSize(relative string) (int64, error) {
 			return 0, fmt.Errorf("%w: restore unsupported file after removal denial: %v", ErrPublishedDurabilityUnconfirmed, restoreErr)
 		}
 		return 0, ErrNotRegular
+	}
+	if err := ctx.Err(); err != nil {
+		if restoreErr := unix.Renameat2(stageFD, "entry", parent, base, unix.RENAME_NOREPLACE); restoreErr != nil {
+			return 0, fmt.Errorf("%w: restore file after canceled removal: %v", ErrPublishedDurabilityUnconfirmed, restoreErr)
+		}
+		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		return 0, err
 	}
 	if err := unix.Unlinkat(stageFD, "entry", 0); err != nil {
 		if restoreErr := unix.Renameat2(stageFD, "entry", parent, base, unix.RENAME_NOREPLACE); restoreErr != nil {

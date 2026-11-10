@@ -6,6 +6,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"errors"
 	"io"
@@ -275,6 +276,49 @@ func TestWriteNewFromBoundsInputAndPublishesOnlyCompleteFiles(t *testing.T) {
 		t.Fatalf("oversized stream published a target: %v", err)
 	}
 	assertNoStagingDirectories(t, root)
+}
+
+type cancelOnEOFReader struct {
+	cancel context.CancelFunc
+	sent   bool
+}
+
+func (r *cancelOnEOFReader) Read(p []byte) (int, error) {
+	if !r.sent {
+		r.sent = true
+		return copy(p, []byte("staged")), nil
+	}
+	r.cancel()
+	return 0, io.EOF
+}
+
+func TestWriteNewFromContextDoesNotPublishAfterCancellationAtEOF(t *testing.T) {
+	r, root := newTestRoot(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	err := r.WriteNewFromContext(ctx, "canceled.txt", &cancelOnEOFReader{cancel: cancel}, 32)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("context-aware write error=%v, want context.Canceled", err)
+	}
+	if _, err := os.Lstat(filepath.Join(root, "canceled.txt")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("canceled staged write published target: %v", err)
+	}
+	assertNoStagingDirectories(t, root)
+}
+
+func TestRemoveFileWithSizeContextHonorsPriorCancellation(t *testing.T) {
+	r, root := newTestRoot(t)
+	target := filepath.Join(root, "keep.txt")
+	if err := os.WriteFile(target, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := r.RemoveFileWithSizeContext(ctx, "keep.txt"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("context-aware remove error=%v, want context.Canceled", err)
+	}
+	if content, err := os.ReadFile(target); err != nil || string(content) != "keep" {
+		t.Fatalf("canceled remove changed target: content=%q err=%v", content, err)
+	}
 }
 
 func TestWriteNewFromRejectsInvalidInputsBeforeConsumption(t *testing.T) {

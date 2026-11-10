@@ -3,6 +3,7 @@
 package files
 
 import (
+	"context"
 	"io"
 	"time"
 
@@ -97,6 +98,12 @@ func (t *TenantRoots) WriteNewForTenant(tenantID, relative string, content []byt
 // root selected by tenantID. The ID must come from an authenticated and
 // authorized server-side principal; this method itself does not authorize it.
 func (t *TenantRoots) WriteNewFromForTenant(tenantID, relative string, src io.Reader, maxBytes int64) error {
+	return t.WriteNewFromForTenantContext(context.Background(), tenantID, relative, src, maxBytes)
+}
+
+// WriteNewFromForTenantContext writes beneath the selected tenant root only
+// while the caller context remains active through the pre-publication check.
+func (t *TenantRoots) WriteNewFromForTenantContext(ctx context.Context, tenantID, relative string, src io.Reader, maxBytes int64) error {
 	if t == nil || tenantID == "" {
 		return ErrTenantDenied
 	}
@@ -104,7 +111,7 @@ func (t *TenantRoots) WriteNewFromForTenant(tenantID, relative string, src io.Re
 	if !ok {
 		return ErrTenantDenied
 	}
-	return root.WriteNewFrom(relative, src, maxBytes)
+	return root.WriteNewFromContext(ctx, relative, src, maxBytes)
 }
 
 // RemoveFileForTenant removes one file only from the root mapped to tenantID.
@@ -117,6 +124,12 @@ func (t *TenantRoots) RemoveFileForTenant(tenantID, relative string) error {
 // RemoveFileWithSizeForTenant removes one tenant entry and returns the regular
 // file bytes removed. Unknown tenants are rejected before touching any root.
 func (t *TenantRoots) RemoveFileWithSizeForTenant(tenantID, relative string) (int64, error) {
+	return t.RemoveFileWithSizeForTenantContext(context.Background(), tenantID, relative)
+}
+
+// RemoveFileWithSizeForTenantContext preserves tenant root selection and
+// honors cancellation before the target entry is unlinked.
+func (t *TenantRoots) RemoveFileWithSizeForTenantContext(ctx context.Context, tenantID, relative string) (int64, error) {
 	if t == nil || tenantID == "" {
 		return 0, ErrTenantDenied
 	}
@@ -124,7 +137,7 @@ func (t *TenantRoots) RemoveFileWithSizeForTenant(tenantID, relative string) (in
 	if !ok {
 		return 0, ErrTenantDenied
 	}
-	return root.RemoveFileWithSize(relative)
+	return root.RemoveFileWithSizeContext(ctx, relative)
 }
 
 // MeasureUsageForTenant scans only the root selected by the server-owned

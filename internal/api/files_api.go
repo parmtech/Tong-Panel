@@ -45,6 +45,13 @@ type TenantFileService interface {
 	RemoveForTenant(tenantID, relative string) (int64, error)
 }
 
+// ContextTenantFileService lets filesystem implementations stop before
+// publishing or unlinking data when the request is canceled.
+type ContextTenantFileService interface {
+	WriteNewForTenantContext(ctx context.Context, tenantID, relative string, content io.Reader, maxBytes int64) (int64, error)
+	RemoveForTenantContext(ctx context.Context, tenantID, relative string) (int64, error)
+}
+
 // FileQuotaReservation accounts for bytes admitted for one upload. Commit must
 // atomically replace the reservation with actualBytes; if it fails, the
 // reservation must remain in force for later reconciliation. Release must be
@@ -171,8 +178,19 @@ func (s *Server) fileDelete(w http.ResponseWriter, r *http.Request, p rbac.Princ
 		return
 	}
 	defer release()
-	removed, err := s.Files.RemoveForTenant(p.TenantID, relative)
+	if r.Context().Err() != nil {
+		return
+	}
+	var removed int64
+	if contextFiles, ok := s.Files.(ContextTenantFileService); ok {
+		removed, err = contextFiles.RemoveForTenantContext(r.Context(), p.TenantID, relative)
+	} else {
+		removed, err = s.Files.RemoveForTenant(p.TenantID, relative)
+	}
 	if err != nil {
+		if r.Context().Err() != nil {
+			return
+		}
 		writeFilesError(w, err)
 		return
 	}
@@ -242,6 +260,9 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 		return
 	}
 	defer release()
+	if r.Context().Err() != nil {
+		return
+	}
 	var reservation FileQuotaReservation
 	if contextQuota, ok := s.FileQuota.(ContextTenantFileQuota); ok {
 		reservation, err = contextQuota.ReserveContext(r.Context(), p.TenantID, reserveBytes)
@@ -284,7 +305,14 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 		maxBytes = maxAPIFilesWriteBytes
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
-	written, err := s.Files.WriteNewForTenant(p.TenantID, relative, r.Body, maxBytes)
+	var written int64
+	if contextFiles, ok := s.Files.(ContextTenantFileService); ok {
+		written, err = contextFiles.WriteNewForTenantContext(r.Context(), p.TenantID, relative, r.Body, maxBytes)
+	} else if r.Context().Err() == nil {
+		written, err = s.Files.WriteNewForTenant(p.TenantID, relative, r.Body, maxBytes)
+	} else {
+		err = r.Context().Err()
+	}
 	if err != nil {
 		if errors.Is(err, ErrFilePublishedDurabilityUnconfirmed) {
 			committed = true
@@ -299,6 +327,9 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 				return
 			}
 		}
+		if r.Context().Err() != nil {
+			return
+		}
 		var maxBytesErr *http.MaxBytesError
 		if errors.Is(err, ErrFileReadTooLarge) || errors.As(err, &maxBytesErr) {
 			fail(w, http.StatusRequestEntityTooLarge, "file_limit_exceeded")
@@ -310,6 +341,9 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 	committed = true
 	if err := reservation.Commit(written); err != nil {
 		fail(w, http.StatusServiceUnavailable, "quota_unavailable")
+		return
+	}
+	if r.Context().Err() != nil {
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{"bytes": written})

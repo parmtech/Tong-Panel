@@ -3,6 +3,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -47,11 +48,18 @@ func (f tenantFileRoots) ReadForTenant(tenantID, relative string, maxBytes int64
 }
 
 func (f tenantFileRoots) WriteNewForTenant(tenantID, relative string, content io.Reader, maxBytes int64) (int64, error) {
+	return f.WriteNewForTenantContext(context.Background(), tenantID, relative, content, maxBytes)
+}
+
+func (f tenantFileRoots) WriteNewForTenantContext(ctx context.Context, tenantID, relative string, content io.Reader, maxBytes int64) (int64, error) {
 	counted := &countingReader{reader: content}
-	err := f.roots.WriteNewFromForTenant(tenantID, relative, counted, maxBytes)
+	err := f.roots.WriteNewFromForTenantContext(ctx, tenantID, relative, counted, maxBytes)
 	if err != nil {
 		if errors.Is(err, files.ErrPublishedDurabilityUnconfirmed) {
 			return counted.read, ErrFilePublishedDurabilityUnconfirmed
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return 0, err
 		}
 		return 0, mapTenantFileError(err)
 	}
@@ -59,8 +67,15 @@ func (f tenantFileRoots) WriteNewForTenant(tenantID, relative string, content io
 }
 
 func (f tenantFileRoots) RemoveForTenant(tenantID, relative string) (int64, error) {
-	removed, err := f.roots.RemoveFileWithSizeForTenant(tenantID, relative)
+	return f.RemoveForTenantContext(context.Background(), tenantID, relative)
+}
+
+func (f tenantFileRoots) RemoveForTenantContext(ctx context.Context, tenantID, relative string) (int64, error) {
+	removed, err := f.roots.RemoveFileWithSizeForTenantContext(ctx, tenantID, relative)
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return removed, err
+		}
 		return removed, mapTenantFileError(err)
 	}
 	return removed, nil
