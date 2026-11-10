@@ -428,3 +428,6 @@ A new focused regression covers 12 concurrent workers draining 128 SQLite no-op 
 ## P1-06 ping-only decoder fuzz coverage — 10 November 2026
 
 Draft PR119 factors the Linux agent frame decoder, rejects malformed, oversized, unknown-field and multiple-message input, and adds a seeded Go fuzz target with a bounded hosted fuzz campaign. The agent still exposes only non-privileged ping; no host action was added. Local Linux test-binary cross-compilation passed. Hosted race/fuzz verification is pending. This does not establish external adversarial review or authorize privileged operations; P1 remains NOT COMPLETE.
+
+
+PR119's first full race workflow exposed SQLITE_BUSY in the inherited 12-worker stress test. The downstream version is bounded to eight workers and now reports the failing operation; local repeated tests pass, but hosted rerun is pending. This does not change queue semantics or erase the initial failure.

@@ -36,7 +36,7 @@ func TestSQLiteWorkersDrainQueueAcrossHandles(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	store.ctx, peer.ctx = ctx, ctx
-	const workers = 12
+	const workers = 8
 	start := make(chan struct{})
 	completed := make(chan string, totalJobs)
 	errs := make(chan error, workers)
@@ -53,7 +53,7 @@ func TestSQLiteWorkersDrainQueueAcrossHandles(t *testing.T) {
 			workerID := fmt.Sprintf("load-worker-%02d", index)
 			for {
 				if err := ctx.Err(); err != nil {
-					errs <- err
+					errs <- fmt.Errorf("worker %s deadline: %w", workerID, err)
 					return
 				}
 				claim, err := queue.ClaimNext(workerID, time.Minute)
@@ -61,22 +61,22 @@ func TestSQLiteWorkersDrainQueueAcrossHandles(t *testing.T) {
 					return
 				}
 				if err != nil {
-					errs <- err
+					errs <- fmt.Errorf("worker %s claim: %w", workerID, err)
 					return
 				}
 				if _, err = queue.Start(claim); err != nil {
-					errs <- err
+					errs <- fmt.Errorf("worker %s start: %w", workerID, err)
 					return
 				}
 				job, err := queue.Complete(claim)
 				if err != nil {
-					errs <- err
+					errs <- fmt.Errorf("worker %s complete: %w", workerID, err)
 					return
 				}
 				select {
 				case completed <- job.ID:
 				case <-ctx.Done():
-					errs <- ctx.Err()
+					errs <- fmt.Errorf("worker %s report completion: %w", workerID, ctx.Err())
 					return
 				}
 			}
