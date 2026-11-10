@@ -9,6 +9,7 @@ on:
       - 'scripts/smoke_bootstrap_owner.py'
       - 'scripts/smoke_support_bundle.py'
       - 'scripts/smoke_noop_worker.py'
+      - 'scripts/test_smoke_noop_worker.py'
       - '.github/workflows/p1-smoke.yml'
   pull_request:
     paths:
@@ -19,6 +20,7 @@ on:
       - 'scripts/smoke_bootstrap_owner.py'
       - 'scripts/smoke_support_bundle.py'
       - 'scripts/smoke_noop_worker.py'
+      - 'scripts/test_smoke_noop_worker.py'
       - '.github/workflows/p1-smoke.yml'
 permissions:
   contents: read
@@ -43,7 +45,9 @@ jobs:
       - name: Safe localhost API and SQLite process dry run
         run: python3 scripts/smoke_p1.py "$RUNNER_TEMP/tongd"
       - name: Opt-in no-op worker lifecycle and restart smoke
-        run: python3 scripts/smoke_noop_worker.py "$RUNNER_TEMP/tongd"
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_smoke_noop_worker.py'
+          python3 scripts/smoke_noop_worker.py "$RUNNER_TEMP/tongd"
       - name: Read-only doctor smoke on CI runner
         run: |
           go run ./cmd/tongctl doctor > "$RUNNER_TEMP/tong-doctor.json"

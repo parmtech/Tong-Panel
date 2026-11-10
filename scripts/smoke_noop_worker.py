@@ -26,6 +26,22 @@ def require(condition, message):
         raise RuntimeError(message)
 
 
+def check_port_available(port=8090):
+    # Go's listener also uses SO_REUSEADDR on Linux. Match that behavior so
+    # connections left in TIME_WAIT by the preceding smoke are not mistaken
+    # for a live daemon. SO_REUSEPORT is deliberately not enabled.
+    with socket.socket() as probe:
+        probe.settimeout(0.25)
+        if probe.connect_ex(("127.0.0.1", port)) == 0:
+            raise RuntimeError("port occupied; refusing to test another daemon")
+    with socket.socket() as probe:
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            probe.bind(("127.0.0.1", port))
+        except OSError:
+            raise RuntimeError("port unavailable; refusing to test another daemon")
+
+
 def request(method, path, key=None):
     body = b'{"kind":"validation.noop"}' if method == "POST" else None
     headers = {"Authorization": "Bearer " + TOKEN, "Content-Type": "application/json"}
@@ -122,11 +138,7 @@ def check_completed(path, job, expected_attempts):
 
 def main(binary):
     binary = str(Path(binary).resolve())
-    with socket.socket() as probe:
-        try:
-            probe.bind(("127.0.0.1", 8090))
-        except OSError:
-            raise RuntimeError("port 8090 occupied; refusing to test another daemon")
+    check_port_available()
     with tempfile.TemporaryDirectory(prefix="tong-noop-worker-") as folder:
         root = Path(folder)
         path = root / "private" / "panel.db"
