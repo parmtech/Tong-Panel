@@ -104,9 +104,13 @@ func (s *Server) siteList(w http.ResponseWriter, r *http.Request, p rbac.Princip
 		}
 	}
 	after := values.Get("after")
-	items, next, err := s.SiteCatalog.ListPage(r.Context(), p.TenantID, after, limit)
+	items, next, err := s.SiteCatalog.ListPageFor(r.Context(), p.TenantID, p.UserID, after, limit)
 	if errors.Is(err, sites.ErrInvalidPage) {
 		fail(w, http.StatusBadRequest, "invalid_page")
+		return
+	}
+	if errors.Is(err, sites.ErrSiteReadDenied) {
+		fail(w, http.StatusForbidden, "forbidden")
 		return
 	}
 	if err != nil {

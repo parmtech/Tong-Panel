@@ -109,7 +109,10 @@ once each; invalid queries return 400 `invalid_page`. `next_after` is empty on
 the final page, otherwise the last returned site ID. The boundary does not
 authorize another tenant. ID ordering is live, not a snapshot, so refresh to
 observe inserts before the cursor. Catalog entries do not imply provisioned
-hosting. Site summary fields use snake_case.
+hosting. Site summary fields use snake_case. Site-list reads recheck the
+active identity, tenant and membership in the catalog database in the same
+statement as the page; a missing or revoked membership returns 403. Session
+token revocation is still checked separately by authentication middleware.
 
 Only job creation requires `Idempotency-Key`: use 8–128 ASCII bytes. Identical
 retries return the original job with 202; tenant-scoped reuse for different work

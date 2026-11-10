@@ -5,12 +5,61 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/parmtech/tong-panel/internal/database"
 	"github.com/parmtech/tong-panel/internal/rbac"
 	"github.com/parmtech/tong-panel/internal/sites"
 )
+
+func TestSiteListRechecksMembershipAtCatalogRead(t *testing.T) {
+	s, _, db := setupSiteAPI(t)
+	if r := createTestSite(t, s.Handler(), secret, "alpha", "alpha.example.test"); r.Code != 201 {
+		t.Fatal(r.Body.String())
+	}
+	principal := rbac.Principal{TenantID: "tenant-a", UserID: "u1", Role: rbac.Customer}
+	// The principal represents successful middleware authentication. Remove
+	// its membership before the actual catalog read to reproduce the gap.
+	if _, err := db.Exec("DELETE FROM memberships WHERE tenant_id='tenant-a' AND identity_id='u1'"); err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	s.siteList(w, httptest.NewRequest(http.MethodGet, "/api/v1/sites", nil), principal)
+	if w.Code != 403 || strings.Contains(w.Body.String(), "alpha") {
+		t.Fatalf("stale principal leaked: %d %s", w.Code, w.Body.String())
+	}
+	// Even the development bearer-only setup may not bypass the catalog DB.
+	s.SQLJobs = nil
+	r := call(s.Handler(), http.MethodGet, "/api/v1/sites", secret, "", "")
+	if r.Code != 403 || strings.Contains(r.Body.String(), "alpha") {
+		t.Fatalf("dev token bypass: %d %s", r.Code, r.Body.String())
+	}
+}
+
+func TestSiteListFailsClosedWhenCatalogUsesDifferentDatabase(t *testing.T) {
+	s, _, _ := setupSiteAPI(t)
+	other, err := database.Open(context.Background(), filepath.Join(t.TempDir(), "other.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = other.Close() })
+	if _, err := other.Exec("INSERT INTO tenants(id,name) VALUES('tenant-a','A')"); err != nil {
+		t.Fatal(err)
+	}
+	s.SiteCatalog, err = sites.NewCatalog(other)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SiteCatalog.Create(context.Background(), sites.SiteSpec{TenantID: "tenant-a", SiteID: "other", PrimaryDomain: "other.example.test", DocumentRoot: "sites/other/public"}); err != nil {
+		t.Fatal(err)
+	}
+	r := call(s.Handler(), http.MethodGet, "/api/v1/sites", secret, "", "")
+	if r.Code != 403 || strings.Contains(r.Body.String(), "other") {
+		t.Fatalf("unrelated catalog granted: %d %s", r.Code, r.Body.String())
+	}
+}
 
 func TestSiteListPagesScopeAndValidation(t *testing.T) {
 	s, _, db := setupSiteAPI(t)

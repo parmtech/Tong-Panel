@@ -5,8 +5,76 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+func TestListPageForUsesCurrentMembershipAndDistinguishesEmpty(t *testing.T) {
+	c := openCatalog(t, filepath.Join(t.TempDir(), "sites.db"))
+	ctx := context.Background()
+	longTenant, longIdentity := strings.Repeat("t", 80), strings.Repeat("u", 90)
+	if _, err := c.db.Exec("INSERT INTO tenants(id,name) VALUES(?, 'long')", longTenant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.db.Exec("INSERT INTO identities(id,username) VALUES(?, 'long-user')", longIdentity); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.db.Exec("INSERT INTO memberships(tenant_id,identity_id,role) VALUES(?,?,'auditor')", longTenant, longIdentity); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.db.Exec("INSERT INTO sites(tenant_id,site_id,document_root,created_at) VALUES(?, 'example','sites/example/public',1)", longTenant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.db.Exec("INSERT INTO site_domains(domain,tenant_id,site_id,kind,ownership_state) VALUES('long.example.test',?,'example','primary','pending')", longTenant); err != nil {
+		t.Fatal(err)
+	}
+	page, next, err := c.ListPageFor(ctx, longTenant, longIdentity, "", 1)
+	if err != nil || len(page) != 1 || page[0].SiteID != "example" || next != "" {
+		t.Fatalf("valid long principal: %#v %q %v", page, next, err)
+	}
+	empty, _, err := c.ListPageFor(ctx, longTenant, longIdentity, "example", 1)
+	if err != nil || empty == nil || len(empty) != 0 {
+		t.Fatalf("authorized empty: %#v %v", empty, err)
+	}
+	if _, _, err := c.ListPageFor(ctx, "tenant-a", longIdentity, "", 1); !errors.Is(err, ErrSiteReadDenied) {
+		t.Fatalf("cross-tenant: %v", err)
+	}
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	if _, _, err := c.ListPageFor(canceled, longTenant, longIdentity, "", 1); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled request: %v", err)
+	}
+	for _, tc := range []struct{ disable, restore string }{
+		{"UPDATE identities SET disabled=1 WHERE id=?", "UPDATE identities SET disabled=0 WHERE id=?"},
+		{"UPDATE tenants SET status='suspended' WHERE id=?", "UPDATE tenants SET status='active' WHERE id=?"},
+	} {
+		id := longIdentity
+		if strings.Contains(tc.disable, "tenants") {
+			id = longTenant
+		}
+		if _, err := c.db.Exec(tc.disable, id); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := c.ListPageFor(ctx, longTenant, longIdentity, "", 1); !errors.Is(err, ErrSiteReadDenied) {
+			t.Fatalf("revoked: %v", err)
+		}
+		if _, err := c.db.Exec(tc.restore, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := c.db.Exec("DELETE FROM memberships WHERE tenant_id=? AND identity_id=?", longTenant, longIdentity); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := c.ListPageFor(ctx, longTenant, longIdentity, "", 1); !errors.Is(err, ErrSiteReadDenied) {
+		t.Fatalf("removed membership: %v", err)
+	}
+	if err := c.db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := c.ListPageFor(ctx, longTenant, longIdentity, "", 1); err == nil || errors.Is(err, ErrSiteReadDenied) {
+		t.Fatalf("database failure masked: %v", err)
+	}
+}
 
 func TestListPageTraversesTenantAndReturnsOnlyPrimary(t *testing.T) {
 	c := openCatalog(t, filepath.Join(t.TempDir(), "sites.db"))

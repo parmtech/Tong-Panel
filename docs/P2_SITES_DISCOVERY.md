@@ -11,8 +11,12 @@ cursor is an ordering boundary, not an authorization token. The principal's
 tenant and `sites:read` permission determine access. Pages are not a snapshot:
 records inserted at or before the current boundary appear after refresh.
 The browser validates and bounds responses and renders values as text.
-Principal validation and catalog selection are separate operations, so a
-concurrent revocation between them is not an atomic authorization boundary.
+The site-list query checks the active tenant, enabled identity, current
+membership and permitted role in the same SQLite statement that selects the
+page. This check uses the catalog database for every HTTP caller, including
+developer tokens. Session validation remains a separate operation: session
+revocation racing after authentication is not covered by this query. Other
+site endpoints have not been changed by this read-specific guard.
 
 The stock development daemon does not configure public browser login or TLS;
 browser tests use synthetic cookie sessions and a loopback TLS fixture. Site
