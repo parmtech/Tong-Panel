@@ -1,5 +1,5 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-10 19:14 AEDT (Sydney)
+**Updated:** 2026-11-10 19:57 AEDT (Sydney)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
@@ -1160,3 +1160,8 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - **Evidence:** two-handle held-writer test verifies a 100ms caller deadline, unchanged reserved/used counts, restored 5000ms timeout, and successful retry after unlocking. Linux handler regression verifies cancellation reaches the quota adapter and the upload body remains unread. Full Windows `go test ./internal/api -count=1`, `go vet ./internal/api`, `git diff --check`, and Linux amd64 API test-binary cross-compilation passed; the focused SQLite cancellation test passed five runs. Independent review found no concrete issue. The first code head `cc17a797a64c8f74b49c9ea345a204f0f25ade41` failed Go/race and both clean-VM smoke suites: a shadowed error variable mapped quota denial to 503, breaking three upload tests. Corrected in `af0e69d`; local API tests, vet, and Linux test-binary compilation passed after the fix. The first head's vulnerability, API contract, smoke, package, and browser checks passed; all seven corrected-head hosted workflows are pending.
 - **Limits:** reservation before file upload only; accounting after filesystem effects remains durable and context-independent. No production VPS change, P0 approval, or Phase 1 completion.
 - **Hosted workflows:** after the correction, all seven exact-head checks passed: Go/race/vet 42781858040, package 42781858058, API contract 42781858095, developer smoke 42781858172, vulnerability 42781858054, browser 42781858154, and clean disposable VM smoke 42781857779 (Ubuntu 24.04 and Debian 12 guests). The first-head failure remains documented above.
+
+### 2026-11-10 — P1 file mutation cancellation hosted check follow-up
+- **Branch/PR:** `feature/p1-file-mutation-context` / draft [PR149](https://github.com/parmtech/Tong-Panel/pull/149), code head `4d42ca024a7628e424a9738aa258d70927122f02`.
+- **Result:** Go/race/fuzz/vet, API contract, unsigned package, non-destructive developer smoke, vulnerability and browser/accessibility workflows passed. Clean VM run 42785167173 failed: Ubuntu 24.04 failed during guest apt index refresh (mirror sync produced an unexpected package index size); Debian 12 passed package setup and the two-tenant Nginx/PHP-FPM and WordPress isolation checks, then timed out on a sample WordPress homepage request. This latter check is outside PR149's touched file paths but remains a real guest-suite failure and is not counted as passing.
+- **Follow-up:** reran only failed guest jobs using GitHub Actions; results pending. Keep first run failures in evidence even if retry passes. No production VPS change; Phase 1 remains incomplete.
