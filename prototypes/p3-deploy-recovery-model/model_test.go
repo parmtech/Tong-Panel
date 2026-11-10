@@ -2,6 +2,7 @@ package recovery
 
 import (
 	"errors"
+	"sync"
 	"testing"
 )
 
@@ -168,5 +169,45 @@ func TestAdmissionRejectsMissingScopeOrIdempotencyFields(t *testing.T) {
 	}
 	if model.JobCount() != 0 {
 		t.Fatalf("invalid requests created %d jobs", model.JobCount())
+	}
+}
+
+func TestConcurrentIdenticalAdmissionRetriesReturnOneJob(t *testing.T) {
+	model := NewAdmissionModel()
+	request := AdmissionRequest{TenantID: "tenant-a", AppID: "app-a", Key: "request-1", PayloadDigest: "digest-a"}
+	const callers = 64
+	ids := make(chan string, callers)
+	errs := make(chan error, callers)
+	var group sync.WaitGroup
+	group.Add(callers)
+	for range callers {
+		go func() {
+			defer group.Done()
+			id, err := model.Admit(request)
+			if err != nil {
+				errs <- err
+				return
+			}
+			ids <- id
+		}()
+	}
+	group.Wait()
+	close(ids)
+	close(errs)
+	for err := range errs {
+		t.Errorf("concurrent retry failed: %v", err)
+	}
+	var first string
+	count := 0
+	for id := range ids {
+		if first == "" {
+			first = id
+		} else if id != first {
+			t.Errorf("concurrent retries returned multiple jobs: %q and %q", first, id)
+		}
+		count++
+	}
+	if count != callers || model.JobCount() != 1 {
+		t.Fatalf("got %d successful callers and %d jobs; want %d and 1", count, model.JobCount(), callers)
 	}
 }

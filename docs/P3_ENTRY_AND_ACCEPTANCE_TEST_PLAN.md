@@ -183,7 +183,7 @@ The accepted implementation must define its own versioned states and transition 
 
 For every row, inject termination immediately before and after the durable boundary, then assert job state, active route, process set, artifact inventory, quota/accounting, audit record, and retry behavior. Record the exact transition model and which outcomes are safely retryable versus require operator reconciliation. Any ambiguous external effect must remain explicitly uncertain until observed; do not report success based only on intent or a queued command.
 
-An executable, non-normative in-memory example is in [`prototypes/p3-deploy-recovery-model`](../prototypes/p3-deploy-recovery-model/README.md). Its tests check a few transition and same-request idempotency oracles only. Because it has no persistence, authorization, process, route, quota, audit, or concurrency integration, passing it is not product or phase-acceptance evidence; the modeled idempotency-key scope is not an approved policy.
+An executable, non-normative in-memory example is in [`prototypes/p3-deploy-recovery-model`](../prototypes/p3-deploy-recovery-model/README.md). Its tests check a few transition oracles and same-process concurrent idempotency calls only. Because it has no durable/multi-process persistence, authorization, real process, route, quota, or audit integration, passing it is not product or phase-acceptance evidence; the modeled idempotency-key scope is not an approved policy.
 
 ### P3-05: Runtime identity, process manager, ports, and resource controls
 
