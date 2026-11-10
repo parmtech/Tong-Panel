@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/parmtech/tong-panel/internal/database"
 	"github.com/parmtech/tong-panel/internal/rbac"
 	"golang.org/x/crypto/argon2"
 )
@@ -186,6 +187,96 @@ func TestInternalLoginRevalidatesTOTPAfterConnectionWait(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestInternalLoginHonorsCancellationDuringWriterWait(t *testing.T) {
+	service, db, _, password, clock, seed := setupTrustedLogin(t)
+	var seq int
+	var schema, path string
+	if err := db.QueryRow("PRAGMA database_list").Scan(&seq, &schema, &path); err != nil {
+		t.Fatal(err)
+	}
+	peerDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerDB.Close()
+	writer, err := peerDB.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	verified := make(chan struct{})
+	releaseVerify := make(chan struct{})
+	service.budget.verify = func(got []byte, _ string) bool {
+		close(verified)
+		<-releaseVerify
+		return bytes.Equal(got, password)
+	}
+	code, err := TOTPCode(seed, *clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var beforeReplay int64
+	if err := db.QueryRow("SELECT last_accepted_step FROM totp_replay_state WHERE identity_id='user-a'").Scan(&beforeReplay); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() {
+		_, loginErr := service.AuthenticateTrusted(ctx, "tenant-a", "alice", "192.0.2.77", password, code)
+		result <- loginErr
+	}()
+	select {
+	case <-verified:
+	case <-time.After(5 * time.Second):
+		cancel()
+		t.Fatal("login did not reach password verification")
+	}
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	defer writer.ExecContext(context.Background(), "ROLLBACK")
+	close(releaseVerify)
+	deadline := time.Now().Add(3 * time.Second)
+	for db.Stats().InUse == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if db.Stats().InUse == 0 {
+		cancel()
+		t.Fatal("login did not acquire its transaction connection")
+	}
+	// Let the login reach its writer reservation; reads after the verifier may
+	// briefly use the same pooled connection before this transaction begins.
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("login error=%v, want context cancellation", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("login did not stop after caller cancellation")
+	}
+	var sessions, audits int
+	var replay int64
+	if err := db.QueryRow("SELECT count(*) FROM sessions").Scan(&sessions); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT count(*) FROM audit_events WHERE action='auth.login'").Scan(&audits); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT last_accepted_step FROM totp_replay_state WHERE identity_id='user-a'").Scan(&replay); err != nil {
+		t.Fatal(err)
+	}
+	if sessions != 0 || audits != 0 || replay != beforeReplay {
+		t.Fatalf("canceled login mutated state: sessions=%d audits=%d replayChanged=%t", sessions, audits, replay != beforeReplay)
+	}
+	var busyTimeout int
+	if err := db.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout); err != nil || busyTimeout != 5000 {
+		t.Fatalf("busy_timeout=%d err=%v, want restored 5000ms", busyTimeout, err)
 	}
 }
 
