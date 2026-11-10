@@ -3,6 +3,7 @@
 package api
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"io"
@@ -91,6 +92,17 @@ func (q *testFileQuota) Reserve(tenantID string, bytes int64) (FileQuotaReservat
 	}
 	q.reserved[tenantID] += bytes
 	return &testFileQuotaReservation{quota: q, tenantID: tenantID, bytes: bytes}, nil
+}
+
+type waitingContextQuota struct {
+	*testFileQuota
+	entered chan struct{}
+}
+
+func (q *waitingContextQuota) ReserveContext(ctx context.Context, _ string, _ int64) (FileQuotaReservation, error) {
+	close(q.entered)
+	<-ctx.Done()
+	return nil, ctx.Err()
 }
 
 func (q *testFileQuota) RemoveUsed(tenantID string, bytes int64) error {
@@ -402,6 +414,39 @@ func TestFilesWriteQuotaDenialDoesNotConsumeRequestBody(t *testing.T) {
 	}
 	if body.read != 0 {
 		t.Fatalf("quota denial consumed %d request bytes", body.read)
+	}
+}
+
+func TestFilesWritePassesRequestCancellationToContextQuota(t *testing.T) {
+	s, _, _, token, csrf := setupCookieAPI(t)
+	attachTestTenantFiles(t, s)
+	quota := &waitingContextQuota{testFileQuota: newTestFileQuota(16), entered: make(chan struct{})}
+	s.FileQuota = quota
+
+	ctx, cancel := context.WithCancel(context.Background())
+	body := &countingReader{reader: strings.NewReader("upload")}
+	req := httptest.NewRequest(http.MethodPost, "https://panel.test/api/v1/files/content?path=cancelled.txt", nil).WithContext(ctx)
+	req.Body = io.NopCloser(body)
+	req.ContentLength = -1
+	req.TLS = &tls.ConnectionState{}
+	req.AddCookie(&http.Cookie{Name: auth.BrowserCookieName, Value: token})
+	req.Header.Set("X-CSRF-Token", csrf)
+	req.Header.Set("Origin", "https://panel.test")
+	req.Header.Set("Content-Type", "application/octet-stream")
+	rec := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		s.Handler().ServeHTTP(rec, req)
+		close(done)
+	}()
+	<-quota.entered
+	cancel()
+	<-done
+	if body.read != 0 {
+		t.Fatalf("canceled quota reservation consumed %d request bytes", body.read)
+	}
+	if used, reserved := quota.snapshot("tenant-a"); used != 0 || reserved != 0 {
+		t.Fatalf("canceled quota reservation changed accounting: used=%d reserved=%d", used, reserved)
 	}
 }
 

@@ -62,6 +62,13 @@ type TenantFileQuota interface {
 	RemoveUsed(tenantID string, bytes int64) error
 }
 
+// ContextTenantFileQuota is implemented by quota stores that can stop waiting
+// for database capacity when the upload request is canceled. The legacy quota
+// interface remains supported for in-memory test and development adapters.
+type ContextTenantFileQuota interface {
+	ReserveContext(ctx context.Context, tenantID string, bytes int64) (FileQuotaReservation, error)
+}
+
 // FileMutationBarrier coordinates quota-sensitive file mutations with
 // cross-process maintenance. Acquire(shared) must cover reservation, disk
 // mutation and quota finalization; maintenance uses exclusive mode across
@@ -235,12 +242,28 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 		return
 	}
 	defer release()
-	reservation, err := s.FileQuota.Reserve(p.TenantID, reserveBytes)
+	var reservation FileQuotaReservation
+	if contextQuota, ok := s.FileQuota.(ContextTenantFileQuota); ok {
+		reservation, err = contextQuota.ReserveContext(r.Context(), p.TenantID, reserveBytes)
+	} else if err := r.Context().Err(); err != nil {
+		return
+	} else {
+		reservation, err = s.FileQuota.Reserve(p.TenantID, reserveBytes)
+	}
 	if err != nil {
+		if r.Context().Err() != nil {
+			return
+		}
 		if errors.Is(err, ErrFileQuotaExceeded) {
 			fail(w, http.StatusInsufficientStorage, "file_quota_exceeded")
 		} else {
 			fail(w, http.StatusServiceUnavailable, "files_unavailable")
+		}
+		return
+	}
+	if r.Context().Err() != nil {
+		if reservation != nil {
+			_ = reservation.Release()
 		}
 		return
 	}

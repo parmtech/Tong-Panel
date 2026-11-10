@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -8,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/parmtech/tong-panel/internal/database"
 )
 
 var (
@@ -88,20 +91,49 @@ func (q *SQLiteTenantFileQuota) ConfigureTenantQuota(tenantID string, limitBytes
 }
 
 func (q *SQLiteTenantFileQuota) Reserve(tenantID string, bytes int64) (FileQuotaReservation, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return q.ReserveContext(ctx, tenantID, bytes)
+}
+
+// ReserveContext atomically reserves quota while observing caller cancellation
+// during connection acquisition and SQLite writer contention. Reserve remains
+// the bounded compatibility wrapper for callers without a request context.
+func (q *SQLiteTenantFileQuota) ReserveContext(ctx context.Context, tenantID string, bytes int64) (FileQuotaReservation, error) {
+	if ctx == nil {
+		return nil, ErrFileQuotaReservation
+	}
 	if strings.TrimSpace(tenantID) == "" || tenantID != strings.TrimSpace(tenantID) || bytes < 0 {
 		return nil, ErrFileQuotaExceeded
+	}
+	if q == nil || q.db == nil {
+		return nil, ErrFileQuotaUnconfigured
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	idBytes := make([]byte, 16)
 	if _, err := rand.Read(idBytes); err != nil {
 		return nil, fmt.Errorf("generate quota reservation id: %w", err)
 	}
 	id := hex.EncodeToString(idBytes)
-	tx, err := q.db.Begin()
+	conn, err := q.db.Conn(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin quota reservation: %w", err)
 	}
-	defer tx.Rollback()
-	result, err := tx.Exec(`UPDATE tenant_file_quotas
+	defer conn.Close()
+	restoreBusyTimeout, err := database.BeginImmediate(ctx, conn, 5*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("begin quota reservation: %w", err)
+	}
+	defer restoreBusyTimeout()
+	committed := false
+	defer func() {
+		if !committed {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+		}
+	}()
+	result, err := conn.ExecContext(ctx, `UPDATE tenant_file_quotas
 		SET reserved_bytes = reserved_bytes + ?
 		WHERE tenant_id = ? AND ? <= limit_bytes - used_bytes - reserved_bytes`, bytes, tenantID, bytes)
 	if err != nil {
@@ -113,7 +145,7 @@ func (q *SQLiteTenantFileQuota) Reserve(tenantID string, bytes int64) (FileQuota
 	}
 	if changed != 1 {
 		var exists int
-		err := tx.QueryRow(`SELECT 1 FROM tenant_file_quotas WHERE tenant_id = ?`, tenantID).Scan(&exists)
+		err := conn.QueryRowContext(ctx, `SELECT 1 FROM tenant_file_quotas WHERE tenant_id = ?`, tenantID).Scan(&exists)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrFileQuotaUnconfigured
 		}
@@ -122,13 +154,14 @@ func (q *SQLiteTenantFileQuota) Reserve(tenantID string, bytes int64) (FileQuota
 		}
 		return nil, ErrFileQuotaExceeded
 	}
-	_, err = tx.Exec(`INSERT INTO tenant_file_quota_reservations(id, tenant_id, reserved_bytes, created_at) VALUES(?, ?, ?, ?)`, id, tenantID, bytes, q.now().Unix())
+	_, err = conn.ExecContext(ctx, `INSERT INTO tenant_file_quota_reservations(id, tenant_id, reserved_bytes, created_at) VALUES(?, ?, ?, ?)`, id, tenantID, bytes, q.now().Unix())
 	if err != nil {
 		return nil, fmt.Errorf("persist quota reservation: %w", err)
 	}
-	if err := tx.Commit(); err != nil {
+	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
 		return nil, fmt.Errorf("commit quota reservation: %w", err)
 	}
+	committed = true
 	return &sqliteFileQuotaReservation{db: q.db, id: id, tenantID: tenantID, reserved: bytes}, nil
 }
 

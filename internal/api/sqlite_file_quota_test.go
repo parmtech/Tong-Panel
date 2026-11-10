@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/parmtech/tong-panel/internal/database"
 )
@@ -70,6 +71,61 @@ func TestSQLiteFileQuotaRequiresTrustedConfigurationAndAccountsReservations(t *t
 	}
 	if err := reservation.Commit(3); !errors.Is(err, ErrFileQuotaReservation) {
 		t.Fatalf("duplicate commit err=%v", err)
+	}
+}
+
+func TestSQLiteFileQuotaReserveContextCancelsWriterWaitWithoutMutation(t *testing.T) {
+	primary, quota, path := openFileQuota(t)
+	if err := quota.ConfigureTenantQuota("tenant-a", 100, 0); err != nil {
+		t.Fatal(err)
+	}
+	peerDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerDB.Close()
+	peer, err := NewSQLiteTenantFileQuota(peerDB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	writer, err := primary.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer writer.ExecContext(context.Background(), "ROLLBACK")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	started := time.Now()
+	_, err = peer.ReserveContext(ctx, "tenant-a", 20)
+	cancel()
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("ReserveContext error=%v, want caller deadline", err)
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("quota reservation cancellation took too long: %v", elapsed)
+	}
+	if used, reserved := quotaCounts(t, peerDB, "tenant-a"); used != 0 || reserved != 0 {
+		t.Fatalf("canceled reservation changed quota: used=%d reserved=%d", used, reserved)
+	}
+	var busyTimeout int
+	if err := peerDB.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout); err != nil || busyTimeout != 5000 {
+		t.Fatalf("busy_timeout after canceled reservation=%d err=%v, want 5000", busyTimeout, err)
+	}
+
+	if _, err := writer.ExecContext(context.Background(), "ROLLBACK"); err != nil {
+		t.Fatal(err)
+	}
+	reservation, err := peer.ReserveContext(context.Background(), "tenant-a", 20)
+	if err != nil {
+		t.Fatalf("reservation retry after writer release: %v", err)
+	}
+	if err := reservation.Release(); err != nil {
+		t.Fatal(err)
 	}
 }
 
