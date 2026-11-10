@@ -22,15 +22,8 @@ func BeginImmediate(ctx context.Context, conn *sql.Conn, maxWait time.Duration) 
 	if ctx == nil || conn == nil || maxWait < 0 {
 		return nil, errors.New("invalid SQLite writer reservation arguments")
 	}
-	waitCtx := ctx
-	cancel := func() {}
-	if maxWait > 0 {
-		waitCtx, cancel = context.WithTimeout(ctx, maxWait)
-	}
-	defer cancel()
-
 	var busyTimeout int
-	if err := conn.QueryRowContext(waitCtx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
+	if err := conn.QueryRowContext(ctx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
@@ -42,13 +35,19 @@ func BeginImmediate(ctx context.Context, conn *sql.Conn, maxWait time.Duration) 
 			_, _ = conn.ExecContext(context.Background(), fmt.Sprintf("PRAGMA busy_timeout=%d", busyTimeout))
 		})
 	}
-	if _, err := conn.ExecContext(waitCtx, "PRAGMA busy_timeout=0"); err != nil {
+	if _, err := conn.ExecContext(ctx, "PRAGMA busy_timeout=0"); err != nil {
 		restore()
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
 		return nil, err
 	}
+	waitCtx := ctx
+	cancel := func() {}
+	if maxWait > 0 {
+		waitCtx, cancel = context.WithTimeout(ctx, maxWait)
+	}
+	defer cancel()
 
 	var lastBusy error
 	for {
@@ -58,6 +57,9 @@ func BeginImmediate(ctx context.Context, conn *sql.Conn, maxWait time.Duration) 
 			restore()
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
+			}
+			if waitCtx.Err() != nil && lastBusy != nil {
+				return nil, lastBusy
 			}
 			return nil, err
 		} else {
