@@ -93,6 +93,25 @@ Create synthetic repositories and test applications only after the runner bounda
 
 Each fixture should have a pinned source revision and deterministic expected result. Record the guest image digest, runner policy, test command, output digest, and cleanup result. A fixture pass is only evidence for its named assertion; it does not imply overall P3 or P2 acceptance.
 
+## Phase-plan module traceability
+
+This crosswalk follows all ten modules in `docs/phases/P3-APP-PLATFORM.md`. It is a coverage map for the plan, not a statement that any module is implemented.
+
+| P3 plan module | Covered here | Fixture/acceptance evidence |
+|---|---|---|
+| 1. Versioned Node.js/Python runtimes | P3-01, runtime/toolchain provenance decision | Runtime compatibility matrix, pinned source/digest and tamper rejection; Node and Python exit scenarios 1–2. |
+| 2. Git deploy and webhook verification | P3-02, webhook/Git authorization decision | `webhook-replay-invalid`, least-scope disposable credential, revocation/redaction; exit scenarios 1 and 7. |
+| 3. Native process manager and site UID sandbox | P3-05, build/runtime identities decision | `app-process-probe`; process visibility, resource policy, crash/restart and bounded cleanup; exit scenarios 3–4. |
+| 4. Isolated build runners and resource limits | P3-03, build network and secret decisions | `build-limit-cpu-memory`, `build-limit-disk-process-time`, `build-network-boundary`, `build-secret-canary`; exit scenarios 3–4 and 7. |
+| 5. Python WSGI/ASGI profiles | P3-01, P3-05, P3-07 | Python ASGI fixture with isolated dependencies, dedicated identity, health and proxy checks; exit scenario 2. Add WSGI only when separately listed in the compatibility matrix. |
+| 6. Node app profiles and reverse proxy | P3-01, P3-05, P3-07 | Node fixture with pinned runtime, centrally reserved port, verified route/health, release switch and rollback; exit scenario 1. |
+| 7. Per-app secrets and audit | P3-06, build-time secrets decision | `build-secret-canary`, cross-tenant fixture, secret rotation/redaction assertions; exit scenarios 3 and 7. |
+| 8. Deployment history, health and rollback | P3-04, P3-07, deploy state-machine decision | `release-tamper`, `health-failure`, cancellation/restart and immutable prior release; exit scenarios 1–2 and 7. |
+| 9. Optional rootless containers | P3-08, runtime/toolchain provenance decision | Separate container-profile escape, digest, network, volume and resource-limit tests; exit scenarios 3–5 when that optional profile is claimed. Native runtime acceptance remains independently required. |
+| 10. Signed declarative app catalogue | P3-09, catalogue trust/removal decision | `recipe-untrusted`, signature/revocation/digest/permission checks, data-preserving removal; exit scenarios 5–6 and 8. |
+
+Any change to the phase plan must update this crosswalk and its linked test evidence in the same reviewed change. A framework, OS, architecture, or optional container profile is out of the compatibility claim until its corresponding exact-head test record exists.
+
 ## P3 contract and test specifications
 
 Use disposable Linux VMs corresponding to the eventually approved OS matrix. No test may target the developer workstation, a live server, production credentials, or a non-disposable shared host. Test fixtures must be synthetic. Start from a clean snapshot, capture evidence, and destroy the VM after the run. Never relax isolation merely to make a scenario pass.
