@@ -1,5 +1,5 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-10 19:23 AEDT (Sydney)
+**Updated:** 2026-11-10 19:31 AEDT (Sydney)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
@@ -10,6 +10,7 @@
 - **Design commit:** `c22558fec225fcd66ce414a349385ef481500a22`.
 - **Draft review:** [PR #144](https://github.com/parmtech/Tong-Panel/pull/144); not merged.
 - **Overlap check:** active drafts #60/#61/#65 already cover component renderers and #80 covers disposable Nginx rollback. The proposal reuses those checks and limits new coverage to version selection and the integrated typed-job path.
+- **Windows P2 code check:** on the isolated detached worktree for draft PR #91 head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1`, Go 1.27.3 Windows/amd64 `go test ./internal/sites ./internal/backups -count=1 -timeout=180s` and matching `go vet` passed. `go test ./... -count=1 -timeout=180s` failed only because `internal/preflight` calls Linux-only `syscall.Statfs_t`/`syscall.Statfs`; every other package in that run passed. No PR #91 files were changed. This Windows portability limitation is not Phase 2 acceptance evidence.
 - **State:** proposed design/test specification only. Added `docs/P2_CRON_LOGS_TEMPLATES_TEST_PLAN.md` and linked it from `docs/phases/P2-HOSTING-ALPHA.md` implementation slice 7.
 - **Scope:** typed scheduled task contract, bounded tenant/site log reads, versioned Nginx/PHP-FPM templates, isolated lifecycle and failure tests, plus unresolved owner/security decisions. No scheduler, host mutation, endpoint, service operation, dependency, merge, or deployment was added.
 - **Gate:** latest P1/P2 reports on the active draft branch `feature/p1-file-quota-request-context` still leave P1 entry and integrated P2 acceptance open. This proposal does not approve ADRs or authorize host-facing implementation.
