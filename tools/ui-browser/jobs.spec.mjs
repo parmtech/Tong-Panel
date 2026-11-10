@@ -264,7 +264,9 @@ test('manual refresh announces observed same-user job state changes and supports
     await load(page);
     await expect(page.locator('#jobs-notifications li')).toHaveCount(1);
     await expect(page.locator('#jobs-notifications')).toContainText('changed from queued to running');
-    await page.getByRole('button', { name: `Dismiss update for job ${job.id}` }).click();
+    const dismiss = page.getByRole('button', { name: `Dismiss update for job ${job.id}` });
+    await dismiss.focus();
+    await page.keyboard.press('Enter');
     await expect(page.locator('#jobs-notifications li')).toHaveCount(0);
     await load(page);
     await expect(page.locator('#jobs-notifications li')).toHaveCount(0);
@@ -278,6 +280,8 @@ test('manual refresh announces observed same-user job state changes and supports
     state = 'failed';
     await load(page);
     await expect(page.locator('#jobs-notifications li')).toHaveCount(1);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const axe = await new AxeBuilder({ page }).include('#jobs-panel').withTags(['wcag2a', 'wcag2aa']).analyze();
     expect(axe.violations.map(({ id }) => id)).toEqual([]);
 });
