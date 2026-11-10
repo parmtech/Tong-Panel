@@ -1,5 +1,5 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-10 19:57 AEDT (Sydney)
+**Updated:** 2026-11-10 20:23 AEDT (Sydney)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
@@ -1164,4 +1164,4 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 ### 2026-11-10 — P1 file mutation cancellation hosted check follow-up
 - **Branch/PR:** `feature/p1-file-mutation-context` / draft [PR149](https://github.com/parmtech/Tong-Panel/pull/149), code head `4d42ca024a7628e424a9738aa258d70927122f02`.
 - **Result:** Go/race/fuzz/vet, API contract, unsigned package, non-destructive developer smoke, vulnerability and browser/accessibility workflows passed. Clean VM run 42785167173 failed: Ubuntu 24.04 failed during guest apt index refresh (mirror sync produced an unexpected package index size); Debian 12 passed package setup and the two-tenant Nginx/PHP-FPM and WordPress isolation checks, then timed out on a sample WordPress homepage request. This latter check is outside PR149's touched file paths but remains a real guest-suite failure and is not counted as passing.
-- **Follow-up:** reran only failed guest jobs using GitHub Actions; results pending. Keep first run failures in evidence even if retry passes. No production VPS change; Phase 1 remains incomplete.
+- **Retry result:** the rerun of both failed guest jobs in 42785167173 passed on Ubuntu 24.04 and Debian 12. The latest documentation head `8764d0fef218a36a4cc9411e5481656d014cdf0c` also passed all seven exact-head workflows: Go/race/fuzz/vet 42787324476, API contract 42787324930, unsigned package 42787324672, developer smoke 42787324634, vulnerability 42787324537, browser/accessibility 42787324474, and clean VM 42787324539 (Ubuntu 24.04 and Debian 12). First-run failures remain in the record; the Debian homepage timeout did not reproduce on retry. No production VPS change; Phase 1 remains incomplete.
