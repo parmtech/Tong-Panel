@@ -124,12 +124,14 @@ func (l *SQLiteLoginLimiter) Admit(ctx context.Context, tenant, username, truste
 		start    int64
 	}
 	state := []current{{start: now}, {start: now}}
+	missingBuckets := 0
 	for i, key := range keys {
 		var stored current
 		err := conn.QueryRowContext(ctx,
 			"SELECT attempts, window_start_unix FROM login_attempt_buckets WHERE bucket_sha256=?", key).
 			Scan(&stored.attempts, &stored.start)
 		if errors.Is(err, sql.ErrNoRows) {
+			missingBuckets++
 			continue
 		}
 		if err != nil {
@@ -144,6 +146,15 @@ func (l *SQLiteLoginLimiter) Admit(ctx context.Context, tenant, username, truste
 		if state[i].attempts >= limits[i] {
 			return false, nil
 		}
+	}
+	if bucketCount+missingBuckets > maxLoginBuckets {
+		// Keep stale-bucket pruning committed while refusing an insertion that
+		// would exceed the fixed global storage cap.
+		if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+			return false, err
+		}
+		committed = true
+		return false, nil
 	}
 	for i, key := range keys {
 		_, err := conn.ExecContext(ctx,
