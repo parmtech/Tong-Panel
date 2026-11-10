@@ -7,8 +7,29 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+func FuzzDecodeRequestOnlyAllowsPing(f *testing.F) {
+	for _, seed := range []string{
+		`{"op":"ping"}` + "\n",
+		`{"op":"root.exec"}` + "\n",
+		`{"op":"ping","cmd":"whoami"}` + "\n",
+		`{"op":"ping"}{"op":"other"}` + "\n",
+		`{"op":"ping"} trailing` + "\n",
+		`{` + "\n",
+		strings.Repeat("x", 513) + "\n",
+	} {
+		f.Add([]byte(seed))
+	}
+	f.Fuzz(func(t *testing.T, frame []byte) {
+		request, err := decodeRequest(frame)
+		if err == nil && request.Op != "ping" {
+			t.Fatalf("decoder accepted non-ping operation %q", request.Op)
+		}
+	})
+}
 
 func TestOnlyPingAndPeerUID(t *testing.T) {
 	for _, tc := range []struct {

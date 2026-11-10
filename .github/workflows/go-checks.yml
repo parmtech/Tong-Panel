@@ -31,5 +31,7 @@ jobs:
           fi
       - name: Test
         run: go test -race ./...
+      - name: Fuzz the ping-only agent request decoder
+        run: go test ./internal/agent -run '^$' -fuzz '^FuzzDecodeRequestOnlyAllowsPing$' -fuzztime=10s
       - name: Vet
         run: go vet ./...

@@ -58,19 +58,33 @@ func ServeConn(c *net.UnixConn, uid uint32) error {
 	if len(frame) > 512 {
 		return errors.New("agent frame too large")
 	}
+	if _, err = decodeRequest(frame); err != nil {
+		return err
+	}
+	return json.NewEncoder(c).Encode(Reply{OK: true, Message: "pong"})
+}
+
+func decodeRequest(frame []byte) (Request, error) {
+	if len(frame) == 0 || len(frame) > 512 || frame[len(frame)-1] != '\n' {
+		return Request{}, errors.New("invalid agent frame")
+	}
 	var req Request
 	d := json.NewDecoder(bytes.NewReader(frame))
 	d.DisallowUnknownFields()
-	if err = d.Decode(&req); err != nil {
-		return err
+	if err := d.Decode(&req); err != nil {
+		return Request{}, err
 	}
-	if d.More() {
-		return errors.New("multiple agent messages")
+	var trailing any
+	if err := d.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return Request{}, errors.New("multiple agent messages")
+		}
+		return Request{}, err
 	}
 	if req.Op != "ping" {
-		return errors.New("operation not allowed")
+		return Request{}, errors.New("operation not allowed")
 	}
-	return json.NewEncoder(c).Encode(Reply{OK: true, Message: "pong"})
+	return req, nil
 }
 
 // Listen creates socket with restrictive permissions. Parent directory must be private.
