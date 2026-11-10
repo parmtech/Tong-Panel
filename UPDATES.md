@@ -1,3 +1,9 @@
+### 2026-11-10 20:02 +11:00 — Workstream G, revalidate migration inventory at execution
+- **Branch/state:** docs/p4-hosting-parity-continuation; nonbinding refinement to the existing P4 migration proposal.
+- **Change:** require destination inventory revision re-read immediately before later authorized execution; mismatch invalidates approval. Added the corresponding candidate test and refreshed exact heads for planning PRs #144/#145.
+- **Evidence:** checked current GitHub PR heads; git diff --check passed. One combined PowerShell query had a parser error before running its edits; reran the separate read and edit successfully.
+- **Limits:** proposal remains unapproved/unimplemented; no archive, durable destination, host operation or product test. P1/P2/P3 acceptance gates remain open.
+- **Next:** revalidate current upstream heads and gate state, and obtain maintainer/security review of the authorization and revision-binding contract.
 ### 2026-11-10 20:00 +11:00 — Workstream G, bind migration authorization to reviewed plan
 - **Branch/state:** docs/p4-hosting-parity-continuation; nonbinding refinement to the existing P4 migration proposal.
 - **Change:** require any later execution approval to bind tenant, destination, principal, exact plan fingerprint and approved action set; revalidate current principal scope/capability and policy revision immediately before execution. Added corresponding stale/revoked authorization cases to candidate tests.
