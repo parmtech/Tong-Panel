@@ -104,42 +104,60 @@ func applyMigrations(ctx context.Context, db *sql.DB) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+		restore, err := BeginImmediate(ctx, conn, 5*time.Second)
+		if err != nil {
 			return fmt.Errorf("begin SQLite migration lock: %w", err)
 		}
-		var version int
-		if err := conn.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
-			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
-			return fmt.Errorf("read SQLite schema version: %w", err)
+		done, err := applyNextMigration(ctx, conn)
+		restore()
+		if err != nil {
+			return err
 		}
-		if version > SchemaVersion {
-			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
-			return fmt.Errorf("SQLite schema version %d is newer than supported version %d", version, SchemaVersion)
-		}
-		if version == SchemaVersion {
-			if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
-				return fmt.Errorf("finish SQLite migration check: %w", err)
-			}
+		if done {
 			return nil
 		}
-		next := version + 1
-		name := fmt.Sprintf("migrations/%04d_%s.sql", next, map[int]string{1: "initial", 2: "job_leases", 3: "audit_actor_provenance", 4: "totp_replay_state", 5: "mfa_enrollment", 6: "login_attempt_buckets", 7: "session_idle", 8: "tenant_file_quota", 9: "site_catalog", 10: "domain_verification", 11: "site_database_catalog", 12: "mfa_recovery", 13: "jobs_pagination"}[next])
-		script, err := migrations.ReadFile(name)
-		if err != nil {
-			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
-			return fmt.Errorf("read embedded SQLite migration %d: %w", next, err)
-		}
-		if _, err := conn.ExecContext(ctx, string(script)); err != nil {
-			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
-			return fmt.Errorf("apply SQLite migration %d: %w", next, err)
-		}
-		if _, err := conn.ExecContext(ctx, fmt.Sprintf("PRAGMA user_version = %d", next)); err != nil {
-			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
-			return fmt.Errorf("set SQLite schema version %d: %w", next, err)
-		}
-		if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
-			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
-			return fmt.Errorf("commit SQLite migration %d: %w", next, err)
-		}
 	}
+}
+
+// applyNextMigration applies at most one migration while holding the SQLite
+// writer reservation. The caller restores connection-local settings after this
+// function returns.
+func applyNextMigration(ctx context.Context, conn *sql.Conn) (bool, error) {
+	rollback := func() { _, _ = conn.ExecContext(context.Background(), "ROLLBACK") }
+	var version int
+	if err := conn.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
+		rollback()
+		return false, fmt.Errorf("read SQLite schema version: %w", err)
+	}
+	if version > SchemaVersion {
+		rollback()
+		return false, fmt.Errorf("SQLite schema version %d is newer than supported version %d", version, SchemaVersion)
+	}
+	if version == SchemaVersion {
+		if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+			rollback()
+			return false, fmt.Errorf("finish SQLite migration check: %w", err)
+		}
+		return true, nil
+	}
+	next := version + 1
+	name := fmt.Sprintf("migrations/%04d_%s.sql", next, map[int]string{1: "initial", 2: "job_leases", 3: "audit_actor_provenance", 4: "totp_replay_state", 5: "mfa_enrollment", 6: "login_attempt_buckets", 7: "session_idle", 8: "tenant_file_quota", 9: "site_catalog", 10: "domain_verification", 11: "site_database_catalog", 12: "mfa_recovery", 13: "jobs_pagination"}[next])
+	script, err := migrations.ReadFile(name)
+	if err != nil {
+		rollback()
+		return false, fmt.Errorf("read embedded SQLite migration %d: %w", next, err)
+	}
+	if _, err := conn.ExecContext(ctx, string(script)); err != nil {
+		rollback()
+		return false, fmt.Errorf("apply SQLite migration %d: %w", next, err)
+	}
+	if _, err := conn.ExecContext(ctx, fmt.Sprintf("PRAGMA user_version = %d", next)); err != nil {
+		rollback()
+		return false, fmt.Errorf("set SQLite schema version %d: %w", next, err)
+	}
+	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+		rollback()
+		return false, fmt.Errorf("commit SQLite migration %d: %w", next, err)
+	}
+	return false, nil
 }

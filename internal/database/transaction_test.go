@@ -113,6 +113,71 @@ func TestBeginImmediateRestoresOriginalBusyTimeoutAfterSuccess(t *testing.T) {
 	assertBusyTimeout(t, conn, 1234)
 }
 
+func TestApplyMigrationsHonorsCancellationAndCanRetry(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "panel.db")
+	owner, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer owner.Close()
+	if err := owner.Ping(); err != nil {
+		t.Fatal(err)
+	}
+	contender, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer contender.Close()
+	contender.SetMaxOpenConns(1)
+	if _, err := contender.Exec("PRAGMA busy_timeout=5000"); err != nil {
+		t.Fatal(err)
+	}
+
+	writer, err := owner.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer writer.ExecContext(context.Background(), "ROLLBACK")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	started := time.Now()
+	err = applyMigrations(ctx, contender)
+	cancel()
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("contended migration error=%v, want caller deadline", err)
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("migration cancellation took too long: %v", elapsed)
+	}
+	var version int
+	if err := contender.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 0 {
+		t.Fatalf("schema version changed after canceled migration: version=%d err=%v", version, err)
+	}
+	if got := busyTimeout(t, contender); got != 5000 {
+		t.Fatalf("busy_timeout after canceled migration=%d, want 5000", got)
+	}
+
+	if _, err := writer.ExecContext(context.Background(), "ROLLBACK"); err != nil {
+		t.Fatal(err)
+	}
+	if err := applyMigrations(context.Background(), contender); err != nil {
+		t.Fatalf("migration retry after writer release: %v", err)
+	}
+}
+
+func busyTimeout(t *testing.T, db *sql.DB) int {
+	t.Helper()
+	var timeout int
+	if err := db.QueryRow("PRAGMA busy_timeout").Scan(&timeout); err != nil {
+		t.Fatal(err)
+	}
+	return timeout
+}
+
 func assertBusyTimeout(t *testing.T, conn *sql.Conn, want int) {
 	t.Helper()
 	var got int
