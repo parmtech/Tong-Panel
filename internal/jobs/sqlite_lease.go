@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"modernc.org/sqlite"
+	"github.com/parmtech/tong-panel/internal/database"
 )
 
 var (
@@ -415,42 +415,15 @@ func withImmediate(ctx context.Context, db *sql.DB, fn func(sqliteSession) error
 		return err
 	}
 	defer conn.Close()
-	// database.Open configures a five-second SQLite busy timeout. That native
-	// wait does not promptly observe caller cancellation, so temporarily disable
-	// it and use the context-aware retry loop below instead.
-	var busyTimeout int
-	if err := conn.QueryRowContext(ctx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
+	restoreBusyTimeout, err := database.BeginImmediate(ctx, conn, 0)
+	if err != nil {
 		return err
 	}
-	defer func() {
-		_, _ = conn.ExecContext(context.Background(), fmt.Sprintf("PRAGMA busy_timeout=%d", busyTimeout))
-	}()
-	if _, err := conn.ExecContext(ctx, "PRAGMA busy_timeout=0"); err != nil {
-		return err
-	}
-	for {
-		if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err == nil {
-			break
-		} else if !sqliteBusy(err) {
-			return err
-		}
-		timer := time.NewTimer(25 * time.Millisecond)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return ctx.Err()
-		case <-timer.C:
-		}
-	}
+	defer restoreBusyTimeout()
 	defer func() { _, _ = conn.ExecContext(context.Background(), "ROLLBACK") }()
 	if err := fn(conn); err != nil {
 		return err
 	}
 	_, err = conn.ExecContext(ctx, "COMMIT")
 	return err
-}
-
-func sqliteBusy(err error) bool {
-	var sqliteErr *sqlite.Error
-	return errors.As(err, &sqliteErr) && sqliteErr.Code()&0xff == 5
 }

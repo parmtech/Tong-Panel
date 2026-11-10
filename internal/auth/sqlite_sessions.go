@@ -8,11 +8,10 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"time"
 
+	"github.com/parmtech/tong-panel/internal/database"
 	"github.com/parmtech/tong-panel/internal/rbac"
-	"modernc.org/sqlite"
 )
 
 // SQLiteSessionStore persists revocable token hashes with absolute and idle
@@ -201,58 +200,11 @@ func (s *SQLiteSessionStore) lookupWithTimeout(ctx context.Context, token string
 	return p, empty, true, nil
 }
 
-func sqliteBusy(err error) bool {
-	var sqliteErr *sqlite.Error
-	return errors.As(err, &sqliteErr) && sqliteErr.Code()&0xff == 5
-}
-
 // beginSessionWrite avoids SQLite's native busy wait, which cannot promptly
 // observe request cancellation. The returned cleanup restores the connection's
 // exact prior setting and must be deferred before transaction rollback.
 func beginSessionWrite(ctx context.Context, conn *sql.Conn) (func(), error) {
-	lockCtx, cancel := context.WithTimeout(ctx, sqliteSessionLookupTimeout)
-	var busyTimeout int
-	if err := conn.QueryRowContext(lockCtx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
-		cancel()
-		return nil, err
-	}
-	restore := func() {
-		_, _ = conn.ExecContext(context.Background(), fmt.Sprintf("PRAGMA busy_timeout=%d", busyTimeout))
-	}
-	fail := func(err error) (func(), error) {
-		restore()
-		cancel()
-		return nil, err
-	}
-	if _, err := conn.ExecContext(lockCtx, "PRAGMA busy_timeout=0"); err != nil {
-		restore()
-		cancel()
-		return nil, err
-	}
-	var lastBusy error
-	for {
-		if _, err := conn.ExecContext(lockCtx, "BEGIN IMMEDIATE"); err == nil {
-			cancel()
-			return restore, nil
-		} else if !sqliteBusy(err) {
-			if ctx.Err() != nil {
-				return fail(ctx.Err())
-			}
-			return fail(err)
-		} else {
-			lastBusy = err
-		}
-		timer := time.NewTimer(25 * time.Millisecond)
-		select {
-		case <-lockCtx.Done():
-			timer.Stop()
-			if ctx.Err() != nil {
-				return fail(ctx.Err())
-			}
-			return fail(lastBusy)
-		case <-timer.C:
-		}
-	}
+	return database.BeginImmediate(ctx, conn, sqliteSessionLookupTimeout)
 }
 
 func (s *SQLiteSessionStore) revokeExpiredLookup(ctx context.Context, conn *sql.Conn, now time.Time, hash []byte) bool {
