@@ -337,3 +337,10 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Validation:** `git diff --check` passed; static count remains 24 numbered acceptance scenarios. Confirmed the pinned P3/P4 SHAs and referenced file paths against fetched upstream branches. Documentation-only; no product tests run.
 - **Gates:** P1 remains incomplete/P2 entry blocked; P3 says entry NOT PROVEN; P4 remains BLOCKED/design only; P5 review and architecture approval remain absent.
 - **Safety/next:** no implementation, privileged operation, node access, deployment, or HA claim. Continue only with reviewable dependency/test design or isolated non-privileged prototypes until entry gates pass.
+
+### 2026-11-10 — Workstream G, refresh moving prerequisite evidence
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; exact upstream gate refresh for the existing draft PR #147 / issue #148.
+- **Evidence:** the active P1 exit report still says Phase 1 incomplete and Phase 2 blocked. PR #143 head `482017005f9872c1fe7f2969ebfb477ea7de30dd` has both unsigned preview guest jobs successful in run #42781985275. Later PR #149 head `8764d0fef218a36a4cc9411e5481656d014cdf0c` records first-run guest failures (Ubuntu package mirror size mismatch; Debian sample homepage timeout); its exact rerun #42785167173 was still in progress on both guests at this check. P3 latest head `6a17d29ddce636b51783dd1d1fc48713ecf62700` still says entry NOT PROVEN. P4 latest continuation `ed5e5c74ba87de50a653678abc3f0f3aa1611caf` remains BLOCKED / design only. Preserved P4 design checkpoint unchanged at `0029b39aa5ebb2056506892b18b400a31402977b`.
+- **Change/checks:** refreshed the P1/P3/P4 prerequisite assessment and direct pinned links in `docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md`; static count remains 24 scenarios and `git diff --check` passed. No product tests run (documentation-only).
+- **Gates/safety:** no P0/P1/P2/P3/P4 exit or P5 architecture approval; no implementation, privileged operation, deployment, or merge. Recheck the same live P1 workflow before making a later gate decision.
