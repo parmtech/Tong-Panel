@@ -161,27 +161,33 @@ func TestSQLiteLoginLimiterInvalidSourcesKeysAndClockRegression(t *testing.T) {
 
 func TestSQLiteLoginLimiterDoesNotExceedGlobalBucketCap(t *testing.T) {
 	_, db, limiter, clock := limiterFixture(t)
+	if allowed, err := limiter.Admit(context.Background(), "tenant-cap", "existing-user", "192.0.2.222"); !allowed || err != nil {
+		t.Fatalf("initial bucket allocation failed: %v %v", allowed, err)
+	}
 	if _, err := db.Exec(`WITH RECURSIVE seq(n) AS (
 		VALUES(1) UNION ALL SELECT n+1 FROM seq WHERE n < ?
 	) INSERT INTO login_attempt_buckets(bucket_sha256,attempts,window_start_unix)
-	SELECT randomblob(32),1,? FROM seq`, maxLoginBuckets-1, clock.Unix()); err != nil {
+	SELECT randomblob(32),1,? FROM seq`, maxLoginBuckets-2, clock.Unix()); err != nil {
 		t.Fatal(err)
 	}
 	var before int
 	if err := db.QueryRow("SELECT count(*) FROM login_attempt_buckets").Scan(&before); err != nil {
 		t.Fatal(err)
 	}
-	if before != maxLoginBuckets-1 {
-		t.Fatalf("seeded bucket count=%d, want %d", before, maxLoginBuckets-1)
+	if before != maxLoginBuckets {
+		t.Fatalf("seeded bucket count=%d, want exact cap %d", before, maxLoginBuckets)
 	}
-	if allowed, err := limiter.Admit(context.Background(), "tenant-cap", "new-user", "192.0.2.222"); allowed || err != nil {
+	if allowed, err := limiter.Admit(context.Background(), "tenant-cap", "new-user", "192.0.2.223"); allowed || err != nil {
 		t.Fatalf("admission at capacity boundary returned %v %v, want closed denial", allowed, err)
+	}
+	if allowed, err := limiter.Admit(context.Background(), "tenant-cap", "existing-user", "192.0.2.222"); !allowed || err != nil {
+		t.Fatalf("existing buckets were denied at capacity: %v %v", allowed, err)
 	}
 	var after int
 	if err := db.QueryRow("SELECT count(*) FROM login_attempt_buckets").Scan(&after); err != nil {
 		t.Fatal(err)
 	}
-	if after != maxLoginBuckets-1 {
+	if after != maxLoginBuckets {
 		t.Fatalf("bucket cap exceeded: count=%d, cap=%d", after, maxLoginBuckets)
 	}
 }
