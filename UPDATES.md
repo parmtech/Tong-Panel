@@ -1,3 +1,9 @@
+### 2026-11-10 20:13 +11:00 — Workstream G, define migration journal crash semantics
+- **Branch/state:** docs/p4-hosting-parity-continuation; nonbinding refinement to the existing P4 migration acceptance plan.
+- **Change:** specified candidate durable per-step states, verified receipts, safe retry conditions and a needs-review stop for unknown outcomes; expanded reconciliation acceptance with crashes around journal transitions and independently recorded compensation.
+- **Evidence:** targeted diff preserves CRLF and contains only the intended paragraph and acceptance-case changes; git diff --check passed. Product tests are not applicable to this docs-only proposal.
+- **Limits:** no execution schema approval or implementation; no archive, destination, service or host mutation. P1/P2/P3 entry gates remain open.
+- **Next:** obtain review against approved upstream job/authorization contracts before treating these candidate states as an implementation contract.
 ### 2026-11-10 20:10 +11:00 — Workstream G, reconcile current P3 draft head
 - **Branch/state:** docs/p4-hosting-parity-continuation; evidence-only update on the existing P4 checkpoint.
 - **Change:** refreshed the exact P3 planning PR #145 head from the current remote ref.
