@@ -273,3 +273,11 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Validation:** Windows Go 1.27.3 `go fmt ./...`, `go test -count=1 ./...`, and `go vet ./...` passed in the prototype module; `git diff --check` passed. These results cover only the isolated model, not the product or a real remote protocol.
 - **Security/gates:** no network calls, host operations, dependencies, production access, or architecture approval. P0/P1/P2/P3/P4/P5 gates remain open. Run #42781985275 now shows Debian 12 clean-VM smoke passed while Ubuntu 24.04 remained in progress; this changes no P1 exit decision.
 - **Next:** obtain maintainer/security review on issue #148; update gate evidence only from exact-head verified outcomes. Keep any further prototype offline until prerequisite and architecture review pass.
+
+### 2026-11-10 — Workstream G, bind uncertain replay to original request
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; implementation commit `0ea7a9b9a8bcea795c21446effc5e9f9124357d4`, included in draft PR #147 / review issue #148.
+- **Change:** tightened the offline outcome model so an uncertain replay additionally requires the same target node and same immutable request (tenant/action/payload), as well as the same idempotency key and durable worker deduplication. Added denial cases for changed target, changed request, new key, and absent dedupe. Updated P5 partition acceptance scenario 5 accordingly.
+- **Validation:** Windows Go 1.27.3 formatting, `go test -count=1 ./...`, `go vet ./...`, and `git diff --check` passed for the standalone prototype/docs change. No product runtime or network code is involved.
+- **Gate/evidence:** P1/P2/P3/P4 remain unaccepted; PR #147 has no human review yet. Latest checked run #42781985275 shows Debian 12 success and Ubuntu 24.04 still in progress. Phase 4 checkpoint SHA remains unchanged.
+- **Next:** retain the non-normative boundary; recheck the active upstream gate run and PR review state before further work.
