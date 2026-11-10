@@ -40,6 +40,20 @@ The traceability map is a planning aid, not a substitute for prerequisite closur
 
 Use deterministic, local-only fakes for control-plane logic, a disposable isolated network for protocol/integration tests, and synthetic tenant/node data. Every test must record the exact source commit and configuration. Tests involving persistence, time, rotation, revocation, retry, or migration should use controllable clocks and failpoints. No test may use real server credentials, contact a production node, mutate a host, or claim HA from a simulated component. The standalone `prototypes/p5-outcome-model` package explores only conservative outcome reporting after a lost remote response; it is non-normative and has no networking, persistence, credentials, or product-runtime integration.
 
+### Candidate fault-injection oracle for scenario 5 (not a protocol contract)
+
+| Injected failure point | Coordinator's safe view | Candidate retry/recovery rule |
+|---|---|---|
+| Before dispatch is attempted | Not dispatched | Dispatch only after current authorization and node eligibility are checked. |
+| Dispatch attempted; no response received | Unknown | Reconcile by stable operation identity. Replay only the same key, node, tenant, action and immutable request when worker-side deduplication is durable. |
+| Node accepted the operation; acceptance response lost | Unknown | Do not issue a new operation identity; query/replay under the reviewed deduplication contract. |
+| Effect may have happened; completion response lost | Unknown | Do not infer failure from timeout or node offline status. Verify/reconcile before terminal success or another effect. |
+| Worker reports completion but external effect is not verified | Unknown | Keep a pending/uncertain status and expose the missing verification evidence. |
+| Required external effect is independently verified | Succeeded | Record verification source, timestamp, operation identity, and actor; late stale responses must not downgrade the record. |
+| Node revocation occurs while disconnected or work is in flight | No new dispatch; in-flight outcome remains unknown until resolved | Reauthorize queued work on reconnect. Apply the reviewed cancellation/quiescence rule to running work; never treat disconnection as cancellation proof. |
+
+The implementation must define a correlation mechanism that makes duplicate, delayed, and reordered responses attributable to the same operation without allowing stale evidence to overwrite a newer revocation or verified result. Selection of that mechanism, the authoritative effect verifier, and the exact state names require P0/P1/P5 review. The table is an acceptance-design aid only.
+
 ## Phase 5 acceptance scenarios
 
 ### Node identity, enrollment, rotation, and revocation
