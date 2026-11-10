@@ -232,3 +232,11 @@ For every walkthrough, record operator role, tenant fixture IDs, source commit, 
 ## Current next action
 
 Maintain this as a reviewable P3 design/test artifact while P1/P2 remain gated. The next implementation action must be selected only after GitHub records the P1 exit decisions and the complete P2 contracts stabilize. Recheck open PRs and current branch heads immediately before that selection to avoid duplicating active work.
+
+## Synthetic app fixture smoke checks (Windows, 2026-11-10)
+
+The supplemental `testdata/p3-fixtures/` contains dependency-free synthetic Node HTTP and Python ASGI applications for exercising a minimal acceptance harness. The Node fixture listens only on `127.0.0.1` on an OS-assigned ephemeral port; Python is called in-process and opens no listener. Neither fixture models a production contract or exercises isolation, installation, privileged operations, or deployment. The README restricts use to disposable environments after gate approval.
+
+- Node v22.23.2: `node --test testdata/p3-fixtures/node/server.test.cjs` — 2 passed.
+- Python 3.13.17: `python -m unittest discover -s testdata/p3-fixtures/python -v` — 2 passed.
+- These results are fixture behavior only; they do not change the P3 entry-gate decision.

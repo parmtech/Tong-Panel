@@ -271,3 +271,7 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Security and third-party licence impact:
 - Blockers / constraints:
 - Next ONE step for handoff:
+
+## P3 prerequisite evidence update — 2026-11-10 (Windows)
+
+Added dependency-free synthetic Node loopback HTTP and Python in-process ASGI app fixtures under `testdata/p3-fixtures/` to make a small subset of the acceptance plan executable. Node v22.23.2 tests: 2 passed. Python 3.13.17 tests: 2 passed. These validate only the fixtures' health/readiness, synthetic release identity, unknown route, and method-denial behavior; they do not prove isolation, installer, runtime manager, deployment, P1/P2 acceptance, or P3 entry. P3 remains NOT PROVEN. No privileged or host-level operation was run.
