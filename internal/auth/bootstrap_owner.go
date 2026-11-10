@@ -94,9 +94,11 @@ func BootstrapOwner(ctx context.Context, db *sql.DB, username, tenantName string
 		return empty, err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := database.BeginImmediate(ctx, conn, 0)
+	if err != nil {
 		return empty, err
 	}
+	defer restoreBusyTimeout()
 	committed := false
 	defer func() {
 		if !committed {

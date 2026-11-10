@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/parmtech/tong-panel/internal/database"
 )
@@ -84,6 +85,59 @@ func TestLocalOwnerBootstrapRefusesPartialAndInvalidInput(t *testing.T) {
 	var identities int
 	if err := db.QueryRow("SELECT count(*) FROM identities").Scan(&identities); err != nil || identities != 0 {
 		t.Fatalf("partial DB bootstrap wrote identity: %d %v", identities, err)
+	}
+}
+
+func TestLocalOwnerBootstrapHonorsCancellationDuringWriterWait(t *testing.T) {
+	path, db := emptyBootstrapDB(t)
+	peer, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peer.Close()
+	writer, err := peer.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer writer.ExecContext(context.Background(), "ROLLBACK")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() {
+		_, bootstrapErr := BootstrapOwner(ctx, db, "first_owner", "First Tenant", []byte("correct horse battery staple 2026"))
+		result <- bootstrapErr
+	}()
+	deadline := time.Now().Add(5 * time.Second)
+	for db.Stats().InUse == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if db.Stats().InUse == 0 {
+		cancel()
+		t.Fatal("bootstrap did not acquire its connection while waiting for the writer")
+	}
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("bootstrap error=%v, want context cancellation", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("bootstrap did not stop after cancellation")
+	}
+	for _, table := range []string{"tenants", "identities", "memberships", "audit_events"} {
+		var count int
+		if err := db.QueryRow("SELECT count(*) FROM " + table).Scan(&count); err != nil || count != 0 {
+			t.Fatalf("canceled bootstrap changed %s: count=%d err=%v", table, count, err)
+		}
+	}
+	var busyTimeout int
+	if err := db.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout); err != nil || busyTimeout != 5000 {
+		t.Fatalf("busy_timeout=%d err=%v, want restored 5000ms", busyTimeout, err)
 	}
 }
 
