@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -105,6 +106,122 @@ func TestSQLiteSessionPersistenceRevocationAndMembershipRecheck(t *testing.T) {
 	}
 	if _, ok := reopened.Check(token); ok {
 		t.Fatal("revoked session remained valid")
+	}
+}
+
+func TestSQLiteSessionCheckSamplesExpiryAfterWriterWait(t *testing.T) {
+	cases := []struct {
+		name      string
+		lifetime  time.Duration
+		initial   time.Duration
+		advance   time.Duration
+		wantValid bool
+	}{
+		{name: "idle expiry during wait", lifetime: 4 * time.Hour, initial: 29 * time.Minute, advance: 31 * time.Minute},
+		{name: "absolute expiry during wait", lifetime: 20 * time.Minute, initial: 19 * time.Minute, advance: 21 * time.Minute},
+		{name: "still active after wait", lifetime: time.Hour, initial: 5 * time.Minute, advance: 5*time.Minute + 10*time.Second, wantValid: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			path, db, store := openSessionDB(t)
+			start := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
+			store.now = func() time.Time { return start }
+			token, csrf, _, err := store.Issue(
+				rbac.Principal{UserID: "user-a", TenantID: "tenant-a", Role: rbac.Owner},
+				tc.lifetime,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var currentUnix atomic.Int64
+			currentUnix.Store(start.Add(tc.initial).Unix())
+			var writerHeld atomic.Bool
+			writerHeld.Store(true)
+			sampled := make(chan struct{}, 1)
+			releaseClock := make(chan struct{})
+			store.now = func() time.Time {
+				sample := time.Unix(currentUnix.Load(), 0).UTC()
+				select {
+				case sampled <- struct{}{}:
+				default:
+				}
+				if writerHeld.Load() {
+					<-releaseClock
+				}
+				return sample
+			}
+
+			// A second handle holds SQLite's writer reservation. Reads can proceed
+			// in WAL mode, but the session refresh must wait to write.
+			lockDB, err := database.Open(context.Background(), path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer lockDB.Close()
+			lockConn, err := lockDB.Conn(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer lockConn.Close()
+			if _, err := lockConn.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+				t.Fatal(err)
+			}
+
+			checked := make(chan bool, 1)
+			go func() { _, ok := store.Check(token); checked <- ok }()
+			deadline := time.Now().Add(3 * time.Second)
+			for db.Stats().InUse == 0 && time.Now().Before(deadline) {
+				select {
+				case <-sampled:
+					goto operationStarted
+				default:
+				}
+				time.Sleep(time.Millisecond)
+			}
+			if db.Stats().InUse == 0 {
+				t.Fatal("session check did not acquire a pooled connection")
+			}
+
+			// The fixed path cannot sample until BEGIN IMMEDIATE succeeds. The old
+			// read-then-update path samples after SELECT but before waiting to write.
+			select {
+			case <-sampled:
+			case <-time.After(2 * time.Second):
+			}
+		operationStarted:
+			currentUnix.Store(start.Add(tc.advance).Unix())
+			writerHeld.Store(false)
+			close(releaseClock)
+			if _, err := lockConn.ExecContext(context.Background(), "ROLLBACK"); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case ok := <-checked:
+				if ok != tc.wantValid {
+					t.Fatalf("session validity after writer wait=%t, want %t", ok, tc.wantValid)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("session check did not finish after releasing the writer")
+			}
+			if !tc.wantValid {
+				if store.CheckCSRF(token, csrf) {
+					t.Fatal("CSRF check accepted a session expired during writer wait")
+				}
+				hash, ok := sessionKey(token)
+				if !ok {
+					t.Fatal("issued session token was not parseable")
+				}
+				var idleDeadline int64
+				var revoked bool
+				if err := db.QueryRow("SELECT idle_deadline_unix,revoked_at IS NOT NULL FROM sessions WHERE token_sha256=?", hash[:]).
+					Scan(&idleDeadline, &revoked); err != nil {
+					t.Fatal(err)
+				}
+				if idleDeadline != start.Add(min(sqliteSessionIdle, tc.lifetime)).Unix() || !revoked {
+					t.Fatalf("expired session refresh/revocation state deadline=%d revoked=%t", idleDeadline, revoked)
+				}
+			}
+		})
 	}
 }
 

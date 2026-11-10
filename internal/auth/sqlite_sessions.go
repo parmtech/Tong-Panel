@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -79,18 +80,36 @@ func (s *SQLiteSessionStore) Issue(p rbac.Principal, lifetime time.Duration) (to
 
 func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, bool) {
 	var empty [32]byte
-	if s == nil {
+	if s == nil || s.db == nil {
 		return rbac.Principal{}, empty, false
 	}
 	hash, ok := sessionKey(token)
 	if !ok {
 		return rbac.Principal{}, empty, false
 	}
+	ctx := context.Background()
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return rbac.Principal{}, empty, false
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+		return rbac.Principal{}, empty, false
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+		}
+	}()
+	// Acquire the SQLite writer reservation before sampling time or reading the
+	// session. Otherwise the idle refresh can wait past expiry and revive it.
+	now := s.now().UTC()
 	var p rbac.Principal
 	var csrf []byte
 	var expires string
 	var idleDeadline int64
-	err := s.db.QueryRow(`SELECT m.identity_id,m.tenant_id,m.role,s.csrf_sha256,s.expires_at,s.idle_deadline_unix
+	err = conn.QueryRowContext(ctx, `SELECT m.identity_id,m.tenant_id,m.role,s.csrf_sha256,s.expires_at,s.idle_deadline_unix
 		FROM sessions s
 		JOIN memberships m ON m.tenant_id=s.tenant_id AND m.identity_id=s.identity_id
 		JOIN identities i ON i.id=m.identity_id
@@ -100,23 +119,25 @@ func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, boo
 	if err != nil || len(csrf) != len(empty) {
 		return rbac.Principal{}, empty, false
 	}
-	now := s.now().UTC()
 	parsedExpiry, err := time.Parse(time.RFC3339Nano, expires)
 	if err != nil || !validRole(p.Role) {
 		return rbac.Principal{}, empty, false
 	}
 	if !now.Before(parsedExpiry) {
 		// Absolute expiry never becomes valid again after a clock rollback.
-		_, _ = s.db.Exec("UPDATE sessions SET revoked_at=? WHERE token_sha256=? AND revoked_at IS NULL",
-			now.Format(time.RFC3339Nano), hash[:])
+		if !s.revokeExpiredLookup(ctx, conn, now, hash[:]) {
+			return rbac.Principal{}, empty, false
+		}
+		committed = true
 		return rbac.Principal{}, empty, false
 	}
 	if idleDeadline <= now.Unix() {
 		// An observed idle timeout is permanently revoked. A competing
 		// request that already extended the deadline must not be revoked.
-		_, _ = s.db.Exec(`UPDATE sessions SET revoked_at=?
-			WHERE token_sha256=? AND revoked_at IS NULL AND idle_deadline_unix<=?`,
-			now.Format(time.RFC3339Nano), hash[:], now.Unix())
+		if !s.revokeExpiredLookup(ctx, conn, now, hash[:]) {
+			return rbac.Principal{}, empty, false
+		}
+		committed = true
 		return rbac.Principal{}, empty, false
 	}
 	newIdle := now.Add(sqliteSessionIdle)
@@ -126,7 +147,7 @@ func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, boo
 	// A conditional write rechecks revocation and current membership. MAX
 	// makes simultaneous valid reads monotonic, so concurrent requests do not
 	// falsely expire one another after one refreshes the idle deadline.
-	result, err := s.db.Exec(`UPDATE sessions SET idle_deadline_unix=MAX(idle_deadline_unix,?)
+	result, err := conn.ExecContext(ctx, `UPDATE sessions SET idle_deadline_unix=MAX(idle_deadline_unix,?)
 		WHERE token_sha256=? AND revoked_at IS NULL AND idle_deadline_unix>?
 		AND EXISTS(SELECT 1 FROM memberships m
 			JOIN identities i ON i.id=m.identity_id AND i.disabled=0
@@ -140,8 +161,29 @@ func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, boo
 	if err != nil || updated != 1 {
 		return rbac.Principal{}, empty, false
 	}
+	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+		return rbac.Principal{}, empty, false
+	}
+	committed = true
 	copy(empty[:], csrf)
 	return p, empty, true
+}
+
+func (s *SQLiteSessionStore) revokeExpiredLookup(ctx context.Context, conn *sql.Conn, now time.Time, hash []byte) bool {
+	result, err := conn.ExecContext(ctx,
+		"UPDATE sessions SET revoked_at=? WHERE token_sha256=? AND revoked_at IS NULL",
+		now.Format(time.RFC3339Nano), hash)
+	if err != nil {
+		return false
+	}
+	updated, err := result.RowsAffected()
+	if err != nil || updated != 1 {
+		return false
+	}
+	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+		return false
+	}
+	return true
 }
 
 // Check re-reads membership and disabled status so revoked or changed membership
