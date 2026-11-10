@@ -40,6 +40,15 @@
 - **Validation:** `git diff --check` and relative Markdown link checks passed; no product tests apply.
 - **Next:** Review the credential lifecycle and secret-custody decisions; after P0/P1 approvals, combine the approved database adapter with the existing MariaDB grant/restore fixtures in the two-tenant clean-guest suite.
 
+## 2026-11-10 — P2 install interruption and recovery acceptance gap
+
+- **Work item:** [Issue #154](https://github.com/parmtech/Tong-Panel/issues/154); same isolated Phase 2 branch.
+- **Change:** Expanded the integrated scenario to cover exact signed-package/image preflight, first install, upgrade, interruption at journaled lifecycle boundaries, and the approved resume/repair/rollback path. Added the condition that no mixed package/config/data state may be reported healthy.
+- **Why:** The P2 plan requires install journal and recovery; the P2 gate report says full interruption/rollback/recovery acceptance remains open despite component package labs.
+- **Gate:** Test design only. P0/P1 signing, installer, recovery and security approval remain prerequisites; no package was installed and no host mutation occurred.
+- **Validation:** `git diff --check` and relative Markdown link checks passed; no product tests apply.
+- **Next:** Review recovery-state contracts with owners/security, then execute only in the exact supported disposable guests after P0/P1 entry is approved.
+
 ## 2026-11-10 — P1 dependency evidence recheck for gated P2 work
 
 - **Source reviewed:** draft PR #91 head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1` ([PR #91](https://github.com/parmtech/Tong-Panel/pull/91)). No files in that PR or its working checkout were changed.

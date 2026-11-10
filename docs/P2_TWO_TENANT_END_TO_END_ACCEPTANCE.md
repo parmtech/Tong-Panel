@@ -2,7 +2,7 @@
 
 **State:** proposed acceptance design only. This plan records no owner/security approval and is not evidence that any P2 gate has passed.
 
-**Work items:** [P2 issue #150](https://github.com/parmtech/Tong-Panel/issues/150) tracks staged ACME and WordPress integration; [P2 issue #152](https://github.com/parmtech/Tong-Panel/issues/152) tracks scheduled offsite backup and retention; [P2 issue #153](https://github.com/parmtech/Tong-Panel/issues/153) tracks database lifecycle and credential-rotation acceptance.
+**Work items:** [P2 issue #150](https://github.com/parmtech/Tong-Panel/issues/150) tracks staged ACME and WordPress integration; [P2 issue #152](https://github.com/parmtech/Tong-Panel/issues/152) tracks scheduled offsite backup and retention; [P2 issue #153](https://github.com/parmtech/Tong-Panel/issues/153) tracks database lifecycle and credential-rotation acceptance; [P2 issue #154](https://github.com/parmtech/Tong-Panel/issues/154) tracks install interruption and recovery acceptance.
 
 **Purpose:** turn the P2 two-tenant and recovery exit criteria into one reviewable clean-guest scenario. The current P2 gate report says component checks exist, but no end-to-end panel-to-agent suite covers API, files, database users, domains, and job logs together.
 
@@ -38,7 +38,7 @@ Create two isolated tenants, `tenant-a` and `tenant-b`, with one site, one datab
 
 | Step | Action | Required assertions |
 |---|---|---|
-| 1. Preflight and install | Run the exact supported package's non-mutating preflight, then install only after every required fact passes | Unsupported OS, insufficient disk, occupied required port, unknown reading, or missing policy stops before package metadata, service files, or state directories are created; a passing report records the exact facts and policy version |
+| 1. Preflight, install, upgrade, and recovery | In a fresh supported guest, verify the signed package and image identity, run the non-mutating preflight, install only after every required fact passes, then exercise a supported upgrade and inject interruption at each journaled lifecycle boundary; reboot and follow the approved resume/repair/rollback policy | Unsupported OS/architecture, insufficient disk, occupied required port, unknown reading, missing policy, or invalid package identity stops before package metadata, service files, or state directories are created; first install does not auto-start services; interrupted work is complete, safely rolled back, or explicitly recoverable, never ambiguous success; upgrade failure does not leave mixed package/config/data state marked healthy; recovery is idempotent and preserves the previous known-good state or records an explicit repair requirement |
 | 2. Authentication and tenant setup | Bootstrap and authenticate the two test identities using the approved MFA/session flow | No shared/default credential; revoked, expired, disabled, or cross-tenant identity is denied; audit records contain actor and tenant attribution without secrets |
 | 3. Domain, certificate, and site lifecycle | Create one site per tenant, prove each test domain through the deterministic DNS fixture, issue certificates only through the configured staging CA, then exercise renewal and approved site activation | A tenant cannot claim or mutate the other tenant's site/domain/certificate; pending or failed proof never enters an active vhost; each certificate SAN matches only its verified tenant domains; the runner validates the chain and hostname through the staging trust anchor; failed renewal preserves the last known-good certificate and serving state; duplicate and stale requests are deterministic |
 | 4. Web runtime and WordPress recipe | Use each tenant's real disposable Nginx/PHP-FPM instance, install the exact checksum-pinned WordPress release through the approved recipe, and create distinct tenant-owned content markers | Core checksum mismatch, archive traversal/link entries, or an unverified domain prevents publication; each HTTPS domain serves only its own marker and WordPress content; each install uses its own database and runtime identity; direct requests, traversal, symlink swaps, hidden files, alternate Host headers, and guessed site IDs cannot read the other tenant's files or private runtime data |
@@ -65,7 +65,7 @@ Where the public API contract intentionally conceals object existence, assert th
 
 ## Failure injection and recovery evidence
 
-Inject process termination, timeout, disk-full, permission denial, service reload failure, wrong DNS TXT value, delayed DNS propagation, ACME staging rejection/rate limit/timeout, failed certificate renewal, offsite-target throttling/timeout/partial upload, artifact-verification failure, retention deletion failure, database unavailable, database grant/revoke failure, credential rotation race or secret-handoff failure, deprovision interruption, source stream error, and restore interruption at documented boundaries. For every case, record:
+Inject process termination during package install/upgrade/recovery, timeout, disk-full, permission denial, service reload failure, wrong DNS TXT value, delayed DNS propagation, ACME staging rejection/rate limit/timeout, failed certificate renewal, offsite-target throttling/timeout/partial upload, artifact-verification failure, retention deletion failure, database unavailable, database grant/revoke failure, credential rotation race or secret-handoff failure, deprovision interruption, source stream error, and restore interruption at documented boundaries. For every case, record:
 
 1. the phase/job state before and after failure;
 2. whether any external effect occurred and how it was detected;
@@ -78,6 +78,7 @@ Inject process termination, timeout, disk-full, permission denial, service reloa
 - [ ] P0 ADR/security decisions and threat review have recorded owner outcomes.
 - [ ] P1 exit report shows all authentication, identity, typed-job/agent, signed package, clean install/rollback/recovery, supply-chain, and accessibility gates verified.
 - [ ] The exact supported OS/architecture matrix is published and matches the guest image hashes used.
+- [ ] The approved signed package's preflight, fresh install, upgrade, interruption recovery and rollback are verified on each supported guest; failed operations cannot leave mixed state marked healthy.
 - [ ] Every P2 implementation slice has linked component evidence and is present in the integrated guest run.
 - [ ] Staging-CA issuance and renewal are exercised for both tenants; DNS/ACME failures retain the prior known-good certificate, and no production CA/account is used.
 - [ ] The pinned WordPress archive checksum and bounded no-link extraction are verified before publication; both tenant installs restore posts and settings without exposing private configuration or sharing databases.
