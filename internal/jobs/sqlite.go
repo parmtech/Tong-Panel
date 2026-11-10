@@ -34,45 +34,41 @@ func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error
 	if tenant == "" || len(tenant) > 128 || requester == "" || len(requester) > 128 || kind != KindNoop || len(key) < 8 || len(key) > 128 {
 		return Job{}, errors.New("invalid job")
 	}
-	tx, err := s.db.BeginTx(s.ctx, nil)
-	if err != nil {
-		return Job{}, err
-	}
-	defer tx.Rollback()
-	if err := authorizedRequester(s.ctx, tx, tenant, requester, "jobs:create"); err != nil {
-		return Job{}, err
-	}
-	var existing Job
-	existing, err = scanJob(tx.QueryRowContext(s.ctx, `SELECT id,tenant_id,kind,state,idempotency_key,created_at,updated_at,requested_by
-		FROM jobs WHERE tenant_id=? AND idempotency_key=?`, tenant, key))
-	if err == nil {
-		if existing.Kind != kind || existing.RequestedBy != requester {
-			return Job{}, ErrConflict
-		}
-		if err := tx.Commit(); err != nil {
-			return Job{}, err
-		}
-		return existing, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return Job{}, err
-	}
 	var raw [16]byte
 	if _, err := rand.Read(raw[:]); err != nil {
 		return Job{}, err
 	}
 	id := hex.EncodeToString(raw[:])
-	now := s.now().UTC()
-	_, err = tx.ExecContext(s.ctx, `INSERT INTO jobs(id,tenant_id,requested_by,kind,state,idempotency_key,created_at,updated_at,available_at)
-		VALUES(?,?,?,?,'queued',?,?,?,?)`, id, tenant, requester, kind, key, dbTime(now), dbTime(now), dbTime(now))
+	var job Job
+	err := withImmediate(s.ctx, s.db, func(q sqliteSession) error {
+		// Serialize before authority and idempotency reads. Deferred read
+		// transactions on separate handles can otherwise race while upgrading
+		// to the writer and return SQLITE_BUSY instead of the original job.
+		if err := authorizedRequester(s.ctx, q, tenant, requester, "jobs:create"); err != nil {
+			return err
+		}
+		existing, err := scanJob(q.QueryRowContext(s.ctx, `SELECT id,tenant_id,kind,state,idempotency_key,created_at,updated_at,requested_by
+			FROM jobs WHERE tenant_id=? AND idempotency_key=?`, tenant, key))
+		if err == nil {
+			if existing.Kind != kind || existing.RequestedBy != requester {
+				return ErrConflict
+			}
+			job = existing
+			return nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		now := s.now().UTC()
+		_, err = q.ExecContext(s.ctx, `INSERT INTO jobs(id,tenant_id,requested_by,kind,state,idempotency_key,created_at,updated_at,available_at)
+			VALUES(?,?,?,?,'queued',?,?,?,?)`, id, tenant, requester, kind, key, dbTime(now), dbTime(now), dbTime(now))
+		if err != nil {
+			return fmt.Errorf("insert job: %w", err)
+		}
+		job = Job{ID: id, TenantID: tenant, Kind: kind, State: Queued, IdempotencyKey: key, CreatedAt: now, UpdatedAt: now, RequestedBy: requester}
+		return appendAudit(s.ctx, q, job, "job.created", now)
+	})
 	if err != nil {
-		return Job{}, fmt.Errorf("insert job: %w", err)
-	}
-	job := Job{ID: id, TenantID: tenant, Kind: kind, State: Queued, IdempotencyKey: key, CreatedAt: now, UpdatedAt: now, RequestedBy: requester}
-	if err := appendAudit(s.ctx, tx, job, "job.created", now); err != nil {
-		return Job{}, err
-	}
-	if err := tx.Commit(); err != nil {
 		return Job{}, err
 	}
 	return job, nil

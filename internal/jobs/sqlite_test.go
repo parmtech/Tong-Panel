@@ -162,6 +162,61 @@ func TestSQLiteConcurrentIdempotentCreate(t *testing.T) {
 	}
 }
 
+func TestSQLiteConcurrentIdempotentCreateAcrossHandles(t *testing.T) {
+	store, path := openTestSQLiteStore(t)
+	peerDB, err := database.Open(context.Background(), filepath.Clean(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerDB.Close()
+	peer, err := NewSQLiteStore(peerDB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const workers = 24
+	start := make(chan struct{})
+	ids := make(chan string, workers)
+	errs := make(chan error, workers)
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		current := store
+		if i%2 != 0 {
+			current = peer
+		}
+		go func(q *SQLiteStore) {
+			defer wg.Done()
+			<-start
+			job, err := q.CreateFor("tenant-a", "user-a", KindNoop, "cross-handle-request")
+			if err != nil {
+				errs <- err
+				return
+			}
+			ids <- job.ID
+		}(current)
+	}
+	close(start)
+	wg.Wait()
+	close(ids)
+	close(errs)
+	for err := range errs {
+		t.Fatal(err)
+	}
+	want := ""
+	for id := range ids {
+		if want == "" {
+			want = id
+		}
+		if id != want {
+			t.Fatalf("separate-handle retries produced multiple jobs: %s != %s", id, want)
+		}
+	}
+	var count int
+	if err := store.db.QueryRow("SELECT count(*) FROM jobs WHERE tenant_id='tenant-a' AND idempotency_key='cross-handle-request'").Scan(&count); err != nil || count != 1 {
+		t.Fatalf("stored cross-handle idempotent jobs=%d err=%v, want exactly one", count, err)
+	}
+}
+
 func TestSQLiteLeaseFenceRetryRecoveryAndAudit(t *testing.T) {
 	store, _ := openTestSQLiteStore(t)
 	now := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
