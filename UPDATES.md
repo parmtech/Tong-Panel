@@ -1,3 +1,9 @@
+### 2026-11-10 20:09 +11:00 — Workstream G, refresh live planning heads and VM stage
+- **Branch/state:** docs/p4-hosting-parity-continuation; current evidence update on the saved P4 design.
+- **Change:** refreshed exact heads for P2 PR #144 and P3 PR #145; recorded that both current-head P1 guest jobs reached extracted-preview smoke and remain active.
+- **Evidence:** used authenticated GitHub connector for PR #146/#149 and workflow job steps; confirmed current planning refs with git ls-remote. P1/P2 gate reports still explicitly block acceptance. git diff --check passed.
+- **Limits:** guest smoke is in progress, not a pass. No P4 implementation, privileged operation or acceptance claim.
+- **Next:** poll run #42787324539 to completion and refresh the relevant gate decisions before changing P4 scope.
 ### 2026-11-10 20:06 +11:00 — Workstream G, separate design approval from lab acceptance
 - **Branch/state:** docs/p4-hosting-parity-continuation; refinement to existing P4 gate evidence and review criteria.
 - **Change:** stated that design approval authorizes only the next scoped lab step, while acceptance needs exact tested commits/environment, artifacts, negative cases, cleanup/recovery and reviewer disposition. Refreshed exact P2/P3 planning heads.
