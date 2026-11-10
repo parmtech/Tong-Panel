@@ -34,8 +34,23 @@ func NewSQLiteSessionStore(db *sql.DB) (*SQLiteSessionStore, error) {
 // Issue makes independent 256-bit bearer and CSRF secrets. Only their hashes
 // are stored; the identity must be an active member of the requested tenant.
 func (s *SQLiteSessionStore) Issue(p rbac.Principal, lifetime time.Duration) (token, csrf string, expires time.Time, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), sqliteSessionLookupTimeout)
+	defer cancel()
+	return s.IssueContext(ctx, p, lifetime)
+}
+
+// IssueContext issues a session while honoring cancellation during SQLite
+// connection and writer-lock waits. Issue is the bounded compatibility wrapper
+// for internal callers without a request context.
+func (s *SQLiteSessionStore) IssueContext(ctx context.Context, p rbac.Principal, lifetime time.Duration) (token, csrf string, expires time.Time, err error) {
+	if ctx == nil {
+		return "", "", time.Time{}, ErrInvalidSession
+	}
 	if s == nil || p.UserID == "" || p.TenantID == "" || !validRole(p.Role) || lifetime <= 0 || lifetime > MaxSessionLifetime {
 		return "", "", time.Time{}, ErrInvalidSession
+	}
+	if err := ctx.Err(); err != nil {
+		return "", "", time.Time{}, err
 	}
 	var tokenRaw, csrfRaw, idRaw [32]byte
 	if _, err = rand.Read(tokenRaw[:]); err != nil {
@@ -49,14 +64,16 @@ func (s *SQLiteSessionStore) Issue(p rbac.Principal, lifetime time.Duration) (to
 	}
 	tokenHash := sha256.Sum256(tokenRaw[:])
 	csrfHash := sha256.Sum256(csrfRaw[:])
-	conn, err := s.db.Conn(context.Background())
+	conn, err := s.db.Conn(ctx)
 	if err != nil {
 		return "", "", time.Time{}, err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := database.BeginImmediate(ctx, conn, sqliteSessionLookupTimeout)
+	if err != nil {
 		return "", "", time.Time{}, err
 	}
+	defer restoreBusyTimeout()
 	committed := false
 	defer func() {
 		if !committed {
@@ -72,20 +89,29 @@ func (s *SQLiteSessionStore) Issue(p rbac.Principal, lifetime time.Duration) (to
 		idleUntil = expires
 	}
 	var role string
-	err = conn.QueryRowContext(context.Background(), `SELECT m.role FROM memberships m
+	err = conn.QueryRowContext(ctx, `SELECT m.role FROM memberships m
 		JOIN identities i ON i.id=m.identity_id
 		JOIN tenants t ON t.id=m.tenant_id AND t.status='active'
 		WHERE m.tenant_id=? AND m.identity_id=? AND i.disabled=0`, p.TenantID, p.UserID).Scan(&role)
+	if ctx.Err() != nil {
+		return "", "", time.Time{}, ctx.Err()
+	}
 	if err != nil || rbac.Role(role) != p.Role {
 		return "", "", time.Time{}, ErrInvalidSession
 	}
-	_, err = conn.ExecContext(context.Background(), `INSERT INTO sessions(id,tenant_id,identity_id,token_sha256,csrf_sha256,expires_at,idle_deadline_unix)
+	_, err = conn.ExecContext(ctx, `INSERT INTO sessions(id,tenant_id,identity_id,token_sha256,csrf_sha256,expires_at,idle_deadline_unix)
 		VALUES(?,?,?,?,?,?,?)`, hex.EncodeToString(idRaw[:16]), p.TenantID, p.UserID, tokenHash[:], csrfHash[:],
 		expires.Format(time.RFC3339Nano), idleUntil.Unix())
 	if err != nil {
+		if ctx.Err() != nil {
+			return "", "", time.Time{}, ctx.Err()
+		}
 		return "", "", time.Time{}, err
 	}
-	if _, err = conn.ExecContext(context.Background(), "COMMIT"); err != nil {
+	if _, err = conn.ExecContext(ctx, "COMMIT"); err != nil {
+		if ctx.Err() != nil {
+			return "", "", time.Time{}, ctx.Err()
+		}
 		return "", "", time.Time{}, err
 	}
 	committed = true

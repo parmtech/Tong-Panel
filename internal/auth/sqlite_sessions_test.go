@@ -35,6 +35,66 @@ func openSessionDB(t *testing.T) (string, *sql.DB, *SQLiteSessionStore) {
 	return path, db, store
 }
 
+func TestSQLiteSessionIssueContextCancelsWriterWaitWithoutMutation(t *testing.T) {
+	path, primary, _ := openSessionDB(t)
+	peer, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peer.Close()
+	store, err := NewSQLiteSessionStore(peer)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	writer, err := primary.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer writer.ExecContext(context.Background(), "ROLLBACK")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	started := time.Now()
+	_, _, _, err = store.IssueContext(ctx, rbac.Principal{UserID: "user-a", TenantID: "tenant-a", Role: rbac.Owner}, time.Hour)
+	cancel()
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("IssueContext error=%v, want caller deadline", err)
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("session issue cancellation took too long: %v", elapsed)
+	}
+	var count int
+	if err := peer.QueryRow("SELECT count(*) FROM sessions").Scan(&count); err != nil || count != 0 {
+		t.Fatalf("session rows changed after canceled issue: count=%d err=%v", count, err)
+	}
+	if got := readBusyTimeout(t, peer); got != 5000 {
+		t.Fatalf("busy_timeout after canceled issue=%d, want 5000", got)
+	}
+
+	if _, err := writer.ExecContext(context.Background(), "ROLLBACK"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, err := store.IssueContext(context.Background(), rbac.Principal{UserID: "user-a", TenantID: "tenant-a", Role: rbac.Owner}, time.Hour); err != nil {
+		t.Fatalf("session issue retry after writer release: %v", err)
+	}
+	if err := peer.QueryRow("SELECT count(*) FROM sessions").Scan(&count); err != nil || count != 1 {
+		t.Fatalf("successful retry session count=%d err=%v", count, err)
+	}
+}
+
+func readBusyTimeout(t *testing.T, db *sql.DB) int {
+	t.Helper()
+	var timeout int
+	if err := db.QueryRow("PRAGMA busy_timeout").Scan(&timeout); err != nil {
+		t.Fatal(err)
+	}
+	return timeout
+}
+
 func TestSQLiteSessionPersistenceRevocationAndMembershipRecheck(t *testing.T) {
 	path, db, store := openSessionDB(t)
 	now := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
