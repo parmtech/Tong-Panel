@@ -37,7 +37,6 @@ func (s *SQLiteSessionStore) Rotate(ctx context.Context, oldToken string) (strin
 	defer clear(newCSRF[:])
 	tokenHash := sha256.Sum256(newToken[:])
 	csrfHash := sha256.Sum256(newCSRF[:])
-	now := s.now().UTC()
 	conn, err := s.db.Conn(ctx)
 	if err != nil {
 		return "", "", time.Time{}, err
@@ -46,6 +45,11 @@ func (s *SQLiteSessionStore) Rotate(ctx context.Context, oldToken string) (strin
 	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
 		return "", "", time.Time{}, err
 	}
+	// Sample time only after acquiring both the pooled connection and SQLite's
+	// writer reservation. Waiting for either may cross an idle or absolute
+	// expiry boundary; an earlier timestamp could otherwise revive an expired
+	// session during rotation.
+	now := s.now().UTC()
 	committed := false
 	defer func() {
 		if !committed {

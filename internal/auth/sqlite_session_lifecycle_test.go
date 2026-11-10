@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -89,6 +90,98 @@ func TestSQLiteSessionRotateRevokesOldAndPreservesAbsoluteExpiry(t *testing.T) {
 	now = absolute
 	if _, ok := store.Check(third); ok {
 		t.Fatal("rotation extended absolute lifetime")
+	}
+}
+
+func TestSQLiteSessionRotateChecksExpiryAfterWaitingForConnection(t *testing.T) {
+	cases := []struct {
+		name       string
+		lifetime   time.Duration
+		advance    time.Duration
+		wantRotate bool
+	}{
+		{name: "idle expiry during wait", lifetime: 4 * time.Hour, advance: sqliteSessionIdle + time.Second},
+		{name: "absolute expiry during wait", lifetime: 20 * time.Minute, advance: 20*time.Minute + time.Second},
+		{name: "still active after wait", lifetime: time.Hour, advance: 5 * time.Minute, wantRotate: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, db, store := openSessionDB(t)
+			start := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
+			clockUnix := atomic.Int64{}
+			clockUnix.Store(start.Unix())
+			store.now = func() time.Time { return time.Unix(clockUnix.Load(), 0).UTC() }
+			token, _, _, err := store.Issue(
+				rbac.Principal{UserID: "user-a", TenantID: "tenant-a", Role: rbac.Owner},
+				tc.lifetime,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Occupy the database's sole pooled connection so Rotate must wait
+			// before it can begin its SQLite writer transaction.
+			blocker, err := db.Conn(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer blocker.Close()
+			waitsBefore := db.Stats().WaitCount
+			type rotateResult struct {
+				token string
+				err   error
+			}
+			result := make(chan rotateResult, 1)
+			go func() {
+				next, _, _, rotateErr := store.Rotate(context.Background(), token)
+				result <- rotateResult{token: next, err: rotateErr}
+			}()
+
+			waitDeadline := time.Now().Add(3 * time.Second)
+			for db.Stats().WaitCount == waitsBefore && time.Now().Before(waitDeadline) {
+				time.Sleep(time.Millisecond)
+			}
+			if db.Stats().WaitCount == waitsBefore {
+				t.Fatal("rotation did not wait for the occupied database connection")
+			}
+			clockUnix.Store(start.Add(tc.advance).Unix())
+			if err := blocker.Close(); err != nil {
+				t.Fatal(err)
+			}
+
+			var got rotateResult
+			select {
+			case got = <-result:
+			case <-time.After(3 * time.Second):
+				t.Fatal("rotation did not finish after the connection was released")
+			}
+			if tc.wantRotate {
+				if got.err != nil || got.token == "" {
+					t.Fatalf("active session failed to rotate after connection wait: %v", got.err)
+				}
+				return
+			}
+			if !errors.Is(got.err, ErrInvalidSession) || got.token != "" {
+				t.Fatalf("expired session rotated after connection wait: token=%q err=%v", got.token, got.err)
+			}
+			oldHash, ok := sessionKey(token)
+			if !ok {
+				t.Fatal("issued token was not parseable")
+			}
+			var active, oldUnrevoked, rotated int
+			if err := db.QueryRow("SELECT count(*) FROM sessions WHERE revoked_at IS NULL").Scan(&active); err != nil {
+				t.Fatal(err)
+			}
+			if err := db.QueryRow("SELECT count(*) FROM sessions WHERE token_sha256=? AND revoked_at IS NULL", oldHash[:]).Scan(&oldUnrevoked); err != nil {
+				t.Fatal(err)
+			}
+			if err := db.QueryRow("SELECT count(*) FROM audit_events WHERE action='auth.session_rotated'").Scan(&rotated); err != nil {
+				t.Fatal(err)
+			}
+			if active != 1 || oldUnrevoked != 1 || rotated != 0 {
+				t.Fatalf("expired rotation changed durable state: active=%d old unrevoked=%d rotated audits=%d", active, oldUnrevoked, rotated)
+			}
+		})
 	}
 }
 
