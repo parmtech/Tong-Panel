@@ -415,6 +415,19 @@ func withImmediate(ctx context.Context, db *sql.DB, fn func(sqliteSession) error
 		return err
 	}
 	defer conn.Close()
+	// database.Open configures a five-second SQLite busy timeout. That native
+	// wait does not promptly observe caller cancellation, so temporarily disable
+	// it and use the context-aware retry loop below instead.
+	var busyTimeout int
+	if err := conn.QueryRowContext(ctx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
+		return err
+	}
+	if _, err := conn.ExecContext(ctx, "PRAGMA busy_timeout=0"); err != nil {
+		return err
+	}
+	defer func() {
+		_, _ = conn.ExecContext(context.Background(), fmt.Sprintf("PRAGMA busy_timeout=%d", busyTimeout))
+	}()
 	for {
 		if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err == nil {
 			break

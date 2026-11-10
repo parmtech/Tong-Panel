@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 )
@@ -17,19 +18,28 @@ var ErrJobNotCancelable = errors.New("job is not safely cancellable")
 // from both succeeding. It never sends a signal to workers or the Linux host.
 // A repeat cancel is idempotent without a duplicate audit record.
 func (s *SQLiteStore) CancelFor(tenant, requester, id string) (Job, error) {
+	if s == nil {
+		return Job{}, ErrNotFound
+	}
+	return s.CancelForContext(s.ctx, tenant, requester, id)
+}
+
+// CancelForContext withdraws a queued job while honoring caller cancellation.
+// HTTP handlers should pass their request context to bound lock and pool waits.
+func (s *SQLiteStore) CancelForContext(ctx context.Context, tenant, requester, id string) (Job, error) {
 	if s == nil || s.db == nil || tenant == "" || requester == "" ||
 		len(tenant) > 128 || len(requester) > 128 || len(id) != 32 {
 		return Job{}, ErrNotFound
 	}
 	var cancelled Job
-	err := withImmediate(s.ctx, s.db, func(q sqliteSession) error {
+	err := withImmediate(ctx, s.db, func(q sqliteSession) error {
 		// Recheck current access, not just the identity that created the job.
 		// Never reveal another tenant's or another requester's job IDs.
-		if err := authorizedRequester(s.ctx, q, tenant, requester, "jobs:cancel"); err != nil {
+		if err := authorizedRequester(ctx, q, tenant, requester, "jobs:cancel"); err != nil {
 			return ErrNotFound
 		}
 		var err error
-		cancelled, err = scanJob(q.QueryRowContext(s.ctx,
+		cancelled, err = scanJob(q.QueryRowContext(ctx,
 			"SELECT id,tenant_id,kind,state,idempotency_key,created_at,updated_at,requested_by "+
 				"FROM jobs WHERE tenant_id=? AND requested_by=? AND id=?",
 			tenant, requester, id))
@@ -49,7 +59,7 @@ func (s *SQLiteStore) CancelFor(tenant, requester, id string) (Job, error) {
 		}
 
 		now := s.now().UTC()
-		result, err := q.ExecContext(s.ctx,
+		result, err := q.ExecContext(ctx,
 			"UPDATE jobs SET state='cancelled',available_at=NULL,updated_at=? "+
 				"WHERE tenant_id=? AND requested_by=? AND id=? AND state='queued'",
 			dbTime(now), tenant, requester, id)
@@ -61,7 +71,7 @@ func (s *SQLiteStore) CancelFor(tenant, requester, id string) (Job, error) {
 		}
 		cancelled.State, cancelled.UpdatedAt = Cancelled, now
 		// Fail closed and roll back the cancellation if audit insert fails.
-		return appendAudit(s.ctx, q, cancelled, "job.cancelled", now)
+		return appendAudit(ctx, q, cancelled, "job.cancelled", now)
 	})
 	return cancelled, err
 }

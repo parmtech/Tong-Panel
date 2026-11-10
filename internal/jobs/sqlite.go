@@ -31,6 +31,13 @@ func NewSQLiteStore(db *sql.DB) (*SQLiteStore, error) {
 // identical retry returns the original job; a key reused for different work or
 // by another identity fails with ErrConflict.
 func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error) {
+	return s.CreateForContext(s.ctx, tenant, requester, kind, key)
+}
+
+// CreateForContext records a job while honoring cancellation from the caller.
+// HTTP handlers should pass the request context so abandoned requests stop
+// waiting for a pooled connection or SQLite writer reservation.
+func (s *SQLiteStore) CreateForContext(ctx context.Context, tenant, requester, kind, key string) (Job, error) {
 	if tenant == "" || len(tenant) > 128 || requester == "" || len(requester) > 128 || kind != KindNoop || len(key) < 8 || len(key) > 128 {
 		return Job{}, errors.New("invalid job")
 	}
@@ -40,14 +47,14 @@ func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error
 	}
 	id := hex.EncodeToString(raw[:])
 	var job Job
-	err := withImmediate(s.ctx, s.db, func(q sqliteSession) error {
+	err := withImmediate(ctx, s.db, func(q sqliteSession) error {
 		// Serialize before authority and idempotency reads. Deferred read
 		// transactions on separate handles can otherwise race while upgrading
 		// to the writer and return SQLITE_BUSY instead of the original job.
-		if err := authorizedRequester(s.ctx, q, tenant, requester, "jobs:create"); err != nil {
+		if err := authorizedRequester(ctx, q, tenant, requester, "jobs:create"); err != nil {
 			return err
 		}
-		existing, err := scanJob(q.QueryRowContext(s.ctx, `SELECT id,tenant_id,kind,state,idempotency_key,created_at,updated_at,requested_by
+		existing, err := scanJob(q.QueryRowContext(ctx, `SELECT id,tenant_id,kind,state,idempotency_key,created_at,updated_at,requested_by
 			FROM jobs WHERE tenant_id=? AND idempotency_key=?`, tenant, key))
 		if err == nil {
 			if existing.Kind != kind || existing.RequestedBy != requester {
@@ -60,13 +67,13 @@ func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error
 			return err
 		}
 		now := s.now().UTC()
-		_, err = q.ExecContext(s.ctx, `INSERT INTO jobs(id,tenant_id,requested_by,kind,state,idempotency_key,created_at,updated_at,available_at)
+		_, err = q.ExecContext(ctx, `INSERT INTO jobs(id,tenant_id,requested_by,kind,state,idempotency_key,created_at,updated_at,available_at)
 			VALUES(?,?,?,?,'queued',?,?,?,?)`, id, tenant, requester, kind, key, dbTime(now), dbTime(now), dbTime(now))
 		if err != nil {
 			return fmt.Errorf("insert job: %w", err)
 		}
 		job = Job{ID: id, TenantID: tenant, Kind: kind, State: Queued, IdempotencyKey: key, CreatedAt: now, UpdatedAt: now, RequestedBy: requester}
-		return appendAudit(s.ctx, q, job, "job.created", now)
+		return appendAudit(ctx, q, job, "job.created", now)
 	})
 	if err != nil {
 		return Job{}, err

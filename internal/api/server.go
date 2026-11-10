@@ -266,7 +266,7 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 		var j jobs.Job
 		var err error
 		if s.SQLJobs != nil {
-			j, err = s.SQLJobs.CreateFor(p.TenantID, p.UserID, req.Kind, key)
+			j, err = s.SQLJobs.CreateForContext(r.Context(), p.TenantID, p.UserID, req.Kind, key)
 		} else {
 			j, err = s.Jobs.Create(p.TenantID, req.Kind, key)
 		}
@@ -279,6 +279,9 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 			// transaction remains authoritative over the earlier principal.
 			fail(w, 403, "forbidden")
 			return
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return // the HTTP caller is gone; do not translate cancellation into a job error
 		}
 		if err != nil {
 			// The API never converts failed SQLite membership checks to
@@ -388,13 +391,16 @@ func (s *Server) jobDetail(w http.ResponseWriter, r *http.Request, p rbac.Princi
 			fail(w, 403, "forbidden")
 			return
 		}
-		j, err := s.SQLJobs.CancelFor(p.TenantID, p.UserID, id)
+		j, err := s.SQLJobs.CancelForContext(r.Context(), p.TenantID, p.UserID, id)
 		if errors.Is(err, jobs.ErrNotFound) {
 			fail(w, 404, "not_found")
 			return
 		}
 		if errors.Is(err, jobs.ErrJobNotCancelable) {
 			fail(w, 409, "job_not_cancellable")
+			return
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return
 		}
 		if err != nil {

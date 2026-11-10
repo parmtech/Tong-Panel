@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -119,6 +120,73 @@ func TestDeveloperSQLiteJobsAPIActorScopeIdempotencyAndCancel(t *testing.T) {
 	}
 	if r := call(h, "POST", "/api/v1/jobs", secret, "sqlite-key-0003", `{"kind":"system.exec"}`); r.Code != 400 {
 		t.Fatalf("unsafe host command accepted: %d", r.Code)
+	}
+}
+
+func TestDeveloperSQLiteJobMutationsStopWhenRequestContextExpires(t *testing.T) {
+	for _, operation := range []string{"create", "cancel"} {
+		t.Run(operation, func(t *testing.T) {
+			s, q, path := setupSQLAPI(t)
+			var job jobs.Job
+			if operation == "cancel" {
+				var err error
+				job, err = q.CreateFor("tenant-a", "u1", jobs.KindNoop, "cancel-context-01")
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			peerDB, err := database.Open(context.Background(), path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer peerDB.Close()
+			lock, err := peerDB.Conn(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer lock.Close()
+			if _, err := lock.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+				t.Fatal(err)
+			}
+			defer lock.ExecContext(context.Background(), "ROLLBACK")
+			ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+			defer cancel()
+			method, target, body := "POST", "/api/v1/jobs", `{"kind":"validation.noop"}`
+			if operation == "cancel" {
+				method, target, body = "DELETE", "/api/v1/jobs/"+job.ID, ""
+			}
+			req := httptest.NewRequest(method, target, strings.NewReader(body)).WithContext(ctx)
+			req.Header.Set("Authorization", "Bearer "+secret)
+			req.Header.Set("Idempotency-Key", "request-context-create")
+			if body != "" {
+				req.Header.Set("Content-Type", "application/json")
+			}
+			rec := httptest.NewRecorder()
+			done := make(chan struct{})
+			go func() {
+				s.Handler().ServeHTTP(rec, req)
+				close(done)
+			}()
+			select {
+			case <-done:
+			case <-time.After(2 * time.Second):
+				t.Fatal("HTTP job mutation did not stop after request context expired")
+			}
+			if rec.Body.Len() != 0 {
+				t.Fatalf("canceled HTTP request wrote a response body: %s", rec.Body.String())
+			}
+			if operation == "create" {
+				var count int
+				if err := lock.QueryRowContext(context.Background(), "SELECT count(*) FROM jobs WHERE idempotency_key='request-context-create'").Scan(&count); err != nil || count != 0 {
+					t.Fatalf("canceled create committed %d jobs err=%v", count, err)
+				}
+			} else {
+				var state string
+				if err := lock.QueryRowContext(context.Background(), "SELECT state FROM jobs WHERE id=?", job.ID).Scan(&state); err != nil || state != jobs.Queued {
+					t.Fatalf("canceled request changed job state=%q err=%v", state, err)
+				}
+			}
+		})
 	}
 }
 

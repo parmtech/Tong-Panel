@@ -262,3 +262,62 @@ func TestSQLiteClaimLeaseStartsAfterConnectionWait(t *testing.T) {
 		t.Fatalf("stored lease expiry=%q err=%v, want %s", storedExpiry, err, wantExpiry)
 	}
 }
+
+func TestSQLiteMutationsHonorCallerCancellationDuringConnectionWait(t *testing.T) {
+	for _, operation := range []string{"create", "cancel"} {
+		t.Run(operation, func(t *testing.T) {
+			store, _ := openTestSQLiteStore(t)
+			var job Job
+			var err error
+			if operation == "cancel" {
+				job, err = store.CreateFor("tenant-a", "user-a", KindNoop, "cancel-context-job")
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			store.db.SetMaxOpenConns(1)
+			blocker, err := store.db.Conn(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			waitsBefore := store.db.Stats().WaitCount
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			result := make(chan error, 1)
+			go func() {
+				if operation == "create" {
+					_, callErr := store.CreateForContext(ctx, "tenant-a", "user-a", KindNoop, "create-context-job")
+					result <- callErr
+					return
+				}
+				_, callErr := store.CancelForContext(ctx, "tenant-a", "user-a", job.ID)
+				result <- callErr
+			}()
+			deadline := time.Now().Add(3 * time.Second)
+			for store.db.Stats().WaitCount == waitsBefore && time.Now().Before(deadline) {
+				time.Sleep(time.Millisecond)
+			}
+			if store.db.Stats().WaitCount == waitsBefore {
+				t.Fatal("mutation did not wait for the held pooled connection")
+			}
+			cancel()
+			select {
+			case err := <-result:
+				if !errors.Is(err, context.Canceled) {
+					t.Fatalf("mutation error=%v, want context cancellation", err)
+				}
+			case <-time.After(3 * time.Second):
+				t.Fatal("mutation did not stop after caller cancellation")
+			}
+			if err := blocker.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if operation == "cancel" {
+				var state string
+				if err := store.db.QueryRow("SELECT state FROM jobs WHERE id=?", job.ID).Scan(&state); err != nil || state != Queued {
+					t.Fatalf("canceled database wait changed job state=%q err=%v", state, err)
+				}
+			}
+		})
+	}
+}
