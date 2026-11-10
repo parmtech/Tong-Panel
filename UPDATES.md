@@ -1,3 +1,9 @@
+### 2026-11-10 20:14 +11:00 — Workstream G, reconcile current P2/P3 planning heads
+- **Branch/state:** docs/p4-hosting-parity-continuation; exact-head evidence update on the saved P4 plan.
+- **Change:** refreshed P2 PR #144 and P3 PR #145 refs; retained the distinction between their expanded test plans and accepted phase gates.
+- **Evidence:** authenticated PR metadata and `git ls-remote` agree on heads. PR #149 clean-VM run #42787324539 remains active in both guests at extracted-preview smoke. P1/P2 reports still show gates open. `git diff --check` passed.
+- **Limits:** draft planning PRs and in-progress preview checks are not P2/P3/P1 acceptance. No implementation or host operation.
+- **Next:** poll the same active VM run; refresh upstream contract links only after gate decisions change.
 ### 2026-11-10 20:13 +11:00 — Workstream G, define migration journal crash semantics
 - **Branch/state:** docs/p4-hosting-parity-continuation; nonbinding refinement to the existing P4 migration acceptance plan.
 - **Change:** specified candidate durable per-step states, verified receipts, safe retry conditions and a needs-review stop for unknown outcomes; expanded reconciliation acceptance with crashes around journal transitions and independently recorded compensation.
