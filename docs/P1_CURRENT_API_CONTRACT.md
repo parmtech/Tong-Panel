@@ -122,10 +122,14 @@ conflicts, and SQLite also binds the requester. Current mutation permission is
 still required for an idempotent retry. Site/domain/database metadata creation
 does not implement this header; duplicate claims return their documented conflict.
 
-Site creation rechecks current write membership, and for cookie callers the
-session, under the same SQLite writer lock as the site, domain claims and
-`site.created` audit event. This is declarative metadata, not host provisioning.
-Other site mutation endpoints have not yet received this transaction guard.
+Site creation and alias add/remove recheck the active tenant, enabled identity
+and current write membership under the same SQLite writer lock as their
+metadata changes and attributed audit events. Cookie callers also have their
+session digest, revocation and expiry rechecked in that transaction. Audit
+failure rolls the corresponding mutation back. Alias additions remain pending
+domain claims; these operations do not configure or remove host services.
+DNS-proof begin/complete and site-database metadata writes have not yet received
+this transaction guard.
 
 JSON writes require the exact Content-Type string `application/json`; binary
 uploads require exact `application/octet-stream`. Parameters such as `charset`

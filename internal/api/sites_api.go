@@ -425,7 +425,11 @@ func (s *Server) siteDomainRemove(w http.ResponseWriter, r *http.Request, p rbac
 		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
 		return
 	}
-	if err := s.SiteCatalog.RemoveAliasDomain(r.Context(), p.TenantID, siteID, domain); err != nil {
+	var proof *auth.SessionReadProof
+	if value, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof); ok {
+		proof = &value
+	}
+	if err := s.SiteCatalog.RemoveAliasDomainFor(r.Context(), p.TenantID, siteID, domain, p.UserID, proof); err != nil {
 		writeSiteError(w, err)
 		return
 	}
@@ -458,7 +462,11 @@ func (s *Server) siteDomainAdd(w http.ResponseWriter, r *http.Request, p rbac.Pr
 		fail(w, http.StatusBadRequest, "invalid_site_request")
 		return
 	}
-	claim, err := s.SiteCatalog.AddAliasDomain(r.Context(), p.TenantID, siteID, req.Domain)
+	var proof *auth.SessionReadProof
+	if value, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof); ok {
+		proof = &value
+	}
+	claim, err := s.SiteCatalog.AddAliasDomainFor(r.Context(), p.TenantID, siteID, req.Domain, p.UserID, proof)
 	if err != nil {
 		writeSiteError(w, err)
 		return
