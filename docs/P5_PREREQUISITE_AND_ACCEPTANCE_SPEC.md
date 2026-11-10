@@ -88,6 +88,18 @@ The implementation must define a correlation mechanism that makes duplicate, del
 19. **Update and rollback:** stage a signed update, validate compatibility, inject failure, and restore the prior known-good version without restoring revoked permissions or secrets.
 20. **Registry outage/compromise:** test unavailable registry, stale metadata, key revocation, and an artifact whose digest differs from reviewed metadata. Fail closed and preserve audit evidence.
 
+#### Review-only supply-chain test details for scenarios 16, 19, and 20
+
+These checks define observable outcomes only. The owner/security review must still choose and approve the metadata format, signer trust model, key custody, revocation source, offline policy, and rollback authority before implementation.
+
+| Fixture or fault | Expected test result | Evidence to retain |
+|---|---|---|
+| Artifact bytes differ from the reviewed immutable digest, or a reference resolves to different bytes on a second fetch | Reject before install/update side effects; keep the active known-good version unchanged. | Reviewed manifest/reference, expected and observed digests, resolver response, and proof no activation occurred. |
+| Unknown, expired, not-yet-valid, wrong-purpose, or revoked signer; revoked signer data arrives after cached metadata | Deny new install/update and prevent revoked trust from being restored by stale cache or reconnect order. | Trust-state fixture, fake clock/cache sequence, decision reason, and redacted audit event. |
+| Dependency is missing, mutable/unpinned, incompatible, cyclic, or lacks required licence/provenance metadata | Reject the complete staged graph before activation; do not leave partial dependencies enabled. | Full synthetic dependency graph, per-artifact identity, validation report, and post-failure active-version inventory. |
+| Registry is unavailable or returns stale/conflicting metadata | Apply only an explicitly reviewed offline policy; absent valid cached authorization, deny install/update and preserve the active version. | Cache age, last verified metadata, network fault timeline, policy version, and observed decision. |
+| Update fails after staging or activation begins | Recover the previous known-good version only if its artifact remains trusted; preserve revocations and narrowed permissions, then verify panel boot and unrelated plugins. | Failure injection point, before/after digests and grants, recovery steps, and boot/health results. |
+
 ### Usage, billing integrations, and HA claims
 
 21. **Usage accounting:** reconcile synthetic usage across node restart, delayed/offline reports, duplicate events, clock skew, and tenant transfer. Keep source measurements and derived totals attributable; do not emit billing actions from unverified usage.
