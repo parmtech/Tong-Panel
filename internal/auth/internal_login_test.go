@@ -206,10 +206,11 @@ func TestInternalLoginPreservesValidLegacyShortPassword(t *testing.T) {
 	service, db, _, _, clock, seed := setupTrustedLogin(t)
 	legacyPassword := []byte("short")
 	salt := []byte("0123456789abcdef")
-	legacyTime := passwordHashTime + 1
-	hash := argon2.IDKey(legacyPassword, salt, uint32(legacyTime), passwordHashMemoryKiB, passwordHashThreads, passwordHashLength)
+	legacyTime := passwordHashTime
+	legacyParallelism := uint8(2)
+	hash := argon2.IDKey(legacyPassword, salt, uint32(legacyTime), passwordHashMemoryKiB, legacyParallelism, passwordHashLength)
 	legacyPHC := fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s",
-		passwordHashMemoryKiB, legacyTime, passwordHashThreads,
+		passwordHashMemoryKiB, legacyTime, legacyParallelism,
 		base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(hash))
 	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
 		t.Fatal(err)

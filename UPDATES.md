@@ -934,6 +934,6 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - **Next:** inspect exact-head hosted workflows, fix any demonstrated failures, and record terminal results. No production VPS/main merge/release or Phase 1 completion.
 
 ### PR120 verifier-strength follow-up — 10 November 2026
-- **Finding/correction:** automatic login rehash must not normalize a supported stronger Argon2id verifier down to the current profile. Rehash now occurs only when the target profile is no weaker in memory, iteration count, and parallelism; stronger profiles remain untouched. Added a login regression that rejects downgrade and a parameter-policy unit assertion.
+- **Finding/correction:** automatic login rehash must not normalize a supported Argon2id verifier with any parameter above the current target. Such profiles remain untouched. Added a login regression that rejects parameter downgrade and a policy unit assertion.
 - **Evidence:** full Windows `go test ./internal/auth -count=1`, `go vet ./internal/auth`, focused rehash/failure/rollback/MFA/legacy-short/profile tests and `git diff --check` passed. Fresh hosted checks on this correction are pending.
 - **Limits:** internal trusted caller only; no public login, recovery, external key custody, P0 approval or production deployment.

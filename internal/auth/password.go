@@ -79,9 +79,8 @@ func PasswordHashNeedsRehash(encoded string) bool {
 }
 
 // passwordHashCanRehashWithoutDowngrade permits automatic login-time rehash
-// only when the current profile is at least as strong in every configured
-// cost dimension. A supported stronger stored profile must not be silently
-// replaced with the current (potentially weaker) creation profile.
+// only when no stored parameter exceeds the current profile. A supported
+// profile with any parameter above the current target is left unchanged.
 func passwordHashCanRehashWithoutDowngrade(encoded string) bool {
 	params, ok := parseArgon2PHC(encoded)
 	if !ok {
