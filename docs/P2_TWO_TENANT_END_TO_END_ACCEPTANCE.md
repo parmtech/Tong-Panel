@@ -2,7 +2,7 @@
 
 **State:** proposed acceptance design only. This plan records no owner/security approval and is not evidence that any P2 gate has passed.
 
-**Work item:** [P2 issue #150](https://github.com/parmtech/Tong-Panel/issues/150) tracks the staged ACME and WordPress integration-spec additions.
+**Work items:** [P2 issue #150](https://github.com/parmtech/Tong-Panel/issues/150) tracks the staged ACME and WordPress integration-spec additions; [P2 issue #152](https://github.com/parmtech/Tong-Panel/issues/152) tracks the scheduled offsite backup, retention, and complete restore additions.
 
 **Purpose:** turn the P2 two-tenant and recovery exit criteria into one reviewable clean-guest scenario. The current P2 gate report says component checks exist, but no end-to-end panel-to-agent suite covers API, files, database users, domains, and job logs together.
 
@@ -29,7 +29,7 @@ The integrated suite must consume reviewed interfaces and reuse these fixtures w
 - Run only against the exact supported distro/package matrix approved by maintainers. Existing Ubuntu/Debian draft guest results are not certification.
 - Keep all test tenants, domains, credentials, service instances, package state, and data inside the disposable guest or runner-private temporary storage. Never use a production host or real customer data.
 - Use a deterministic private DNS fixture for domain ownership and a certificate-authority staging endpoint for ACME behavior. Do not make the suite depend on production DNS zones or production certificates.
-- Capture command exit status, guest image digest, package and binary hashes, test report, sanitized service logs, and restore comparisons. Redact secrets and avoid raw environment dumps.
+- Capture command exit status, guest image digest, package and binary hashes, test report, sanitized service logs, and restore comparisons. For backups, include the approved disposable target/interface identity, artifact IDs and ciphertext hashes, schedule/retention policy version, non-secret key reference, and upload/verification/deletion outcomes. Redact secrets and avoid raw environment dumps.
 - If a prerequisite is missing or unknown, assert a safe denial before the first host mutation and stop the run; do not silently skip the gate.
 
 ## End-to-end scenario
@@ -46,7 +46,7 @@ Create two isolated tenants, `tenant-a` and `tenant-b`, with one site, one datab
 | 6. Files and quota | Exercise the supported Files upload/read/delete/archive workflow through authenticated tenant-scoped APIs and UI | Tenant A cannot list/read/overwrite/delete tenant B paths; traversal, symlinks, hostile archives, decompression limits, quota overflow, cancellation, and concurrent publication fail without partial publication or cross-tenant effects |
 | 7. Jobs, cron, and logs | Enqueue one approved typed operation per tenant, inspect status/logs, and exercise the approved scheduled-task contract if implemented | No arbitrary command/path crosses the API; each job and log is visible only to authorized principals for its tenant; membership revocation before execution denies the operation; audit/log output is bounded and redacted |
 | 8. Config apply and failure recovery | Select the versioned template, stage config, syntax-check, activate, reload, and probe each site; inject failure at each transition | The test identifies the active template version. Syntax, write, reload, or health failure retains/restores the prior known-good config, emits a redacted terminal job result, and leaves both tenants' serving state explainable |
-| 9. Backup and clean restore | Create encrypted backups for both tenants, destroy the source overlay, boot a new guest, restore both sites/databases/settings and WordPress content, then verify HTTPS content and access boundaries | Only authorized backup data is restored; wrong tenant/key, tamper, truncation, missing artifact, and partial restore fail closed; restore does not resurrect stale executable tasks or broaden tenant access; restored certificates are revalidated or safely reissued under the reviewed policy; the new guest contains no source-VM state |
+| 9. Scheduled offsite backup and clean restore | Schedule encrypted backups for both tenants to an approved disposable offsite target; verify each remote artifact; exercise retention expiry/deletion; destroy the source overlay; boot a new guest and restore from retained artifacts, including sites/databases/settings and WordPress content | Only ciphertext reaches the target and key material stays outside it; schedule/run identity is idempotent and attributable; transfer or remote verification failure is not reported as success; retention never deletes a newer valid backup; deletion is verified and safely retried; wrong tenant/key, tamper, truncation, missing artifact, and partial restore fail closed; restore does not resurrect stale executable tasks or broaden tenant access; restored certificates are revalidated or safely reissued under the reviewed policy; the new guest contains no source-VM state |
 | 10. UI and accessibility | Complete common create/view/recovery tasks at phone/tablet viewport sizes with keyboard-only navigation | No horizontal overflow or keyboard trap; labels, focus, status/errors, loading/empty/denied states, and recovery guidance are available without color alone; automated checks are supplemented by recorded human accessibility review |
 
 ## Cross-tenant denial matrix
@@ -57,13 +57,14 @@ For every resource above, run both an authorized positive case and a negative ca
 - a stale authorization snapshot, role downgrade, membership removal, disabled identity, or suspended tenant between request and job execution;
 - duplicate concurrent create/delete/update requests, replayed proof, idempotency-key reuse across tenants, and cancellation during a writer or host-operation wait;
 - DNS challenge name/token, ACME order/certificate ID, certificate file mapping, or renewal task belonging to the other tenant;
+- backup schedule/run ID, remote object key, tenant/key reference, or retention/deletion request belonging to the other tenant;
 - an API read, UI action, background job, support bundle, and audit/log view where the resource can be surfaced.
 
 Where the public API contract intentionally conceals object existence, assert the same external response for absent and foreign-tenant objects while retaining an appropriately attributed internal denial audit. A denial must not partially mutate metadata, files, database grants, service config, backup state, or job state.
 
 ## Failure injection and recovery evidence
 
-Inject process termination, timeout, disk-full, permission denial, service reload failure, wrong DNS TXT value, delayed DNS propagation, ACME staging rejection/rate limit/timeout, failed certificate renewal, database unavailable, source stream error, and restore interruption at documented boundaries. For every case, record:
+Inject process termination, timeout, disk-full, permission denial, service reload failure, wrong DNS TXT value, delayed DNS propagation, ACME staging rejection/rate limit/timeout, failed certificate renewal, offsite-target throttling/timeout/partial upload, artifact-verification failure, retention deletion failure, database unavailable, source stream error, and restore interruption at documented boundaries. For every case, record:
 
 1. the phase/job state before and after failure;
 2. whether any external effect occurred and how it was detected;
@@ -79,6 +80,8 @@ Inject process termination, timeout, disk-full, permission denial, service reloa
 - [ ] Every P2 implementation slice has linked component evidence and is present in the integrated guest run.
 - [ ] Staging-CA issuance and renewal are exercised for both tenants; DNS/ACME failures retain the prior known-good certificate, and no production CA/account is used.
 - [ ] The pinned WordPress archive checksum and bounded no-link extraction are verified before publication; both tenant installs restore posts and settings without exposing private configuration or sharing databases.
+- [ ] Scheduled offsite backups are verified as ciphertext at a disposable approved target; key material remains separate and retention deletion is verified without removing a newer valid artifact.
+- [ ] Source-VM destruction precedes restore from the retained offsite artifact; restored tenant sites, databases, settings and WordPress content are checked against recorded hashes and cross-tenant denial cases.
 - [ ] Every cross-tenant positive/negative case passes across API, files, database, domains, jobs/logs, and backup/restore.
 - [ ] Failure injection proves safe rollback or an explicit recoverable state; no mutation is silently reported as successful.
 - [ ] A fresh-VM restore contains sites, databases, configuration, and settings, with tenant boundaries re-tested after restore.

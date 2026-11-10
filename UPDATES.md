@@ -22,6 +22,15 @@
 - **Validation:** documentation/link checks and `git diff --check` passed; no product tests apply. P0 decisions and P1 entry remain blocked.
 - **Next:** owners/security reviewers record decisions and rationale in the ADR/threat process. Only after that and formal P1 entry approval can an implementation slice be selected.
 
+## 2026-11-10 — P2 scheduled offsite backup acceptance gap
+
+- **Work item:** [Issue #152](https://github.com/parmtech/Tong-Panel/issues/152); same isolated Phase 2 branch.
+- **Change:** Expanded the two-tenant run in `docs/P2_TWO_TENANT_END_TO_END_ACCEPTANCE.md` to require scheduled encrypted transfers to an approved disposable offsite target, remote artifact verification, retention/deletion, clean restore after source destruction, and provider/manifest evidence that never includes key material.
+- **Why:** The current P2 exit report identifies durable offsite storage, scheduling, retention, external-key lifecycle, and complete restore as open. Existing #81–#84 labs prove encryption/staging and selected guest restores, not this complete path.
+- **Gate:** Test specification only. Provider, schedule, retention, and key custody decisions remain unapproved; no provider adapter, scheduler or production credential path was added. P1 Phase 2 entry remains blocked.
+- **Validation:** `git diff --check` and relative Markdown link checks passed; no product tests apply.
+- **Next:** Review the offsite provider/key-custody ADR path, then integrate an approved disposable target into the full fresh-guest scenario only after P0/P1 entry approval.
+
 ## 2026-11-10 — P1 dependency evidence recheck for gated P2 work
 
 - **Source reviewed:** draft PR #91 head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1` ([PR #91](https://github.com/parmtech/Tong-Panel/pull/91)). No files in that PR or its working checkout were changed.
