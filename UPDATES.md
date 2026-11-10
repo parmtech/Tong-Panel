@@ -281,3 +281,11 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Validation:** Windows Go 1.27.3 formatting, `go test -count=1 ./...`, `go vet ./...`, and `git diff --check` passed for the standalone prototype/docs change. No product runtime or network code is involved.
 - **Gate/evidence:** P1/P2/P3/P4 remain unaccepted; PR #147 has no human review yet. Latest checked run #42781985275 shows Debian 12 success and Ubuntu 24.04 still in progress. Phase 4 checkpoint SHA remains unchanged.
 - **Next:** retain the non-normative boundary; recheck the active upstream gate run and PR review state before further work.
+
+### 2026-11-10 — Workstream G, reject dispatch and replay after node revocation
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; code commit `1be4651e2ae7eb0f0e298939f9a77407f1bca207`, included in draft PR #147 / review issue #148.
+- **Change:** extended the offline replay model with a current-authorization requirement. A previously safe-to-deduplicate request cannot be dispatched or replayed once authorization is revoked. Expanded P5 scenario 4 to cover queued-job reauthorization, in-flight uncertain effects, reconnection, stale authorization, and audit evidence without implying disconnect stops work.
+- **Validation:** Windows Go 1.27.3 formatting, `go test -count=1 ./...`, `go vet ./...`, and `git diff --check` passed for the offline module/docs.
+- **Gate/evidence:** P0/P1/P2/P3/P4 prerequisites remain unaccepted. P1 run #42781985275 still shows Debian 12 success and Ubuntu 24.04 in progress at the latest poll. PR #147 has no human review recorded. Phase 4 checkpoint remains at `0029b39aa5ebb2056506892b18b400a31402977b`.
+- **Next:** maintainers/security review the candidate semantics and upstream gates; no product integration before approval.
