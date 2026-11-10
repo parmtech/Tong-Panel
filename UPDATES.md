@@ -8,6 +8,7 @@
 
 - **Branch/base:** `phase2/cron-logs-templates-test-plan-20261110`, based on GitHub `main` at `0aad68e81138a0f226e83ca8c432bd8e09475d915d`. Dedicated isolated clone under the Windows task workspace; Phase 1 checkout was not modified.
 - **Design commit:** `c22558fec225fcd66ce414a349385ef481500a22`.
+- **Draft review:** [PR #144](https://github.com/parmtech/Tong-Panel/pull/144); not merged.
 - **State:** proposed design/test specification only. Added `docs/P2_CRON_LOGS_TEMPLATES_TEST_PLAN.md` and linked it from `docs/phases/P2-HOSTING-ALPHA.md` implementation slice 7.
 - **Scope:** typed scheduled task contract, bounded tenant/site log reads, versioned Nginx/PHP-FPM templates, isolated lifecycle and failure tests, plus unresolved owner/security decisions. No scheduler, host mutation, endpoint, service operation, dependency, merge, or deployment was added.
 - **Gate:** latest P1/P2 reports on the active draft branch `feature/p1-file-quota-request-context` still leave P1 entry and integrated P2 acceptance open. This proposal does not approve ADRs or authorize host-facing implementation.
