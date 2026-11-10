@@ -39,7 +39,7 @@ func (c *Catalog) AddAliasDomainFor(ctx context.Context, tenant, siteID, rawDoma
 		if n != 1 {
 			return ErrDomainClaimed
 		}
-		return auditAlias(ctx, conn, tenant, requester, siteID+"/"+domain, "site.alias_added")
+		return auditSiteMutation(ctx, conn, tenant, requester, siteID+"/"+domain, "site.alias_added")
 	})
 	if err != nil {
 		return DomainClaim{}, err
@@ -79,11 +79,11 @@ func (c *Catalog) RemoveAliasDomainFor(ctx context.Context, tenant, siteID, rawD
 		if count != 1 {
 			return errors.New("alias removal did not affect one row")
 		}
-		return auditAlias(ctx, conn, tenant, requester, siteID+"/"+domain, "site.alias_removed")
+		return auditSiteMutation(ctx, conn, tenant, requester, siteID+"/"+domain, "site.alias_removed")
 	})
 }
 
-func auditAlias(ctx context.Context, conn *sql.Conn, tenant, requester, siteID, action string) error {
+func auditSiteMutation(ctx context.Context, conn *sql.Conn, tenant, requester, siteID, action string) error {
 	var raw [16]byte
 	if _, err := rand.Read(raw[:]); err != nil {
 		return fmt.Errorf("generate alias audit ID: %w", err)

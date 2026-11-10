@@ -336,7 +336,11 @@ func (s *Server) siteDomainVerificationBegin(w http.ResponseWriter, r *http.Requ
 		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
 		return
 	}
-	instruction, err := s.SiteCatalog.BeginDomainVerification(r.Context(), p.TenantID, siteID, domain)
+	var proof *auth.SessionReadProof
+	if value, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof); ok {
+		proof = &value
+	}
+	instruction, err := s.SiteCatalog.BeginDomainVerificationFor(r.Context(), p.TenantID, siteID, domain, p.UserID, proof)
 	if err != nil {
 		writeSiteError(w, err)
 		return
@@ -370,7 +374,11 @@ func (s *Server) siteDomainVerificationComplete(w http.ResponseWriter, r *http.R
 		fail(w, http.StatusBadRequest, "invalid_domain_proof")
 		return
 	}
-	err := s.SiteCatalog.CompleteDomainVerification(r.Context(), p.TenantID, siteID, domain, req.Value, s.DomainTXTLookup)
+	var proof *auth.SessionReadProof
+	if value, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof); ok {
+		proof = &value
+	}
+	err := s.SiteCatalog.CompleteDomainVerificationFor(r.Context(), p.TenantID, siteID, domain, req.Value, p.UserID, proof, s.DomainTXTLookup)
 	if err != nil {
 		writeSiteError(w, err)
 		return

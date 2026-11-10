@@ -122,14 +122,19 @@ conflicts, and SQLite also binds the requester. Current mutation permission is
 still required for an idempotent retry. Site/domain/database metadata creation
 does not implement this header; duplicate claims return their documented conflict.
 
-Site creation and alias add/remove recheck the active tenant, enabled identity
-and current write membership under the same SQLite writer lock as their
-metadata changes and attributed audit events. Cookie callers also have their
-session digest, revocation and expiry rechecked in that transaction. Audit
-failure rolls the corresponding mutation back. Alias additions remain pending
-domain claims; these operations do not configure or remove host services.
-DNS-proof begin/complete and site-database metadata writes have not yet received
-this transaction guard.
+Site creation, alias add/remove and DNS-proof begin recheck the active tenant,
+enabled identity and current write membership under the same SQLite writer
+lock as their metadata changes and attributed audit events. Cookie callers also
+have their session digest, revocation and expiry rechecked in that transaction.
+Audit failure rolls the corresponding mutation back. Alias additions remain
+pending claims; these operations do not configure or remove host services.
+
+DNS-proof completion checks current authorization and snapshots the pending
+proof before TXT lookup, releases the database lock during DNS, then rechecks
+authorization and conditionally records verification plus its audit event in a
+second transaction. Replaced or expired proofs cannot complete. This checks a
+TXT value only; it is not DNSSEC or certificate validation. Site-database
+metadata writes have not yet received the same transaction guard.
 
 JSON writes require the exact Content-Type string `application/json`; binary
 uploads require exact `application/octet-stream`. Parameters such as `charset`
