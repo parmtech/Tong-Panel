@@ -1,3 +1,10 @@
+### 2026-11-10 20:26 +11:00 — Workstream G, reconcile completed P1 guest run and newer head
+- **Phase/workspace/branch:** P4 design only; `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-p4-continuation`; `docs/p4-hosting-parity-continuation`.
+- **Owned files:** P4 acceptance plan and `UPDATES.md` only. Dependencies: P1/P2/P3 exit and entry gates plus reviewed producer contracts.
+- **Change:** recorded that exact P1 PR #149 head `8764d0f` passed all hosted workflows, including Ubuntu 24.04 and Debian 12 clean-VM jobs; distinguished newer head `4dab4c6` with checks still in progress; refreshed P3 planning head.
+- **Evidence:** authenticated GitHub job summaries and PR metadata; P1/P2 gate reports still explicitly show gates open. `git diff --check` passed.
+- **Limits:** unsigned preview results do not pass P1/P2 gates. No other phase workspace touched; no implementation or privileged operation.
+- **Next:** poll checks on exact PR #149 head `4dab4c6`; continue P4 design only pending upstream decisions.
 ### 2026-11-10 20:22 +11:00 — Workstream G, map P2 issue handoffs to P4 cases
 - **Phase/workspace/branch:** P4 design only; `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-p4-continuation`; `docs/p4-hosting-parity-continuation`.
 - **Owned files:** P4 acceptance plan and `UPDATES.md` only. Dependencies are P1/P2/P3 gate decisions and reviewed producer contracts.
