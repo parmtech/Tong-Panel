@@ -74,6 +74,22 @@ These questions are intentionally unresolved; answer them through the repository
 | Webhook and Git authorization | Which source/ref/repository is bound to an app? How are delivery replay, credential scope, credential revocation and provider outage represented? | Threat model, signature/replay tests, least-scope provider configuration, and redacted audit evidence. |
 | Catalogue trust and removal | Who signs first-party recipes, how is key compromise/revocation handled, and what exact data is owned by a recipe versus a customer? | Maintainer-approved permissions and provenance policy, tamper/revocation tests, explicit data ownership/removal UX and restore proof. |
 
+### Review dependency order
+
+This order is a review aid, not an approval or a chosen implementation. Later decisions depend on stable guarantees from earlier layers; unresolved upstream decisions must remain explicit blockers rather than being filled with convenient defaults.
+
+| Order | Contract/design decision | Depends on | Review artifact required before the next layer |
+|---|---|---|---|
+| 0 | P1/P2 entry evidence and accepted producer contracts | P0 ADR/threat decisions; P1 exit; P2 integrated alpha | Exact-commit gate dossier, maintainer/security decisions, versioned auth/tenant, jobs/agent, routing, quota/files, secret, backup and restore contracts |
+| 1 | Source authorization and deploy admission | Order 0 identity, tenant/app ownership, durable job and audit contracts | Threat-reviewed Git credential scope, signed webhook/replay policy, app/ref binding, denial/error states, redacted audit schema and idempotency contract |
+| 2 | Runtime/toolchain trust and build boundary | Order 0 host/agent trust boundary; Order 1 source snapshot and job identity | Supported Node/Python matrix, source/digest/signature/revocation policy, build/runtime identity model, egress and resource policy, secret exposure diagram, negative-test plan |
+| 3 | Artifact publication and release-history ownership | Order 2 bounded build result; stable P2 storage/quota and backup contracts | Immutable artifact schema and digest ownership, publication atomicity/idempotency rules, quota/retention accounting, garbage-collection and restore consistency tests |
+| 4 | Runtime launch, ports, health and route switch | Order 3 verified artifact; accepted P2 routing contract | Versioned deploy state/event model, port reservation and identity policy, readiness deadline, route observation method, conflict/cancel/crash reconciliation table |
+| 5 | Rollback, data compatibility and app removal | Order 4 observed route outcomes; P2 backup/restore and data ownership | Rollback/data migration compatibility rules, backup/restore ordering, app-owned vs customer-owned data policy, removal/export UX, crash-injection matrix |
+| 6 | Signed catalogue and optional rootless-container profile | Orders 1–5 security and provenance decisions; separate optional-profile threat review | Recipe manifest/signature/revocation/permission and licence review; for containers, independent image digest, rootless isolation, volume/network and resource-limit evidence. Optional profile must not inherit native-runtime approval by implication. |
+
+The review packet should record decision ID, accountable reviewer, decision state, input contract revisions, rejected alternatives and rationale, security consequences, compatibility impact, test IDs, and evidence URL. A row cannot be treated as decided because a draft branch or test fixture happens to embody one option. The complete packet is a design deliverable only; implementation remains governed by the P1/P2 gates above.
+
 ## Hostile fixture catalog
 
 Create synthetic repositories and test applications only after the runner boundary is chosen. Run these fixtures solely in disposable guests with no production credentials or network access to real services. Fixture code is adversarial test input and must never be run on the Windows developer host.
