@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/parmtech/tong-panel/internal/database"
 	"github.com/parmtech/tong-panel/internal/rbac"
 )
 
@@ -219,6 +220,53 @@ func TestSQLiteSessionLogoutAuditsAndRollsBackOnAuditFailure(t *testing.T) {
 	var count int
 	if err := db.QueryRow("SELECT count(*) FROM audit_events WHERE action='auth.logout'").Scan(&count); err != nil || count != 1 {
 		t.Fatalf("logout audit count=%d err=%v", count, err)
+	}
+}
+
+func TestSQLiteSessionLogoutHonorsCancellationDuringWriterWait(t *testing.T) {
+	path, db, store := openSessionDB(t)
+	token, _, _, err := store.Issue(rbac.Principal{UserID: "user-a", TenantID: "tenant-a", Role: rbac.Owner}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	peerDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerDB.Close()
+	writer, err := peerDB.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer writer.ExecContext(context.Background(), "ROLLBACK")
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	result := make(chan error, 1)
+	go func() { result <- store.Logout(ctx, token) }()
+	deadline := time.Now().Add(2 * time.Second)
+	for db.Stats().InUse == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if db.Stats().InUse == 0 {
+		t.Fatal("logout did not acquire a pooled connection")
+	}
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("logout error=%v, want caller deadline", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("logout did not stop after caller deadline")
+	}
+	if _, err := writer.ExecContext(context.Background(), "ROLLBACK"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := store.Check(token); !ok {
+		t.Fatal("canceled logout revoked session")
 	}
 }
 

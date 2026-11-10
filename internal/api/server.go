@@ -177,6 +177,9 @@ func (s *Server) sessionLogout(w http.ResponseWriter, r *http.Request, _ rbac.Pr
 		return
 	}
 	if err := s.Sessions.Logout(r.Context(), cookie.Value); err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || r.Context().Err() != nil {
+			return
+		}
 		if errors.Is(err, auth.ErrInvalidSession) {
 			fail(w, http.StatusUnauthorized, "unauthorized")
 			return

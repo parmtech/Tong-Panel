@@ -123,33 +123,11 @@ func (s *SQLiteSessionStore) lookupWithTimeout(ctx context.Context, token string
 		return rbac.Principal{}, empty, false, nil
 	}
 	defer conn.Close()
-	var busyTimeout int
-	if err := conn.QueryRowContext(queryCtx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
+	restoreBusyTimeout, err := beginSessionWrite(queryCtx, conn)
+	if err != nil {
 		return rbac.Principal{}, empty, false, nil
 	}
-	if _, err := conn.ExecContext(queryCtx, "PRAGMA busy_timeout=0"); err != nil {
-		return rbac.Principal{}, empty, false, nil
-	}
-	defer func() {
-		_, _ = conn.ExecContext(context.Background(), fmt.Sprintf("PRAGMA busy_timeout=%d", busyTimeout))
-	}()
-	for {
-		if _, err := conn.ExecContext(queryCtx, "BEGIN IMMEDIATE"); err == nil {
-			break
-		} else if !sqliteBusy(err) {
-			return rbac.Principal{}, empty, false, nil
-		}
-		timer := time.NewTimer(25 * time.Millisecond)
-		select {
-		case <-queryCtx.Done():
-			timer.Stop()
-			if ctx.Err() != nil {
-				return rbac.Principal{}, empty, false, ctx.Err()
-			}
-			return rbac.Principal{}, empty, false, nil
-		case <-timer.C:
-		}
-	}
+	defer restoreBusyTimeout()
 	committed := false
 	defer func() {
 		if !committed {
@@ -226,6 +204,54 @@ func (s *SQLiteSessionStore) lookupWithTimeout(ctx context.Context, token string
 func sqliteBusy(err error) bool {
 	var sqliteErr *sqlite.Error
 	return errors.As(err, &sqliteErr) && sqliteErr.Code()&0xff == 5
+}
+
+// beginSessionWrite avoids SQLite's native busy wait, which cannot promptly
+// observe request cancellation. The returned cleanup restores the connection's
+// exact prior setting and must be deferred before transaction rollback.
+func beginSessionWrite(ctx context.Context, conn *sql.Conn) (func(), error) {
+	lockCtx, cancel := context.WithTimeout(ctx, sqliteSessionLookupTimeout)
+	var busyTimeout int
+	if err := conn.QueryRowContext(lockCtx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
+		cancel()
+		return nil, err
+	}
+	if _, err := conn.ExecContext(lockCtx, "PRAGMA busy_timeout=0"); err != nil {
+		cancel()
+		return nil, err
+	}
+	restore := func() {
+		_, _ = conn.ExecContext(context.Background(), fmt.Sprintf("PRAGMA busy_timeout=%d", busyTimeout))
+	}
+	fail := func(err error) (func(), error) {
+		restore()
+		cancel()
+		return nil, err
+	}
+	var lastBusy error
+	for {
+		if _, err := conn.ExecContext(lockCtx, "BEGIN IMMEDIATE"); err == nil {
+			cancel()
+			return restore, nil
+		} else if !sqliteBusy(err) {
+			if ctx.Err() != nil {
+				return fail(ctx.Err())
+			}
+			return fail(err)
+		} else {
+			lastBusy = err
+		}
+		timer := time.NewTimer(25 * time.Millisecond)
+		select {
+		case <-lockCtx.Done():
+			timer.Stop()
+			if ctx.Err() != nil {
+				return fail(ctx.Err())
+			}
+			return fail(lastBusy)
+		case <-timer.C:
+		}
+	}
 }
 
 func (s *SQLiteSessionStore) revokeExpiredLookup(ctx context.Context, conn *sql.Conn, now time.Time, hash []byte) bool {

@@ -42,9 +42,11 @@ func (s *SQLiteSessionStore) Rotate(ctx context.Context, oldToken string) (strin
 		return "", "", time.Time{}, err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := beginSessionWrite(ctx, conn)
+	if err != nil {
 		return "", "", time.Time{}, err
 	}
+	defer restoreBusyTimeout()
 	// Sample time only after acquiring both the pooled connection and SQLite's
 	// writer reservation. Waiting for either may cross an idle or absolute
 	// expiry boundary; an earlier timestamp could otherwise revive an expired
@@ -128,9 +130,11 @@ func (s *SQLiteSessionStore) Logout(ctx context.Context, token string) error {
 		return err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := beginSessionWrite(ctx, conn)
+	if err != nil {
 		return err
 	}
+	defer restoreBusyTimeout()
 	committed := false
 	defer func() {
 		if !committed {
