@@ -1,3 +1,9 @@
+### 2026-11-10 20:05 +11:00 — Workstream G, specify crash-safe migration staging cleanup
+- **Branch/state:** docs/p4-hosting-parity-continuation; test-spec refinement to the saved P4 migration proposal.
+- **Change:** require opaque migration ownership and bounded lease/expiry for temporary staging; recovery may reclaim only proven expired owned staging. Added process-termination checkpoints and negative assertions against deleting another active stage or destination data. Refreshed exact heads for P2/P3 planning PRs #144/#145.
+- **Evidence:** reviewed targeted diff; git diff --check passed. Documentation only; product tests not applicable.
+- **Limits:** no cleanup implementation, archive parsing, destination writes, privileged operation or acceptance claim. Upstream P1/P2/P3 gates remain open.
+- **Next:** recheck current PR #149 workflows and phase gate decisions before work beyond design/test specifications.
 ### 2026-11-10 20:04 +11:00 — Workstream G, refresh exact upstream gate evidence
 - **Branch/state:** docs/p4-hosting-parity-continuation; evidence refresh on the saved P4 design.
 - **Change:** replaced the obsolete P1 PR #149 check snapshot with its current exact head and active check runs; updated current draft P2/P3 planning heads.
