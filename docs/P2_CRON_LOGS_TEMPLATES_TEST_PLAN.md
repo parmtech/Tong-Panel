@@ -16,6 +16,15 @@ This slice covers three P2 capabilities for a tenant-owned PHP site:
 
 It does not add DNS provider management, mail, reseller policy, arbitrary user commands, general purpose log search, or a new service manager. Those remain outside this P2 slice or require separate reviewed scope.
 
+## Existing draft work to reuse
+
+These drafts are unmerged component evidence, not accepted product behavior:
+
+- [PR #60](https://github.com/parmtech/Tong-Panel/pull/60), [PR #61](https://github.com/parmtech/Tong-Panel/pull/61), and [PR #65](https://github.com/parmtech/Tong-Panel/pull/65) cover pure Nginx/PHP-FPM/HTTPS rendering and selected clean-guest checks. Do not recreate their renderers as part of this slice; future tests should focus on immutable template-version selection and its association with the site/job state.
+- [PR #80](https://github.com/parmtech/Tong-Panel/pull/80) covers staged Nginx syntax validation, activation, simulated reload failure, and rollback in a disposable guest. Reuse that lab or its contract after review. Additional coverage should prove the template-version and typed-job path invokes the already-tested lifecycle and reports its result; it should not duplicate the standalone rollback scenarios.
+
+These branches remain drafts and their presence does not prove the end-to-end P2 gate.
+
 ## Candidate contracts for review
 
 These are requirements for a future reviewed interface, not approved architecture decisions.
@@ -53,8 +62,8 @@ These are requirements for a future reviewed interface, not approved architectur
 | Durable execution | Repeated delivery is idempotent; task and job state transitions survive restart; bounded timeout and retry exhaustion are observable | Crash before claim, after claim, and during handler; duplicate wakeup; cancellation; site deletion; permission revocation between enqueue and claim |
 | Time behavior | Deterministic tests use an injected clock and fixed timezone database | DST gap/fold, leap day, clock rollback/forward, restart near due time, and concurrent scheduler instances cannot duplicate a logical run |
 | Log isolation | Two-site fixture proves each authorized tenant sees only its own bounded access/error stream | Path traversal, symlink swap, cross-tenant ID/cursor, deleted/rotated file, oversized line, malformed encoding, partial write, and secret-bearing fixture |
-| Template rendering | Golden tests pin output for each immutable template version and representative validated site facts | Directive injection, newline/control characters, hostile domain/path/socket values, missing required facts, and unsupported version produce no publishable config |
-| Config lifecycle | Isolated Linux guest test uses a private temporary service instance and temporary paths; syntax check, activation, reload, health check, and rollback are individually observable | Syntax failure, write/sync/rename failure, reload timeout/nonzero exit, health failure, process crash, and concurrent update preserve the previous known-good version |
+| Template-version selection | Existing PR #60/#61/#65 renderer tests remain the component baseline; add only checks that an immutable version is selected and recorded with the site/job state | Unknown/deprecated version, missing required facts, or a tenant-injected version selector cannot choose a different tenant's config or publish output |
+| Integrated config lifecycle | Reuse PR #80's isolated Nginx rollback lab; add the authenticated site/job-to-template-version path and verify the typed operation's terminal result against that lab | A version conflict, stale site, revoked authorization, failed validation/reload/health result, or job retry cannot silently mark the new version active; retain the prior known-good version |
 | Audit and diagnostics | Actor, tenant, site, job, template version, transition, and stable error class are attributable without secrets | Tokens, passwords, environment values, raw host paths, and unbounded upstream output never appear in logs or API errors |
 | UX/accessibility | Responsive site task/log views expose state, next action, retention limits, and permission errors using keyboard-accessible controls | Empty, loading, stale, denied, partially rotated, and failed states are understandable without color alone |
 
