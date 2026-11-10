@@ -1,3 +1,9 @@
+### 2026-11-10 19:41 +11:00 — Workstream G, add P4 capability dependency traceability
+- **Branch/state:** docs/p4-hosting-parity-continuation; continuation of the preserved P4 design checkpoint.
+- **Change:** mapped each P4 capability group to specific P1/P2/P3 producer contracts and its existing numbered acceptance cases. Corrected the design introduction to distinguish passing narrow P2 lab evidence from accepted P2/P3 phase gates.
+- **Evidence:** reviewed the Phase 4 blueprint, Phase Index, P2/P3 plans, current P1 exit report, and drafts #144/#145. git diff --check passed; docs only, no product tests applicable.
+- **Security/licence/blockers:** no implementation, dependency or privileged action. P1 remains incomplete, P2 entry blocked and P3 acceptance unproven; P4 remains design-only.
+- **Next:** when gate decisions change, link each row to accepted exact-version contracts and evidence before splitting a capability into implementation work.
 ### 2026-11-10 19:38 +11:00 — Workstream G, refresh P1 exact-head VM status
 - **Branch/state:** docs/p4-hosting-parity-continuation; evidence update only.
 - **Change:** corrected the current P1 VM status: PR #143 run #42781985275 reports Debian 12 success; Ubuntu 24.04 is still running.

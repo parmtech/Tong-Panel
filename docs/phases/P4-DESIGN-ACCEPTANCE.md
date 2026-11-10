@@ -8,13 +8,27 @@
 
 ## Gate and dependency record
 
-The phase index defines P4 as dependent on P2 and P3. P2 is itself gated on verified P1; P3 requires P2's secure site routing, auth/quotas, backups and deploy jobs. The repository's current documentation identifies P1 as in progress and P2 as blocked. No P2 or P3 verification was found in the inspected default-branch phase index or open PRs. Therefore every item below is preparatory; do not implement privileged service mutations or call any acceptance gate passed until maintainers record upstream evidence and security/ADR decisions.
+The phase index defines P4 as dependent on P2 and P3. P2 is itself gated on verified P1; P3 requires P2's secure site routing, auth/quotas, backups and deploy jobs. The current P1 exit report says P1 is incomplete and P2 entry is blocked. GitHub contains narrow passing P2 lab results and draft P2/P3 specifications, but no accepted P2 or P3 phase gate. Therefore every item below is preparatory; do not implement privileged service mutations or call any acceptance gate passed until maintainers record upstream evidence and security/ADR decisions.
 
 Required handoffs before P4 implementation:
 1. P1 exit evidence and explicit P2 entry decision, including approved trust/agent and installer gates.
 2. P2 stable site/domain, typed-job, tenant authorization, quota, encrypted secret, backup/restore, and rollback contracts, each linked to exact verified commits/tests.
 3. P3 build/runtime isolation, deployment/rollback, secret, and job contracts with hostile-app evidence.
 4. A reviewed P4 architecture decision that resolves the relevant proposed ADRs, especially datastore strategy and optional DNS/mail profiles. Existing ADRs are proposals, not approvals.
+
+### P4 capability-to-prerequisite traceability
+
+Use this map to request exact producer evidence when the upstream phase gates reopen. It narrows the existing P4 feature and acceptance lists to the contracts each slice consumes; it does not authorize implementation ahead of the phase entry decision.
+
+| P4 capability group | Required upstream contracts to accept first | P4 acceptance cases |
+|---|---|---|
+| DNS and mail (slices 1–3) | P2 verified-domain ownership/proof, TLS and service health, typed durable jobs with audit, tenant secret references, quotas/rate limits; P3 job retry/cancel state and reviewed egress/secret boundary where deploy/runtime integration is involved | 1 DNS provider matrix; 2 mail isolation/abuse; 6 reconciliation/cutover |
+| PostgreSQL and extensions (slice 4) | P2 database ownership/grants, package/install policy, tenant resource quotas, encrypted backup/restore and upgrade/recovery contract; P3 typed job lifecycle, service/resource isolation and secret rotation semantics | 3 PostgreSQL profile; 7 restore evidence |
+| Resellers, packages and quotas (slice 5) | P1 reviewed identity/RBAC and audit; P2 authoritative quota reservation/accounting at API and adapter, suspend/restore and ownership; P3 execution-time job reauthorization and resource accounting | 4 reseller/quota adversarial matrix |
+| cPanel/WHM migration and reconciliation (slice 6) | P2 bounded upload/archive staging, site/domain/database/mail ownership, backup/restore and rollback/compensation; P3 artifact, runtime secret and deployment-state contracts for any imported app/release content | 5 archive adversarial corpus; 6 reconciliation/cutover; 7 restore evidence |
+| Site operations and operator interfaces (slices 7–8) | P1 scoped API/CLI auth, token/session policy and audit; P2 approved cron/log/template/site lifecycle, backup/export and error states; P3 durable event/job lifecycle for deployment notifications and webhooks | Relevant slice-specific tests plus full reference-deployment release gate |
+
+Before proposing an implementation issue, each dependency row must link the accepted contract version, exact source commit, relevant test run and artifact, reviewer/maintainer gate decision, and exclusions. A draft PR, component test, or unsigned VM smoke is not a substitute for any required contract.
 
 ## Non-overlapping P4 workstreams
 
