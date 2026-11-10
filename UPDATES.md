@@ -309,3 +309,7 @@ Expanded P3-09 with an inert-manifest decision matrix covering trusted baseline,
 ## P3 operator accessibility acceptance criteria — 2026-11-10
 
 Expanded the manual operator review for exit scenario 9 with observable pass conditions and evidence for keyboard-only workflow, asynchronous status announcements, actionable errors, accessible/redacted logs, and constrained viewport/zoom behavior. No UI layout or endpoint contract is prescribed. Documentation structure check and `git diff --check` passed. No application UI test was run; P3 remains gated.
+
+## P3 secret lifecycle acceptance oracle — 2026-11-10
+
+Expanded P3-06 with seven synthetic-canary lifecycle cases: scope denial, active-process rotation, queued/running build version binding, revoke/delete, decryption failure, backup/restore after revocation, and audit/support-export redaction. The matrix deliberately leaves key custody, activation/reload and restore policy unresolved; cases without an approved policy remain not run/blocked. Structural check and `git diff --check` passed. No real secrets or app processes were used; P3 remains gated.

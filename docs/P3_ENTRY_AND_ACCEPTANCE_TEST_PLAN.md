@@ -198,6 +198,22 @@ An executable, non-normative in-memory example is in [`prototypes/p3-deploy-reco
 - Inject canary secrets and assert absence from API responses, build output, deploy logs, runtime logs, exceptions, process listings visible to other tenants, and audit exports.
 - Audit actor, app, action, release, and outcome without recording secret values. Ensure authorization is rechecked at deploy-job execution time.
 
+#### Secret lifecycle decision matrix
+
+Use synthetic canary values in the approved disposable lab only. These outcomes do not select key custody, rotation timing, process reload behavior, or backup semantics; those policies must be reviewed and versioned before integration.
+
+| Scenario | Required oracle | Evidence |
+|---|---|---|
+| Target app reads an assigned secret; a second app/tenant requests it by ID or guessed reference | Only the authorized target identity receives the value; every other identity is denied without confirming secret existence | Synthetic IDs, actor/app/tenant identity, allow/deny result, canary search across responses and logs |
+| Rotate a secret while an app process is running | New launches observe only the current authorized version under the documented activation policy; process generations follow the approved reload/restart rule; no unauthorized process observes either value | Secret version IDs (never values), process generation, activation time, route/health outcome and redacted logs |
+| Rotate while a build/deploy job is queued or running | Job uses only the explicitly approved secret stage/version; retries cannot silently switch versions or expose runtime secrets to build scripts | Job ID, stage, bound version reference, retry result and canary scan of build output/argv/logs |
+| Revoke/delete a secret or remove app authorization | Future reads and launches fail closed; behavior of already-running processes follows the documented revocation boundary; no stale fallback is silently used | Revocation time, authorization result, process/route reconciliation, no-value audit evidence |
+| Decryption/key lookup fails | No plaintext fallback or secret value in diagnostics; candidate launch/deploy fails safely and the prior release outcome is explicit | Injected failure point, job outcome, route health, redacted error and cleanup result |
+| Restore app configuration or backup after rotation/revocation | Restore follows the approved key/reference policy; it cannot silently resurrect a revoked version or expose plaintext in the backup | Backup/restore revision, secret-reference state, re-entry/rebind decision, access-denial and redaction results |
+| Audit and support export for any lifecycle operation | Record actor, tenant, app, action, version reference and outcome as approved; never include secret value, ciphertext or derivation material | Redacted audit/export scan with canary match results and reviewer |
+
+Every test must distinguish a reference/version identifier from secret material. Record activation and revocation semantics explicitly; absent an approved policy, classify the case **not run / blocked by design decision**, not pass.
+
 ### P3-07: Routing, health checks, rollback, and TLS integration
 
 - Only after P2 routing/TLS is accepted, deploy Node and Python fixtures behind a custom domain and verified HTTPS route. Assert host/path routing cannot cross app or tenant boundaries.
