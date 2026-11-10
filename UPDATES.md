@@ -367,3 +367,10 @@ Latest connected GitHub diagnostics at PR #149 head `8764d0fef218a36a4cc9411e548
 ## P1 #149 newer exact-head diagnostics — 2026-11-10
 
 Connected GitHub reports open/draft PR #149 advanced from `8764d0fef218a36a4cc9411e5481656d014cdf0c` to `4dab4c60cc86186935e9a7d987b9fe1ca97a1f23`. Diagnostics pinned to `4dab4c6` show test, contract, daemon dry-run, unsigned-dev-archive, browser, and govulncheck succeeded; Ubuntu 24.04 and Debian 12 clean-VM jobs in run #42790473632 were still in progress at observation. The P3 prerequisite matrix distinguishes this latest status from the prior all-green head. PR remains open/draft and unsigned developer-preview scope; P1 exit and P3 entry remain unproven.
+
+## P3 exit-scenario evidence ledger — 2026-11-10
+
+- Scope: P3-owned `docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md` only; worktree `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-phase3`, branch `docs/p3-prerequisite-evidence`, starting head `89bd1e6588668de6586fa30e392c8999933786f2`.
+- Added one row for each of the nine phase-exit scenarios with current `NOT RUN` disposition and specific evidence bundle required to close it. Distinguished hostile-workload, profile exclusion, and unavailable-contract reasons; local fixtures/model tests are expressly not end-to-end evidence.
+- `git diff --check` passed; manual structural inspection confirms nine scenario rows. Documentation-only; no product or acceptance tests apply. P1/P2/P0/security blockers remain unchanged.
+- Next step: recheck P1 #149 exact-head diagnostics and phase branch refs; continue within P3-owned documentation/prototype files only.
