@@ -225,6 +225,76 @@ func TestSQLiteSessionCheckSamplesExpiryAfterWriterWait(t *testing.T) {
 	}
 }
 
+func TestSQLiteSessionIssueSamplesExpiryAfterWriterWait(t *testing.T) {
+	_, db, store := openSessionDB(t)
+	start := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
+	var currentUnix atomic.Int64
+	currentUnix.Store(start.Unix())
+	store.now = func() time.Time { return time.Unix(currentUnix.Load(), 0).UTC() }
+	db.SetMaxOpenConns(1)
+	blocker, err := db.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer blocker.Close()
+	var sampleCalls atomic.Int64
+	sampled := make(chan struct{}, 1)
+	store.now = func() time.Time {
+		if sampleCalls.Add(1) == 1 {
+			sampled <- struct{}{}
+		}
+		return time.Unix(currentUnix.Load(), 0).UTC()
+	}
+	type issued struct {
+		token   string
+		expires time.Time
+		err     error
+	}
+	result := make(chan issued, 1)
+	go func() {
+		token, _, expires, issueErr := store.Issue(
+			rbac.Principal{UserID: "user-a", TenantID: "tenant-a", Role: rbac.Owner}, 2*time.Hour)
+		result <- issued{token: token, expires: expires, err: issueErr}
+	}()
+	waitForDBPoolWait(t, db, 0)
+	late := start.Add(7 * time.Minute)
+	currentUnix.Store(late.Unix())
+	if err := blocker.Close(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-sampled:
+	case <-time.After(3 * time.Second):
+		t.Fatal("session issue did not sample time after connection wait")
+	}
+	var got issued
+	select {
+	case got = <-result:
+	case <-time.After(5 * time.Second):
+		t.Fatal("session issue did not finish after releasing the writer")
+	}
+	if got.err != nil {
+		t.Fatal(got.err)
+	}
+	wantExpiry := late.Add(2 * time.Hour)
+	if !got.expires.Equal(wantExpiry) {
+		t.Fatalf("session expiry=%s, want post-wait expiry %s", got.expires, wantExpiry)
+	}
+	hash, ok := sessionKey(got.token)
+	if !ok {
+		t.Fatal("issued session token was not parseable")
+	}
+	var expiry string
+	var idleDeadline int64
+	if err := db.QueryRow("SELECT expires_at,idle_deadline_unix FROM sessions WHERE token_sha256=?", hash[:]).Scan(&expiry, &idleDeadline); err != nil {
+		t.Fatal(err)
+	}
+	parsedExpiry, err := time.Parse(time.RFC3339Nano, expiry)
+	if err != nil || !parsedExpiry.Equal(wantExpiry) || idleDeadline != late.Add(sqliteSessionIdle).Unix() {
+		t.Fatalf("stored session expiry=%s idle=%d err=%v; want expiry=%s idle=%d", expiry, idleDeadline, err, wantExpiry, late.Add(sqliteSessionIdle).Unix())
+	}
+}
+
 func TestSQLiteSessionExpiryAndUserRevocation(t *testing.T) {
 	_, _, store := openSessionDB(t)
 	now := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)

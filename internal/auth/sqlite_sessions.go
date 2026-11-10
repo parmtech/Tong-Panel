@@ -45,36 +45,48 @@ func (s *SQLiteSessionStore) Issue(p rbac.Principal, lifetime time.Duration) (to
 	if _, err = rand.Read(idRaw[:16]); err != nil {
 		return "", "", time.Time{}, err
 	}
+	tokenHash := sha256.Sum256(tokenRaw[:])
+	csrfHash := sha256.Sum256(csrfRaw[:])
+	conn, err := s.db.Conn(context.Background())
+	if err != nil {
+		return "", "", time.Time{}, err
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		return "", "", time.Time{}, err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+		}
+	}()
+	// Compute the lifetime only after the writer reservation, so connection
+	// and lock wait cannot consume the requested session lifetime.
 	now := s.now().UTC()
 	expires = now.Add(lifetime)
 	idleUntil := now.Add(sqliteSessionIdle)
 	if expires.Before(idleUntil) {
 		idleUntil = expires
 	}
-	tokenHash := sha256.Sum256(tokenRaw[:])
-	csrfHash := sha256.Sum256(csrfRaw[:])
-	tx, err := s.db.Begin()
-	if err != nil {
-		return "", "", time.Time{}, err
-	}
-	defer tx.Rollback()
 	var role string
-	err = tx.QueryRow(`SELECT m.role FROM memberships m
+	err = conn.QueryRowContext(context.Background(), `SELECT m.role FROM memberships m
 		JOIN identities i ON i.id=m.identity_id
 		JOIN tenants t ON t.id=m.tenant_id AND t.status='active'
 		WHERE m.tenant_id=? AND m.identity_id=? AND i.disabled=0`, p.TenantID, p.UserID).Scan(&role)
 	if err != nil || rbac.Role(role) != p.Role {
 		return "", "", time.Time{}, ErrInvalidSession
 	}
-	_, err = tx.Exec(`INSERT INTO sessions(id,tenant_id,identity_id,token_sha256,csrf_sha256,expires_at,idle_deadline_unix)
+	_, err = conn.ExecContext(context.Background(), `INSERT INTO sessions(id,tenant_id,identity_id,token_sha256,csrf_sha256,expires_at,idle_deadline_unix)
 		VALUES(?,?,?,?,?,?,?)`, hex.EncodeToString(idRaw[:16]), p.TenantID, p.UserID, tokenHash[:], csrfHash[:],
 		expires.Format(time.RFC3339Nano), idleUntil.Unix())
 	if err != nil {
 		return "", "", time.Time{}, err
 	}
-	if err = tx.Commit(); err != nil {
+	if _, err = conn.ExecContext(context.Background(), "COMMIT"); err != nil {
 		return "", "", time.Time{}, err
 	}
+	committed = true
 	return hex.EncodeToString(tokenRaw[:]), hex.EncodeToString(csrfRaw[:]), expires, nil
 }
 
