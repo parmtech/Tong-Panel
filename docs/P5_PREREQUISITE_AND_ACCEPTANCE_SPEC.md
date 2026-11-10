@@ -2,7 +2,7 @@
 
 **Assessment date:** 2026-11-10 (Australia/Sydney)
 **State:** design and test specification only; Phase 5 entry is **BLOCKED**.
-**Evidence baseline:** GitHub `main` at `0aad68e81138a0f226e83e401f90bae4d0b6bddc`; Phase 4 checkpoint `docs/p4-hosting-parity-design` at `0029b39aa5ebb2056506892b18b400a31402977b`.
+**Evidence baseline:** GitHub [`main` commit `0aad68e81138a0f226e83e401f90bae4d0b6bddc`](https://github.com/parmtech/Tong-Panel/commit/0aad68e81138a0f226e83e401f90bae4d0b6bddc); preserved Phase 4 checkpoint [`0029b39aa5ebb2056506892b18b400a31402977b`](https://github.com/parmtech/Tong-Panel/commit/0029b39aa5ebb2056506892b18b400a31402977b) on `docs/p4-hosting-parity-design`.
 
 This document translates the existing Phase 5 plan into independently verifiable gates and test scenarios. It does not approve architecture, authorize privileged work, assert implementation, or change any entry gate. A passing prototype test cannot substitute for the prerequisite evidence below.
 
@@ -87,12 +87,12 @@ Each accepted test should retain: scenario ID, source commit, test harness/envir
 
 ## Source references
 
-- `docs/BLUEPRINT.md` — staged scale and trust-boundary intent.
-- `docs/ROADMAP.md` and `docs/PHASE_INDEX.md` — phase dependencies and gates.
-- `docs/phases/P5-MULTISERVER-ECOSYSTEM.md` — canonical P5 scope and acceptance.
-- `docs/phases/P4-HOSTING-PARITY.md` at checkpoint `0029b39aa5ebb2056506892b18b400a31402977b` — P4 dependency and acceptance.
-- `docs/P1_EXIT_GATE_REPORT_2026-10-27.md` on the current P1 draft stack — current gate evidence and remaining blockers.
-- Draft PR #146 and its branch `docs/p4-hosting-parity-continuation` — refreshed Phase 4 gate snapshot and exact upstream evidence references.
-- Branch `docs/p3-prerequisite-evidence`, `docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md` — P3 entry remains not proven; this is a design artifact, not P3 implementation.
-- P2 draft PRs #89/#91 and clean-guest workflow runs #42631444449/#42633862164 — narrow unsigned preview evidence; exclusions are recorded above.
-- `UPDATES.md` on GitHub `main` — latest committed journal baseline; active draft-branch outcomes must be rechecked before gate decisions.
+- [Blueprint](https://github.com/parmtech/Tong-Panel/blob/main/docs/BLUEPRINT.md) — staged scale and trust-boundary intent.
+- [Roadmap](https://github.com/parmtech/Tong-Panel/blob/main/docs/ROADMAP.md) and [phase index](https://github.com/parmtech/Tong-Panel/blob/main/docs/PHASE_INDEX.md) — phase dependencies and gates.
+- [Canonical P5 plan](https://github.com/parmtech/Tong-Panel/blob/main/docs/phases/P5-MULTISERVER-ECOSYSTEM.md) — scope and acceptance.
+- [P4 plan at the preserved checkpoint](https://github.com/parmtech/Tong-Panel/blob/docs/p4-hosting-parity-design/docs/phases/P4-HOSTING-PARITY.md) — P4 dependency and acceptance.
+- [P1 exit report on the active draft stack](https://github.com/parmtech/Tong-Panel/blob/feature/p1-file-quota-request-context/docs/P1_EXIT_GATE_REPORT_2026-10-27.md) and [PR #143](https://github.com/parmtech/Tong-Panel/pull/143) — current gate evidence and remaining blockers.
+- [Draft PR #146](https://github.com/parmtech/Tong-Panel/pull/146) and its [P4 gate snapshot](https://github.com/parmtech/Tong-Panel/blob/docs/p4-hosting-parity-continuation/docs/phases/P4-DESIGN-ACCEPTANCE.md) — refreshed Phase 4 gate evidence.
+- [P3 entry/test plan](https://github.com/parmtech/Tong-Panel/blob/docs/p3-prerequisite-evidence/docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md) on `docs/p3-prerequisite-evidence` — P3 entry remains unproven; this is a design artifact, not P3 implementation.
+- [P2 draft PR #89](https://github.com/parmtech/Tong-Panel/pull/89), [P2 draft PR #91](https://github.com/parmtech/Tong-Panel/pull/91), [guest run #42631444449](https://github.com/parmtech/Tong-Panel/actions/runs/42631444449), and [guest run #42633862164](https://github.com/parmtech/Tong-Panel/actions/runs/42633862164) — narrow unsigned preview evidence; exclusions are recorded above.
+- [`UPDATES.md` on GitHub `main`](https://github.com/parmtech/Tong-Panel/blob/main/UPDATES.md) — committed journal baseline; active draft-branch outcomes must be rechecked before gate decisions.
