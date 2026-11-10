@@ -1,3 +1,10 @@
+### 2026-11-10 20:20 +11:00 — Workstream G, record Debian guest rerun result
+- **Phase/workspace/branch:** P4 design only; `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-p4-continuation`; `docs/p4-hosting-parity-continuation`.
+- **Owned files:** P4 acceptance plan and `UPDATES.md` only. Dependencies remain accepted P1/P2/P3 gate decisions and producer contracts.
+- **Change:** exact-head P1 PR #149 run #42787324539 now has Debian 12 clean-VM preview smoke passed; Ubuntu 24.04 remains active. Updated the evidence note and current P3 planning head.
+- **Evidence:** authenticated GitHub workflow job summary; `git diff --check` passed. Debian result is unsigned developer-preview evidence, not P1 exit acceptance.
+- **Limits:** P1 report still blocks P2 entry; P2 exit remains open; P3 acceptance unproven. No cross-phase edits, implementation or privileged operation.
+- **Next:** poll the same Ubuntu job to completion; proceed only within P4 design until prerequisite gates pass.
 ### 2026-11-10 20:18 +11:00 — Workstream G, coordination checkpoint for P4 continuation
 - **Phase/workspace/branch:** P4 design only; `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-p4-continuation`; `docs/p4-hosting-parity-continuation` at `bc9bb76dcebbbf6599b1daaa3d6410e862cd717f`.
 - **Owned files:** `docs/phases/P4-DESIGN-ACCEPTANCE.md` and this journal only. No Phase 1 or other phase workspace touched.
