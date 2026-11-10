@@ -81,7 +81,7 @@ Use synthetic identities, certificates, clocks, queues, and node state. The owne
 
 7. **Cross-node/tenant denial:** submit a valid user/job for a different node or tenant and assert denial before dispatch, no metadata leakage, no remote side effect, and an attributed audit record.
 8. **Policy change in flight:** narrow permissions or remove placement eligibility between enqueue and execution; execution-time authorization must deny, with a stable reason code and no arbitrary command path.
-9. **Placement determinism:** given inventory, labels, constraints, health, and capacity, verify deterministic eligible-node selection; unknown/stale inventory and conflicting constraints fail closed.
+9. **Placement determinism:** given inventory, labels, constraints, health, and capacity, verify deterministic eligible-node selection; unknown/stale inventory and conflicting constraints fail closed. The offline candidate model in `prototypes/p5-placement-gate-model` covers only exact environment matching and maintenance-window denial, not a placement engine.
 10. **No shell escape:** fuzz the typed job/action protocol with unknown action, extra fields, path/argument injection, oversized frames, duplicate keys, replayed IDs, and malformed encodings. No generic shell/exec operation is accepted.
 
 Scenarios 29–30 extend this area with scheduled maintenance and staging/production separation.
@@ -184,8 +184,8 @@ Before implementation, owners must approve the moderation authority, review reco
 | Deprecated plugin has user-owned data or a proposed replacement | Identify affected installations and a reviewed migration/export route; preserve data through upgrade/retirement and keep unrelated panel/plugin boot healthy. | Synthetic data inventory, deprecation state/version, migration/rollback trace, export verification, and boot/health result. |
 | Declarative recipe attempts to request executable plugin capability or host action | Reject or route to the separate reviewed executable-plugin path before activation; recipe metadata alone cannot grant that capability. | Recipe and plugin fixtures, schema/decision trace, denied side-effect checks, and reviewed permission record. |
 
-29. **Scheduled maintenance:** use a fake clock to exercise entry to and exit from a maintenance window. Apply the reviewed disposition to queued/running jobs, deny new placement on affected nodes during the window, and require fresh health/eligibility evidence before returning a node to placement. Unspecified or conflicting disposition fails closed and is auditable.
-30. **Staging/production separation:** use synthetic nodes, tenants, jobs, and credentials labeled for separate environments. Placement, secret use, migration, and release actions must remain within the declared environment; missing/stale environment identity or a cross-environment request is denied before dispatch without leaking inventory.
+29. **Scheduled maintenance:** use a fake clock to exercise entry to and exit from a maintenance window. Apply the reviewed disposition to queued/running jobs, deny new placement on affected nodes during the window, and require fresh health/eligibility evidence before returning a node to placement. Unspecified or conflicting disposition fails closed and is auditable. The offline candidate model exercises only eligibility timing.
+30. **Staging/production separation:** use synthetic nodes, tenants, jobs, and credentials labeled for separate environments. Placement, secret use, migration, and release actions must remain within the declared environment; missing/stale environment identity or a cross-environment request is denied before dispatch without leaking inventory. The offline candidate model covers exact string matching only, not credential or data-path isolation.
 
 #### Review-only maintenance and environment evidence for scenarios 29–30
 
