@@ -211,3 +211,53 @@ func TestConcurrentIdenticalAdmissionRetriesReturnOneJob(t *testing.T) {
 		t.Fatalf("got %d successful callers and %d jobs; want %d and 1", count, model.JobCount(), callers)
 	}
 }
+
+func TestConcurrentChangedPayloadsUnderOneKeyHaveSingleWinner(t *testing.T) {
+	model := NewAdmissionModel()
+	base := AdmissionRequest{TenantID: "tenant-a", AppID: "app-a", Key: "request-1", PayloadDigest: "digest-a"}
+	const callers = 64
+	results := make(chan struct {
+		digest string
+		id     string
+		err    error
+	}, callers)
+	var group sync.WaitGroup
+	group.Add(callers)
+	for i := range callers {
+		request := base
+		if i%2 == 1 {
+			request.PayloadDigest = "digest-b"
+		}
+		go func() {
+			defer group.Done()
+			id, err := model.Admit(request)
+			results <- struct {
+				digest string
+				id     string
+				err    error
+			}{digest: request.PayloadDigest, id: id, err: err}
+		}()
+	}
+	group.Wait()
+	close(results)
+	var winnerDigest, winnerID string
+	accepted, conflicts := 0, 0
+	for result := range results {
+		switch {
+		case result.err == nil:
+			accepted++
+			if winnerDigest == "" {
+				winnerDigest, winnerID = result.digest, result.id
+			} else if winnerDigest != result.digest || winnerID != result.id {
+				t.Errorf("multiple payloads/jobs accepted: (%q,%q) and (%q,%q)", winnerDigest, winnerID, result.digest, result.id)
+			}
+		case errors.Is(result.err, ErrIdempotencyConflict):
+			conflicts++
+		default:
+			t.Errorf("unexpected admission error: %v", result.err)
+		}
+	}
+	if accepted == 0 || conflicts != callers-accepted || model.JobCount() != 1 {
+		t.Fatalf("accepted=%d conflicts=%d jobs=%d; want one winner and one job", accepted, conflicts, model.JobCount())
+	}
+}

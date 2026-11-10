@@ -329,3 +329,7 @@ Expanded P3-03 with seven measured dimensions (CPU, memory, workspace/disk, wall
 ## P1/P2 live evidence refresh — 2026-11-10
 
 Confirmed `origin/main` remains `0aad68e81138a0f226e83e401f90bae4d0b6bddc`. Connected GitHub reports P1 PR #143 still open/draft with all eight checks at exact head `482017005f9872c1fe7f2969ebfb477ea7de30dd` successful. Newer P1 PR #149 is open/draft at `8764d0fef218a36a4cc9411e5481656d014cdf0c`; six reported checks are successful and Ubuntu 24.04/Debian 12 clean-VM jobs remain in progress (run #42787324539). Main's Phase Index still marks P1 in progress and P2 plan planned. Evidence matrix refreshed; these open unsigned-preview slices do not establish phase exit or P3 entry.
+
+## P3 conflicting concurrent retry model — 2026-11-10
+
+Extended the in-memory admission example with 64 concurrent requests using the same modeled key but two payload digests. It asserts one payload winner, conflicts for every other payload, and exactly one simulated job record. Twelve model tests pass across ten suite runs; `go vet`, `gofmt -d`, and `git diff --check` pass on Windows. CGO is disabled in the supplied Go environment, so race-detector validation is unavailable. This still does not model durable or multi-process idempotency and is not product evidence.
