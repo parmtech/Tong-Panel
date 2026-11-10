@@ -27,25 +27,26 @@ func TestClassifyRequiresSufficientEvidence(t *testing.T) {
 	}
 }
 
-func TestMayReplayRequiresSameKeyAndDurableDedupeForUnknown(t *testing.T) {
+func TestMayReplayRequiresCompleteBindingAndDurableDedupeForUnknown(t *testing.T) {
 	tests := []struct {
-		name    string
-		outcome Outcome
-		sameKey bool
-		durable bool
-		want    bool
+		name     string
+		outcome  Outcome
+		evidence ReplayEvidence
+		want     bool
 	}{
 		{name: "not dispatched", outcome: NotDispatched, want: true},
-		{name: "unknown with same key and durable dedupe", outcome: Unknown, sameKey: true, durable: true, want: true},
-		{name: "unknown with new key", outcome: Unknown, durable: true},
-		{name: "unknown without durable dedupe", outcome: Unknown, sameKey: true},
-		{name: "rejected", outcome: RejectedBeforeEffect, sameKey: true, durable: true},
-		{name: "succeeded", outcome: Succeeded, sameKey: true, durable: true},
+		{name: "unknown with complete binding", outcome: Unknown, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}, want: true},
+		{name: "unknown with new key", outcome: Unknown, evidence: ReplayEvidence{SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}},
+		{name: "unknown with changed target", outcome: Unknown, evidence: ReplayEvidence{SameIdempotencyKey: true, SameRequest: true, DurableWorkerDedupe: true}},
+		{name: "unknown with changed request", outcome: Unknown, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, DurableWorkerDedupe: true}},
+		{name: "unknown without durable dedupe", outcome: Unknown, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true}},
+		{name: "rejected", outcome: RejectedBeforeEffect, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}},
+		{name: "succeeded", outcome: Succeeded, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := MayReplay(tt.outcome, tt.sameKey, tt.durable); got != tt.want {
-				t.Fatalf("MayReplay(%v, sameKey=%t, durable=%t) = %t, want %t", tt.outcome, tt.sameKey, tt.durable, got, tt.want)
+			if got := MayReplay(tt.outcome, tt.evidence); got != tt.want {
+				t.Fatalf("MayReplay(%v, evidence=%+v) = %t, want %t", tt.outcome, tt.evidence, got, tt.want)
 			}
 		})
 	}

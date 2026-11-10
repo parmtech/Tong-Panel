@@ -53,15 +53,26 @@ func Classify(e Evidence) Outcome {
 	return Unknown
 }
 
-// MayReplay reports whether another dispatch is safe under the evidence and
+// ReplayEvidence records the bindings required to deduplicate an uncertain
+// attempt. SameRequest means tenant, target, action, and immutable payload all
+// match the original attempt; it is not merely a caller-provided key match.
+type ReplayEvidence struct {
+	SameIdempotencyKey  bool
+	SameTargetNode      bool
+	SameRequest         bool
+	DurableWorkerDedupe bool
+}
+
+// MayReplay reports whether another dispatch is safe under the outcome and
 // explicitly supplied deduplication facts. An Unknown attempt may only be
-// replayed with the same idempotency key against a worker with durable dedupe.
-func MayReplay(outcome Outcome, sameKey, durableWorkerDedupe bool) bool {
+// replayed with the same key, target node, and immutable request against a
+// worker with durable dedupe.
+func MayReplay(outcome Outcome, e ReplayEvidence) bool {
 	switch outcome {
 	case NotDispatched:
 		return true
 	case Unknown:
-		return sameKey && durableWorkerDedupe
+		return e.SameIdempotencyKey && e.SameTargetNode && e.SameRequest && e.DurableWorkerDedupe
 	default:
 		return false
 	}

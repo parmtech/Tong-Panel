@@ -48,7 +48,7 @@ Use deterministic, local-only fakes for control-plane logic, a disposable isolat
 2. **Mutual identity:** accept only the expected node identity and trust root; reject unknown, expired, not-yet-valid, wrong-purpose, and wrong-node certificates. Do not fall back to bearer-only or unauthenticated transport.
 3. **Rotation:** exercise overlap and retirement windows using a fake clock; prove old material is rejected after retirement and no rotation secret is logged or persisted in plaintext.
 4. **Revocation:** revoke a node while connected and while disconnected; after reconnection, deny new jobs and credentials. Verify stale cached authorization cannot restore access and revocation is auditable.
-5. **Control-plane partition:** partition control-plane-to-node traffic before, during, and after a lease. Verify no ghost-success, no unbounded authorization lease, explicit unknown outcome for uncertain effects, and safe reconnection reconciliation.
+5. **Control-plane partition:** partition control-plane-to-node traffic before, during, and after a lease. Verify no ghost-success, no unbounded authorization lease, explicit unknown outcome for uncertain effects, and safe reconnection reconciliation. Replay after a lost response must retain the same idempotency key, target node, tenant, action, and immutable request; changed bindings or missing durable node deduplication must deny replay. The offline candidate classifier is in `prototypes/p5-outcome-model`.
 6. **Node partition/offline:** mark health and job state honestly when a node is offline; retries must not duplicate non-idempotent work. The UI/API must distinguish unreachable, pending, failed, and externally verified success.
 
 ### Authorization and placement
