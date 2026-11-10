@@ -305,3 +305,7 @@ Extended the admission example to serialize 64 concurrent identical retries with
 ## P3 catalogue trust acceptance oracle — 2026-11-10
 
 Expanded P3-09 with an inert-manifest decision matrix covering trusted baseline, malformed/oversized input, signer revocation/staleness, mutable or mismatched digests, overprivilege/resources, licence/provenance uncertainty, and data-preserving recipe removal. This specifies test outcomes and required evidence without creating a production manifest schema or deciding trust policy. Structural check and `git diff --check` passed. No hostile input was executed; P3 remains gated.
+
+## P3 operator accessibility acceptance criteria — 2026-11-10
+
+Expanded the manual operator review for exit scenario 9 with observable pass conditions and evidence for keyboard-only workflow, asynchronous status announcements, actionable errors, accessible/redacted logs, and constrained viewport/zoom behavior. No UI layout or endpoint contract is prescribed. Documentation structure check and `git diff --check` passed. No application UI test was run; P3 remains gated.

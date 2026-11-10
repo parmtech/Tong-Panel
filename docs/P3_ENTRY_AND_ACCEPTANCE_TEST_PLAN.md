@@ -280,6 +280,18 @@ Run only after P1/P2 entry gates, the P3 runner boundary, and the relevant UI/AP
 - Keyboard-only operation and accessible status announcements work for long-running deploy, health, failure and rollback states. Any UI-only claim is labeled until the backend operation is verified.
 - Observe guest CPU, memory, disk and process health before, during and after hostile/resource-limit fixtures. Record actual measurements; do not invent thresholds in this plan.
 
+#### Observable accessibility acceptance checks
+
+| User task | Pass condition | Evidence |
+|---|---|---|
+| Start, inspect, cancel or recover a deployment using only the keyboard | Every action is reachable in a logical order, focus remains visible, no keyboard trap occurs, and focus returns to a useful location after a dialog/action | Browser/version, input-only steps, focus sequence, failures and retest result |
+| Follow a long-running job without repeatedly polling visually | Admission and meaningful state changes are announced with the app/job context; repeated progress does not overwhelm or replace the final outcome | Assistive-technology/browser versions, captured announcement sequence and comparison to durable job state |
+| Understand and correct a failed action | Controls have programmatic names; field errors identify the affected input; denial/build/health/route failures are distinguishable without color alone and expose a safe next action | Error type, control/field association, keyboard and assistive-technology result, redacted diagnostic evidence |
+| Find and inspect logs or health details | Section headings/labels identify content; log updates do not steal focus; secret masking and tenant authorization hold for copied/exported content as well as on-screen content | Keyboard/assistive-technology transcript, redaction assertions, same-tenant and cross-tenant outcomes |
+| Complete core tasks at constrained viewport/zoom | Deployment status, health, logs and recovery actions remain available without overlapping or losing information at the tested supported viewport and zoom settings | Viewport/zoom values, browser version, screenshots and any excluded combinations with rationale |
+
+Treat a failed task as an exit blocker for the affected supported combination. Record the human task, role, browser and assistive-technology versions, exact build/commit, and retest evidence; a visual-only review or automated scan alone is insufficient.
+
 For every walkthrough, record operator role, tenant fixture IDs, source commit, environment and guest image digests, browser/runtime versions, exact job/test IDs, route verification method, expected/actual results per step, redacted evidence locations, reviewer and exclusions. A successful manual walkthrough complements automated negative tests; it does not replace them or establish phase acceptance by itself.
 
 ## Current next action
