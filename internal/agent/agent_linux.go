@@ -68,11 +68,32 @@ func decodeRequest(frame []byte) (Request, error) {
 	if len(frame) == 0 || len(frame) > 512 || frame[len(frame)-1] != '\n' {
 		return Request{}, errors.New("invalid agent frame")
 	}
-	var req Request
 	d := json.NewDecoder(bytes.NewReader(frame))
-	d.DisallowUnknownFields()
-	if err := d.Decode(&req); err != nil {
+	opening, err := d.Token()
+	if err != nil {
 		return Request{}, err
+	}
+	if delimiter, ok := opening.(json.Delim); !ok || delimiter != '{' || !d.More() {
+		return Request{}, errors.New("invalid agent request object")
+	}
+	field, err := d.Token()
+	name, ok := field.(string)
+	if err != nil || !ok || name != "op" {
+		return Request{}, errors.New("unknown agent request field")
+	}
+	var req Request
+	if err := d.Decode(&req.Op); err != nil {
+		return Request{}, err
+	}
+	if d.More() {
+		return Request{}, errors.New("duplicate or unknown agent request field")
+	}
+	closing, err := d.Token()
+	if err != nil {
+		return Request{}, err
+	}
+	if delimiter, ok := closing.(json.Delim); !ok || delimiter != '}' {
+		return Request{}, errors.New("invalid agent request object")
 	}
 	var trailing any
 	if err := d.Decode(&trailing); err != io.EOF {

@@ -16,6 +16,7 @@ func FuzzDecodeRequestOnlyAllowsPing(f *testing.F) {
 		`{"op":"ping"}` + "\n",
 		`{"op":"root.exec"}` + "\n",
 		`{"op":"ping","cmd":"whoami"}` + "\n",
+		`{"op":"root.exec","op":"ping"}` + "\n",
 		`{"op":"ping"}{"op":"other"}` + "\n",
 		`{"op":"ping"} trailing` + "\n",
 		`{` + "\n",
@@ -29,6 +30,12 @@ func FuzzDecodeRequestOnlyAllowsPing(f *testing.F) {
 			t.Fatalf("decoder accepted non-ping operation %q", request.Op)
 		}
 	})
+}
+
+func TestDecodeRequestRejectsDuplicateOperation(t *testing.T) {
+	if request, err := decodeRequest([]byte(`{"op":"root.exec","op":"ping"}` + "\n")); err == nil {
+		t.Fatalf("duplicate operation key accepted as %q", request.Op)
+	}
 }
 
 func TestOnlyPingAndPeerUID(t *testing.T) {

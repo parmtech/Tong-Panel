@@ -431,3 +431,6 @@ Draft PR119 factors the Linux agent frame decoder, rejects malformed, oversized,
 
 
 PR119's first full race workflow exposed SQLITE_BUSY in the inherited 12-worker stress test. The downstream version is bounded to eight workers and now reports the failing operation; local repeated tests pass, but hosted rerun is pending. This does not change queue semantics or erase the initial failure.
+
+
+Independent review found and corrected a duplicate-JSON-key ambiguity in PR119 (op=root.exec followed by op=ping). The decoder now requires exactly one op field; a direct test and fuzz seed cover this payload. The preceding hosted run is not final evidence for the corrected decoder; rerun is pending.

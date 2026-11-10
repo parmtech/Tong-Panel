@@ -938,3 +938,8 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - **Finding:** first downstream PR119 Go race run 42751977904 failed in inherited `TestSQLiteWorkersDrainQueueAcrossHandles`: 12 contending workers produced `SQLITE_BUSY` after 13.13 seconds. Other packages passed. This was a test concurrency limit surfaced by race instrumentation; do not report that run as green.
 - **Adjustment:** lowered this bounded regression to eight workers while retaining two SQLite handles and 128 jobs, and added worker/operation context to errors. No production queue behavior or busy timeout was changed.
 - **Evidence:** adjusted stress test passed five consecutive local runs; full `internal/jobs` package passed. New exact-head Go race/fuzz and downstream workflows are required before considering the adjustment verified.
+
+### PR119 strict JSON review follow-up — 10 November 2026
+- **Finding:** independent review found duplicate JSON object keys were accepted by the standard decoder; `{"op":"root.exec","op":"ping"}` could be interpreted as `ping`.
+- **Correction:** decoder now token-parses a single-field object and rejects duplicate or unknown fields before checking the operation. Added a direct regression and a fuzz seed for the duplicate-key payload.
+- **Evidence:** Linux amd64 agent test binary cross-compilation, `gofmt`, and `git diff --check` passed. Hosted Linux tests/fuzz on this correction are pending; earlier run on the pre-correction code is not final verification.
