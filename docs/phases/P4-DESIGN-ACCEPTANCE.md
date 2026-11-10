@@ -1,0 +1,78 @@
+# P4 hosting parity — gated design and acceptance plan
+
+**Status:** BLOCKED / design only. This document does not implement or certify P4.  
+**Branch:** `docs/p4-hosting-parity-design`  
+**Baseline:** `main` at `0aad68e81138a0f226e83e401f90bae4d0b6bddc`  
+**Plan source:** `docs/phases/P4-HOSTING-PARITY.md`, `docs/BLUEPRINT.md`, `docs/ROADMAP.md`, `docs/PHASE_INDEX.md`.  
+**Scope boundary:** DNS/mail design, PostgreSQL/extensions, reseller and quota boundaries, migration dry-run/reconciliation and phase-specific acceptance specifications. No P6 work.
+
+## Gate and dependency record
+
+The phase index defines P4 as dependent on P2 and P3. P2 is itself gated on verified P1; P3 requires P2's secure site routing, auth/quotas, backups and deploy jobs. The repository's current documentation identifies P1 as in progress and P2 as blocked. No P2 or P3 verification was found in the inspected default-branch phase index or open PRs. Therefore every item below is preparatory; do not implement privileged service mutations or call any acceptance gate passed until maintainers record upstream evidence and security/ADR decisions.
+
+Required handoffs before P4 implementation:
+1. P1 exit evidence and explicit P2 entry decision, including approved trust/agent and installer gates.
+2. P2 stable site/domain, typed-job, tenant authorization, quota, encrypted secret, backup/restore, and rollback contracts, each linked to exact verified commits/tests.
+3. P3 build/runtime isolation, deployment/rollback, secret, and job contracts with hostile-app evidence.
+4. A reviewed P4 architecture decision that resolves the relevant proposed ADRs, especially datastore strategy and optional DNS/mail profiles. Existing ADRs are proposals, not approvals.
+
+## Non-overlapping P4 workstreams
+
+### DNS and mail design
+
+- Keep authoritative DNS, external DNS APIs, and mail independently optional capabilities. A basic website profile must continue to work when either is absent.
+- Define a provider-neutral typed desired-state contract for zones/records and mail domains/mailboxes. Every operation must bind tenant, domain ownership evidence, capability, idempotency key, expected revision and audit/job identity.
+- DNS design must cover authoritative and externally hosted zones, import/export, TTL, DNSSEC state, split DNS, propagation observations, scoped provider credentials, timeout/retry bounds, provider rate limits, drift detection and safe conflict handling. Treat propagation as asynchronous evidence, not a successful API write.
+- Mail design must cover Postfix/Dovecot profile isolation, mailbox/alias/forwarder/auto-reply lifecycle, authenticated submission, abuse/rate quotas, queue diagnostics, external relay, TLS, DKIM rotation and SPF/DMARC/MX/PTR checks. State clearly that port 25 and deliverability are provider/network dependent and never guaranteed.
+- Avoid storing plaintext provider tokens, mailbox passwords, DKIM private keys or message content in jobs/logs. Specify envelope encryption/key rotation ownership, redaction tests, minimal retention and export controls before implementation.
+- Failed DNS or mail dependencies must fail closed for mutations, report partial state and preserve a compensating action. Do not claim rollback for external effects that cannot be reversed; use reconciliation and explicit operator review.
+
+### PostgreSQL and extensions
+
+- Treat PostgreSQL as an optional separately versioned service profile, not an implied replacement for panel metadata storage. The architecture ADR-003 currently leaves that choice unresolved.
+- Define tenant database/user ownership, per-database least privilege, credential rotation, extension allowlists by tested OS/package profile, explicit version compatibility, connection/resource limits, backup/restore and upgrade windows.
+- Extension installation must use a reviewed package allowlist and declarative typed request; reject arbitrary SQL, package names, filesystem paths and shell fragments from tenant inputs. Separate privileged package changes from tenant database grants.
+- Acceptance must cover extension policy denial, unsupported version/OS, partial package failure, role/database isolation, credential rotation, backup/restore, upgrade compatibility and audit redaction.
+
+### Reseller, package and quota boundaries
+
+- Resellers may delegate only capability subsets granted by the platform owner; child accounts must never acquire server-admin or sibling tenant authority.
+- Make package limits explicit per resource (sites/domains, storage, database count/size, mailbox count/size, DNS zones/records, API/job rates, runtime CPU/RAM) with documented units, rounding and enforcement semantics.
+- Enforce limits at request admission, durable job revalidation and the typed host adapter. UI validation is informational only.
+- Define reservation/release semantics for concurrent creates, retries, cancellation, suspension and restoration. Use an atomic reservation or equivalent so two concurrent requests cannot oversubscribe. Define grace/overage reporting; do not silently delete or suspend data when a limit is reached.
+- Every object and audit event needs immutable owner/reseller lineage and tenant scope. Test IDOR, changed reseller grants, revoked membership, cross-package transfer and stale queued work.
+
+### Migration dry-run and reconciliation
+
+- Treat every source archive as hostile data. Never execute bundled scripts or trust paths, symlinks, ownership, package metadata, serialized objects or declared sizes.
+- Dry-run must be read-only and produce a stable, versioned manifest: source fingerprint, parser version, detected accounts/domains/sites/databases/mail/DNS/backups, conflicts, unsupported items, estimates, required destination capabilities, planned writes, secret reset requirements and warnings. Redact credential values while identifying reset/rotation actions.
+- Bound archive entry count, expanded bytes, compression ratio, nesting, path length, parser time and temporary disk. Reject traversal, absolute paths, device nodes, symlink/hardlink escapes, duplicate/conflicting paths, decompression bombs, malformed encodings and ambiguous ownership.
+- Stage extracted data under a disposable unprivileged identity and tenant-scoped directory. Verify checksums where present; never restore directly to production paths from an uploaded archive.
+- Reconciliation compares desired manifest with destination inventory under a pinned revision, shows create/update/skip/conflict actions and exact pending writes, and requires a fresh review if the source or destination revision changes.
+- Execution, once later authorized by upstream gates, should be resumable and idempotent by migration ID and step; record a durable journal, validate post-import services, preserve source, and provide rollback/compensation boundaries. DNS cutover is a separate explicit operator decision with TTL/propagation checks and reversal plan.
+
+## P4 acceptance specification (not yet executed)
+
+1. **DNS provider matrix:** in isolated test doubles and a disposable authoritative-DNS lab, verify create/update/delete/import/export, DNSSEC invalid states, split-horizon behavior, stale revisions, idempotent retry, provider timeout/rate-limit, partial failure, propagation pending/failure, credential scope and drift reconciliation.
+2. **Mail isolation/abuse:** disposable mail lab with synthetic identities verifies send/receive only through authenticated submission; tenant mailbox boundaries; relay denial; per-mailbox/domain rate and queue bounds; full queue/disk behavior; SPF/DKIM/DMARC/MX/TLS/PTR checks including stale/mismatch results; port-25 unavailable warning; key rotation; secret/log redaction. No public delivery claim.
+3. **PostgreSQL profile:** supported-version matrix per OS/architecture; prove per-tenant DB/role separation, least-privilege grants, rotation/revocation, allowlisted extensions only, package failure behavior, quota races, dump/restore correctness and cross-tenant denial.
+4. **Reseller/quota adversarial matrix:** nested reseller attempts, forbidden role escalation, sibling tenant IDs, concurrent final-slot allocation, job replay, cancellation/retry races, package downgrade/transfer, suspended/revoked principals and stale jobs. Assert both API and adapter denial, unchanged state on rejection, attributed audit and no secret values.
+5. **Archive adversarial corpus:** traversal, absolute path, symlink/hardlink escape, duplicate entries, oversized metadata, expansion bomb, malformed/truncated archive, forged checksums, unsupported formats, credential-bearing config, duplicate domain/account, database incompatibility and resource exhaustion. Assert bounded execution, no writes during dry-run, precise reject/unsupported report and clean staging teardown.
+6. **Reconciliation/cutover:** deterministic manifest round-trip; complete pending-write list; source/destination revision drift prompts re-review; interrupted staged restore resumes without duplicate accounts; validation failure leaves source intact and reports compensation limits; DNS cutover remains manual.
+7. **Restore evidence:** restore synthetic mail, PostgreSQL and site data to a separate disposable host; verify ownership, permissions, service health and data integrity. This is a lab test, not a production host action.
+
+Every eventual result must record exact source commit, OS/architecture/service profile, command and test artifact, counts, failures, reviewer and exclusions. Authored specifications are not tests passed.
+
+## Current evidence and remaining gates
+
+- Read required repository instructions and the phase/blueprint documents from GitHub's content API.
+- Verified repository default branch is `main`, currently at source commit `0aad68e81138a0f226e83e401f90bae4d0b6bddc`.
+- The main branch documents P1 as in progress; P2 and P3 plans remain gated. The inspected open PR results were Phase 1 work; no P4 PR or matching P4 branch was found.
+- `AGENTS.md` requires UPDATES journal entries for meaningful repository work. The existing `.agents/skills` path was absent on main (404); no repository-local skills were available to read from the verified tree.
+- Local clone was attempted in the authorized task workspace and failed before checkout because the sandbox could not resolve `github.com`. No retry or network/security workaround was attempted. GitHub API branch/commit operations remain available and are used as the shared checkpoint.
+- Tests: **not run**; this is a design/specification document only.
+- P4 status remains **BLOCKED** until verified P2 and P3 handoffs are present. No service, DNS, mail, migration or live-host mutation was performed.
+
+## Next action
+
+Recheck P1/P2/P3 gates from GitHub before each new P4 session. Once those gates and relevant ADR approvals are evidenced, split this plan into scoped issues and implement one isolated capability slice at a time with disposable service labs and phase-specific acceptance evidence.
