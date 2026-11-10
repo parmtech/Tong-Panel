@@ -59,6 +59,40 @@ These are contract requirements to validate and settle against the accepted P1/P
 
 For each row, publish a versioned schema or typed contract, ownership rule, error/state model, security review, and compatibility tests before the first integration consumes it. If P2 exposes no stable contract, record the blocker and keep P3 work at design/test-fixture level.
 
+## P3 design decisions requiring review
+
+These questions are intentionally unresolved; answer them through the repository's ADR/issue review process before making a production-facing contract. A prototype must label its assumptions and must not silently turn one answer into a supported policy.
+
+| Decision | Options/questions that need evidence | Minimum review evidence |
+|---|---|---|
+| Build network egress | Deny by default, allow only reviewed destinations, or allow broader egress with explicit user consent? How are DNS rebinding, redirects, private/link-local ranges, and package registries handled? | Threat review, deterministic network tests, documented exception UX, and proof that panel/agent/metadata endpoints remain unreachable. |
+| Build-time secrets | Should untrusted dependency/build scripts receive any application runtime secrets? Can credential forwarding be avoided through a separate fetch phase? | Explicit secret lifecycle diagram; tests prove least exposure and absence from logs, argv, environment snapshots accessible to other apps, and failed-build diagnostics. |
+| Build and runtime identities | Separate identity per app, per build, or per build attempt? Which paths and process metadata can tenants observe? | OS capability/UID model, systemd sandbox profile, process/file visibility tests, cleanup and crash-recovery evidence. |
+| Runtime/toolchain provenance | Which official sources and pinning/signature mechanism establish Node/Python runtime trust? Who can revoke a compromised release? | Maintained version matrix, key/trust-root ownership and rotation/revocation plan, tamper and stale-metadata tests, SBOM/licence output. |
+| Artifact immutability and retention | Where are source snapshots, intermediate outputs and promoted releases stored? What prevents in-place mutation, and which retention policy is compatible with rollback and quotas? | Storage threat model, tenant/quota accounting, digest verification, concurrent publication and garbage-collection recovery tests. |
+| Deploy state machine and route switch | Which exact state transitions are durable? When does a build become the active release, and how are concurrent deploy, cancel, timeout, restart and uncertain proxy reload resolved? | Versioned state/event model, idempotency rules, crash injection at each boundary and externally verified old/new route behavior. |
+| Webhook and Git authorization | Which source/ref/repository is bound to an app? How are delivery replay, credential scope, credential revocation and provider outage represented? | Threat model, signature/replay tests, least-scope provider configuration, and redacted audit evidence. |
+| Catalogue trust and removal | Who signs first-party recipes, how is key compromise/revocation handled, and what exact data is owned by a recipe versus a customer? | Maintainer-approved permissions and provenance policy, tamper/revocation tests, explicit data ownership/removal UX and restore proof. |
+
+## Hostile fixture catalog
+
+Create synthetic repositories and test applications only after the runner boundary is chosen. Run these fixtures solely in disposable guests with no production credentials or network access to real services. Fixture code is adversarial test input and must never be run on the Windows developer host.
+
+| Fixture ID | Build/runtime behavior | Required oracle |
+|---|---|---|
+| `app-cross-tenant-read` | Tries known synthetic paths and IDs belonging to a second tenant, including secrets, source, artifacts and backup fixtures | Every access denied; canary values absent from stdout/stderr, logs and API responses; victim files unchanged. |
+| `app-process-probe` | Enumerates process metadata and attempts to signal a sibling app/build identity | Only the fixture's permitted process metadata is visible; cross-identity inspection/signals fail; no host or control-plane process can be affected. |
+| `build-limit-cpu-memory` | Bounded CPU loop and incremental memory allocation until the configured cgroup limit is reached | Worker terminates within policy; guest remains responsive; prior release and other app health remain unchanged; job has a typed resource-limit result. |
+| `build-limit-disk-process-time` | Writes only within its workspace, creates bounded child processes and blocks on a controllable timer | Each configured limit trips independently; workspace/quota accounting is reconciled; no orphan process or reservation remains after cleanup. |
+| `build-network-boundary` | Attempts loopback/private/link-local and synthetic metadata targets, then follows controlled redirect/DNS-rebinding fixtures | Requests outside the reviewed allowlist fail; no credential or internal response is returned; logs redact request secrets. |
+| `build-secret-canary` | Searches its own environment, argv and workspace for a synthetic canary and emits discovered values | Only the explicitly approved secret stage receives the canary; no unapproved phase receives it; all logs and audit output are redacted. |
+| `release-tamper` | Alters one byte in a staged artifact or supplies an artifact under another tenant/app identity | Digest/ownership verification rejects promotion before route change; old healthy release stays active; rejection is audited without secret data. |
+| `health-failure` | Starts but returns wrong status/body, hangs, or exits after initial readiness | Readiness timeout is bounded; active traffic stays on the previous release; rollback/job state is durable and operator-visible. |
+| `webhook-replay-invalid` | Sends invalid signature, duplicate delivery ID, stale timestamp, wrong ref and malformed/oversized payloads | No build job is accepted; response is bounded and non-sensitive; audit has an attributable denial reason. |
+| `recipe-untrusted` | Uses unsigned, revoked, mutable-only, digest-mismatched, unknown-license or overprivileged definitions | Catalogue/install path refuses before fetch or execution; no files, ports, services, or records are left behind. |
+
+Each fixture should have a pinned source revision and deterministic expected result. Record the guest image digest, runner policy, test command, output digest, and cleanup result. A fixture pass is only evidence for its named assertion; it does not imply overall P3 or P2 acceptance.
+
 ## P3 contract and test specifications
 
 Use disposable Linux VMs corresponding to the eventually approved OS matrix. No test may target the developer workstation, a live server, production credentials, or a non-disposable shared host. Test fixtures must be synthetic. Start from a clean snapshot, capture evidence, and destroy the VM after the run. Never relax isolation merely to make a scenario pass.
