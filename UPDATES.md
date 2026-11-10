@@ -305,3 +305,11 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Validation:** `git diff --check` passed; static check confirmed direct GitHub references, 24 acceptance scenarios, and eight traceability rows. No product tests run (documentation-only).
 - **Gates:** P1 run #42781985275 remains Debian-success / Ubuntu-in-progress at latest status check; P2 evidence remains narrow; P3/P4 gates remain unaccepted. Phase 4 checkpoint `0029b39aa5ebb2056506892b18b400a31402977b` remains unchanged.
 - **Next:** continue safe offline acceptance work and refresh evidence only from exact source revisions and terminal workflow results.
+
+### 2026-11-10 — Workstream G, partition fault-injection oracle
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; documentation commit `b5fd918eaa290cc5357cac03ed0ca70fcc05cce8`, included in draft PR #147 / issue #148.
+- **Change:** added a candidate, non-normative fault matrix for pre-dispatch, lost dispatch/acceptance/completion responses, unverified effects, verified success, and revocation while offline or in flight. It records conservative status and retry/reconciliation expectations; correlation and verification design remain explicitly for architecture/security review.
+- **Validation:** `git diff --check` passed. Static check confirmed 24 numbered scenarios, eight scope-traceability rows, seven fault-oracle rows, and direct source links. No product tests run (docs-only).
+- **Gates:** no accepted P1/P2/P3/P4 exits or P5 architecture approval. Latest exact poll of run #42781985275 still showed Debian success and Ubuntu in progress. P4 checkpoint SHA remains preserved.
+- **Next:** recheck PR/issue review and workflow state, then continue only on reviewable non-privileged design or offline prototypes.
