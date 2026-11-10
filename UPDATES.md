@@ -1,3 +1,9 @@
+### 2026-11-10 19:50 +11:00 — Workstream G, record completed P1 preview VM checks
+- **Branch/state:** docs/p4-hosting-parity-continuation; evidence refresh on the existing P4 checkpoint.
+- **Change:** updated the P1 dependency snapshot: both Ubuntu 24.04 and Debian 12 jobs in exact-head run #42781985275 completed successfully. The workflow uses an unsigned developer preview; this does not satisfy signed install, recovery or P1 phase acceptance.
+- **Evidence:** re-polled the previously live run and both jobs now report success. Current P1 exit report remains NOT COMPLETE / Phase 2 entry blocked. git diff --check passed; docs only.
+- **Limits:** no Phase 1 workspace edits, host operation, or acceptance claim. P4 remains design-only.
+- **Next:** re-evaluate only when authoritative P1/P2/P3 gate decisions and required acceptance artifacts change.
 ### 2026-11-10 19:49 +11:00 — Workstream G, specify migration dry-run report contract
 - **Branch/state:** docs/p4-hosting-parity-continuation; proposal added to the existing Phase 4 checkpoint.
 - **Change:** added a nonbinding versioned report shape, result semantics, stable plan fingerprint inputs, revision invalidation, secrecy constraints and focused candidate contract tests for P4 migration dry-run.
