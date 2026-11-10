@@ -1,3 +1,9 @@
+### 2026-11-10 19:52 +11:00 — Workstream G, close blocked migration-plan ambiguity
+- **Branch/state:** docs/p4-hosting-parity-continuation; clarification to the candidate dry-run report proposal.
+- **Change:** only fully classified ready reports may present a candidate create/update plan, and execution still needs separate later authorization. Blocked, partial and rejected reports contain no executable actions.
+- **Evidence:** reviewed schema semantics; git diff --check passed. JSON example remains valid; product tests not run.
+- **Limits:** documentation-only, nonbinding proposal. No archive parsing, writes or host operations. P1/P2/P3 gates remain open.
+- **Next:** maintainers/security review the candidate semantics after prerequisite phase decisions are accepted.
 ### 2026-11-10 19:50 +11:00 — Workstream G, record completed P1 preview VM checks
 - **Branch/state:** docs/p4-hosting-parity-continuation; evidence refresh on the existing P4 checkpoint.
 - **Change:** updated the P1 dependency snapshot: both Ubuntu 24.04 and Debian 12 jobs in exact-head run #42781985275 completed successfully. The workflow uses an unsigned developer preview; this does not satisfy signed install, recovery or P1 phase acceptance.
