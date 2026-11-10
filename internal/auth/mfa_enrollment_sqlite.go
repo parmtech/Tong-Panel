@@ -28,11 +28,19 @@ func NewMFAEnrollmentStore(db *sql.DB, box *MFASecretBox) (*MFAEnrollmentStore, 
 	return &MFAEnrollmentStore{db: db, box: box, now: time.Now}, nil
 }
 
+// BeginTrusted starts enrollment or replaces only an expired pending attempt.
+// A live pending or active enrollment must never be overwritten by this flow.
 func (s *MFAEnrollmentStore) BeginTrusted(ctx context.Context, tenant, identity string) ([]byte, error) {
 	if s == nil || !validMFAIdentity(tenant) || !validMFAIdentity(identity) {
 		return nil, ErrMFAEnrollmentUnavailable
 	}
 	secret := make([]byte, 20) // RFC 6238 baseline: at least 160 unpredictable bits
+	delivered := false
+	defer func() {
+		if !delivered {
+			clear(secret)
+		}
+	}()
 	if _, err := rand.Read(secret); err != nil {
 		return nil, err
 	}
@@ -47,7 +55,12 @@ func (s *MFAEnrollmentStore) BeginTrusted(ctx context.Context, tenant, identity 
 		JOIN memberships m ON m.identity_id=i.id
 		JOIN tenants t ON t.id=m.tenant_id
 		WHERE i.id=? AND m.tenant_id=? AND i.disabled=0 AND t.status='active'
-		ON CONFLICT(identity_id) DO NOTHING`, envelope, expiry, identity, tenant)
+		ON CONFLICT(identity_id) DO UPDATE SET
+			secret_envelope=excluded.secret_envelope,
+			pending_expires_at=excluded.pending_expires_at
+		WHERE mfa_totp_enrollments.status='pending'
+			AND julianday(mfa_totp_enrollments.pending_expires_at)<=julianday(?)`,
+		envelope, expiry, identity, tenant, now.Format(time.RFC3339Nano))
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +72,7 @@ func (s *MFAEnrollmentStore) BeginTrusted(ctx context.Context, tenant, identity 
 		return nil, ErrMFAEnrollmentUnavailable
 	}
 	// Only trusted callers may show this once; the DB stores encrypted bytes.
+	delivered = true
 	return secret, nil
 }
 
@@ -67,10 +81,10 @@ func (s *MFAEnrollmentStore) ConfirmTrusted(ctx context.Context, tenant, identit
 		return false, ErrMFAEnrollmentUnavailable
 	}
 	now := s.now().UTC()
-	var envelope string
-	err := s.db.QueryRowContext(ctx, `SELECT secret_envelope FROM mfa_totp_enrollments
+	var envelope, pendingExpiry string
+	err := s.db.QueryRowContext(ctx, `SELECT secret_envelope,pending_expires_at FROM mfa_totp_enrollments
 		WHERE identity_id=? AND status='pending' AND julianday(pending_expires_at)>julianday(?)`,
-		identity, now.Format(time.RFC3339Nano)).Scan(&envelope)
+		identity, now.Format(time.RFC3339Nano)).Scan(&envelope, &pendingExpiry)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -99,12 +113,13 @@ func (s *MFAEnrollmentStore) ConfirmTrusted(ctx context.Context, tenant, identit
 		JOIN memberships m ON m.identity_id=i.id AND m.tenant_id=?
 		JOIN tenants t ON t.id=m.tenant_id AND t.status='active'
 		WHERE e.identity_id=? AND e.status='pending'
+			AND e.secret_envelope=? AND e.pending_expires_at=?
 			AND julianday(e.pending_expires_at)>julianday(?)
 		ON CONFLICT(identity_id) DO UPDATE SET
 			last_accepted_step=excluded.last_accepted_step,
 			updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
 		WHERE excluded.last_accepted_step>totp_replay_state.last_accepted_step`,
-		step, tenant, identity, now.Format(time.RFC3339Nano))
+		step, tenant, identity, envelope, pendingExpiry, now.Format(time.RFC3339Nano))
 	if err != nil {
 		return false, err
 	}
@@ -118,8 +133,9 @@ func (s *MFAEnrollmentStore) ConfirmTrusted(ctx context.Context, tenant, identit
 	r, err = tx.ExecContext(ctx, `UPDATE mfa_totp_enrollments
 		SET status='active',activated_at=?
 		WHERE identity_id=? AND status='pending'
+			AND secret_envelope=? AND pending_expires_at=?
 			AND julianday(pending_expires_at)>julianday(?)`,
-		now.Format(time.RFC3339Nano), identity, now.Format(time.RFC3339Nano))
+		now.Format(time.RFC3339Nano), identity, envelope, pendingExpiry, now.Format(time.RFC3339Nano))
 	if err != nil {
 		return false, err
 	}
