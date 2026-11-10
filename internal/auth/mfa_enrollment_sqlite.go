@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"github.com/parmtech/tong-panel/internal/database"
 )
 
 // ErrMFAEnrollmentUnavailable intentionally does not distinguish already
@@ -53,9 +55,11 @@ func (s *MFAEnrollmentStore) BeginTrusted(ctx context.Context, tenant, identity 
 		return nil, err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := database.BeginImmediate(ctx, conn, 0)
+	if err != nil {
 		return nil, err
 	}
+	defer restoreBusyTimeout()
 	committed := false
 	defer func() {
 		if !committed {

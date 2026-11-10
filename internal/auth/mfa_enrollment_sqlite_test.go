@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/parmtech/tong-panel/internal/database"
 )
 
 func testMFAEnrollment(t *testing.T) (*MFAEnrollmentStore, *sql.DB, *time.Time) {
@@ -120,6 +122,66 @@ func TestMFABeginStartsPendingLifetimeAfterConnectionWait(t *testing.T) {
 	parsed, err := time.Parse(time.RFC3339Nano, expiry)
 	if err != nil || !parsed.Equal(late.Add(10*time.Minute)) {
 		t.Fatalf("pending expiry=%q err=%v, want %s", expiry, err, late.Add(10*time.Minute))
+	}
+}
+
+func TestMFABeginHonorsCancellationDuringWriterWait(t *testing.T) {
+	store, db, _ := testMFAEnrollment(t)
+	var seq int
+	var schema, path string
+	if err := db.QueryRow("PRAGMA database_list").Scan(&seq, &schema, &path); err != nil {
+		t.Fatal(err)
+	}
+	peerDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerDB.Close()
+	writer, err := peerDB.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer writer.ExecContext(context.Background(), "ROLLBACK")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() {
+		secret, beginErr := store.BeginTrusted(ctx, "tenant-a", "user-a")
+		clear(secret)
+		result <- beginErr
+	}()
+	deadline := time.Now().Add(2 * time.Second)
+	for db.Stats().InUse == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if db.Stats().InUse == 0 {
+		cancel()
+		t.Fatal("MFA enrollment did not acquire its connection while waiting for the writer")
+	}
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("enrollment error=%v, want context cancellation", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("MFA enrollment did not stop after cancellation")
+	}
+	var pending int
+	if err := db.QueryRow("SELECT count(*) FROM mfa_totp_enrollments WHERE identity_id='user-a'").Scan(&pending); err != nil {
+		t.Fatal(err)
+	}
+	if pending != 0 {
+		t.Fatalf("canceled enrollment created pending state: count=%d", pending)
+	}
+	var busyTimeout int
+	if err := db.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout); err != nil || busyTimeout != 5000 {
+		t.Fatalf("busy_timeout=%d err=%v, want restored 5000ms", busyTimeout, err)
 	}
 }
 
