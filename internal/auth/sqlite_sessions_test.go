@@ -250,13 +250,14 @@ func TestSQLiteSessionIssueSamplesExpiryAfterWriterWait(t *testing.T) {
 		expires time.Time
 		err     error
 	}
+	waitsBefore := db.Stats().WaitCount
 	result := make(chan issued, 1)
 	go func() {
 		token, _, expires, issueErr := store.Issue(
 			rbac.Principal{UserID: "user-a", TenantID: "tenant-a", Role: rbac.Owner}, 2*time.Hour)
 		result <- issued{token: token, expires: expires, err: issueErr}
 	}()
-	waitForDBPoolWait(t, db, 0)
+	waitForDBPoolWait(t, db, waitsBefore)
 	late := start.Add(7 * time.Minute)
 	currentUnix.Store(late.Unix())
 	if err := blocker.Close(); err != nil {
