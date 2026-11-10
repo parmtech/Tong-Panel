@@ -20,9 +20,10 @@ func TestSiteListRechecksMembershipAtCatalogRead(t *testing.T) {
 		t.Fatal(r.Body.String())
 	}
 	principal := rbac.Principal{TenantID: "tenant-a", UserID: "u1", Role: rbac.Customer}
-	// The principal represents successful middleware authentication. Remove
-	// its membership before the actual catalog read to reproduce the gap.
-	if _, err := db.Exec("DELETE FROM memberships WHERE tenant_id='tenant-a' AND identity_id='u1'"); err != nil {
+	// The principal represents successful middleware authentication. Disable
+	// its identity before the actual catalog read to reproduce the gap. A site
+	// creation audit references the membership and protects its deletion.
+	if _, err := db.Exec("UPDATE identities SET disabled=1 WHERE id='u1'"); err != nil {
 		t.Fatal(err)
 	}
 	w := httptest.NewRecorder()

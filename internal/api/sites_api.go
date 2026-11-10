@@ -56,11 +56,11 @@ func (s *Server) siteCollection(w http.ResponseWriter, r *http.Request, p rbac.P
 		TenantID: p.TenantID, SiteID: req.SiteID, PrimaryDomain: req.PrimaryDomain,
 		Aliases: req.Aliases, DocumentRoot: "sites/" + req.SiteID + "/public",
 	}
-	if err := s.SiteCatalog.Create(r.Context(), spec); err != nil {
-		writeSiteError(w, err)
-		return
+	var proof *auth.SessionReadProof
+	if value, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof); ok {
+		proof = &value
 	}
-	created, err := s.SiteCatalog.Get(r.Context(), p.TenantID, req.SiteID)
+	created, err := s.SiteCatalog.CreateFor(r.Context(), spec, p.UserID, proof)
 	if err != nil {
 		writeSiteError(w, err)
 		return
@@ -380,6 +380,10 @@ func (s *Server) siteDomainVerificationComplete(w http.ResponseWriter, r *http.R
 
 func writeSiteError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, sites.ErrSiteReadDenied):
+		fail(w, http.StatusForbidden, "forbidden")
+	case errors.Is(err, sites.ErrSiteSessionDenied):
+		fail(w, http.StatusUnauthorized, "unauthorized")
 	case errors.Is(err, sites.ErrSiteNotReady):
 		fail(w, http.StatusConflict, "site_not_ready")
 	case errors.Is(err, sites.ErrInvalidHostingPaths):

@@ -61,9 +61,23 @@ func (c *Catalog) Create(ctx context.Context, input SiteSpec) error {
 	}
 	defer tx.Rollback()
 
+	if err := insertSite(ctx, tx, spec, c.now().Unix()); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit site catalog create: %w", err)
+	}
+	return nil
+}
+
+type siteExec interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
+func insertSite(ctx context.Context, tx siteExec, spec SiteSpec, createdAt int64) error {
 	result, err := tx.ExecContext(ctx,
 		"INSERT INTO sites(tenant_id,site_id,document_root,created_at) VALUES(?,?,?,?) ON CONFLICT(tenant_id,site_id) DO NOTHING",
-		spec.TenantID, spec.SiteID, spec.DocumentRoot, c.now().Unix())
+		spec.TenantID, spec.SiteID, spec.DocumentRoot, createdAt)
 	if err != nil {
 		return fmt.Errorf("insert site metadata: %w", err)
 	}
@@ -94,9 +108,6 @@ func (c *Catalog) Create(ctx context.Context, input SiteSpec) error {
 		if inserted != 1 {
 			return fmt.Errorf("%w: %s", ErrDomainClaimed, domain)
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit site catalog create: %w", err)
 	}
 	return nil
 }
