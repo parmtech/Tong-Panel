@@ -351,3 +351,10 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Change:** added review-only negative/rollback fixtures for artifact digest changes, signer trust and stale revocation caches, dependency graph/provenance failures, registry outage, and failed update recovery. Each records expected side-effect boundary and evidence. Metadata/signature format, key custody, revocation source, offline policy and rollback authority remain undecided pending owner/security review.
 - **Validation:** `git diff --check` passed; 24 numbered scenarios remain, with five detailed supply-chain cases. Documentation-only; no product tests run.
 - **Gates/safety:** P0/P1/P2/P3/P4 and P5 architecture gates remain open. No implementation, privileges, external registry access, deployment, or claim of supply-chain security.
+
+### 2026-11-10 — Workstream G, repin latest P3/P4 prerequisite snapshots
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; evidence-only refresh for draft PR #147 / issue #148.
+- **Change/evidence:** P3 branch advanced to `db328e83e856eed277309513c2376cfa445e721b`, whose plan still says P3 entry NOT PROVEN. P4 continuation advanced to `11d84eb54797f2e3b2c91e43e4653eeeb20454d3`, still BLOCKED / design only. P4 checkpoint remains `0029b39aa5ebb2056506892b18b400a31402977b`. P1 PR #149 run #42785167173 remains active on Ubuntu 24.04 while Debian 12 is complete success; no conclusion change yet.
+- **Validation:** updated exact commit links and gate rows; 24 numbered scenarios remain; `git diff --check` passed. Documentation-only.
+- **Disposition:** prerequisite gates remain closed; no implementation or privileged work.
