@@ -1,3 +1,9 @@
+### 2026-11-10 20:06 +11:00 — Workstream G, separate design approval from lab acceptance
+- **Branch/state:** docs/p4-hosting-parity-continuation; refinement to existing P4 gate evidence and review criteria.
+- **Change:** stated that design approval authorizes only the next scoped lab step, while acceptance needs exact tested commits/environment, artifacts, negative cases, cleanup/recovery and reviewer disposition. Refreshed exact P2/P3 planning heads.
+- **Evidence:** checked GitHub PR heads and current PR #149 exact-head checks; P1/P2 reports still block phase acceptance. git diff --check passed.
+- **Limits:** all additions are review/specification only. P1 VM and Go checks remain active; no implementation or privileged action.
+- **Next:** re-poll active P1 current-head checks and wait for explicit upstream gate decisions before starting P4 execution work.
 ### 2026-11-10 20:05 +11:00 — Workstream G, specify crash-safe migration staging cleanup
 - **Branch/state:** docs/p4-hosting-parity-continuation; test-spec refinement to the saved P4 migration proposal.
 - **Change:** require opaque migration ownership and bounded lease/expiry for temporary staging; recovery may reclaim only proven expired owned staging. Added process-termination checkpoints and negative assertions against deleting another active stage or destination data. Refreshed exact heads for P2/P3 planning PRs #144/#145.
