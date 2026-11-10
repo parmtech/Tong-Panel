@@ -8,7 +8,7 @@
 4. Databases MariaDB/MySQL: scoped user provisioning/rotation, export/import and isolation.
 5. Original secure Finder/Explorer-style files UI/API, quotas and metadata/ACL.
 6. ACME certificates: HTTP-01 and DNS-01 provider capability, renewal, status, HTTPS redirects and real verification.
-7. Cron, sites logs, versioned server templates; graceful service failure handling.
+7. Cron, sites logs, versioned server templates; graceful service failure handling. See the [proposed Slice 7 acceptance and test plan](../P2_CRON_LOGS_TEMPLATES_TEST_PLAN.md); this is design only and does not authorize implementation.
 8. WordPress/pure PHP deploy recipe with pinned versions, checksums and restore.
 9. Account backup schedules, offsite encrypted targets, retention and complete restore drills.
 10. Multi-tenant adversarial testing and understandable UX/onboarding.

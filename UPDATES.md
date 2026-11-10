@@ -1,8 +1,17 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-10-28 (Sydney)  
+**Updated:** 2026-11-10 19:23 AEDT (Sydney)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## 2026-11-10 — P2 Slice 7 design-only checkpoint (Windows)
+
+- **Branch/base:** `phase2/cron-logs-templates-test-plan-20261110`, based on GitHub `main` at `0aad68e81138a0f226e83ca8c432bd8e09475d915d`. Dedicated isolated clone under the Windows task workspace; Phase 1 checkout was not modified.
+- **State:** proposed design/test specification only. Added `docs/P2_CRON_LOGS_TEMPLATES_TEST_PLAN.md` and linked it from `docs/phases/P2-HOSTING-ALPHA.md` implementation slice 7.
+- **Scope:** typed scheduled task contract, bounded tenant/site log reads, versioned Nginx/PHP-FPM templates, isolated lifecycle and failure tests, plus unresolved owner/security decisions. No scheduler, host mutation, endpoint, service operation, dependency, merge, or deployment was added.
+- **Gate:** latest P1/P2 reports on the active draft branch `feature/p1-file-quota-request-context` still leave P1 entry and integrated P2 acceptance open. This proposal does not approve ADRs or authorize host-facing implementation.
+- **Tooling/evidence:** supplied Go 1.27.3 Windows/amd64 toolchain is available; this `main` checkout contains no `go.mod` or code test target. Documentation checks only; no Go test was applicable.
+- **Next:** obtain owner/security review of the proposed schedule/timezone, role, log-retention, template-version and rollback contracts. After prerequisites are evidenced, implement and verify the approved smallest P2 slice in isolated disposable guests.
 
 ## NEW VERIFIED P1 CHECKPOINT — 2026-10-28 Sydney: SQLite v7 idle sessions, rotation and logout
 
