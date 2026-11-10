@@ -214,6 +214,9 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 				fail(w, 403, "forbidden")
 				return
 			}
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
 			if err != nil {
 				fail(w, 503, "jobs_unavailable")
 				return
@@ -222,9 +225,12 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 			return
 		}
 		if s.SQLJobs != nil {
-			items, err := s.SQLJobs.ListFor(p.TenantID, p.UserID)
+			items, err := s.SQLJobs.ListForContext(r.Context(), p.TenantID, p.UserID)
 			if errors.Is(err, jobs.ErrNotFound) {
 				fail(w, 403, "forbidden")
+				return
+			}
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return
 			}
 			if err != nil {
@@ -369,12 +375,15 @@ func (s *Server) jobDetail(w http.ResponseWriter, r *http.Request, p rbac.Princi
 		var j jobs.Job
 		var err error
 		if s.SQLJobs != nil {
-			j, err = s.SQLJobs.GetFor(p.TenantID, p.UserID, id)
+			j, err = s.SQLJobs.GetForContext(r.Context(), p.TenantID, p.UserID, id)
 		} else {
 			j, err = s.Jobs.Get(p.TenantID, id)
 		}
 		if errors.Is(err, jobs.ErrNotFound) {
 			fail(w, 404, "not_found")
+			return
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return
 		}
 		if err != nil {

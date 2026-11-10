@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
@@ -185,6 +186,39 @@ func TestDeveloperSQLiteJobMutationsStopWhenRequestContextExpires(t *testing.T) 
 				if err := lock.QueryRowContext(context.Background(), "SELECT state FROM jobs WHERE id=?", job.ID).Scan(&state); err != nil || state != jobs.Queued {
 					t.Fatalf("canceled request changed job state=%q err=%v", state, err)
 				}
+			}
+		})
+	}
+}
+
+func TestDeveloperSQLiteJobReadsStopWhenRequestContextExpires(t *testing.T) {
+	for _, operation := range []string{"list", "detail"} {
+		t.Run(operation, func(t *testing.T) {
+			s, q, _ := setupSQLAPI(t)
+			var target string
+			if operation == "list" {
+				target = "/api/v1/jobs"
+			} else {
+				job, err := q.CreateFor("tenant-a", "u1", jobs.KindNoop, "detail-read-context")
+				if err != nil {
+					t.Fatal(err)
+				}
+				target = "/api/v1/jobs/" + job.ID
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			req := httptest.NewRequest(http.MethodGet, target, nil).WithContext(ctx)
+			req.Header.Set("Authorization", "Bearer "+secret)
+			rec := httptest.NewRecorder()
+			done := make(chan struct{})
+			go func() { s.Handler().ServeHTTP(rec, req); close(done) }()
+			select {
+			case <-done:
+			case <-time.After(2 * time.Second):
+				t.Fatal("job read did not stop after request cancellation")
+			}
+			if rec.Body.Len() != 0 {
+				t.Fatalf("canceled HTTP read wrote a response body: %s", rec.Body.String())
 			}
 		})
 	}

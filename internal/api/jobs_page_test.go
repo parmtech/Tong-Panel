@@ -184,7 +184,9 @@ func TestJobsPageCookieCancellationAndBackendFailures(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+secret)
 		rec := httptest.NewRecorder()
 		server.Handler().ServeHTTP(rec, req)
-		assertPageAPIError(t, rec, 503, "jobs_unavailable")
+		if rec.Body.Len() != 0 {
+			t.Fatalf("canceled paged request wrote a response: status=%d body=%s", rec.Code, rec.Body.String())
+		}
 	}
 	broken, _, db := setupSiteAPI(t)
 	if _, err := db.Exec("DROP TABLE jobs"); err != nil {

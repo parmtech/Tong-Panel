@@ -334,3 +334,73 @@ func TestSQLiteCancelPreservesCancellationDuringAuthorization(t *testing.T) {
 		t.Fatalf("authorization error=%v, want concealed not-found", got)
 	}
 }
+
+func TestSQLiteActorListPreservesCancellationDuringAuthorization(t *testing.T) {
+	store, _ := openTestSQLiteStore(t)
+	for _, want := range []error{context.Canceled, context.DeadlineExceeded} {
+		var ctx context.Context
+		var cancel context.CancelFunc
+		if errors.Is(want, context.Canceled) {
+			ctx, cancel = context.WithCancel(context.Background())
+			cancel()
+		} else {
+			ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+		}
+		_, err := store.ListForContext(ctx, "tenant-a", "user-a")
+		cancel()
+		if !errors.Is(err, want) {
+			t.Fatalf("list error=%v, want %v", err, want)
+		}
+	}
+	_, err := store.ListForContext(context.Background(), "tenant-a", "missing-user")
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("unauthorized list error=%v, want concealed not-found", err)
+	}
+}
+
+func TestSQLiteActorReadsHonorCancellationDuringConnectionWait(t *testing.T) {
+	store, _ := openTestSQLiteStore(t)
+	job, err := store.CreateFor("tenant-a", "user-a", KindNoop, "actor-read-wait")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.db.SetMaxOpenConns(1)
+	blocker, err := store.db.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer blocker.Close()
+	for _, operation := range []string{"list", "detail"} {
+		t.Run(operation, func(t *testing.T) {
+			waitsBefore := store.db.Stats().WaitCount
+			ctx, cancel := context.WithCancel(context.Background())
+			result := make(chan error, 1)
+			go func() {
+				if operation == "list" {
+					_, callErr := store.ListForContext(ctx, "tenant-a", "user-a")
+					result <- callErr
+					return
+				}
+				_, callErr := store.GetForContext(ctx, "tenant-a", "user-a", job.ID)
+				result <- callErr
+			}()
+			deadline := time.Now().Add(3 * time.Second)
+			for store.db.Stats().WaitCount == waitsBefore && time.Now().Before(deadline) {
+				time.Sleep(time.Millisecond)
+			}
+			if store.db.Stats().WaitCount == waitsBefore {
+				cancel()
+				t.Fatal("job read did not wait for held pooled connection")
+			}
+			cancel()
+			select {
+			case err := <-result:
+				if !errors.Is(err, context.Canceled) {
+					t.Fatalf("job read error=%v, want cancellation", err)
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("job read did not stop after context cancellation")
+			}
+		})
+	}
+}
