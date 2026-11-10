@@ -966,3 +966,10 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - Draft PR119 code head `cabef25caa779db1650353fd67e8ff9c0fa70dda` passed all six hosted workflows: Go/race/fuzz/vet 42753358536 (job 129621914037; Test, 10-second decoder fuzz and Vet steps all succeeded), browser 42753358485, API contract 42753358560, vulnerability 42753358914, P1 daemon smoke 42753358499 and unsigned package lab 42753358501.
 - This verifies the duplicate-key strict decoder and the bounded retry on `SQLITE_BUSY` specifically at queue `BEGIN IMMEDIATE`. The retry does not replay transaction callbacks and remains bound by caller context. The earlier 12-worker and eight-worker race runs failed and remain recorded as non-green history; the corrected exact head is green.
 - PR119 remains a draft. No production VPS, main merge, release or P1 completion.
+
+### 2026-11-10 — P1 login limiter bucket-cap boundary
+- **Branch/state:** `feature/p1-login-bucket-cap`, based on PR120 stack head `3b575c40fcd5faa7c11dee3993e9774025b495e0`; implementation commit `a8fa6e3` with stack merge `31b6bc7314b0419598d664aaf16c13b21800785b`; draft publication is pending.
+- **Change:** admission now counts the absent account/source buckets before insertion and commits stale-window pruning while denying any request that would raise the persisted count above 50,000. Existing accounts and sources can still consume their already allocated buckets at capacity.
+- **Evidence:** regression seeded 49,999 existing rows and confirmed a request needing two new rows is denied without exceeding the cap. Full Windows `go test ./internal/auth ./internal/jobs -count=1`, `go vet ./internal/auth ./internal/jobs` and `git diff --check` passed.
+- **Limits:** preserves the documented development cap; no login route, rate policy, key custody, production host or account-lockout policy change. P0/P1 gates remain open.
+- **Next:** publish the focused draft stacked on PR120 and inspect exact-head hosted checks.
