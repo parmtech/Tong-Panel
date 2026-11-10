@@ -36,8 +36,8 @@ type argon2Params struct {
 }
 
 // HashPassword creates an Argon2id PHC string using the RFC 9106 lower-memory
-// recommendation. This primitive is not wired to login or account creation.
-// Callers must enforce rate limits before exposing password hashing to requests.
+// recommendation. Request paths must enforce account/source limits and use
+// PasswordVerifyBudget.Hash to bound concurrent derivation work.
 func HashPassword(password []byte) (string, error) {
 	if len(password) < 12 {
 		return "", ErrPasswordTooShort

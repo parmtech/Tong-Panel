@@ -2,6 +2,12 @@
 
 **Status:** Experimental internal-only auth component. No browser login, public TLS listener or privileged host changes. Draft [PR #32](https://github.com/parmtech/Tong-Panel/pull/32), stacked on #31.
 
+This page records the original login increment. Later internal capabilities are
+described in [session lifecycle](P1_SESSION_LIFECYCLE.md),
+[recovery admission](P1_RECOVERY_PASSWORD_ADMISSION.md) and
+[trusted password change](P1_TRUSTED_PASSWORD_CHANGE.md). Read `UPDATES.md` for
+current exact-head evidence; this page is not a complete current feature inventory.
+
 ## Authentication order
 
 1. The trusted caller supplies a **server-authorized tenant context** and an actual socket-trusted peer IP. Neither may be taken from arbitrary headers, query strings or user claims. There is **no HTTP handler** to invoke this module.
