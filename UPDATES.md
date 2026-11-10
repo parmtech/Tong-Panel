@@ -297,3 +297,11 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Validation:** Windows Go 1.27.3 formatting, `go test -count=1 ./...`, `go vet ./...`, and `git diff --check` passed in the standalone offline module. These tests validate model invariants only.
 - **Gates:** P1 run #42781985275 remains live at the last poll (Debian passed, Ubuntu job in progress). No PR #147 review is recorded. No product integration or real-node activity.
 - **Next:** continue design/specification within the gate; recheck upstream workflow and human review before any transition to implementation.
+
+### 2026-11-10 — Workstream G, pin upstream P3/P4 evidence links
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; documentation update to preserve exact source revisions for the moving P3/P4 design branches.
+- **Change:** source references now link directly to the current observed P3 plan commit `d078ef6d3e5c494df861bcc58b61a1efcc5e2098` and P4 gate snapshot commit `ebcb796a4f614b1e49a4b0f57ec758cd0bbc7c2b`, alongside the PR and run links. This keeps the Phase 5 prerequisite assessment auditable if branch heads move.
+- **Validation:** `git diff --check` passed; static check confirmed direct GitHub references, 24 acceptance scenarios, and eight traceability rows. No product tests run (documentation-only).
+- **Gates:** P1 run #42781985275 remains Debian-success / Ubuntu-in-progress at latest status check; P2 evidence remains narrow; P3/P4 gates remain unaccepted. Phase 4 checkpoint `0029b39aa5ebb2056506892b18b400a31402977b` remains unchanged.
+- **Next:** continue safe offline acceptance work and refresh evidence only from exact source revisions and terminal workflow results.
