@@ -73,7 +73,12 @@ func TestSQLiteWorkersDrainQueueAcrossHandles(t *testing.T) {
 					errs <- err
 					return
 				}
-				completed <- job.ID
+				select {
+				case completed <- job.ID:
+				case <-ctx.Done():
+					errs <- ctx.Err()
+					return
+				}
 			}
 		}(i, queue)
 	}
