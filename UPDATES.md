@@ -31,6 +31,15 @@
 - **Validation:** `git diff --check` and relative Markdown link checks passed; no product tests apply.
 - **Next:** Review the offsite provider/key-custody ADR path, then integrate an approved disposable target into the full fresh-guest scenario only after P0/P1 entry approval.
 
+## 2026-11-10 — P2 database lifecycle acceptance gap
+
+- **Work item:** [Issue #153](https://github.com/parmtech/Tong-Panel/issues/153); same isolated Phase 2 branch.
+- **Change:** Expanded the two-tenant scenario to cover app-managed per-tenant database creation, credential rotation/cutover, scoped use and export/import, authorized teardown, and explicit failure states. Added cross-tenant checks for credential references and rotation jobs.
+- **Why:** The P2 gate report says existing grant and dump/restore component labs do not provide application-managed create/remove/rotation or approved secret custody.
+- **Gate:** Specification only. Tests stop without approved secret custody and use only disposable databases; no secrets, database users, provisioning adapter or host operation were created. P1 entry and P0 approval remain prerequisites.
+- **Validation:** `git diff --check` and relative Markdown link checks passed; no product tests apply.
+- **Next:** Review the credential lifecycle and secret-custody decisions; after P0/P1 approvals, combine the approved database adapter with the existing MariaDB grant/restore fixtures in the two-tenant clean-guest suite.
+
 ## 2026-11-10 — P1 dependency evidence recheck for gated P2 work
 
 - **Source reviewed:** draft PR #91 head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1` ([PR #91](https://github.com/parmtech/Tong-Panel/pull/91)). No files in that PR or its working checkout were changed.
