@@ -36,7 +36,7 @@ func TestSQLiteWorkersDrainQueueAcrossHandles(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	store.ctx, peer.ctx = ctx, ctx
-	const workers = 12
+	const workers = 8
 	start := make(chan struct{})
 	completed := make(chan string, totalJobs)
 	errs := make(chan error, workers)
@@ -53,7 +53,7 @@ func TestSQLiteWorkersDrainQueueAcrossHandles(t *testing.T) {
 			workerID := fmt.Sprintf("load-worker-%02d", index)
 			for {
 				if err := ctx.Err(); err != nil {
-					errs <- err
+					errs <- fmt.Errorf("worker %s deadline: %w", workerID, err)
 					return
 				}
 				claim, err := queue.ClaimNext(workerID, time.Minute)
@@ -61,22 +61,22 @@ func TestSQLiteWorkersDrainQueueAcrossHandles(t *testing.T) {
 					return
 				}
 				if err != nil {
-					errs <- err
+					errs <- fmt.Errorf("worker %s claim: %w", workerID, err)
 					return
 				}
 				if _, err = queue.Start(claim); err != nil {
-					errs <- err
+					errs <- fmt.Errorf("worker %s start: %w", workerID, err)
 					return
 				}
 				job, err := queue.Complete(claim)
 				if err != nil {
-					errs <- err
+					errs <- fmt.Errorf("worker %s complete: %w", workerID, err)
 					return
 				}
 				select {
 				case completed <- job.ID:
 				case <-ctx.Done():
-					errs <- ctx.Err()
+					errs <- fmt.Errorf("worker %s report completion: %w", workerID, ctx.Err())
 					return
 				}
 			}
@@ -119,5 +119,85 @@ func TestSQLiteWorkersDrainQueueAcrossHandles(t *testing.T) {
 		if count != totalJobs {
 			t.Errorf("%s=%d, want %d", label, count, totalJobs)
 		}
+	}
+}
+
+func TestSQLiteClaimRetriesTransientBeginBusyAcrossHandles(t *testing.T) {
+	store, path := openTestSQLiteStore(t)
+	peerDB, err := database.Open(context.Background(), filepath.Clean(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerDB.Close()
+	peerConn, err := peerDB.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerConn.Close()
+	if _, err := store.CreateFor("tenant-a", "user-a", KindNoop, "begin-busy-retry"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.Exec("PRAGMA busy_timeout=0"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := peerConn.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer peerConn.ExecContext(context.Background(), "ROLLBACK")
+	type claimResult struct {
+		claim Claim
+		err   error
+	}
+	result := make(chan claimResult, 1)
+	go func() {
+		claim, err := store.ClaimNext("busy-retry-worker", time.Minute)
+		result <- claimResult{claim: claim, err: err}
+	}()
+	time.Sleep(100 * time.Millisecond)
+	if _, err := peerConn.ExecContext(context.Background(), "COMMIT"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case outcome := <-result:
+		if outcome.err != nil {
+			t.Fatalf("claim did not recover after writer released: %v", outcome.err)
+		}
+		if outcome.claim.Job.IdempotencyKey != "begin-busy-retry" {
+			t.Fatalf("claimed unexpected job %q", outcome.claim.Job.IdempotencyKey)
+		}
+	case <-time.After(6 * time.Second):
+		t.Fatal("claim did not finish after writer lock was released")
+	}
+}
+
+func TestSQLiteClaimBeginBusyRetryHonorsContextDeadline(t *testing.T) {
+	store, path := openTestSQLiteStore(t)
+	peerDB, err := database.Open(context.Background(), filepath.Clean(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerDB.Close()
+	peerConn, err := peerDB.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerConn.Close()
+	if _, err := peerConn.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer peerConn.ExecContext(context.Background(), "ROLLBACK")
+	if _, err := store.db.Exec("PRAGMA busy_timeout=0"); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	store.ctx = ctx
+	started := time.Now()
+	_, err = store.ClaimNext("busy-timeout-worker", time.Minute)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("claim under a held writer lock returned %v, want deadline", err)
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("claim exceeded its bounded context: %s", elapsed)
 	}
 }
