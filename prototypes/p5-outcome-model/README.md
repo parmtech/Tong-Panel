@@ -6,6 +6,8 @@ The proposed classifier reports success only when an acceptance response and eff
 
 These are candidate safety semantics for discussion, not an approved protocol or an implementation contract. In particular, this prototype does not establish what effect verification means, how durable deduplication survives worker restore, or how authorization/revocation interacts with an in-flight operation. Those decisions require P0/P1/P5 review and the upstream gates recorded in `docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md`. Do not connect this module to a real node or production system.
 
+The tests include table cases and exhaustive checks over all 8-bit response/outcome values and boolean evidence combinations. They prove invariants of this small model only; they do not establish network, persistence, identity, or host-effect behavior.
+
 Run locally with the repository's pinned Windows Go toolchain:
 
 ```powershell

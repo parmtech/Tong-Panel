@@ -27,6 +27,30 @@ func TestClassifyRequiresSufficientEvidence(t *testing.T) {
 	}
 }
 
+func TestClassifySafetyInvariantsExhaustive(t *testing.T) {
+	for response := 0; response <= 255; response++ {
+		for dispatch := 0; dispatch <= 1; dispatch++ {
+			for verified := 0; verified <= 1; verified++ {
+				evidence := Evidence{
+					DispatchAttempted: dispatch == 1,
+					Response:          ResponseKind(response),
+					EffectVerified:    verified == 1,
+				}
+				got := Classify(evidence)
+				if got == Succeeded && !(evidence.DispatchAttempted && evidence.Response == Accepted && evidence.EffectVerified) {
+					t.Fatalf("unsafe success classification for %+v", evidence)
+				}
+				if got == RejectedBeforeEffect && !(evidence.DispatchAttempted && evidence.Response == RejectedWithoutEffect && !evidence.EffectVerified) {
+					t.Fatalf("unsafe pre-effect rejection classification for %+v", evidence)
+				}
+				if !evidence.DispatchAttempted && evidence.Response != NoResponse && got != Unknown {
+					t.Fatalf("contradictory undispatched evidence classified as %v: %+v", got, evidence)
+				}
+			}
+		}
+	}
+}
+
 func TestMayReplayRequiresCompleteBindingAndDurableDedupeForUnknown(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -51,5 +75,33 @@ func TestMayReplayRequiresCompleteBindingAndDurableDedupeForUnknown(t *testing.T
 				t.Fatalf("MayReplay(%v, evidence=%+v) = %t, want %t", tt.outcome, tt.evidence, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestMayReplaySafetyInvariantExhaustive(t *testing.T) {
+	for outcome := 0; outcome <= 255; outcome++ {
+		for authorization := 0; authorization <= 1; authorization++ {
+			for key := 0; key <= 1; key++ {
+				for target := 0; target <= 1; target++ {
+					for request := 0; request <= 1; request++ {
+						for dedupe := 0; dedupe <= 1; dedupe++ {
+							evidence := ReplayEvidence{
+								CurrentlyAuthorized: authorization == 1,
+								SameIdempotencyKey:  key == 1,
+								SameTargetNode:      target == 1,
+								SameRequest:         request == 1,
+								DurableWorkerDedupe: dedupe == 1,
+							}
+							got := MayReplay(Outcome(outcome), evidence)
+							allowed := evidence.CurrentlyAuthorized && Outcome(outcome) == NotDispatched ||
+								evidence.CurrentlyAuthorized && Outcome(outcome) == Unknown && evidence.SameIdempotencyKey && evidence.SameTargetNode && evidence.SameRequest && evidence.DurableWorkerDedupe
+							if got != allowed {
+								t.Fatalf("MayReplay(%d, %+v) = %t, want %t", outcome, evidence, got, allowed)
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 }
