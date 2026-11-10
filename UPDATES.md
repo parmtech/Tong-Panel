@@ -363,3 +363,7 @@ Latest connected GitHub diagnostics at PR #149 head `8764d0fef218a36a4cc9411e548
 - Added table-driven tests that JSON-round-trip the illustrative in-memory model before reconciliation at four switch/rollback interruption boundaries. README states this is not durable storage, process-termination, corruption, transaction-ordering, or cross-process evidence.
 - Windows Go 1.27.3: `GO111MODULE=off go test -count=10` passed; `go vet`, `gofmt -d model_test.go`, and `git diff --check` passed. No product, guest, privileged, hostile-workload, or phase-gate test was run.
 - Dependencies/blockers unchanged: P1/P2 entry and P0/security reviews remain unproven; stay within design and isolated non-privileged prototype scope. Before continuing, recheck this worktree/branch and remote P3/P4 heads; do not use JSON-round-trip tests as deployment acceptance evidence.
+
+## P1 #149 newer exact-head diagnostics — 2026-11-10
+
+Connected GitHub reports open/draft PR #149 advanced from `8764d0fef218a36a4cc9411e5481656d014cdf0c` to `4dab4c60cc86186935e9a7d987b9fe1ca97a1f23`. Diagnostics pinned to `4dab4c6` show test, contract, daemon dry-run, unsigned-dev-archive, browser, and govulncheck succeeded; Ubuntu 24.04 and Debian 12 clean-VM jobs in run #42790473632 were still in progress at observation. The P3 prerequisite matrix distinguishes this latest status from the prior all-green head. PR remains open/draft and unsigned developer-preview scope; P1 exit and P3 entry remain unproven.
