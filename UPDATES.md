@@ -1,3 +1,9 @@
+### 2026-11-10 20:04 +11:00 — Workstream G, refresh exact upstream gate evidence
+- **Branch/state:** docs/p4-hosting-parity-continuation; evidence refresh on the saved P4 design.
+- **Change:** replaced the obsolete P1 PR #149 check snapshot with its current exact head and active check runs; updated current draft P2/P3 planning heads.
+- **Evidence:** fetched PR heads, current P1/P2 gate report contents and exact-head checks from GitHub REST API. P1 remains incomplete/P2 entry blocked; P2 exit remains not passed. git diff --check passed.
+- **Limits:** current P1 Go/browser/API/VM checks are still running; P2/P3 planning PRs are not gate acceptance. No implementation or privileged operation.
+- **Next:** re-poll PR #149 current-head checks and re-evaluate upstream decisions before any P4 implementation.
 ### 2026-11-10 20:02 +11:00 — Workstream G, revalidate migration inventory at execution
 - **Branch/state:** docs/p4-hosting-parity-continuation; nonbinding refinement to the existing P4 migration proposal.
 - **Change:** require destination inventory revision re-read immediately before later authorized execution; mismatch invalidates approval. Added the corresponding candidate test and refreshed exact heads for planning PRs #144/#145.
