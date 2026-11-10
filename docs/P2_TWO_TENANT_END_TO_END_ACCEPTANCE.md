@@ -2,6 +2,8 @@
 
 **State:** proposed acceptance design only. This plan records no owner/security approval and is not evidence that any P2 gate has passed.
 
+**Work item:** [P2 issue #150](https://github.com/parmtech/Tong-Panel/issues/150) tracks the staged ACME and WordPress integration-spec additions.
+
 **Purpose:** turn the P2 two-tenant and recovery exit criteria into one reviewable clean-guest scenario. The current P2 gate report says component checks exist, but no end-to-end panel-to-agent suite covers API, files, database users, domains, and job logs together.
 
 **Entry gate:** the latest Phase 1 report says Phase 2 entry is blocked. Do not enable or test public authentication, privileged host operations, installer mutations, or customer-like production workloads until P0 decisions and P1 security, identity, typed-job/agent, signed-package, and recovery gates have recorded approval and evidence. Before that, only prepare fixtures and pure contract tests in disposable, non-privileged environments.
@@ -36,13 +38,13 @@ Create two isolated tenants, `tenant-a` and `tenant-b`, with one site, one datab
 |---|---|---|
 | 1. Preflight and install | Run the exact supported package's non-mutating preflight, then install only after every required fact passes | Unsupported OS, insufficient disk, occupied required port, unknown reading, or missing policy stops before package metadata, service files, or state directories are created; a passing report records the exact facts and policy version |
 | 2. Authentication and tenant setup | Bootstrap and authenticate the two test identities using the approved MFA/session flow | No shared/default credential; revoked, expired, disabled, or cross-tenant identity is denied; audit records contain actor and tenant attribution without secrets |
-| 3. Domain and site lifecycle | Create one site per tenant, prove each test domain through the deterministic DNS fixture, and exercise approved site activation | A tenant cannot claim or mutate the other tenant's site/domain; pending or failed proof never enters an active vhost; duplicate and stale requests are deterministic |
-| 4. Web runtime | Use each tenant's real disposable Nginx/PHP-FPM instance and tenant-owned content marker | Each domain serves only its own marker; direct requests, traversal, symlink swaps, hidden files, alternate Host headers, and guessed site IDs cannot read the other tenant's files or private runtime data |
+| 3. Domain, certificate, and site lifecycle | Create one site per tenant, prove each test domain through the deterministic DNS fixture, issue certificates only through the configured staging CA, then exercise renewal and approved site activation | A tenant cannot claim or mutate the other tenant's site/domain/certificate; pending or failed proof never enters an active vhost; each certificate SAN matches only its verified tenant domains; the runner validates the chain and hostname through the staging trust anchor; failed renewal preserves the last known-good certificate and serving state; duplicate and stale requests are deterministic |
+| 4. Web runtime and WordPress recipe | Use each tenant's real disposable Nginx/PHP-FPM instance, install the exact checksum-pinned WordPress release through the approved recipe, and create distinct tenant-owned content markers | Core checksum mismatch, archive traversal/link entries, or an unverified domain prevents publication; each HTTPS domain serves only its own marker and WordPress content; each install uses its own database and runtime identity; direct requests, traversal, symlink swaps, hidden files, alternate Host headers, and guessed site IDs cannot read the other tenant's files or private runtime data |
 | 5. Database | Provision app-managed per-tenant database users through the approved interface; create distinct rows and perform a scoped export/import | Each user can read/write its own schema and is denied SELECT, dump, or import against the other schema; credentials are never returned in normal API responses or logs |
 | 6. Files and quota | Exercise the supported Files upload/read/delete/archive workflow through authenticated tenant-scoped APIs and UI | Tenant A cannot list/read/overwrite/delete tenant B paths; traversal, symlinks, hostile archives, decompression limits, quota overflow, cancellation, and concurrent publication fail without partial publication or cross-tenant effects |
 | 7. Jobs, cron, and logs | Enqueue one approved typed operation per tenant, inspect status/logs, and exercise the approved scheduled-task contract if implemented | No arbitrary command/path crosses the API; each job and log is visible only to authorized principals for its tenant; membership revocation before execution denies the operation; audit/log output is bounded and redacted |
 | 8. Config apply and failure recovery | Select the versioned template, stage config, syntax-check, activate, reload, and probe each site; inject failure at each transition | The test identifies the active template version. Syntax, write, reload, or health failure retains/restores the prior known-good config, emits a redacted terminal job result, and leaves both tenants' serving state explainable |
-| 9. Backup and clean restore | Create encrypted backups for both tenants, destroy the source overlay, boot a new guest, restore both sites/databases/settings, then verify HTTP content and access boundaries | Only authorized backup data is restored; wrong tenant/key, tamper, truncation, missing artifact, and partial restore fail closed; restore does not resurrect stale executable tasks or broaden tenant access; the new guest contains no source-VM state |
+| 9. Backup and clean restore | Create encrypted backups for both tenants, destroy the source overlay, boot a new guest, restore both sites/databases/settings and WordPress content, then verify HTTPS content and access boundaries | Only authorized backup data is restored; wrong tenant/key, tamper, truncation, missing artifact, and partial restore fail closed; restore does not resurrect stale executable tasks or broaden tenant access; restored certificates are revalidated or safely reissued under the reviewed policy; the new guest contains no source-VM state |
 | 10. UI and accessibility | Complete common create/view/recovery tasks at phone/tablet viewport sizes with keyboard-only navigation | No horizontal overflow or keyboard trap; labels, focus, status/errors, loading/empty/denied states, and recovery guidance are available without color alone; automated checks are supplemented by recorded human accessibility review |
 
 ## Cross-tenant denial matrix
@@ -52,13 +54,14 @@ For every resource above, run both an authorized positive case and a negative ca
 - altered path, site/database/job/domain ID, pagination cursor, alias, or template version;
 - a stale authorization snapshot, role downgrade, membership removal, disabled identity, or suspended tenant between request and job execution;
 - duplicate concurrent create/delete/update requests, replayed proof, idempotency-key reuse across tenants, and cancellation during a writer or host-operation wait;
+- DNS challenge name/token, ACME order/certificate ID, certificate file mapping, or renewal task belonging to the other tenant;
 - an API read, UI action, background job, support bundle, and audit/log view where the resource can be surfaced.
 
 Where the public API contract intentionally conceals object existence, assert the same external response for absent and foreign-tenant objects while retaining an appropriately attributed internal denial audit. A denial must not partially mutate metadata, files, database grants, service config, backup state, or job state.
 
 ## Failure injection and recovery evidence
 
-Inject process termination, timeout, disk-full, permission denial, service reload failure, DNS/ACME timeout, database unavailable, source stream error, and restore interruption at documented boundaries. For every case, record:
+Inject process termination, timeout, disk-full, permission denial, service reload failure, wrong DNS TXT value, delayed DNS propagation, ACME staging rejection/rate limit/timeout, failed certificate renewal, database unavailable, source stream error, and restore interruption at documented boundaries. For every case, record:
 
 1. the phase/job state before and after failure;
 2. whether any external effect occurred and how it was detected;
@@ -72,6 +75,8 @@ Inject process termination, timeout, disk-full, permission denial, service reloa
 - [ ] P1 exit report shows all authentication, identity, typed-job/agent, signed package, clean install/rollback/recovery, supply-chain, and accessibility gates verified.
 - [ ] The exact supported OS/architecture matrix is published and matches the guest image hashes used.
 - [ ] Every P2 implementation slice has linked component evidence and is present in the integrated guest run.
+- [ ] Staging-CA issuance and renewal are exercised for both tenants; DNS/ACME failures retain the prior known-good certificate, and no production CA/account is used.
+- [ ] The pinned WordPress archive checksum and bounded no-link extraction are verified before publication; both tenant installs restore posts and settings without exposing private configuration or sharing databases.
 - [ ] Every cross-tenant positive/negative case passes across API, files, database, domains, jobs/logs, and backup/restore.
 - [ ] Failure injection proves safe rollback or an explicit recoverable state; no mutation is silently reported as successful.
 - [ ] A fresh-VM restore contains sites, databases, configuration, and settings, with tenant boundaries re-tested after restore.

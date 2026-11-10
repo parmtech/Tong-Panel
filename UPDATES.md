@@ -4,6 +4,15 @@
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
+## 2026-11-10 — P2 integrated certificate and WordPress acceptance gaps
+
+- **Work item:** [Issue #150](https://github.com/parmtech/Tong-Panel/issues/150); work remains on the isolated Phase 2 branch `phase2/cron-logs-templates-test-plan-20261110`.
+- **Change:** Extended `docs/P2_TWO_TENANT_END_TO_END_ACCEPTANCE.md` to require staged-CA issuance/renewal and external chain/hostname verification for both tenants, known-good certificate preservation on renewal failure, and the checksum-pinned WordPress recipe through fresh restore. Added DNS/ACME failures and cross-tenant certificate/task lookups to the adversarial matrix.
+- **Why:** The earlier integrated test had broad domain, web and restore coverage, but did not explicitly exercise certificate issuance/renewal or deploy/restore WordPress as part of the two-tenant flow. This aligns the scenario with P2 slices 6 and 8 and the P2 exit criteria.
+- **Gate:** This is specification only. No ACME client, certificate operation, WordPress install, host action or integration harness was implemented. P0 decisions and P1 entry approval remain required before host-facing work.
+- **Validation:** `git diff --check` and the edited document's relative-link checks passed. No product tests apply to this documentation-only change.
+- **Next:** Review issue #150 and the updated acceptance specification; after P0/P1 gates are formally approved, wire the existing disposable DNS/ACME, pinned WordPress, and restore component labs into the integrated two-tenant guest run.
+
 ## 2026-11-10 — P1 dependency evidence recheck for gated P2 work
 
 - **Source reviewed:** draft PR #91 head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1` ([PR #91](https://github.com/parmtech/Tong-Panel/pull/91)). No files in that PR or its working checkout were changed.
