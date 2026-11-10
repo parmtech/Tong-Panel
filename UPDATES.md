@@ -1,3 +1,9 @@
+### 2026-11-10 19:59 +11:00 — Workstream G, reconcile current upstream planning heads
+- **Branch/state:** docs/p4-hosting-parity-continuation; evidence update to the existing P4 checkpoint.
+- **Change:** refreshed exact heads for draft P2/P3 planning PRs #144/#145 and clarified current PR #149 non-VM checks pass while its clean-VM workflow remains active.
+- **Evidence:** queried GitHub REST API for open PR heads and exact-commit check runs; P1/P2 gate reports still explicitly block phase acceptance. git diff --check passed; no product tests run.
+- **Limits:** P2/P3 PRs are design-only with no exact-head checks; no phase gate passed, implementation or privileged action.
+- **Next:** recheck active P1 VM run and required P1/P2/P3 owner/security acceptance decisions before advancing P4 beyond design.
 ### 2026-11-10 19:56 +11:00 — Workstream G, refresh Phase 4 gate snapshot
 - **Branch/state:** docs/p4-hosting-parity-continuation; evidence update to the existing design checkpoint.
 - **Change:** recorded current P1/P2 gate verdicts, exact P1 preview workflow heads, narrow P2 lab evidence, and current P2/P3 planning PR scopes so Phase 4 work is not duplicated or misrepresented.
