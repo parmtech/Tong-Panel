@@ -289,3 +289,11 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Validation:** Windows Go 1.27.3 formatting, `go test -count=1 ./...`, `go vet ./...`, and `git diff --check` passed for the offline module/docs.
 - **Gate/evidence:** P0/P1/P2/P3/P4 prerequisites remain unaccepted. P1 run #42781985275 still shows Debian 12 success and Ubuntu 24.04 in progress at the latest poll. PR #147 has no human review recorded. Phase 4 checkpoint remains at `0029b39aa5ebb2056506892b18b400a31402977b`.
 - **Next:** maintainers/security review the candidate semantics and upstream gates; no product integration before approval.
+
+### 2026-11-10 — Workstream G, exhaustive offline outcome invariants
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; test commit `61c1f85b886d37f71f13d9413e40ab11850fc777`, included in draft PR #147 / review issue #148.
+- **Change:** added exhaustive checks over all 256 encoded response/outcome values and every boolean evidence combination. The checks assert that success requires dispatch + accepted response + verified effect; contradictory non-dispatch evidence stays unknown; and replay requires current authorization plus all same-request/node/key and durable-dedupe facts for an unknown outcome.
+- **Validation:** Windows Go 1.27.3 formatting, `go test -count=1 ./...`, `go vet ./...`, and `git diff --check` passed in the standalone offline module. These tests validate model invariants only.
+- **Gates:** P1 run #42781985275 remains live at the last poll (Debian passed, Ubuntu job in progress). No PR #147 review is recorded. No product integration or real-node activity.
+- **Next:** continue design/specification within the gate; recheck upstream workflow and human review before any transition to implementation.
