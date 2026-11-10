@@ -1,3 +1,9 @@
+### 2026-11-10 19:38 +11:00 — Workstream G, refresh P1 exact-head VM status
+- **Branch/state:** docs/p4-hosting-parity-continuation; evidence update only.
+- **Change:** corrected the current P1 VM status: PR #143 run #42781985275 reports Debian 12 success; Ubuntu 24.04 is still running.
+- **Evidence:** re-polled the same live GitHub workflow job handle. git diff --check passed. No tests run for docs-only change.
+- **Limits:** P1 report still says P1 incomplete and P2 entry blocked; P4 remains design-only. No Phase 1 workspace or code changed.
+- **Next:** verify the remaining Ubuntu job conclusion, then reassess against the full P1 exit report.
 ### 2026-11-10 19:37 +11:00 — Workstream G, reconcile new P2/P3 planning drafts
 - **Branch/state:** docs/p4-hosting-parity-continuation; P4 dependency evidence only.
 - **Change:** corrected the open-PR inventory: P3 draft PR #145 now contains prerequisite/contracts and hostile-app test specifications; P2 draft PR #144 contains a distinct Slice 7 test plan. The P4 note links their scope and records that both are unmerged planning inputs, so this branch does not duplicate their matrices.
