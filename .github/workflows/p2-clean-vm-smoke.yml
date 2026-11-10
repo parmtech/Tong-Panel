@@ -17,6 +17,8 @@ on:
       - 'scripts/verify_vm_image_checksum.sh'
       - 'scripts/test_verify_vm_image_checksum.sh'
       - 'scripts/clean_vm_smoke.sh'
+      - 'scripts/probe_https_isolation.py'
+      - 'scripts/test_probe_https_isolation.py'
       - 'scripts/build_deb.sh'
       - 'scripts/test_deb_package.sh'
       - 'scripts/p2_package_install_vm.sh'
@@ -54,6 +56,8 @@ jobs:
         with:
           go-version: '1.27.3'
           cache: false
+      - name: Test bounded HTTPS isolation diagnostics
+        run: python3 -m unittest discover -s scripts -p 'test_probe_https_isolation.py'
       - name: Build unsigned developer preview for isolated VM smoke
         run: |
           mkdir -p "$RUNNER_TEMP/tong-p1-dev/bin"

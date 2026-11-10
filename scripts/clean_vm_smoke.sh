@@ -124,6 +124,7 @@ retry_guest_scp "$VM_RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" "$VM_R
 retry_guest_scp "$VM_RUNNER_TEMP/tong-package-lab/tong-panel-dev-v1.deb" "$VM_RUNNER_TEMP/tong-package-lab/tong-panel-dev-v2.deb" "$VM_RUNNER_TEMP/tong-package-lab/PACKAGES.SHA256SUMS" "$guest:/home/ci/"
 retry_guest_scp scripts/smoke_p1.py "$guest:/home/ci/smoke_p1.py"
 retry_guest_scp scripts/p2_package_install_vm.sh "$guest:/home/ci/p2_package_install_vm.sh"
+retry_guest_scp scripts/probe_https_isolation.py "$guest:/home/ci/probe_https_isolation.py"
 cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -506,9 +507,9 @@ for host in tenant-a.example.test tenant-b.example.test; do
   grep -qE '^HTTP/[^ ]+ 308' <<<"$headers"
   grep -qi "^[Ll]ocation: https://$host/path?from=http" <<<"$headers"
 done
-body_a="$(curl --silent --show-error --insecure --resolve tenant-a.example.test:443:127.0.0.1 https://tenant-a.example.test/)"
-body_b="$(curl --silent --show-error --insecure --resolve tenant-b.example.test:443:127.0.0.1 https://tenant-b.example.test/)"
-[[ "$body_a" == *tenant-a-isolated* && "$body_b" == *tenant-b-isolated* ]]
+# Require exact markers with bounded transport/status diagnostics. Never print
+# response bodies or retry a wrong-tenant response until it happens to pass.
+python3 /home/ci/probe_https_isolation.py
 [[ "$(curl --silent --show-error --resolve tenant-a.example.test:80:127.0.0.1 http://tenant-a.example.test/.well-known/acme-challenge/token)" == tenant-a-challenge ]]
 [[ "$(curl --silent --show-error --resolve tenant-b.example.test:80:127.0.0.1 http://tenant-b.example.test/.well-known/acme-challenge/token)" == tenant-b-challenge ]]
 hidden_status="$(curl --silent --show-error --insecure --resolve tenant-a.example.test:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://tenant-a.example.test/.private.php)"
