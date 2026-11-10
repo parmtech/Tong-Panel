@@ -58,6 +58,14 @@
 - **Validation:** `git diff --check` and relative Markdown link checks passed; no product tests apply.
 - **Next:** Review the approved authentication/recovery policy and UX flows, then execute the integrated cases only after required gates pass.
 
+## 2026-11-10 — P2 scope-to-evidence traceability matrix
+
+- **Work item:** [Issue #157](https://github.com/parmtech/Tong-Panel/issues/157); same isolated Phase 2 branch.
+- **Change:** Added `docs/P2_ACCEPTANCE_TRACEABILITY.md`, mapping all ten implementation slices and the P2 must-pass exit criteria to specific scenario steps, reusable component PRs, and evidence still missing. Linked it from the P2 phase plan and two-tenant test plan.
+- **Gate interpretation:** the matrix separates test-plan coverage from actual product evidence. The latest P1 report still blocks Phase 2 entry; the P2 report still says exit gate not passed. No slice or exit criterion is marked verified by this document.
+- **Validation:** `git diff --check` and relative Markdown link checks passed; no product tests apply to this documentation-only change.
+- **Next:** maintainers review the traceability map; after owner/security approval and P1 entry, attach exact-head integrated evidence row by row and update the authoritative gate report through its owning workstream.
+
 ## 2026-11-10 — P1 dependency evidence recheck for gated P2 work
 
 - **Source reviewed:** draft PR #91 head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1` ([PR #91](https://github.com/parmtech/Tong-Panel/pull/91)). No files in that PR or its working checkout were changed.

@@ -1,6 +1,8 @@
 # P2 — Secure Single-Server Hosting Alpha
 **Status:** PLANNED, not implemented. **Depends:** P1 auth, typed jobs/host agent, installer lab and secret handling.
 
+See the [P2 acceptance traceability matrix](../P2_ACCEPTANCE_TRACEABILITY.md) for the mapping from all ten slices and must-pass exit criteria to the proposed scenario and required evidence. It is a design map only and does not change gate status.
+
 ## Implementation slices
 1. Supported distro package/installer, preflight, journal and recovery.
 2. Web service adapters: Nginx and PHP-FPM per site; runtime/version selectors only for tested versions.

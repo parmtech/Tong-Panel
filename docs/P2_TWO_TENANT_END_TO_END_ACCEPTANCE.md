@@ -2,7 +2,9 @@
 
 **State:** proposed acceptance design only. This plan records no owner/security approval and is not evidence that any P2 gate has passed.
 
-**Work items:** [P2 issue #150](https://github.com/parmtech/Tong-Panel/issues/150) tracks staged ACME and WordPress integration; [P2 issue #152](https://github.com/parmtech/Tong-Panel/issues/152) tracks scheduled offsite backup and retention; [P2 issue #153](https://github.com/parmtech/Tong-Panel/issues/153) tracks database lifecycle and credential rotation; [P2 issue #154](https://github.com/parmtech/Tong-Panel/issues/154) tracks install interruption and recovery; [P2 issue #155](https://github.com/parmtech/Tong-Panel/issues/155) tracks mobile/tablet task journeys; [P2 issue #156](https://github.com/parmtech/Tong-Panel/issues/156) tracks two-tenant MFA recovery and session denial.
+**Work items:** [P2 issue #150](https://github.com/parmtech/Tong-Panel/issues/150) tracks staged ACME and WordPress integration; [P2 issue #152](https://github.com/parmtech/Tong-Panel/issues/152) tracks scheduled offsite backup and retention; [P2 issue #153](https://github.com/parmtech/Tong-Panel/issues/153) tracks database lifecycle and credential rotation; [P2 issue #154](https://github.com/parmtech/Tong-Panel/issues/154) tracks install interruption and recovery; [P2 issue #155](https://github.com/parmtech/Tong-Panel/issues/155) tracks mobile/tablet task journeys; [P2 issue #156](https://github.com/parmtech/Tong-Panel/issues/156) tracks two-tenant MFA recovery and session denial; and [P2 issue #157](https://github.com/parmtech/Tong-Panel/issues/157) tracks slice-to-gate traceability.
+
+**Traceability:** See the [P2 acceptance traceability matrix](P2_ACCEPTANCE_TRACEABILITY.md) for coverage and remaining integrated evidence across all ten slices and must-pass criteria. The matrix is not a test result or approval.
 
 **Purpose:** turn the P2 two-tenant and recovery exit criteria into one reviewable clean-guest scenario. The current P2 gate report says component checks exist, but no end-to-end panel-to-agent suite covers API, files, database users, domains, and job logs together.
 
