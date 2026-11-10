@@ -297,3 +297,5 @@ Added a crash/restart decision table under P3-04. It marks states as non-normati
 ## P3 in-memory recovery model — 2026-11-10
 
 Added `prototypes/p3-deploy-recovery-model`, a pure in-memory Go example for a few P3-04/P3-07 transition assertions. It performs no filesystem, process, network, database or proxy operations. Six tests, `go vet`, and `git diff --check` passed on Windows with Go 1.27.3 (`GO111MODULE=off`). The model omits durable jobs, tenant authorization, concurrency, audit, quotas and host behavior; it is not product code or acceptance evidence. P3 entry remains NOT PROVEN.
+
+Extended the same model with same-request admission idempotency examples: exact retry returns the original simulated job ID, changed payload conflicts, and the illustrative tenant/app key namespace stays separate. This key scope is explicitly not an approved policy. Ten model tests now pass; `go vet` and formatting checks pass with Go 1.27.3 on Windows. Persistence, atomicity, concurrency, authorization and real job execution remain untested and out of scope. P3 remains gated.
