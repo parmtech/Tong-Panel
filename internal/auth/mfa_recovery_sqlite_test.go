@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -32,6 +33,127 @@ func recoveryFixture(t *testing.T) (string, *sql.DB, *SQLiteRecoveryStore) {
 		t.Fatal(err)
 	}
 	return path, db, store
+}
+
+func holdRecoveryWriter(t *testing.T, path string) {
+	t.Helper()
+	peerDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writer, err := peerDB.Conn(context.Background())
+	if err != nil {
+		peerDB.Close()
+		t.Fatal(err)
+	}
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		writer.Close()
+		peerDB.Close()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = writer.ExecContext(context.Background(), "ROLLBACK")
+		_ = writer.Close()
+		_ = peerDB.Close()
+	})
+}
+
+func cancelRecoveryWriteDuringLock(t *testing.T, db *sql.DB, write func(context.Context) error) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	result := make(chan error, 1)
+	go func() { result <- write(ctx) }()
+	deadline := time.Now().Add(2 * time.Second)
+	for db.Stats().InUse == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if db.Stats().InUse == 0 {
+		t.Fatal("recovery write did not acquire a connection while waiting for the writer")
+	}
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("recovery write error=%v, want context cancellation", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("recovery write did not stop after cancellation")
+	}
+	var busyTimeout int
+	if err := db.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout); err != nil || busyTimeout != 5000 {
+		t.Fatalf("busy_timeout=%d err=%v, want restored 5000ms", busyTimeout, err)
+	}
+}
+
+func recoverySnapshot(db *sql.DB) ([]string, error) {
+	var set string
+	if err := db.QueryRow(`SELECT hex(enrollment_sha256)||':'||window_started_unix||':'||attempts
+		FROM mfa_recovery_sets WHERE tenant_id='tenant-a' AND identity_id='user-a'`).Scan(&set); err != nil {
+		return nil, err
+	}
+	snapshot := []string{set}
+	rows, err := db.Query("SELECT hex(code_sha256) FROM mfa_recovery_codes WHERE tenant_id='tenant-a' AND identity_id='user-a' ORDER BY code_sha256")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var code string
+		if err := rows.Scan(&code); err != nil {
+			return nil, err
+		}
+		snapshot = append(snapshot, code)
+	}
+	return snapshot, rows.Err()
+}
+
+func TestRecoveryTransactionsHonorCancellationDuringWriterWait(t *testing.T) {
+	t.Run("issue", func(t *testing.T) {
+		path, db, store := recoveryFixture(t)
+		if _, err := store.IssueTrusted(context.Background(), "tenant-a", "user-a"); err != nil {
+			t.Fatal(err)
+		}
+		before, err := recoverySnapshot(db)
+		if err != nil {
+			t.Fatal(err)
+		}
+		holdRecoveryWriter(t, path)
+		cancelRecoveryWriteDuringLock(t, db, func(ctx context.Context) error {
+			_, err := store.IssueTrusted(ctx, "tenant-a", "user-a")
+			return err
+		})
+		after, err := recoverySnapshot(db)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(before, after) {
+			t.Fatal("canceled recovery-code issuance changed the stored set")
+		}
+	})
+	t.Run("consume", func(t *testing.T) {
+		path, db, store := recoveryFixture(t)
+		codes, err := store.IssueTrusted(context.Background(), "tenant-a", "user-a")
+		if err != nil {
+			t.Fatal(err)
+		}
+		before, err := recoverySnapshot(db)
+		if err != nil {
+			t.Fatal(err)
+		}
+		holdRecoveryWriter(t, path)
+		cancelRecoveryWriteDuringLock(t, db, func(ctx context.Context) error {
+			return store.ConsumeTrusted(ctx, "tenant-a", "user-a", codes[0])
+		})
+		after, err := recoverySnapshot(db)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(before, after) {
+			t.Fatal("canceled recovery-code consumption changed recovery state")
+		}
+	})
 }
 
 func TestRecoveryPersistenceReplayAndIdentityWideRevocation(t *testing.T) {

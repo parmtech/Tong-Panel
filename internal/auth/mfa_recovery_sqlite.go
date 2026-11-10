@@ -9,6 +9,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"time"
+
+	"github.com/parmtech/tong-panel/internal/database"
 )
 
 var ErrRecoveryDenied = errors.New("MFA recovery unavailable")
@@ -203,9 +205,11 @@ func (s *SQLiteRecoveryStore) transaction(ctx context.Context, fn func(*sql.Conn
 		return err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := database.BeginImmediate(ctx, conn, 0)
+	if err != nil {
 		return err
 	}
+	defer restoreBusyTimeout()
 	defer func() { _, _ = conn.ExecContext(context.Background(), "ROLLBACK") }()
 	if err := fn(conn); err != nil {
 		return err
