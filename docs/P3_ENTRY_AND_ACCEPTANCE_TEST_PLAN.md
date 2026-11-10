@@ -6,7 +6,7 @@
 
 ## Current gate decision
 
-**P3 entry: NOT PROVEN.** The Phase Index requires P1 before P2 and P2 before P3. The P3 plan specifically depends on secure site routing, authentication and quotas, backup, and deploy jobs. The current `main` checkpoint is `0aad68e`; it records P1 as incomplete. The current P2 plan says planned/not implemented. GitHub's open P2 drafts provide useful component and test evidence, but their own limits say that installer/service lifecycle, complete Files ACL/UI and quota wiring, backup/restore, or full P2 acceptance remain absent. Several drafts also say owner ADR/threat-model review is still pending. They remain drafts and are not merged foundation on `main`.
+**P3 entry: NOT PROVEN.** The Phase Index requires P1 before P2 and P2 before P3. The P3 plan specifically depends on secure site routing, authentication and quotas, backup, and deploy jobs. The current `main` checkpoint is `0aad68e`; it records P1 as incomplete. The current P2 plan says planned/not implemented. GitHub's open P2 drafts provide useful component and test evidence, but their limits still leave installer/service lifecycle, complete Files ACL/UI and quota wiring, full backup/restore operations, and overall P2 acceptance incomplete. Draft #84 reports a narrow MariaDB fresh-VM restore drill; it does not provide an offsite retention service or complete application/settings restore. Several drafts also say owner ADR/threat-model review is still pending. They remain drafts and are not merged foundation on `main`.
 
 This specification is safe to review and refine without privileged operations. P3 implementation remains blocked until the entry evidence below is independently assembled and reviewed. No P3 feature, endpoint, runtime, build, installer, or host mutation is authorized by this document.
 
@@ -34,12 +34,30 @@ Every P2 acceptance scenario in `docs/phases/P2-HOSTING-ALPHA.md` remains requir
 | P2 contract | Required proof before P3 consumes it | Current GitHub signal (open draft; not gate acceptance) |
 |---|---|---|
 | Tenant/site identity and routing | Two-tenant API, job, file, database and route isolation; verified domain/TLS route with teardown; authorization repeated at job/agent boundary | Current P2 plan requires two-tenant lifecycle tests; latest `main` lacks accepted P2. **Open.** |
-| Site lifecycle and safe host changes | Idempotent create/update/remove, staged config validation, reload failure rollback, port conflict and unsupported-host fail-before-mutation | P2 plan requires these end-to-end. Draft preflight and site slices alone do not prove lifecycle. **Open.** |
+| Site lifecycle and safe host changes | Idempotent create/update/remove, staged config validation, reload failure rollback, port conflict and unsupported-host fail-before-mutation | Draft #80 reports isolated Nginx staging/validation/reload rollback tests on clean Ubuntu/Debian guests, but says the daemon does not apply host config. P2 plan requires integrated lifecycle end-to-end. Narrow evidence; gate **Open**. |
 | Files, ACL and quotas | Authenticated list/read/write/delete/upload and archive flows; object/tenant ACL, race and quota enforcement; crash reconciliation and safe cleanup | PR #51 is read-only and unconfigured; #52 upload depends on it; #53 quota remains opt-in/unwired and requires trusted reconciliation. All are drafts. **Open.** |
-| Backup and restore | Encrypted offsite backup, retention, destroy disposable source VM, clean target restore and data/settings verification; interrupted/partial restore recovery | Explicitly listed as missing in the latest P2 draft limits; no full drill shown. **Open.** |
+| Backup and restore | Encrypted offsite backup, retention, destroy disposable source VM, clean target restore and data/settings verification; interrupted/partial restore recovery | Draft #84 reports passing Ubuntu 24.04/Debian 12 fresh-VM encrypted MariaDB dump/restore and wrong-tenant/key denial. Its limits exclude offsite provider/retention, application DB lifecycle wiring, schedules, production key custody/recovery, and complete multi-tenant/settings restore. Useful narrow evidence; full P2 backup gate remains **Open**. |
 | Authentication/MFA/recovery | Publicly usable protected workflow and abuse/recovery tests; no credential or tenant crossover; auditable secret redaction | Main P1 checkpoint and open P2 draft limits do not establish this. **Open.** |
 | Installer/OS support | Exact supported OS/architecture, signed artifact validation and clean install/upgrade/rollback in disposable VMs | PR #45 calls guest smoke unsigned developer preview and excludes installer/certification. **Open.** |
 | P2 operator acceptance | Complete documented alpha gate, visible limitations, reproducible evidence and maintainer/security review | Not recorded as accepted. **Open.** |
+
+The WordPress tenant runtime draft #89 still reports fresh VM validation pending; its earlier guest run failed and the fixture was corrected. Do not count the application install/isolation scenario until a passing run at the corrected exact head is confirmed.
+
+## Cross-phase contracts P3 must consume
+
+These are contract requirements to validate and settle against the accepted P1/P2 implementation before P3 coding. They do not assert that the interfaces already exist.
+
+| Producer contract | P3 consumer | Required compatibility and failure behavior |
+|---|---|---|
+| Authenticated principal, tenant membership, role/permission decision, session and CSRF/origin policy (P1) | App/repository/runtime/secret/deployment APIs and queued deploy jobs | Derive tenant and actor from verified server context; reauthorize when a worker executes; reject stale/revoked membership; never trust caller-supplied tenant IDs. |
+| Durable typed job lifecycle, idempotency, cancellation, audit, retry and recovery (P1) | Fetch, build, stage, health-check, switch-route, rollback, and cleanup jobs | Every transition is durable and attributable; retries cannot publish twice; cancellation and process restart reconcile or fail closed; privileged effects stay within typed agent capabilities. |
+| Site, domain, verified TLS route, health and reverse-proxy lifecycle (P2) | Attach Node/Python runtime to a customer hostname and switch active release | Use stable site/tenant ownership and centrally reserved ports; preserve routing/TLS ownership checks; stage and health-check before traffic switch; revert on apply/reload failure. |
+| File ownership, ACL, quota accounting and safe staging (P2) | Source checkout, build workspace, release artifacts and app data | Keep build/release paths separate from customer data; account all bounded storage including concurrent builds/artifacts; prevent path/symlink escape; retain reservations through uncertain publication until reconciled. |
+| Secret reference, encryption/key custody, rotation and redaction (P1/P2) | Git credentials, build-time variables, runtime environment and app secret rotation | Pass only scoped references to the intended process; define whether build-time and runtime secrets differ; deny reads from other apps; redact logs/process diagnostics; define backup and restore semantics before use. |
+| Backup/restore and retention (P2) | App release history, app data, environment configuration and rollback | Specify which artifacts/configuration are included, secret/key dependencies, point-in-time consistency, retention and restore ordering. P3 rollback is not a substitute for backup; data deletion/removal must remain explicit and recoverable. |
+| Approved runtime/build supply-chain policy (P1/P3) | Node/Python toolchains, dependencies, optional container images and declarative recipes | Pin immutable sources and digests; define signature/provenance trust roots and revocation; produce dependency/licence inventory; fail closed on unknown or changed artifacts. |
+
+For each row, publish a versioned schema or typed contract, ownership rule, error/state model, security review, and compatibility tests before the first integration consumes it. If P2 exposes no stable contract, record the blocker and keep P3 work at design/test-fixture level.
 
 ## P3 contract and test specifications
 
