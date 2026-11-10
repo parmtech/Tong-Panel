@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -199,5 +200,65 @@ func TestSQLiteClaimBeginBusyRetryHonorsContextDeadline(t *testing.T) {
 	}
 	if elapsed := time.Since(started); elapsed > time.Second {
 		t.Fatalf("claim exceeded its bounded context: %s", elapsed)
+	}
+}
+
+func TestSQLiteClaimLeaseStartsAfterConnectionWait(t *testing.T) {
+	store, _ := openTestSQLiteStore(t)
+	start := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
+	var current atomic.Int64
+	current.Store(start.Unix())
+	store.now = func() time.Time { return time.Unix(current.Load(), 0).UTC() }
+	job, err := store.CreateFor("tenant-a", "user-a", KindNoop, "lease-after-wait")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.db.SetMaxOpenConns(1)
+	blocker, err := store.db.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitsBefore := store.db.Stats().WaitCount
+	type outcome struct {
+		claim Claim
+		err   error
+	}
+	result := make(chan outcome, 1)
+	go func() {
+		claim, claimErr := store.ClaimNext("lease-wait-worker", time.Minute)
+		result <- outcome{claim: claim, err: claimErr}
+	}()
+	deadline := time.Now().Add(3 * time.Second)
+	for store.db.Stats().WaitCount == waitsBefore && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if store.db.Stats().WaitCount == waitsBefore {
+		t.Fatal("claim did not wait for the held database connection")
+	}
+	late := start.Add(2 * time.Minute)
+	current.Store(late.Unix())
+	if err := blocker.Close(); err != nil {
+		t.Fatal(err)
+	}
+	var got outcome
+	select {
+	case got = <-result:
+	case <-time.After(5 * time.Second):
+		t.Fatal("claim did not finish after releasing the connection")
+	}
+	if got.err != nil {
+		t.Fatal(got.err)
+	}
+	wantExpiry := late.Add(time.Minute)
+	if got.claim.Job.ID != job.ID || !got.claim.ExpiresAt.Equal(wantExpiry) {
+		t.Fatalf("claim job=%s expiry=%s, want job=%s expiry=%s", got.claim.Job.ID, got.claim.ExpiresAt, job.ID, wantExpiry)
+	}
+	var storedExpiry string
+	if err := store.db.QueryRow("SELECT lease_until FROM jobs WHERE id=?", job.ID).Scan(&storedExpiry); err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, storedExpiry)
+	if err != nil || !parsed.Equal(wantExpiry) {
+		t.Fatalf("stored lease expiry=%q err=%v, want %s", storedExpiry, err, wantExpiry)
 	}
 }

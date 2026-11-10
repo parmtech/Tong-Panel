@@ -49,11 +49,14 @@ func (s *SQLiteStore) ClaimNext(workerID string, duration time.Duration) (Claim,
 	}
 	token := hex.EncodeToString(raw[:])
 	tokenHash := sha256.Sum256(raw[:])
-	now := s.now().UTC()
-	expires := now.Add(duration)
 	var claim Claim
 	noJobs := false
 	err := withImmediate(s.ctx, s.db, func(q sqliteSession) error {
+		// A connection or writer-lock wait can exceed a short lease. Sample
+		// only after BEGIN IMMEDIATE succeeds so the committed capability gets
+		// its full requested lifetime.
+		now := s.now().UTC()
+		expires := now.Add(duration)
 		var j Job
 		var state, created, updated string
 		var attempts int
