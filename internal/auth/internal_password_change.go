@@ -104,9 +104,7 @@ func (s *InternalLoginService) ChangePasswordTrusted(ctx context.Context, tenant
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	now := s.now().UTC()
-	step, valid := acceptedTOTPStep(secret, code, now)
-	if !valid {
+	if _, valid := acceptedTOTPStep(secret, code, s.now().UTC()); !valid {
 		return ErrLoginDenied
 	}
 	auditID, err := bootstrapID()
@@ -141,6 +139,13 @@ func (s *InternalLoginService) ChangePasswordTrusted(ctx context.Context, tenant
 		return err
 	}
 	if currentRole != role {
+		return ErrLoginDenied
+	}
+	// Recheck at writer-transaction time; password hashing and lock acquisition
+	// can outlast the TOTP's accepted window.
+	now := s.now().UTC()
+	step, valid := acceptedTOTPStep(secret, code, now)
+	if !valid {
 		return ErrLoginDenied
 	}
 	r, err := conn.ExecContext(ctx, `INSERT INTO totp_replay_state(identity_id,last_accepted_step) VALUES(?,?)

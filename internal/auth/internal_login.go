@@ -119,9 +119,7 @@ func (s *InternalLoginService) AuthenticateTrusted(ctx context.Context, tenant, 
 		return denied, ErrLoginDenied
 	}
 	defer clear(secret)
-	now := s.now().UTC()
-	step, ok := acceptedTOTPStep(secret, code, now)
-	if !ok {
+	if _, ok := acceptedTOTPStep(secret, code, s.now().UTC()); !ok {
 		return denied, ErrLoginDenied
 	}
 	var upgradedPHC string
@@ -146,7 +144,6 @@ func (s *InternalLoginService) AuthenticateTrusted(ctx context.Context, tenant, 
 	defer clear(rawToken[:])
 	defer clear(rawCSRF[:])
 	lifetime := 30 * time.Minute // interim short absolute lifetime; not an idle timer
-	expires := now.Add(lifetime)
 	sessionID := hex.EncodeToString(rawID[:])
 	auditID := hex.EncodeToString(rawAudit[:])
 	tokenHash := sha256.Sum256(rawToken[:])
@@ -184,6 +181,14 @@ func (s *InternalLoginService) AuthenticateTrusted(ctx context.Context, tenant, 
 	if err != nil {
 		return denied, err
 	}
+	// Recheck the TOTP against transaction-time after any KDF and SQLite lock
+	// wait. A previously valid code may age out before this writer reservation.
+	now := s.now().UTC()
+	step, ok := acceptedTOTPStep(secret, code, now)
+	if !ok {
+		return denied, ErrLoginDenied
+	}
+	expires := now.Add(lifetime)
 	if upgradedPHC != "" {
 		// The initial verifier is part of the snapshot checked above. Replace
 		// only that exact value, in the same transaction as MFA replay, session,

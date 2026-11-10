@@ -65,6 +65,130 @@ func setupTrustedLogin(t *testing.T) (*InternalLoginService, *sql.DB, *SQLiteSes
 	return login, db, sessions, password, clock, seed
 }
 
+func waitForDBPoolWait(t *testing.T, db *sql.DB, previous int64) {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for db.Stats().WaitCount == previous && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if db.Stats().WaitCount == previous {
+		t.Fatal("operation did not wait for the held database connection")
+	}
+}
+
+func rejectedTOTPLater(t *testing.T, seed []byte, code string, now time.Time) time.Time {
+	t.Helper()
+	later := now.Add(2 * time.Minute)
+	for range 20 {
+		if _, ok := acceptedTOTPStep(seed, code, later); !ok {
+			return later
+		}
+		later = later.Add(30 * time.Second)
+	}
+	t.Fatal("could not find a rejected TOTP time for this code")
+	return time.Time{}
+}
+
+func TestInternalLoginRevalidatesTOTPAfterConnectionWait(t *testing.T) {
+	for _, expired := range []bool{true, false} {
+		name := "within window"
+		if expired {
+			name = "expired during connection wait"
+		}
+		t.Run(name, func(t *testing.T) {
+			service, db, _, password, clock, seed := setupTrustedLogin(t)
+			var currentPHC string
+			if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&currentPHC); err != nil {
+				t.Fatal(err)
+			}
+			legacyPHC := strings.Replace(currentPHC, "p=4", "p=2", 1)
+			if legacyPHC == currentPHC {
+				t.Fatal("test verifier did not produce a rehash-eligible profile")
+			}
+			if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
+				t.Fatal(err)
+			}
+			service.budget.verify = func(got []byte, _ string) bool { return bytes.Equal(got, password) }
+			hashStarted := make(chan struct{})
+			releaseHash := make(chan struct{})
+			service.budget.hash = func([]byte) (string, error) {
+				close(hashStarted)
+				<-releaseHash
+				return currentPHC, nil
+			}
+			code, err := TOTPCode(seed, *clock)
+			if err != nil {
+				t.Fatal(err)
+			}
+			beforeReplay, beforePHC := int64(0), legacyPHC
+			if err := db.QueryRow("SELECT last_accepted_step FROM totp_replay_state WHERE identity_id='user-a'").Scan(&beforeReplay); err != nil {
+				t.Fatal(err)
+			}
+			waitsBefore := db.Stats().WaitCount
+			type loginResult struct {
+				result InternalLoginResult
+				err    error
+			}
+			result := make(chan loginResult, 1)
+			go func() {
+				got, authErr := service.AuthenticateTrusted(context.Background(), "tenant-a", "alice", "192.0.2.80", password, code)
+				result <- loginResult{result: got, err: authErr}
+			}()
+			select {
+			case <-hashStarted:
+			case <-time.After(5 * time.Second):
+				t.Fatal("login did not reach verifier upgrade")
+			}
+			blocker, err := db.Conn(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			close(releaseHash)
+			waitForDBPoolWait(t, db, waitsBefore)
+			if expired {
+				*clock = rejectedTOTPLater(t, seed, code, *clock)
+			} else {
+				*clock = clock.Add(10 * time.Second)
+			}
+			if err := blocker.Close(); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case got := <-result:
+				if expired {
+					if got.err != ErrLoginDenied || got.result.Token != "" {
+						t.Fatalf("login accepted a code that expired during the connection wait: %v", got.err)
+					}
+				} else if got.err != nil || got.result.Token == "" {
+					t.Fatalf("login rejected a code still in its accepted window: %v", got.err)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("login did not complete after the connection was released")
+			}
+			if expired {
+				var sessions, audits int
+				var afterPHC string
+				var afterReplay int64
+				if err := db.QueryRow("SELECT count(*) FROM sessions").Scan(&sessions); err != nil {
+					t.Fatal(err)
+				}
+				if err := db.QueryRow("SELECT count(*) FROM audit_events WHERE action='auth.login'").Scan(&audits); err != nil {
+					t.Fatal(err)
+				}
+				if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&afterPHC); err != nil {
+					t.Fatal(err)
+				}
+				if err := db.QueryRow("SELECT last_accepted_step FROM totp_replay_state WHERE identity_id='user-a'").Scan(&afterReplay); err != nil {
+					t.Fatal(err)
+				}
+				if sessions != 0 || audits != 0 || afterPHC != beforePHC || afterReplay != beforeReplay {
+					t.Fatalf("expired login changed durable security state: sessions=%d audits=%d verifierUnchanged=%t replayUnchanged=%t", sessions, audits, afterPHC == beforePHC, afterReplay == beforeReplay)
+				}
+			}
+		})
+	}
+}
+
 func TestInternalLoginRehashesOutdatedPasswordInSuccessfulTransaction(t *testing.T) {
 	service, db, _, password, clock, seed := setupTrustedLogin(t)
 	var currentPHC string

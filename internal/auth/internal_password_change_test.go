@@ -288,6 +288,83 @@ func TestInternalPasswordChangeDenialsDoNotMutateSecurityState(t *testing.T) {
 	}
 }
 
+func TestInternalPasswordChangeRevalidatesTOTPAfterConnectionWait(t *testing.T) {
+	for _, expired := range []bool{true, false} {
+		name := "within window"
+		if expired {
+			name = "expired during connection wait"
+		}
+		t.Run(name, func(t *testing.T) {
+			service, db, sessions, old, clock, seed := setupTrustedLogin(t)
+			issuePasswordChangeSessions(t, db, sessions)
+			before := passwordChangeSnapshot(t, db)
+			code, err := TOTPCode(seed, *clock)
+			if err != nil {
+				t.Fatal(err)
+			}
+			newPHC, err := HashPassword(changedPasswordFixture)
+			if err != nil {
+				t.Fatal(err)
+			}
+			service.budget.verify = func(got []byte, _ string) bool { return bytes.Equal(got, old) }
+			hashStarted := make(chan struct{})
+			releaseHash := make(chan struct{})
+			service.budget.hash = func([]byte) (string, error) {
+				close(hashStarted)
+				<-releaseHash
+				return newPHC, nil
+			}
+			waitsBefore := db.Stats().WaitCount
+			result := make(chan error, 1)
+			go func() {
+				result <- service.ChangePasswordTrusted(context.Background(), "tenant-a", "alice", "192.0.2.81", old, changedPasswordFixture, code)
+			}()
+			select {
+			case <-hashStarted:
+			case <-time.After(5 * time.Second):
+				t.Fatal("password change did not reach new-verifier hashing")
+			}
+			blocker, err := db.Conn(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			close(releaseHash)
+			waitForDBPoolWait(t, db, waitsBefore)
+			if expired {
+				*clock = rejectedTOTPLater(t, seed, code, *clock)
+			} else {
+				*clock = clock.Add(10 * time.Second)
+			}
+			if err := blocker.Close(); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case got := <-result:
+				if expired {
+					assertPasswordChangeDenied(t, got)
+				} else if got != nil {
+					t.Fatalf("password change rejected a code still in its accepted window: %v", got)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("password change did not complete after the connection was released")
+			}
+			after := passwordChangeSnapshot(t, db)
+			if expired {
+				if !reflect.DeepEqual(before, after) {
+					t.Fatal("expired code changed credential, sessions, replay, MFA, recovery, or audit state")
+				}
+			} else {
+				if after.phc != newPHC || !reflect.DeepEqual(before.recovery, after.recovery) || before.enrollment != after.enrollment {
+					t.Fatal("valid waited password change did not persist or unexpectedly changed MFA material")
+				}
+				if after.audits != before.audits+1 {
+					t.Fatalf("valid waited password change audit count=%d, want %d", after.audits, before.audits+1)
+				}
+			}
+		})
+	}
+}
+
 func TestInternalPasswordChangeRechecksSnapshotAfterKDF(t *testing.T) {
 	for _, name := range []string{"password", "MFA envelope", "role", "disabled", "suspended", "expired MFA", "canceled", "hash error"} {
 		t.Run(name, func(t *testing.T) {
