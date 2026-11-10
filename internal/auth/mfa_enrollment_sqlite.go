@@ -131,9 +131,11 @@ func (s *MFAEnrollmentStore) ConfirmTrusted(ctx context.Context, tenant, identit
 		return false, err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := database.BeginImmediate(ctx, conn, 0)
+	if err != nil {
 		return false, err
 	}
+	defer restoreBusyTimeout()
 	committed := false
 	defer func() {
 		if !committed {
@@ -243,9 +245,11 @@ func (s *MFAEnrollmentStore) VerifyActive(ctx context.Context, tenant, identity,
 		return false, err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := database.BeginImmediate(ctx, conn, 0)
+	if err != nil {
 		return false, err
 	}
+	defer restoreBusyTimeout()
 	committed := false
 	defer func() {
 		if !committed {

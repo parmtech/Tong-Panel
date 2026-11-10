@@ -185,6 +185,129 @@ func TestMFABeginHonorsCancellationDuringWriterWait(t *testing.T) {
 	}
 }
 
+func lockMFAWriterOnPeer(t *testing.T, db *sql.DB) {
+	t.Helper()
+	var seq int
+	var schema, path string
+	if err := db.QueryRow("PRAGMA database_list").Scan(&seq, &schema, &path); err != nil {
+		t.Fatal(err)
+	}
+	peerDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writer, err := peerDB.Conn(context.Background())
+	if err != nil {
+		peerDB.Close()
+		t.Fatal(err)
+	}
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		writer.Close()
+		peerDB.Close()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = writer.ExecContext(context.Background(), "ROLLBACK")
+		_ = writer.Close()
+		_ = peerDB.Close()
+	})
+}
+
+func cancelMFAWriteDuringLock(t *testing.T, db *sql.DB, write func(context.Context) error) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	result := make(chan error, 1)
+	go func() { result <- write(ctx) }()
+	deadline := time.Now().Add(2 * time.Second)
+	for db.Stats().InUse == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if db.Stats().InUse == 0 {
+		t.Fatal("MFA operation did not acquire a connection while waiting for the writer")
+	}
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("MFA operation error=%v, want context cancellation", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("MFA operation did not stop after cancellation")
+	}
+	var busyTimeout int
+	if err := db.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout); err != nil || busyTimeout != 5000 {
+		t.Fatalf("busy_timeout=%d err=%v, want restored 5000ms", busyTimeout, err)
+	}
+}
+
+func TestMFAConfirmHonorsCancellationDuringWriterWait(t *testing.T) {
+	store, db, clock := testMFAEnrollment(t)
+	secret, err := store.BeginTrusted(context.Background(), "tenant-a", "user-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer clear(secret)
+	code, err := TOTPCode(secret, *clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lockMFAWriterOnPeer(t, db)
+	cancelMFAWriteDuringLock(t, db, func(ctx context.Context) error {
+		_, err := store.ConfirmTrusted(ctx, "tenant-a", "user-a", code)
+		return err
+	})
+	var status string
+	if err := db.QueryRow("SELECT status FROM mfa_totp_enrollments WHERE identity_id='user-a'").Scan(&status); err != nil {
+		t.Fatal(err)
+	}
+	if status != "pending" {
+		t.Fatalf("canceled confirmation changed enrollment status to %q", status)
+	}
+	var replay int
+	if err := db.QueryRow("SELECT count(*) FROM totp_replay_state WHERE identity_id='user-a'").Scan(&replay); err != nil || replay != 0 {
+		t.Fatalf("canceled confirmation changed replay rows: %d err=%v", replay, err)
+	}
+}
+
+func TestMFAVerifyActiveHonorsCancellationDuringWriterWait(t *testing.T) {
+	store, db, clock := testMFAEnrollment(t)
+	secret, err := store.BeginTrusted(context.Background(), "tenant-a", "user-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer clear(secret)
+	first, err := TOTPCode(secret, *clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := store.ConfirmTrusted(context.Background(), "tenant-a", "user-a", first); !ok || err != nil {
+		t.Fatalf("confirm enrollment: ok=%t err=%v", ok, err)
+	}
+	*clock = clock.Add(30 * time.Second)
+	next, err := TOTPCode(secret, *clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var before int64
+	if err := db.QueryRow("SELECT last_accepted_step FROM totp_replay_state WHERE identity_id='user-a'").Scan(&before); err != nil {
+		t.Fatal(err)
+	}
+	lockMFAWriterOnPeer(t, db)
+	cancelMFAWriteDuringLock(t, db, func(ctx context.Context) error {
+		_, err := store.VerifyActive(ctx, "tenant-a", "user-a", next)
+		return err
+	})
+	var after int64
+	if err := db.QueryRow("SELECT last_accepted_step FROM totp_replay_state WHERE identity_id='user-a'").Scan(&after); err != nil {
+		t.Fatal(err)
+	}
+	if after != before {
+		t.Fatalf("canceled active verification advanced replay step from %d to %d", before, after)
+	}
+}
+
 func TestMFAEnrollmentRefusesSuspendedRevokedExpiredOrTampered(t *testing.T) {
 	ctx := context.Background()
 	store, db, clock := testMFAEnrollment(t)
