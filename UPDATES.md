@@ -1,3 +1,9 @@
+### 2026-11-10 19:37 +11:00 — Workstream G, reconcile new P2/P3 planning drafts
+- **Branch/state:** docs/p4-hosting-parity-continuation; P4 dependency evidence only.
+- **Change:** corrected the open-PR inventory: P3 draft PR #145 now contains prerequisite/contracts and hostile-app test specifications; P2 draft PR #144 contains a distinct Slice 7 test plan. The P4 note links their scope and records that both are unmerged planning inputs, so this branch does not duplicate their matrices.
+- **Evidence:** fetched PR #145 and #144 exact heads, bodies and diffs from GitHub; PR #145 states P3 entry is not proven. git diff --check passes for the documentation-only update.
+- **Limits:** no implementation or authorization change. P1 remains incomplete; no P3 hostile-app acceptance execution is evidenced; P4 remains design-only.
+- **Next:** after entry gates change, reconcile the P4 service-specific acceptance rows against accepted P2/P3 contracts before any implementation issue is selected.
 ### 2026-11-10 19:32 +11:00 — Workstream G, link current P1 gate verdict into Phase 4 dependency record
 - **Branch/state:** docs/p4-hosting-parity-continuation; evidence-only follow-up.
 - **Change:** linked the live P1 exit report at PR #143's branch ref and recorded its explicit verdict: P1 incomplete, not publish/install ready, and P2 entry blocked; unresolved ADR/security approval, public auth/key custody, recovery and signed installer/recovery evidence remain.
