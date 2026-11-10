@@ -114,21 +114,53 @@ func (m *Model) ApplyRollback(priorAvailable, priorVerified bool) error {
 // Unknown or inconsistent observations never become a success outcome.
 func (m *Model) Recover(observedRoute string) {
 	m.ObservedRoute = observedRoute
-	switch {
-	case m.State == StateSwitching && observedRoute == m.CandidateDigest && m.CandidateVerified && m.ArtifactRecorded && m.CandidateStarted && m.HealthPassed:
-		m.State = StateActive
-		m.Outcome = "promoted"
-	case m.State == StateSwitching && observedRoute == m.PriorDigest:
-		m.State = StateFailed
-		m.Outcome = "not_promoted"
-	case m.State == StateRollingBack && observedRoute == m.PriorDigest:
-		m.State = StateRolledBack
-		m.Outcome = "rolled_back"
-	case m.State == StateRollingBack && observedRoute == m.CandidateDigest:
-		m.State = StateActive
-		m.Outcome = "rollback_not_observed"
+	switch m.State {
+	case StateSwitching:
+		switch {
+		case observedRoute == m.CandidateDigest && m.CandidateVerified && m.ArtifactRecorded && m.CandidateStarted && m.HealthPassed:
+			m.State = StateActive
+			m.Outcome = "promoted"
+		case observedRoute == m.PriorDigest:
+			m.State = StateFailed
+			m.Outcome = "not_promoted"
+		default:
+			m.markUncertain()
+		}
+	case StateRollingBack:
+		switch observedRoute {
+		case m.PriorDigest:
+			m.State = StateRolledBack
+			m.Outcome = "rolled_back"
+		case m.CandidateDigest:
+			m.State = StateActive
+			m.Outcome = "rollback_not_observed"
+		default:
+			m.markUncertain()
+		}
+	case StateActive:
+		if observedRoute == m.CandidateDigest && m.CandidateVerified && m.ArtifactRecorded && m.CandidateStarted && m.HealthPassed {
+			m.Outcome = "promoted"
+		} else {
+			m.markUncertain()
+		}
+	case StateRolledBack:
+		if observedRoute == m.PriorDigest {
+			m.Outcome = "rolled_back"
+		} else {
+			m.markUncertain()
+		}
+	case StateFailed:
+		if observedRoute == m.PriorDigest {
+			m.Outcome = "not_promoted"
+		} else {
+			m.markUncertain()
+		}
 	default:
-		m.State = StateUncertain
-		m.Outcome = "uncertain"
+		m.markUncertain()
 	}
+}
+
+func (m *Model) markUncertain() {
+	m.State = StateUncertain
+	m.Outcome = "uncertain"
 }

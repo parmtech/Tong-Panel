@@ -124,7 +124,7 @@ This crosswalk follows all ten modules in `docs/phases/P3-APP-PLATFORM.md`. It i
 | 7. Per-app secrets and audit | P3-06, build-time secrets decision | `build-secret-canary`, cross-tenant fixture, secret rotation/redaction assertions; exit scenarios 3 and 7. |
 | 8. Deployment history, health and rollback | P3-04, P3-07, deploy state-machine decision | `release-tamper`, `health-failure`, cancellation/restart and immutable prior release; exit scenarios 1–2 and 7. |
 | 9. Optional rootless containers | P3-08, runtime/toolchain provenance decision | Separate container-profile escape, digest, network, volume and resource-limit tests; exit scenarios 3–5 when that optional profile is claimed. Native runtime acceptance remains independently required. |
-| 10. Signed declarative app catalogue | P3-09, catalogue trust/removal decision | `recipe-untrusted`, signature/revocation/digest/permission checks, data-preserving removal; exit scenarios 5–6 and 8. |
+| 10. Signed declarative app catalogue | P3-09, catalogue trust/removal and positive recipe-family lifecycle matrix | `recipe-untrusted`, signature/revocation/digest/permission checks, representative positive lifecycle evidence in every claimed family, data-preserving removal; exit scenarios 5–6 and 8. |
 
 Any change to the phase plan must update this crosswalk and its linked test evidence in the same reviewed change. A framework, OS, architecture, or optional container profile is out of the compatibility claim until its corresponding exact-head test record exists.
 
@@ -235,7 +235,7 @@ The accepted implementation must define its own versioned states and transition 
 
 For every row, inject termination immediately before and after the durable boundary, then assert job state, active route, process set, artifact inventory, quota/accounting, audit record, and retry behavior. Record the exact transition model and which outcomes are safely retryable versus require operator reconciliation. Any ambiguous external effect must remain explicitly uncertain until observed; do not report success based only on intent or a queued command.
 
-An executable, non-normative in-memory example is in [`prototypes/p3-deploy-recovery-model`](../prototypes/p3-deploy-recovery-model/README.md). Its tests check a few transition oracles and same-process concurrent idempotency calls, including changed-payload conflicts. Because it has no durable/multi-process persistence, authorization, real process, route, quota, or audit integration, passing it is not product or phase-acceptance evidence; the modeled idempotency-key scope is not an approved policy.
+An executable, non-normative in-memory example is in [`prototypes/p3-deploy-recovery-model`](../prototypes/p3-deploy-recovery-model/README.md). Its tests check repeated/contradictory route observations and same-process concurrent idempotency calls, including changed-payload conflicts. Because it has no durable/multi-process persistence, authorization, real process, route, quota, or audit integration, passing it is not product or phase-acceptance evidence; the modeled idempotency-key scope is not an approved policy.
 
 ### P3-05: Runtime identity, process manager, ports, and resource controls
 
@@ -303,6 +303,20 @@ Use inert synthetic manifest fixtures only. These are admission/removal test inp
 
 For every denial case, verify no app process starts, route changes, customer data is deleted, or unbounded sensitive detail is returned. The accepted trust policy must define which cases are hard-deny versus maintainer-review; no behavior is inferred from this test table alone.
 
+#### Positive recipe-family lifecycle inventory
+
+The Phase 3 plan names five marketplace families. This inventory is a required compatibility/evidence checklist, not a claim that recipes or a trusted catalogue already exist. Maintainers must select and pin an exact candidate recipe, immutable source/version digest, runtime/profile, licence/provenance and resource declaration for each family that the curated beta will claim. Until then its state is **not selected / not run**.
+
+| Planned family | Candidate recipe and profile | Synthetic user-data sentinel | Required positive lifecycle evidence |
+|---|---|---|---|
+| CMS | Not selected; exact recipe/version/digest/profile TBD | Representative page/content and uploaded-media sentinel chosen by the fixture owner | Signature/policy admission, install and health, supported upgrade, backup/restore, rollback, and removal without deleting the sentinel absent explicit authorization |
+| Collaboration | Not selected; exact recipe/version/digest/profile TBD | Representative tenant-owned record/file sentinel chosen by the fixture owner | Signature/policy admission, tenant-scoped install/health, supported upgrade, backup/restore, rollback, and data-preserving removal |
+| Ecommerce | Not selected; exact recipe/version/digest/profile TBD | Representative synthetic catalogue/order sentinel chosen by the fixture owner | Signature/policy admission, install/health, supported upgrade, backup/restore, rollback, and data-preserving removal |
+| Monitoring | Not selected; exact recipe/version/digest/profile TBD | Representative configuration/history sentinel chosen by the fixture owner | Signature/policy admission, install/health, supported upgrade, backup/restore, rollback, and data-preserving removal |
+| Developer | Not selected; exact recipe/version/digest/profile TBD | Representative project/configuration sentinel chosen by the fixture owner | Signature/policy admission, install/health, supported upgrade, backup/restore, rollback, and data-preserving removal |
+
+The fixture owner must document data ownership and the sentinel's create/export/restore/delete oracle for the chosen recipe. One recipe cannot stand in for all five families unless maintainers explicitly narrow the supported catalogue and document the excluded families; generic Node/ASGI fixtures are not marketplace-family evidence.
+
 ## Phase exit dossier
 
 P3 can be proposed for acceptance only when all prerequisite rows are proven and every in-scope P3 acceptance scenario has exact-commit evidence:
@@ -337,9 +351,12 @@ Run only after P1/P2 entry gates, the P3 runner boundary, and the relevant UI/AP
 
 1. As a different tenant developer, deploy the pinned FastAPI/ASGI fixture with the approved Python runtime and its lockfile.
 2. Verify health and lab hostname/TLS routing. Record runtime and dependency digests; confirm no host Python packages changed.
-3. Deploy a second app using a different supported Python pin and dependency set. Confirm each app starts under its assigned identity and neither can read the other's tree, process secrets or artifacts.
-4. Submit a package/runtime digest mismatch and an unsupported runtime. Both must fail before execution and leave the healthy route/release unchanged.
-5. Trigger a bounded build limit and a failed readiness check. Verify job state is clear, the previous route remains healthy, and cleanup leaves no process, workspace reservation or partial artifact.
+3. Upgrade this app to a second valid commit. Verify it becomes active only after health passes, and record source/runtime/dependency digests and release history while retaining the previous pinned release.
+4. Deploy a commit that intentionally fails readiness. Verify the candidate is not active, the prior Python release and route remain healthy, and cleanup leaves no partial artifact or orphan process.
+5. Roll back to the pinned previous Python release. Verify the externally observed route, source revision, runtime/dependency lock, release history and audit outcome all identify that prior release; include a corrupt/unavailable prior-artifact denial case.
+6. Deploy a second app using a different supported Python pin and dependency set. Confirm each app starts under its assigned identity and neither can read the other's tree, process secrets or artifacts.
+7. Submit a package/runtime digest mismatch and an unsupported runtime. Both must fail before execution and leave the healthy route/release unchanged.
+8. Trigger a bounded build limit and a failed readiness check. Verify job state is clear, the prior route remains healthy, and cleanup leaves no process, workspace reservation or partial artifact.
 
 ### Operator review during both walkthroughs
 

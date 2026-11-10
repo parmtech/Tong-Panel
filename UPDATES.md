@@ -341,3 +341,14 @@ Extended the in-memory admission example with 64 concurrent requests using the s
 - Dependencies/blockers: P1 acceptance and P0/security review remain open; P2 remains planned on `main`. PR #149's exact-head Ubuntu/Debian clean-VM jobs remain in progress; P1/P2 drafts are not accepted gates.
 - Safe scope: test/design review, offline prototypes, and non-hostile synthetic harness checks only. Stop any product implementation or host/guest execution that would cross P1/P2 entry gates, overlap another phase's owned files, or require altering shared/production state.
 - Coordination channel: no operational project coordinator is configured in this session; this checkpoint is recorded for human relay. No sibling chat was notified. A bounded read-only acceptance review was requested; root-model switching is unavailable here.
+
+## Bounded read-only P3 review — 2026-11-10
+
+GPT-6.1 Sol Medium read-only review (no files changed) identified three gaps for this P3-owned workstream: (1) repeated recovery observations in the in-memory model become uncertain instead of remaining idempotent, (2) the Python ASGI manual walkthrough lacks an independent upgrade/rollback path required by the roadmap, and (3) P3-09 lacks positive lifecycle coverage for the five planned recipe families. Scope for fixes remains this isolated P3 branch/worktree and its owned plan/prototype files; P1/P2 gate dependencies remain unchanged. No other phase workspaces were touched.
+
+## P3 acceptance review resolutions — 2026-11-10
+
+- Made repeated consistent promotion, rollback, and not-promoted observations idempotent in the illustrative model; a later contradictory route observation now becomes uncertain. Added five recovery tests.
+- Added an independent Python ASGI good-upgrade, failed-readiness preservation, pinned rollback/history, corrupt-artifact denial, and separate-runtime sequence.
+- Added an explicit positive lifecycle inventory for CMS, collaboration, ecommerce, monitoring, and developer recipe families. Candidate recipes remain unselected and **not run**; this does not claim marketplace support.
+- Windows Go 1.27.3: 17 model tests passed across 10 suite runs; `go vet`, `gofmt -d`, and `git diff --check` passed. CGO remains disabled, so race detector is unavailable. Structural check confirms 5 recipe-family rows and the Python rollback walkthrough. No hostile fixtures or UI/product tests ran.

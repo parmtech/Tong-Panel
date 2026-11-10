@@ -49,11 +49,44 @@ func TestSwitchEffectIsNotSuccessUntilCandidateRouteObserved(t *testing.T) {
 	}
 }
 
+func TestRepeatedPromotionRecoveryIsIdempotent(t *testing.T) {
+	m := readyForSwitch(t)
+	if err := m.ApplySwitch(); err != nil {
+		t.Fatal(err)
+	}
+	m.Recover(m.CandidateDigest)
+	m.Recover(m.CandidateDigest)
+	if m.State != StateActive || m.Outcome != "promoted" {
+		t.Fatalf("repeated promotion recovery = state %q outcome %q", m.State, m.Outcome)
+	}
+}
+
+func TestContradictoryObservationAfterPromotionBecomesUncertain(t *testing.T) {
+	m := readyForSwitch(t)
+	if err := m.ApplySwitch(); err != nil {
+		t.Fatal(err)
+	}
+	m.Recover(m.CandidateDigest)
+	m.Recover(m.PriorDigest)
+	if m.State != StateUncertain || m.Outcome != "uncertain" {
+		t.Fatalf("contradictory promotion observation = state %q outcome %q", m.State, m.Outcome)
+	}
+}
+
 func TestOldRouteAfterInterruptedSwitchIsNotPromotion(t *testing.T) {
 	m := readyForSwitch(t)
 	m.Recover(m.PriorDigest)
 	if m.State != StateFailed || m.Outcome != "not_promoted" {
 		t.Fatalf("old route recovery = state %q outcome %q", m.State, m.Outcome)
+	}
+}
+
+func TestRepeatedNotPromotedRecoveryIsIdempotent(t *testing.T) {
+	m := readyForSwitch(t)
+	m.Recover(m.PriorDigest)
+	m.Recover(m.PriorDigest)
+	if m.State != StateFailed || m.Outcome != "not_promoted" {
+		t.Fatalf("repeated not-promoted recovery = state %q outcome %q", m.State, m.Outcome)
 	}
 }
 
@@ -83,6 +116,44 @@ func TestRollbackIsSuccessOnlyAfterPriorRouteObserved(t *testing.T) {
 	m.Recover(m.ActualRoute)
 	if m.State != StateRolledBack || m.Outcome != "rolled_back" {
 		t.Fatalf("observed rollback = state %q outcome %q", m.State, m.Outcome)
+	}
+}
+
+func TestRepeatedRollbackRecoveryIsIdempotent(t *testing.T) {
+	m := readyForSwitch(t)
+	if err := m.ApplySwitch(); err != nil {
+		t.Fatal(err)
+	}
+	m.Recover(m.CandidateDigest)
+	if err := m.RequestRollback(true, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.ApplyRollback(true, true); err != nil {
+		t.Fatal(err)
+	}
+	m.Recover(m.PriorDigest)
+	m.Recover(m.PriorDigest)
+	if m.State != StateRolledBack || m.Outcome != "rolled_back" {
+		t.Fatalf("repeated rollback recovery = state %q outcome %q", m.State, m.Outcome)
+	}
+}
+
+func TestContradictoryObservationAfterRollbackBecomesUncertain(t *testing.T) {
+	m := readyForSwitch(t)
+	if err := m.ApplySwitch(); err != nil {
+		t.Fatal(err)
+	}
+	m.Recover(m.CandidateDigest)
+	if err := m.RequestRollback(true, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.ApplyRollback(true, true); err != nil {
+		t.Fatal(err)
+	}
+	m.Recover(m.PriorDigest)
+	m.Recover(m.CandidateDigest)
+	if m.State != StateUncertain || m.Outcome != "uncertain" {
+		t.Fatalf("contradictory rollback observation = state %q outcome %q", m.State, m.Outcome)
 	}
 }
 
