@@ -352,3 +352,7 @@ GPT-6.1 Sol Medium read-only review (no files changed) identified three gaps for
 - Added an independent Python ASGI good-upgrade, failed-readiness preservation, pinned rollback/history, corrupt-artifact denial, and separate-runtime sequence.
 - Added an explicit positive lifecycle inventory for CMS, collaboration, ecommerce, monitoring, and developer recipe families. Candidate recipes remain unselected and **not run**; this does not claim marketplace support.
 - Windows Go 1.27.3: 17 model tests passed across 10 suite runs; `go vet`, `gofmt -d`, and `git diff --check` passed. CGO remains disabled, so race detector is unavailable. Structural check confirms 5 recipe-family rows and the Python rollback walkthrough. No hostile fixtures or UI/product tests ran.
+
+## P1 #149 exact-head checks completed — 2026-11-10
+
+Latest connected GitHub diagnostics at PR #149 head `8764d0fef218a36a4cc9411e5481656d014cdf0c` show all eight reported checks completed successfully, including Ubuntu 24.04 and Debian 12 clean-VM jobs in run #42787324539. PR #149 remains open/draft and uses unsigned developer-preview scope. This does not establish signed installer, full host lifecycle/recovery, owner/security review, or P1 gate acceptance. The evidence matrix supersedes the earlier in-progress snapshot; P3 remains NOT PROVEN.
