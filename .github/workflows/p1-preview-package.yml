@@ -7,6 +7,7 @@ on:
       - 'go.sum'
       - 'cmd/tongd/ui/**'
       - 'scripts/smoke_p1.py'
+      - 'scripts/smoke_development_bind.py'
       - 'scripts/smoke_bootstrap_owner.py'
       - 'scripts/smoke_support_bundle.py'
       - 'scripts/smoke_noop_worker.py'
@@ -21,6 +22,7 @@ on:
       - 'go.sum'
       - 'cmd/tongd/ui/**'
       - 'scripts/smoke_p1.py'
+      - 'scripts/smoke_development_bind.py'
       - 'scripts/smoke_bootstrap_owner.py'
       - 'scripts/smoke_support_bundle.py'
       - 'scripts/smoke_noop_worker.py'
@@ -86,6 +88,8 @@ jobs:
           python3 scripts/verify_binary_sbom.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl" "$RUNNER_TEMP/extracted/tong-p1-dev/sbom/tongctl.cdx.json" github.com/parmtech/tong-panel/cmd/tongctl
       - name: Run non-destructive smoke using binary extracted from archive
         run: python3 scripts/smoke_p1.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd"
+      - name: Verify extracted daemon configurable loopback listener
+        run: python3 scripts/smoke_development_bind.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd"
       - name: Verify extracted daemon opt-in no-op worker and restart
         run: |
           python3 -m unittest discover -s scripts -p 'test_smoke_noop_worker.py'

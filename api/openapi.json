@@ -8,7 +8,7 @@
   "servers": [
     {
       "url": "http://127.0.0.1:8090",
-      "description": "Actual fixed IPv4-loopback development listener. It serves no TLS; browser-session authentication and logout are not usable on this daemon configuration."
+      "description": "Default IPv4-loopback development listener. TONG_DEV_LISTEN_ADDR may select another numeric IPv4 loopback address and port 1-65535. It serves no TLS; browser-session authentication and logout are not usable on this daemon configuration."
     }
   ],
   "tags": [

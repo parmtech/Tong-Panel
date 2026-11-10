@@ -5,8 +5,11 @@
 development implementation, not an approved production interface, stable release,
 security assessment or complete P1 acceptance. It adds no routes or behavior.
 
-The documented server is the actual fixed `http://127.0.0.1:8090` developer
-listener. Configurable binding remains an unmet P1 requirement. Embedded UI and
+The documented server is the default `http://127.0.0.1:8090` developer
+listener. `TONG_DEV_LISTEN_ADDR` permits a numeric IPv4 loopback address and port
+1–65535; it does not permit hostnames, wildcards, nonloopback addresses or IPv6.
+The listener remains plaintext and development only. See
+`docs/P1_DEVELOPMENT_BIND.md` for configuration and limits. Embedded UI and
 static assets are outside this control-plane contract. No OpenAPI-document or
 Swagger-UI HTTP route is invented by checking in the artifact.
 

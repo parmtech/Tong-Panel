@@ -32,12 +32,11 @@ func runDevelopmentServer(ctx context.Context, server *http.Server, queue *jobs.
 	if ctx.Err() != nil {
 		return nil
 	}
-	host, _, err := net.SplitHostPort(server.Addr)
-	ip := net.ParseIP(host)
-	if err != nil || ip == nil || !ip.IsLoopback() || ip.To4() == nil {
-		return errors.New("development listener must be IPv4 loopback")
+	listenAddress, err := validateDevelopmentListenAddress(server.Addr, true)
+	if err != nil {
+		return err
 	}
-	listener, err := net.Listen("tcp4", server.Addr)
+	listener, err := net.Listen("tcp4", listenAddress)
 	if err != nil {
 		return errors.New("development listener unavailable")
 	}

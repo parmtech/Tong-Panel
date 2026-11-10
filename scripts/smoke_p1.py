@@ -87,6 +87,7 @@ def main(executable):
         base_env.pop("TONG_DEV_TOKEN", None)
         base_env.pop("TONG_DEV_SQLITE_DB", None)
         base_env.pop("TONG_DEV_RUN_NOOP_WORKER", None)
+        base_env.pop("TONG_DEV_LISTEN_ADDR", None)
         base_env["TONG_DATA_DIR"] = folder
 
         def check_anonymous():

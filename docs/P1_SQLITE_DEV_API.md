@@ -3,7 +3,7 @@
 **Status:** Draft development prototype; not a hosting release, not production authentication and not an installer.
 
 ## What is now wired
-- The daemon still binds `127.0.0.1:8090` only and normally uses the local JSON journal for its **single-developer preview**.
+- The daemon defaults to `127.0.0.1:8090` and normally uses the local JSON journal for its **single-developer preview**. Optional `TONG_DEV_LISTEN_ADDR` selects another numeric IPv4 loopback address/port; see [development listener configuration](P1_DEVELOPMENT_BIND.md). Public, wildcard, hostname and IPv6 binding remain rejected.
 - Set **both** `TONG_DEV_TOKEN` (random, at least 32 characters) and `TONG_DEV_SQLITE_DB` (a local file path) to explicitly select the SQLite job backend. SQLite initialization errors are fatal, not silently downgraded to JSON.
 - SQLite mode validates the caller's token-bound tenant/identity **against already-present active tenant, identity and membership rows on every protected HTTP request**. The live database membership role replaces any outdated role recorded in the developer token. It never creates a default owner, user, password or membership.
 - `GET /api/v1/jobs` and `GET /api/v1/jobs/{id}` return **only the current principal's own jobs**, never all jobs in a shared tenant. Invalid/deactivated principals see no SQL job details.

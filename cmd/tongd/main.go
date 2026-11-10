@@ -34,6 +34,10 @@ func runDevelopmentDaemon(ctx context.Context, logger *log.Logger) error {
 	if ctx.Err() != nil {
 		return nil
 	}
+	listenAddress, err := parseDevelopmentListenAddress(os.Getenv("TONG_DEV_LISTEN_ADDR"))
+	if err != nil {
+		return err
+	}
 	sqlitePath := os.Getenv("TONG_DEV_SQLITE_DB")
 	workerEnabled, err := parseDevelopmentNoopWorker(os.Getenv("TONG_DEV_RUN_NOOP_WORKER"), sqlitePath != "")
 	if err != nil {
@@ -87,6 +91,6 @@ func runDevelopmentDaemon(ctx context.Context, logger *log.Logger) error {
 			return errors.New("job journal unavailable")
 		}
 	}
-	server := &http.Server{Addr: "127.0.0.1:8090", Handler: publicHandler(&api.Server{Keys: keys, Jobs: q, SQLJobs: sqlJobs, SiteCatalog: siteCatalog, DomainTXTLookup: domainTXTLookup}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
+	server := &http.Server{Addr: listenAddress, Handler: publicHandler(&api.Server{Keys: keys, Jobs: q, SQLJobs: sqlJobs, SiteCatalog: siteCatalog, DomainTXTLookup: domainTXTLookup}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
 	return runDevelopmentServer(ctx, server, sqlJobs, workerEnabled, logger)
 }
