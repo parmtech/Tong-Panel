@@ -71,7 +71,7 @@ func TestInternalLoginRehashesOutdatedPasswordInSuccessfulTransaction(t *testing
 	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&currentPHC); err != nil {
 		t.Fatal(err)
 	}
-	legacyPHC := strings.Replace(currentPHC, "t=3", "t=4", 1)
+	legacyPHC := strings.Replace(currentPHC, "p=4", "p=2", 1)
 	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
 		t.Fatal(err)
 	}
@@ -107,13 +107,45 @@ func TestInternalLoginRehashesOutdatedPasswordInSuccessfulTransaction(t *testing
 	}
 }
 
+func TestInternalLoginDoesNotDowngradeStrongerSupportedVerifier(t *testing.T) {
+	service, db, _, password, clock, seed := setupTrustedLogin(t)
+	var currentPHC string
+	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&currentPHC); err != nil {
+		t.Fatal(err)
+	}
+	strongerPHC := strings.Replace(currentPHC, "m=65536,t=3,p=4", "m=131072,t=4,p=2", 1)
+	if strongerPHC == currentPHC {
+		t.Fatal("test PHC profile replacement did not match")
+	}
+	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", strongerPHC); err != nil {
+		t.Fatal(err)
+	}
+	service.budget.verify = func(got []byte, _ string) bool { return bytes.Equal(got, password) }
+	hashes := 0
+	service.budget.hash = func([]byte) (string, error) {
+		hashes++
+		return currentPHC, nil
+	}
+	code, _ := TOTPCode(seed, *clock)
+	if _, err := service.AuthenticateTrusted(context.Background(), "tenant-a", "alice", "192.0.2.10", password, code); err != nil {
+		t.Fatalf("login with supported stronger verifier failed: %v", err)
+	}
+	var stored string
+	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if stored != strongerPHC || hashes != 0 {
+		t.Fatalf("stronger verifier was downgraded or rehash invoked: stored=%t hash calls=%d", stored == strongerPHC, hashes)
+	}
+}
+
 func TestInternalLoginRehashFailureDoesNotConsumeMFAOrIssueSession(t *testing.T) {
 	service, db, _, password, clock, seed := setupTrustedLogin(t)
 	var currentPHC string
 	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&currentPHC); err != nil {
 		t.Fatal(err)
 	}
-	legacyPHC := strings.Replace(currentPHC, "t=3", "t=4", 1)
+	legacyPHC := strings.Replace(currentPHC, "p=4", "p=2", 1)
 	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +177,7 @@ func TestInternalLoginDoesNotRehashBeforeValidMFA(t *testing.T) {
 	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&currentPHC); err != nil {
 		t.Fatal(err)
 	}
-	legacyPHC := strings.Replace(currentPHC, "t=3", "t=4", 1)
+	legacyPHC := strings.Replace(currentPHC, "p=4", "p=2", 1)
 	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +233,7 @@ func TestInternalLoginRehashRollsBackWhenAuditFails(t *testing.T) {
 	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&currentPHC); err != nil {
 		t.Fatal(err)
 	}
-	legacyPHC := strings.Replace(currentPHC, "t=3", "t=4", 1)
+	legacyPHC := strings.Replace(currentPHC, "p=4", "p=2", 1)
 	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
 		t.Fatal(err)
 	}

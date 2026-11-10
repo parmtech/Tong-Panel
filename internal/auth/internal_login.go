@@ -125,7 +125,7 @@ func (s *InternalLoginService) AuthenticateTrusted(ctx context.Context, tenant, 
 		return denied, ErrLoginDenied
 	}
 	var upgradedPHC string
-	if PasswordHashNeedsRehash(storedPHC) {
+	if passwordHashCanRehashWithoutDowngrade(storedPHC) {
 		upgradedPHC, err = s.budget.Hash(password)
 		if errors.Is(err, ErrPasswordTooShort) {
 			// Preserve logins for bounded legacy passwords below the current

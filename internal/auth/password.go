@@ -78,6 +78,21 @@ func PasswordHashNeedsRehash(encoded string) bool {
 	return !ok || params.memory != passwordHashMemoryKiB || params.time != passwordHashTime || params.threads != passwordHashThreads
 }
 
+// passwordHashCanRehashWithoutDowngrade permits automatic login-time rehash
+// only when the current profile is at least as strong in every configured
+// cost dimension. A supported stronger stored profile must not be silently
+// replaced with the current (potentially weaker) creation profile.
+func passwordHashCanRehashWithoutDowngrade(encoded string) bool {
+	params, ok := parseArgon2PHC(encoded)
+	if !ok {
+		return false
+	}
+	if params.memory > passwordHashMemoryKiB || params.time > passwordHashTime || params.threads > passwordHashThreads {
+		return false
+	}
+	return params.memory != passwordHashMemoryKiB || params.time != passwordHashTime || params.threads != passwordHashThreads
+}
+
 func parseArgon2PHC(encoded string) (argon2Params, bool) {
 	var zero argon2Params
 	if len(encoded) == 0 || len(encoded) > maxPasswordPHCBytes {

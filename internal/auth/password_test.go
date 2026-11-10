@@ -111,6 +111,13 @@ func TestPasswordPHCRehashBoundedAlternateProfile(t *testing.T) {
 	if !PasswordHashNeedsRehash(encoded) {
 		t.Fatal("alternate bounded profile should be rehashed")
 	}
+	if passwordHashCanRehashWithoutDowngrade(encoded) {
+		t.Fatal("automatic login rehash would downgrade a stronger stored profile")
+	}
+	weaker := "$argon2id$v=19$m=65536,t=3,p=2$MDEyMzQ1Njc4OWFiY2RlZg$MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY"
+	if !passwordHashCanRehashWithoutDowngrade(weaker) {
+		t.Fatal("weaker supported profile should upgrade to current profile")
+	}
 }
 
 func BenchmarkHashPassword(b *testing.B) {
