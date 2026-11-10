@@ -279,3 +279,9 @@ Added dependency-free synthetic Node loopback HTTP and Python in-process ASGI ap
 ## P3 prototype evidence boundary — 2026-11-10
 
 Clarified `testdata/p3-fixtures/README.md` and the acceptance plan with an assertion-to-evidence boundary table. Explicitly excludes tenant isolation, runtime pinning, Git auth/webhook validation, sandboxing, quota enforcement, secrets, backup/restore, TLS routing, history/rollback, marketplace trust, and host-health stress from the current fixture checks. Re-ran both fixture suites on Windows: Node v22.23.2 2/2; Python 3.13.17 2/2. P1 #143 remains open at head `482017005f9872c1fe7f2969ebfb477ea7de30dd`; the connected commit-status API returned no status entries, so hosted job completion could not be independently confirmed. P3 entry remains NOT PROVEN.
+
+## P1 exact-head CI evidence refresh — 2026-11-10
+
+Rechecked open draft PR #143 using connected GitHub check diagnostics at exact head `482017005f9872c1fe7f2969ebfb477ea7de30dd`. All eight reported checks completed successfully, including Ubuntu 24.04 and Debian 12 clean-VM smoke in run #42781985275. This supersedes the earlier in-progress snapshot. The checks are unsigned developer-preview evidence and do not establish signed installer, full host lifecycle, restore/recovery, or P1 exit. `main` still labels P1 in progress and P2 planned; P3 entry remains NOT PROVEN.
+
+Also rechecked P2 #89 and #91 with connected GitHub diagnostics at their exact heads. #89 clean-VM jobs on Ubuntu 24.04 and Debian 12 succeeded (run #42631444449). #91 clean-VM jobs on both guests plus daemon dry-run, test and unsigned archive checks succeeded (runs #42633862164 and #42633863742/#42633862439/#42633862158). Both remain draft PRs with unsigned preview scope; main's P2 plan remains PLANNED and no integrated P2 acceptance is recorded. This updates evidence freshness only and does not change the P3 entry decision.
