@@ -1,3 +1,9 @@
+### 2026-11-10 20:16 +11:00 — Workstream G, cover remaining P4 site/operator parity acceptance
+- **Branch/state:** docs/p4-hosting-parity-continuation; acceptance-spec addition to the saved Phase 4 plan.
+- **Change:** added a P4-specific case for supported-profile PHP/Apache compatibility, API/CLI authorization parity, token lifecycle, durable event/webhook controls, and scoped backup/audit exports. Explicitly reuses accepted P2 cron/log/template evidence rather than duplicating Slice 7.
+- **Evidence:** P4 JSON example parsed; local Markdown links resolved; git diff --check passed. Product tests not run; this is specification-only.
+- **Limits:** supported profiles remain undecided; case is unexecuted and does not approve Apache/extensions or any host-facing implementation. P1/P2/P3 gates remain open.
+- **Next:** when upstream gates pass, bind case 8 to approved profiles and exact P2 producer contracts before isolated lab acceptance.
 ### 2026-11-10 20:14 +11:00 — Workstream G, reconcile current P2/P3 planning heads
 - **Branch/state:** docs/p4-hosting-parity-continuation; exact-head evidence update on the saved P4 plan.
 - **Change:** refreshed P2 PR #144 and P3 PR #145 refs; retained the distinction between their expanded test plans and accepted phase gates.
