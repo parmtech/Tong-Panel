@@ -317,3 +317,7 @@ Expanded P3-06 with seven synthetic-canary lifecycle cases: scope denial, active
 ## P3 webhook admission acceptance oracle — 2026-11-10
 
 Expanded P3-02 with eight provider-neutral delivery cases, each tied to durable job/build/artifact/route counts and redacted audit outcomes. It separates webhook signature verification from deploy credential fetch and leaves freshness, canonicalization, delivery-ID namespace and outage policy unresolved. The future cases use a disposable simulator/repository only; no live provider or secret is authorized. Structural check and `git diff --check` passed. P3 remains gated.
+
+## P3 runtime profile and benchmark evidence — 2026-11-10
+
+Expanded P3-01 to trace each named Node/Python framework family and WSGI/ASGI/interface claims to exact profile evidence, and added a clean-guest benchmark protocol for install/build, artifact size, startup/readiness, CPU/RSS, shutdown/restart and contention. No version matrix, numeric threshold, SLA, or support claim was invented. Documentation structural checks and `git diff --check` passed; no runtime was installed or benchmarked on the Windows host. P3 remains gated.

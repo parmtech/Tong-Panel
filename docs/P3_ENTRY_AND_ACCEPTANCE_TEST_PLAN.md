@@ -140,6 +140,25 @@ Use disposable Linux VMs corresponding to the eventually approved OS matrix. No 
 - Reject unsupported, changed, or unverifiable runtime artifacts before executing them; preserve prior healthy deployment.
 - Evidence: compatibility table, clean guest logs, artifact digests, negative tamper test, and rollback result.
 
+#### Framework profile coverage
+
+The Phase 3 module names Node profiles plus Python Django/Flask/FastAPI with WSGI/ASGI. A generic HTTP server or generic ASGI callable does not establish those framework claims. Before beta support is declared, maintain an explicit matrix of framework, interface/protocol, supported mode (for example, server-rendered vs static export where applicable), runtime version, OS/architecture, dependency lock, build/start command contract, and health behavior.
+
+| Planned family | Required coverage decision | Minimum evidence for each claimed profile |
+|---|---|---|
+| Node.js | Built-in HTTP, Express, and Next.js; list supported Next.js output/launch mode explicitly | Pinned fixture revision and runtime, lockfile, build/start result, readiness/termination behavior, route verification and artifact provenance |
+| Python Django | Mark WSGI and ASGI support independently; name any adapter/server used | Pinned project/dependency lock, selected interface/server, isolated virtual environment, migration/start behavior, health and route results |
+| Python Flask | Mark WSGI and any ASGI adapter profile independently; do not infer one from the other | Pinned project/dependency lock, adapter/server contract when applicable, isolated virtual environment, start/health/route results |
+| Python FastAPI | Explicitly identify its ASGI profile and launch contract; any alternate interface requires a separately reviewed adapter claim | Pinned project/dependency lock, isolated virtual environment, build/start behavior, health/route and shutdown results |
+
+Every row begins **not supported/not tested** until exact evidence exists. If a planned combination cannot meet the reviewed security, compatibility, or resource gate, record a maintainer-approved exclusion rather than silently treating the generic sample as coverage.
+
+#### Runtime and profile benchmark protocol
+
+Benchmark each claimed runtime/profile combination in a clean disposable guest using a pinned synthetic workload and source/runtime/dependency digests. Record guest image, vCPU/memory/storage, OS/architecture, runtime flags, workload parameters, warm/cold state, command, raw samples, and reviewer. At minimum measure clean install/build duration, artifact size, cold-start-to-ready time, steady and peak CPU/RSS under an agreed request load, shutdown/restart time, and guest health before/during/after. Repeat the same profile under its configured limits and alongside another supported app/runtime to reveal contention and resource-limit effects.
+
+Do not invent pass thresholds in this plan. Until owners approve workload representativeness and numeric budgets, report the measurements as evidence only—no performance SLA or compatibility claim follows from a successful run. Keep performance results separate from correctness, isolation, and security gates; failing any of those cannot be offset by a favorable benchmark.
+
 ### P3-02: Git credentials, webhook authenticity, and deploy idempotency
 
 - Use a disposable repository and least-privilege, read-only deploy credential. Prove token material never appears in process arguments, URLs, build output, panel logs, audit records, error pages, or support bundles.
