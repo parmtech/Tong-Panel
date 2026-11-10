@@ -1,3 +1,9 @@
+### 2026-11-10 19:31 +11:00 — Workstream G, verify current P2 disposable-VM acceptance evidence
+- **Branch/state:** docs/p4-hosting-parity-continuation, follow-up to the Phase 4 evidence refresh.
+- **Change:** recorded exact P2 PR #89/#91 heads and clean-VM run evidence in the existing P4 gate snapshot. Run #42631444449 logs report two isolated WordPress installs and tenant DB separation; run #42633862164 logs report encrypted WordPress restore on fresh Ubuntu/Debian guests with homepage/upload verification and private-config/privileged-DB denials. Clarified these are narrow unsigned-preview lab results, not P2 exit acceptance.
+- **Evidence:** PR #143 run #42781985275 has its non-VM checks passing while Ubuntu/Debian clean-VM jobs remain in progress. Tests not run locally; docs-only update.
+- **Security/licence/blockers:** no code, dependency, service or live-host changes. P1 remains unaccepted; P2/P3 and P4 phase gates remain open.
+- **Next:** verify complete P1/P2 gate matrices and P3 acceptance contracts from exact reviewed GitHub heads before any P4 implementation.
 ### 2026-11-10 19:27 +11:00 — Workstream G, refresh Phase 4 prerequisite evidence
 - **Branch/state:** docs/p4-hosting-parity-continuation, based on preserved P4 design checkpoint 029b39aa5ebb2056506892b18b400a31402977b; follow-on documentation work only.
 - **Change:** refreshed the existing P4 design acceptance file's time-sensitive gate snapshot from the current GitHub open-PR list. P1 PR #143 remains draft with exact-head hosted checks pending; P2 WordPress work exists in draft PRs #87, #89 and #91; no P3 or P4 PR appeared in the inspected open-PR results. This records prototypes separately from accepted phase gates.
