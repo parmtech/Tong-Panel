@@ -36,7 +36,7 @@
 - **Work item:** [Issue #153](https://github.com/parmtech/Tong-Panel/issues/153); same isolated Phase 2 branch.
 - **Change:** Expanded the two-tenant scenario to cover app-managed per-tenant database creation, credential rotation/cutover, scoped use and export/import, authorized teardown, and explicit failure states. Added cross-tenant checks for credential references and rotation jobs.
 - **Why:** The P2 gate report says existing grant and dump/restore component labs do not provide application-managed create/remove/rotation or approved secret custody.
-- **Gate:** Specification only. Tests stop without approved secret custody and use only disposable databases; no secrets, database users, provisioning adapter or host operation were created. P1 entry and P0 approval remain prerequisites.
+- **Gate:** Specification only. Proposed [ADR-007](docs/ADR_REGISTER.md) secret custody/typed-host boundary remains unapproved. Tests stop without approved secret custody and use only disposable databases; no secrets, database users, provisioning adapter or host operation were created. P1 entry and P0 approval remain prerequisites.
 - **Validation:** `git diff --check` and relative Markdown link checks passed; no product tests apply.
 - **Next:** Review the credential lifecycle and secret-custody decisions; after P0/P1 approvals, combine the approved database adapter with the existing MariaDB grant/restore fixtures in the two-tenant clean-guest suite.
 

@@ -98,4 +98,5 @@ Until all required evidence exists, the P2 exit gate remains open. A passing com
 - [Roadmap](ROADMAP.md), P2 scope and exit gate.
 - [Phase index](PHASE_INDEX.md), evidence-based phase transitions.
 - [QA strategy](TEST_STRATEGY.md), disposable VM, authorization, fault-injection, browser, and recovery layers.
+- [ADR register](ADR_REGISTER.md), specifically proposed ADR-007 — Privilege boundary and secrets. It is still unapproved; the database credential flow in step 5 cannot be implemented until owners/security approve secret custody and the typed host boundary.
 - [Phase 1 entry gate](https://github.com/parmtech/Tong-Panel/blob/feature/p1-file-quota-request-context/docs/P1_EXIT_GATE_REPORT_2026-10-27.md) and [Phase 2 exit gate](https://github.com/parmtech/Tong-Panel/blob/feature/p1-file-quota-request-context/docs/P2_EXIT_GATE_REPORT_2026-10-29.md).
