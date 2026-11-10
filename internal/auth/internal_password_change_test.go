@@ -203,6 +203,80 @@ func TestInternalPasswordChangePersistsCredentialAndRevokesAllIdentitySessions(t
 	}
 }
 
+func TestInternalPasswordChangeHonorsCancellationDuringWriterWait(t *testing.T) {
+	service, db, _, oldPassword, clock, seed := setupTrustedLogin(t)
+	before := passwordChangeSnapshot(t, db)
+	var seq int
+	var schema, path string
+	if err := db.QueryRow("PRAGMA database_list").Scan(&seq, &schema, &path); err != nil {
+		t.Fatal(err)
+	}
+	peerDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerDB.Close()
+	writer, err := peerDB.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	verified := make(chan struct{})
+	releaseVerify := make(chan struct{})
+	service.budget.verify = func(got []byte, _ string) bool {
+		close(verified)
+		<-releaseVerify
+		return bytes.Equal(got, oldPassword)
+	}
+	service.budget.hash = func([]byte) (string, error) { return "replacement-test-phc", nil }
+	code, err := TOTPCode(seed, *clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() {
+		result <- service.ChangePasswordTrusted(ctx, "tenant-a", "alice", "192.0.2.70", oldPassword, changedPasswordFixture, code)
+	}()
+	select {
+	case <-verified:
+	case <-time.After(5 * time.Second):
+		cancel()
+		t.Fatal("password change did not reach password verification")
+	}
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		cancel()
+		t.Fatal(err)
+	}
+	defer writer.ExecContext(context.Background(), "ROLLBACK")
+	close(releaseVerify)
+	deadline := time.Now().Add(3 * time.Second)
+	for db.Stats().InUse == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if db.Stats().InUse == 0 {
+		cancel()
+		t.Fatal("password change did not acquire its transaction connection")
+	}
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("password change error=%v, want context cancellation", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("password change did not stop after caller cancellation")
+	}
+	if after := passwordChangeSnapshot(t, db); !reflect.DeepEqual(before, after) {
+		t.Fatal("canceled password change mutated credential, session, replay, MFA, recovery, or audit state")
+	}
+	var busyTimeout int
+	if err := db.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout); err != nil || busyTimeout != 5000 {
+		t.Fatalf("busy_timeout=%d err=%v, want restored 5000ms", busyTimeout, err)
+	}
+}
+
 func TestInternalPasswordChangeDenialsDoNotMutateSecurityState(t *testing.T) {
 	for _, name := range []string{"wrong password", "wrong MFA", "new password too short", "new password too long", "unknown identity", "wrong tenant", "disabled", "suspended", "removed membership", "capacity", "hash capacity", "canceled"} {
 		t.Run(name, func(t *testing.T) {

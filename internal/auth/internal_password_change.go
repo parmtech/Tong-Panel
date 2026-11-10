@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/parmtech/tong-panel/internal/database"
 	"github.com/parmtech/tong-panel/internal/rbac"
 )
 
@@ -116,9 +117,11 @@ func (s *InternalLoginService) ChangePasswordTrusted(ctx context.Context, tenant
 		return err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := database.BeginImmediate(ctx, conn, 0)
+	if err != nil {
 		return err
 	}
+	defer restoreBusyTimeout()
 	committed := false
 	defer func() {
 		if !committed {
