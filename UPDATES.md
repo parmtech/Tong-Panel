@@ -4,6 +4,15 @@
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
+## P3 DESIGN CHECKPOINT — 2026-11-10 (Sydney): entry gates and acceptance test plan
+
+- **Branch:** `docs/p3-prerequisite-evidence`; isolated Windows clone based on `main` at `0aad68e81138a0f226e83e401f90bae4d0b6bddc`.
+- **Artifact:** `docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md` maps P1/P2 prerequisites and P3 acceptance scenarios to reproducible security, integration, rollback and hostile-workload evidence. This is design/specification only; no P3 runtime, build, installer, endpoint or host mutation was implemented or enabled.
+- **Source-of-truth review:** GitHub default branch remains at the above checkpoint. Connected GitHub shows open draft P2 PRs including #51 (read-only Files API, not configured), #52 (quota-gated upload, dependent on #51), and #53 (quota reservations, explicitly opt-in/unwired and requiring trusted reconciliation). Their stated limits leave Files UI/object ACL, lifecycle, installer and restore evidence incomplete. PR #45 says the Ubuntu/Debian guest smoke uses an unsigned developer preview and does not prove installer, rollback, restore or OS certification. PR #141 and other P1 work also remain drafts; passing checks on individual work do not establish phase exit or owner/security review.
+- **Gate status:** P1 is still unproven; P2 remains unaccepted; P3 entry is NOT PROVEN. No draft PR was merged and no Phase 4 ref was changed. The Phase 4 branch was verified at `0029b39aa5ebb2056506892b18b400a31402977b`.
+- **Checks:** reviewed the plan against the current P1/P2/P3 documents and retrieved GitHub PR metadata; all referenced repository documents exist. `git diff --cached --check` passes after removing Markdown trailing whitespace. No product tests apply to this design-only change.
+- **Next action:** push the focused docs commit and open a draft PR. Keep subsequent P3 work at design/test-contract level until prerequisite gates have independently accepted evidence.
+
 ## NEW VERIFIED P1 CHECKPOINT — 2026-10-28 Sydney: SQLite v7 idle sessions, rotation and logout
 
 - **New draft PR #33:** [SQLite session lifecycle hardening](https://github.com/parmtech/Tong-Panel/pull/33), branch `feature/p1-session-idle-rotation`, stacked on draft PR #32 and earlier unmerged Phase 1 PRs. **No merge or live VPS changes.**
