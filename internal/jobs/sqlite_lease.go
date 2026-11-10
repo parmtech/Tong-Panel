@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"modernc.org/sqlite"
 )
 
 var (
@@ -410,8 +412,19 @@ func withImmediate(ctx context.Context, db *sql.DB, fn func(sqliteSession) error
 		return err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
-		return err
+	for {
+		if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err == nil {
+			break
+		} else if !sqliteBusy(err) {
+			return err
+		}
+		timer := time.NewTimer(25 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
 	}
 	defer func() { _, _ = conn.ExecContext(context.Background(), "ROLLBACK") }()
 	if err := fn(conn); err != nil {
@@ -419,4 +432,9 @@ func withImmediate(ctx context.Context, db *sql.DB, fn func(sqliteSession) error
 	}
 	_, err = conn.ExecContext(ctx, "COMMIT")
 	return err
+}
+
+func sqliteBusy(err error) bool {
+	var sqliteErr *sqlite.Error
+	return errors.As(err, &sqliteErr) && sqliteErr.Code()&0xff == 5
 }
