@@ -245,9 +245,10 @@ func (s *Server) fileWrite(w http.ResponseWriter, r *http.Request, p rbac.Princi
 	var reservation FileQuotaReservation
 	if contextQuota, ok := s.FileQuota.(ContextTenantFileQuota); ok {
 		reservation, err = contextQuota.ReserveContext(r.Context(), p.TenantID, reserveBytes)
-	} else if err := r.Context().Err(); err != nil {
-		return
 	} else {
+		if r.Context().Err() != nil {
+			return
+		}
 		reservation, err = s.FileQuota.Reserve(p.TenantID, reserveBytes)
 	}
 	if err != nil {
