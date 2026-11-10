@@ -6,6 +6,8 @@
 
 **Purpose:** turn the P2 two-tenant and recovery exit criteria into one reviewable clean-guest scenario. The current P2 gate report says component checks exist, but no end-to-end panel-to-agent suite covers API, files, database users, domains, and job logs together.
 
+**Evidence freshness:** the P2 exit report prepared 2026-11-07 lists PR #91's WordPress VM execution as pending. At PR #91 head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1`, the [Ubuntu clean-VM job](https://github.com/parmtech/Tong-Panel/actions/runs/42633862164/job/129216767234) and [Debian clean-VM job](https://github.com/parmtech/Tong-Panel/actions/runs/42633862164/job/129216766868) have since passed. Their workflow step runs `scripts/clean_vm_smoke.sh`, whose source includes the disposable WordPress backup-source and fresh-VM restore-target scripts. This updates that component-evidence detail only; PR #91 remains a draft and these jobs do not prove a complete P2 install, lifecycle, or integrated two-tenant restore gate.
+
 **Entry gate:** the latest Phase 1 report says Phase 2 entry is blocked. Do not enable or test public authentication, privileged host operations, installer mutations, or customer-like production workloads until P0 decisions and P1 security, identity, typed-job/agent, signed-package, and recovery gates have recorded approval and evidence. Before that, only prepare fixtures and pure contract tests in disposable, non-privileged environments.
 
 ## Existing draft evidence to reuse
