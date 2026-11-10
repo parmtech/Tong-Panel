@@ -103,7 +103,6 @@ func (s *InternalLoginService) AuthenticateTrusted(ctx context.Context, tenant, 
 	if !ok || !exists {
 		return denied, ErrLoginDenied
 	}
-
 	var envelope string
 	err = s.db.QueryRowContext(ctx,
 		"SELECT secret_envelope FROM mfa_totp_enrollments "+
@@ -124,6 +123,18 @@ func (s *InternalLoginService) AuthenticateTrusted(ctx context.Context, tenant, 
 	step, ok := acceptedTOTPStep(secret, code, now)
 	if !ok {
 		return denied, ErrLoginDenied
+	}
+	var upgradedPHC string
+	if PasswordHashNeedsRehash(storedPHC) {
+		upgradedPHC, err = s.budget.Hash(password)
+		if errors.Is(err, ErrPasswordTooShort) {
+			// Preserve logins for bounded legacy passwords below the current
+			// creation minimum. They remain eligible for an explicit password
+			// change, but cannot be silently upgraded to the current profile.
+			upgradedPHC = ""
+		} else if err != nil {
+			return denied, err
+		}
 	}
 	var rawToken, rawCSRF [32]byte
 	var rawID, rawAudit [16]byte
@@ -172,6 +183,24 @@ func (s *InternalLoginService) AuthenticateTrusted(ctx context.Context, tenant, 
 	}
 	if err != nil {
 		return denied, err
+	}
+	if upgradedPHC != "" {
+		// The initial verifier is part of the snapshot checked above. Replace
+		// only that exact value, in the same transaction as MFA replay, session,
+		// and audit writes. A concurrent password change therefore aborts login.
+		result, err := conn.ExecContext(ctx,
+			"UPDATE identities SET password_phc=? WHERE id=? AND username=? AND password_phc=? AND disabled=0",
+			upgradedPHC, identity, username, storedPHC)
+		if err != nil {
+			return denied, err
+		}
+		updated, err := result.RowsAffected()
+		if err != nil {
+			return denied, err
+		}
+		if updated != 1 {
+			return denied, ErrLoginDenied
+		}
 	}
 	r, err := conn.ExecContext(ctx,
 		"INSERT INTO totp_replay_state(identity_id,last_accepted_step) VALUES(?,?) "+

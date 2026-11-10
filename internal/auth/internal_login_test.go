@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/parmtech/tong-panel/internal/rbac"
+	"golang.org/x/crypto/argon2"
 )
 
 func setupTrustedLogin(t *testing.T) (*InternalLoginService, *sql.DB, *SQLiteSessionStore, []byte, *time.Time, []byte) {
@@ -59,6 +63,171 @@ func setupTrustedLogin(t *testing.T) (*InternalLoginService, *sql.DB, *SQLiteSes
 	login.now = func() time.Time { return *clock }
 	sessions.now = func() time.Time { return *clock }
 	return login, db, sessions, password, clock, seed
+}
+
+func TestInternalLoginRehashesOutdatedPasswordInSuccessfulTransaction(t *testing.T) {
+	service, db, _, password, clock, seed := setupTrustedLogin(t)
+	var currentPHC string
+	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&currentPHC); err != nil {
+		t.Fatal(err)
+	}
+	legacyPHC := strings.Replace(currentPHC, "t=3", "t=4", 1)
+	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
+		t.Fatal(err)
+	}
+	var hashes int
+	service.budget.verify = func(got []byte, _ string) bool { return bytes.Equal(got, password) }
+	service.budget.hash = func(got []byte) (string, error) {
+		hashes++
+		if !bytes.Equal(got, password) {
+			t.Fatal("rehash received a different password")
+		}
+		return currentPHC, nil
+	}
+	code, _ := TOTPCode(seed, *clock)
+	if _, err := service.AuthenticateTrusted(context.Background(), "tenant-a", "alice", "192.0.2.10", password, code); err != nil {
+		t.Fatalf("successful login with outdated verifier failed: %v", err)
+	}
+	var stored string
+	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if stored != currentPHC || hashes != 1 {
+		t.Fatalf("verifier upgrade stored=%t hash calls=%d", stored == currentPHC, hashes)
+	}
+	var sessions, audits int
+	if err := db.QueryRow("SELECT count(*) FROM sessions").Scan(&sessions); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT count(*) FROM audit_events WHERE action='auth.login'").Scan(&audits); err != nil {
+		t.Fatal(err)
+	}
+	if sessions != 1 || audits != 1 {
+		t.Fatalf("successful rehash login session/audit counts=%d/%d", sessions, audits)
+	}
+}
+
+func TestInternalLoginRehashFailureDoesNotConsumeMFAOrIssueSession(t *testing.T) {
+	service, db, _, password, clock, seed := setupTrustedLogin(t)
+	var currentPHC string
+	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&currentPHC); err != nil {
+		t.Fatal(err)
+	}
+	legacyPHC := strings.Replace(currentPHC, "t=3", "t=4", 1)
+	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
+		t.Fatal(err)
+	}
+	service.budget.verify = func(got []byte, _ string) bool { return bytes.Equal(got, password) }
+	service.budget.hash = func([]byte) (string, error) { return "", errors.New("synthetic rehash failure") }
+	code, _ := TOTPCode(seed, *clock)
+	if _, err := service.AuthenticateTrusted(context.Background(), "tenant-a", "alice", "192.0.2.10", password, code); err == nil {
+		t.Fatal("login succeeded when verifier upgrade failed")
+	}
+	var sessions, audits int
+	if err := db.QueryRow("SELECT count(*) FROM sessions").Scan(&sessions); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT count(*) FROM audit_events WHERE action='auth.login'").Scan(&audits); err != nil {
+		t.Fatal(err)
+	}
+	var step int
+	if err := db.QueryRow("SELECT last_accepted_step FROM totp_replay_state WHERE identity_id='user-a'").Scan(&step); err != nil {
+		t.Fatal(err)
+	}
+	if sessions != 0 || audits != 0 || step != int(clock.Add(-30*time.Second).Unix()/30) {
+		t.Fatalf("rehash failure left session/audit/MFA state %d/%d/%d", sessions, audits, step)
+	}
+}
+
+func TestInternalLoginDoesNotRehashBeforeValidMFA(t *testing.T) {
+	service, db, _, password, _, _ := setupTrustedLogin(t)
+	var currentPHC string
+	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&currentPHC); err != nil {
+		t.Fatal(err)
+	}
+	legacyPHC := strings.Replace(currentPHC, "t=3", "t=4", 1)
+	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
+		t.Fatal(err)
+	}
+	service.budget.verify = func(got []byte, _ string) bool { return bytes.Equal(got, password) }
+	hashes := 0
+	service.budget.hash = func([]byte) (string, error) {
+		hashes++
+		return currentPHC, nil
+	}
+	if _, err := service.AuthenticateTrusted(context.Background(), "tenant-a", "alice", "192.0.2.10", password, "000000"); !errors.Is(err, ErrLoginDenied) {
+		t.Fatalf("invalid MFA returned %v", err)
+	}
+	if hashes != 0 {
+		t.Fatalf("password rehashed before MFA succeeded: calls=%d", hashes)
+	}
+	var stored string
+	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if stored != legacyPHC {
+		t.Fatal("invalid MFA changed the stored password verifier")
+	}
+}
+
+func TestInternalLoginPreservesValidLegacyShortPassword(t *testing.T) {
+	service, db, _, _, clock, seed := setupTrustedLogin(t)
+	legacyPassword := []byte("short")
+	salt := []byte("0123456789abcdef")
+	legacyTime := passwordHashTime + 1
+	hash := argon2.IDKey(legacyPassword, salt, uint32(legacyTime), passwordHashMemoryKiB, passwordHashThreads, passwordHashLength)
+	legacyPHC := fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s",
+		passwordHashMemoryKiB, legacyTime, passwordHashThreads,
+		base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(hash))
+	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
+		t.Fatal(err)
+	}
+	code, _ := TOTPCode(seed, *clock)
+	if _, err := service.AuthenticateTrusted(context.Background(), "tenant-a", "alice", "192.0.2.10", legacyPassword, code); err != nil {
+		t.Fatalf("valid bounded legacy password was denied during rehash: %v", err)
+	}
+	var stored string
+	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if stored != legacyPHC {
+		t.Fatal("short legacy verifier was unexpectedly replaced")
+	}
+}
+
+func TestInternalLoginRehashRollsBackWhenAuditFails(t *testing.T) {
+	service, db, _, password, clock, seed := setupTrustedLogin(t)
+	var currentPHC string
+	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&currentPHC); err != nil {
+		t.Fatal(err)
+	}
+	legacyPHC := strings.Replace(currentPHC, "t=3", "t=4", 1)
+	if _, err := db.Exec("UPDATE identities SET password_phc=? WHERE id='user-a'", legacyPHC); err != nil {
+		t.Fatal(err)
+	}
+	service.budget.verify = func(got []byte, _ string) bool { return bytes.Equal(got, password) }
+	service.budget.hash = func([]byte) (string, error) { return currentPHC, nil }
+	if _, err := db.Exec("CREATE TRIGGER block_login_audit BEFORE INSERT ON audit_events WHEN NEW.action='auth.login' BEGIN SELECT RAISE(ABORT,'audit unavailable'); END"); err != nil {
+		t.Fatal(err)
+	}
+	code, _ := TOTPCode(seed, *clock)
+	if _, err := service.AuthenticateTrusted(context.Background(), "tenant-a", "alice", "192.0.2.10", password, code); err == nil {
+		t.Fatal("login succeeded without durable audit")
+	}
+	var stored string
+	if err := db.QueryRow("SELECT password_phc FROM identities WHERE id='user-a'").Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	var sessions, step int
+	if err := db.QueryRow("SELECT count(*) FROM sessions").Scan(&sessions); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT last_accepted_step FROM totp_replay_state WHERE identity_id='user-a'").Scan(&step); err != nil {
+		t.Fatal(err)
+	}
+	if stored != legacyPHC || sessions != 0 || step != int(clock.Add(-30*time.Second).Unix()/30) {
+		t.Fatalf("audit failure committed rehash/session/MFA state: verifier=%t sessions=%d step=%d", stored == currentPHC, sessions, step)
+	}
 }
 
 func TestInternalLoginIssuesRevocableSessionWithAtomicAudit(t *testing.T) {
