@@ -1,3 +1,10 @@
+### 2026-11-10 20:27 +11:00 — Workstream G, record current P1 follow-up checks
+- **Phase/workspace/branch:** P4 design only; `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-p4-continuation`; `docs/p4-hosting-parity-continuation`.
+- **Owned files:** P4 acceptance plan and journal only; dependencies remain P1/P2/P3 gate decisions and accepted contracts.
+- **Change:** updated P1 exact-head evidence: head `8764d0f` passed all hosted workflows including both guest VMs; newer head `4dab4c6` has five workflow successes while Go and clean-VM workflows remain in progress.
+- **Evidence:** authenticated GitHub run/PR metadata and current exit reports; `git diff --check` passed.
+- **Limits:** P1 exit remains incomplete/P2 entry blocked; P2 exit not passed and P3 acceptance unproven. No implementation or cross-phase workspace edit.
+- **Next:** poll the same current-head Go and clean-VM runs and update only if their conclusions change.
 ### 2026-11-10 20:26 +11:00 — Workstream G, reconcile completed P1 guest run and newer head
 - **Phase/workspace/branch:** P4 design only; `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-p4-continuation`; `docs/p4-hosting-parity-continuation`.
 - **Owned files:** P4 acceptance plan and `UPDATES.md` only. Dependencies: P1/P2/P3 exit and entry gates plus reviewed producer contracts.
