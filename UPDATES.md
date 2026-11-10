@@ -289,3 +289,7 @@ Also rechecked P2 #89 and #91 with connected GitHub diagnostics at their exact h
 ## P3 design review dependency order — 2026-11-10
 
 Added an ordered design-review packet to `docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md`. It sequences evidence/producer-contract acceptance before Git admission, runtime/build isolation, artifact publication, route switching, rollback/data ownership, and catalogue/optional-container decisions. Each stage names prerequisites and the review artifact required; none is pre-approved or implemented. `git diff --check` passed. No product tests apply to this documentation-only update. P3 entry remains NOT PROVEN.
+
+## P3 deployment recovery test specification — 2026-11-10
+
+Added a crash/restart decision table under P3-04. It marks states as non-normative, requires an accepted versioned state model before implementation, and specifies recovery oracles across durable admission, build, artifact recording, process identity, health, route switch, success/audit, and rollback boundaries. No implementation/API/schema choice was made. Documentation structural check and `git diff --check` passed; P3 remains gated.

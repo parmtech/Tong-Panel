@@ -164,6 +164,25 @@ Use disposable Linux VMs corresponding to the eventually approved OS matrix. No 
 - Retain immutable release history sufficient for rollback. Reject missing, altered, cross-app, cross-tenant, or untrusted artifacts.
 - Verify retention and deletion behavior against backup/restore policy; do not silently remove user data when removing an app recipe.
 
+#### Crash/restart decision table (test specification; states are not normative)
+
+The accepted implementation must define its own versioned states and transition rules before coding. This table identifies externally observable interruption points and required safety outcomes without prescribing a database schema, job API, or proxy mechanism. Execute only in a disposable lab after the entry gates and runner boundary are accepted.
+
+| Interruption point | Recovery assertion |
+|---|---|
+| Request received, before durable job admission | After restart, either no job was admitted or exactly one attributable job exists; a retry with the same idempotency key cannot create duplicate work. |
+| Job admitted, before worker claim | Job remains claimable or reaches a typed terminal denial; tenant/app authorization is checked again before any effect. |
+| During source fetch or build | No partial artifact is eligible for promotion; cancellation/retry leaves no orphan process, workspace, credential material, or quota reservation. |
+| Build finished, before artifact metadata commit | Recovery either verifies and adopts one complete immutable artifact or cleans it; it never trusts an unrecorded path by name alone. |
+| Artifact recorded, before runtime start | Verified artifact remains attributable and non-active; retry does not publish a second release identity for the same operation. |
+| Runtime process started, before process identity is durably recorded | Reconciliation identifies and safely adopts or terminates only the intended app process; it does not signal another tenant or an unrelated host process. |
+| Health passed, before route switch | Prior route remains active until promotion is committed and externally observed; health success alone is not a completed deployment. |
+| Route switch requested, result uncertain after proxy reload/restart | Job enters a recoverable/uncertain outcome; reconcile actual route and artifact identity before reporting success or initiating rollback. Never infer route state from a lost response. |
+| New route observed, before success/audit record commits | Recovery verifies the active route, artifact digest and tenant/app binding, then durably records one outcome; if verification fails, preserve service and fail closed. |
+| Rollback requested, during route change or cleanup | Only a previously verified immutable release can be restored; old/new route, process and job records converge after restart without deleting customer data. |
+
+For every row, inject termination immediately before and after the durable boundary, then assert job state, active route, process set, artifact inventory, quota/accounting, audit record, and retry behavior. Record the exact transition model and which outcomes are safely retryable versus require operator reconciliation. Any ambiguous external effect must remain explicitly uncertain until observed; do not report success based only on intent or a queued command.
+
 ### P3-05: Runtime identity, process manager, ports, and resource controls
 
 - Run Node/Python processes as dedicated site identities with reviewed systemd sandbox/resource controls. Assert effective UID/GID, filesystem visibility, capabilities, namespaces, limits and writable paths from inside a test process.
