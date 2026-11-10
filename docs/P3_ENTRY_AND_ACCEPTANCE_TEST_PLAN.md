@@ -240,3 +240,16 @@ The supplemental `testdata/p3-fixtures/` contains dependency-free synthetic Node
 - Node v22.23.2: `node --test testdata/p3-fixtures/node/server.test.cjs` — 2 passed.
 - Python 3.13.17: `python -m unittest discover -s testdata/p3-fixtures/python -v` — 2 passed.
 - These results are fixture behavior only; they do not change the P3 entry-gate decision.
+
+### Prototype-to-acceptance boundary
+
+The local fixtures are harness samples, not the pinned hostile fixtures listed above or the deployable Node/Python applications in the Phase 3 acceptance scenarios. Their present coverage is deliberately narrow:
+
+| Prototype assertion | Local check | Required Phase 3 evidence still missing |
+|---|---|---|
+| Readiness returns healthy/unhealthy | Node HTTP test; Python ASGI callable test | Bounded readiness timeout, process exit/hang handling, durable job outcome, and previous-release availability after failure |
+| Synthetic release identity is returned | Node HTTP test; Python ASGI callable test | Immutable artifact digest/provenance, ownership validation, promotion ordering, release history and rollback |
+| Unknown path and non-GET method are denied | Node HTTP test; Python ASGI callable test | Authenticated tenant/app routing, custom-domain/TLS route verification, webhook signature/replay denial, bounded errors and audit evidence |
+| Requests stay on a test-only interface | Node binds loopback on an ephemeral port; Python runs in-process | Dedicated runtime identity, network namespace/egress boundary, resource limits, filesystem/process/secret isolation and host-health measurements |
+
+These prototype checks must not be counted toward the P3 exit scenarios or the ten hostile-fixture results. Keep the hostile fixtures deterministic and separately pinned once the required unprivileged lab contract and entry gates are approved.

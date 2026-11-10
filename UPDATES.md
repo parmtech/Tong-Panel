@@ -275,3 +275,7 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 ## P3 prerequisite evidence update — 2026-11-10 (Windows)
 
 Added dependency-free synthetic Node loopback HTTP and Python in-process ASGI app fixtures under `testdata/p3-fixtures/` to make a small subset of the acceptance plan executable. Node v22.23.2 tests: 2 passed. Python 3.13.17 tests: 2 passed. These validate only the fixtures' health/readiness, synthetic release identity, unknown route, and method-denial behavior; they do not prove isolation, installer, runtime manager, deployment, P1/P2 acceptance, or P3 entry. P3 remains NOT PROVEN. No privileged or host-level operation was run.
+
+## P3 prototype evidence boundary — 2026-11-10
+
+Clarified `testdata/p3-fixtures/README.md` and the acceptance plan with an assertion-to-evidence boundary table. Explicitly excludes tenant isolation, runtime pinning, Git auth/webhook validation, sandboxing, quota enforcement, secrets, backup/restore, TLS routing, history/rollback, marketplace trust, and host-health stress from the current fixture checks. Re-ran both fixture suites on Windows: Node v22.23.2 2/2; Python 3.13.17 2/2. P1 #143 remains open at head `482017005f9872c1fe7f2969ebfb477ea7de30dd`; the connected commit-status API returned no status entries, so hosted job completion could not be independently confirmed. P3 entry remains NOT PROVEN.
