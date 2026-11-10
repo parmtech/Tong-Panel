@@ -49,6 +49,15 @@
 - **Validation:** `git diff --check` and relative Markdown link checks passed; no product tests apply.
 - **Next:** Review recovery-state contracts with owners/security, then execute only in the exact supported disposable guests after P0/P1 entry is approved.
 
+## 2026-11-10 — P2 MFA recovery and responsive task journeys
+
+- **Work items:** [Issue #155](https://github.com/parmtech/Tong-Panel/issues/155) covers phone/tablet site and Files journeys; [issue #156](https://github.com/parmtech/Tong-Panel/issues/156) covers two-tenant MFA recovery/session denial.
+- **Change:** Expanded the integrated plan's auth step to include MFA replay, one-use recovery, cross-tenant recovery denial, current-membership/session invalidation and redacted audits. Expanded UX acceptance to name novice/admin site/domain/HTTPS/Files workflows across phone, tablet and desktop with keyboard/screen-reader review.
+- **Why:** The P2 report says login/MFA/recovery isolation and phone/tablet guided task completion are not passed end-to-end. The prior scenario named MFA and accessibility generally but omitted recovery replay/cross-tenant detail and complete user journeys.
+- **Gate:** Test specification only; reuse reviewed P1 auth/session interfaces, do not add public authentication or bypass MFA. P0/P1 policy and entry approval remain mandatory before authenticated host-facing tests.
+- **Validation:** `git diff --check` and relative Markdown link checks passed; no product tests apply.
+- **Next:** Review the approved authentication/recovery policy and UX flows, then execute the integrated cases only after required gates pass.
+
 ## 2026-11-10 — P1 dependency evidence recheck for gated P2 work
 
 - **Source reviewed:** draft PR #91 head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1` ([PR #91](https://github.com/parmtech/Tong-Panel/pull/91)). No files in that PR or its working checkout were changed.
