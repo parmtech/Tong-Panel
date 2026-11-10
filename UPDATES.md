@@ -1,3 +1,9 @@
+### 2026-11-10 20:17 +11:00 — Workstream G, refresh planning refs after upstream advances
+- **Branch/state:** docs/p4-hosting-parity-continuation; follow-up evidence sync.
+- **Change:** synchronized current P2/P3 planning heads observed during the operator-parity acceptance update.
+- **Evidence:** `git ls-remote` returned the recorded refs; `git diff --check` passed.
+- **Limits:** these are still draft design inputs, not phase acceptance; no P4 implementation or privileged action.
+- **Next:** recheck current refs and guest run after review of this draft.
 ### 2026-11-10 20:16 +11:00 — Workstream G, cover remaining P4 site/operator parity acceptance
 - **Branch/state:** docs/p4-hosting-parity-continuation; acceptance-spec addition to the saved Phase 4 plan.
 - **Change:** added a P4-specific case for supported-profile PHP/Apache compatibility, API/CLI authorization parity, token lifecycle, durable event/webhook controls, and scoped backup/audit exports. Explicitly reuses accepted P2 cron/log/template evidence rather than duplicating Slice 7.
