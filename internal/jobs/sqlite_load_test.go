@@ -1,0 +1,118 @@
+package jobs
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"path/filepath"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/parmtech/tong-panel/internal/database"
+)
+
+// This bounded stress test drains metadata-only work through two independent
+// SQLite pools. It does not execute host effects or model power loss.
+func TestSQLiteWorkersDrainQueueAcrossHandles(t *testing.T) {
+	store, path := openTestSQLiteStore(t)
+	peerDB, err := database.Open(context.Background(), filepath.Clean(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerDB.Close()
+	peer, err := NewSQLiteStore(peerDB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const totalJobs = 128
+	for i := 0; i < totalJobs; i++ {
+		if _, err := store.CreateFor("tenant-a", "user-a", KindNoop, fmt.Sprintf("drain-load-%04d", i)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	store.ctx, peer.ctx = ctx, ctx
+	const workers = 12
+	start := make(chan struct{})
+	completed := make(chan string, totalJobs)
+	errs := make(chan error, workers)
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		queue := store
+		if i%2 != 0 {
+			queue = peer
+		}
+		wg.Add(1)
+		go func(index int, queue *SQLiteStore) {
+			defer wg.Done()
+			<-start
+			workerID := fmt.Sprintf("load-worker-%02d", index)
+			for {
+				if err := ctx.Err(); err != nil {
+					errs <- err
+					return
+				}
+				claim, err := queue.ClaimNext(workerID, time.Minute)
+				if errors.Is(err, ErrNoJobs) {
+					return
+				}
+				if err != nil {
+					errs <- err
+					return
+				}
+				if _, err = queue.Start(claim); err != nil {
+					errs <- err
+					return
+				}
+				job, err := queue.Complete(claim)
+				if err != nil {
+					errs <- err
+					return
+				}
+				completed <- job.ID
+			}
+		}(i, queue)
+	}
+	close(start)
+	wg.Wait()
+	close(completed)
+	close(errs)
+	for err := range errs {
+		t.Fatalf("worker queue drain failed: %v", err)
+	}
+
+	seen := make(map[string]bool, totalJobs)
+	for id := range completed {
+		if seen[id] {
+			t.Fatalf("job completed more than once: %s", id)
+		}
+		seen[id] = true
+	}
+	if len(seen) != totalJobs {
+		t.Fatalf("completed %d unique jobs, want %d", len(seen), totalJobs)
+	}
+	var completedJobs, attempts, completedAttempts, leaseAudits, startAudits, completeAudits int
+	err = store.db.QueryRow(`SELECT
+		(SELECT count(*) FROM jobs WHERE tenant_id='tenant-a' AND state='completed'),
+		(SELECT count(*) FROM job_attempts a JOIN jobs j ON j.id=a.job_id WHERE j.tenant_id='tenant-a'),
+		(SELECT count(*) FROM job_attempts a JOIN jobs j ON j.id=a.job_id WHERE j.tenant_id='tenant-a' AND a.status='completed'),
+		(SELECT count(*) FROM audit_events WHERE tenant_id='tenant-a' AND action='job.leased'),
+		(SELECT count(*) FROM audit_events WHERE tenant_id='tenant-a' AND action='job.started'),
+		(SELECT count(*) FROM audit_events WHERE tenant_id='tenant-a' AND action='job.completed')`).
+		Scan(&completedJobs, &attempts, &completedAttempts, &leaseAudits, &startAudits, &completeAudits)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for label, count := range map[string]int{
+		"completed jobs": completedJobs, "attempts": attempts, "completed attempts": completedAttempts,
+		"lease audits": leaseAudits, "start audits": startAudits, "completion audits": completeAudits,
+	} {
+		if count != totalJobs {
+			t.Errorf("%s=%d, want %d", label, count, totalJobs)
+		}
+	}
+}

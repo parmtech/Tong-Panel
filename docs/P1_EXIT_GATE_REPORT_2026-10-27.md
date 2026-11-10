@@ -418,3 +418,8 @@ The read-only Jobs UI now supports explicit-refresh state-change notices for rec
 The current source includes OpenAPI 3.0.3 validation against actual handler scenarios; private SQLite metadata snapshot/restore and migration failure/recovery tests; and an allowlist redacted support-bundle implementation with real-binary smoke coverage. The older table's OpenAPI, metadata backup/restore, and support-bundle gaps are therefore no longer accurate as written. This does not establish production transport, encrypted backup/key custody, power-loss or host restore, complete UI acceptance, signed installer readiness, or P0 owner/security approval. P1 remains NOT COMPLETE.
 
 The P1-01/P1-10 table is also corrected to reflect current checks: pinned Go vulnerability analysis, UI/API contract CI, and generated/verified exact-binary SBOMs are present. Dedicated SAST, full third-party notice review, provenance attestation, signature trust and supported installation/recovery are still open.
+
+
+## P1-05 bounded multi-handle queue drain stress — 10 November 2026
+
+A new focused regression covers 12 concurrent workers draining 128 SQLite no-op metadata jobs through claim/start/complete across two independently opened database handles, with a 30-second context bound and exact final job/attempt/audit counts. It passed five repeated local runs. This adds bounded queue concurrency evidence only; it does not verify external-effect fencing, power-loss/daemon crash recovery, production worker execution, or general load capacity. P1 remains NOT COMPLETE.
