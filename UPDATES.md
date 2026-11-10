@@ -372,3 +372,10 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Evidence/change:** P4 continuation advanced to exact head `5607e8889f7d05e989497b3ea560835e36bddc66`; its P4 design acceptance remains BLOCKED / design only with P1/P2/P3 handoffs pending. Replaced the prior P4 continuation pin in the P5 prerequisite row and source list. The preserved `docs/p4-hosting-parity-design` checkpoint remains `0029b39aa5ebb2056506892b18b400a31402977b`.
 - **Validation:** `git diff --check` passed; documentation-only.
 - **Other gate:** P1 PR #149 run #42785167173 still has Debian 12 success and Ubuntu 24.04 in progress at last poll. No gate decision changed.
+
+### 2026-11-10 — Workstream G, specify migration cutover and rollback evidence
+
+- **Ownership/checkpoint:** Phase 5 only; isolated worktree `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-Phase5-20261110`, branch `phase5/prereq-and-acceptance-spec`. This change owns `docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md` and its `UPDATES.md` journal; dependencies are the canonical P5 plan and accepted P1–P4 contracts. The worktree was clean before editing; no other phase workspace or shared checkout was touched.
+- **Change:** added five review-only migration fixtures for staged validation, partition/restart, route cutover, rollback after writes diverge, and credential/temp-data cleanup. They make source/destination authority and data-consistency evidence explicit without selecting a migration mechanism. Refreshed P3 head `e9140e4813088cdc5c911495d5a5ff66de312122` (entry still NOT PROVEN) and P4 head `bc9bb76dcebbbf6599b1daaa3d6410e862cd717f` (BLOCKED/design only); preserved P4 checkpoint remains `0029b39aa5ebb2056506892b18b400a31402977b`.
+- **Validation:** `git diff --check` passed; 24 numbered scenarios remain, plus five migration evidence cases. Documentation-only; no product tests run.
+- **Gates/safety:** P1/P2/P3/P4/P5 approval gates remain open; P1 run #42785167173 is still live on Ubuntu 24.04 at last poll. No implementation, privileged operations, deployment, or merge.
