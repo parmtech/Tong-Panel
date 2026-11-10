@@ -14,6 +14,14 @@
 - **Validation:** `git diff --check` and the edited document's relative-link checks passed. No product tests apply to this documentation-only change.
 - **Next:** Review issue #150 and the updated acceptance specification; after P0/P1 gates are formally approved, wire the existing disposable DNS/ACME, pinned WordPress, and restore component labs into the integrated two-tenant guest run.
 
+## 2026-11-10 — P2 Slice 7 schedule policy review packet
+
+- **Work item:** [Issue #151](https://github.com/parmtech/Tong-Panel/issues/151); dedicated branch `phase2/cron-logs-templates-test-plan-20261110`.
+- **Change:** Added `docs/P2_SLICE7_POLICY_DECISION_OPTIONS.md` and linked it from the Slice 7 test specification and Phase 2 plan. It lays out review alternatives for typed task kinds, schedule grammar/time basis, DST, overlap, retries, permissions, and log retention, with deterministic acceptance cases.
+- **Constraint:** No policy is selected. The brief expressly preserves the repository rule excluding arbitrary shell authority. No scheduler, endpoint, host action, dependency, or security relaxation was introduced.
+- **Validation:** documentation/link checks and `git diff --check` passed; no product tests apply. P0 decisions and P1 entry remain blocked.
+- **Next:** owners/security reviewers record decisions and rationale in the ADR/threat process. Only after that and formal P1 entry approval can an implementation slice be selected.
+
 ## 2026-11-10 — P1 dependency evidence recheck for gated P2 work
 
 - **Source reviewed:** draft PR #91 head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1` ([PR #91](https://github.com/parmtech/Tong-Panel/pull/91)). No files in that PR or its working checkout were changed.

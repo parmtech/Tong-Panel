@@ -86,6 +86,8 @@ These are requirements for a future reviewed interface, not approved architectur
 
 These decisions require the repository's owner/security review process. This proposal does not record approval for any ADR or threat-model item.
 
+The [schedule policy decision brief](P2_SLICE7_POLICY_DECISION_OPTIONS.md) compares candidate task, schedule, timezone, overlap, retry, permission, and log-retention policies for maintainer review. It selects no policy and does not expand the implementation authorization above.
+
 ## Traceability
 
 - [Phase 2 plan](phases/P2-HOSTING-ALPHA.md), implementation slice 7 and its must-pass tests.
