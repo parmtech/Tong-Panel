@@ -321,3 +321,16 @@ func TestSQLiteMutationsHonorCallerCancellationDuringConnectionWait(t *testing.T
 		})
 	}
 }
+
+func TestSQLiteCancelPreservesCancellationDuringAuthorization(t *testing.T) {
+	for _, want := range []error{context.Canceled, context.DeadlineExceeded} {
+		t.Run(want.Error(), func(t *testing.T) {
+			if got := cancelAuthorizationError(want); !errors.Is(got, want) {
+				t.Fatalf("authorization error=%v, want preserved %v", got, want)
+			}
+		})
+	}
+	if got := cancelAuthorizationError(ErrRequesterDenied); !errors.Is(got, ErrNotFound) {
+		t.Fatalf("authorization error=%v, want concealed not-found", got)
+	}
+}

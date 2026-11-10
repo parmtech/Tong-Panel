@@ -10,6 +10,13 @@ import (
 // In-flight jobs cannot be cancelled safely without host-side fencing.
 const Cancelled = "cancelled"
 
+func cancelAuthorizationError(err error) error {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	return ErrNotFound
+}
+
 // ErrJobNotCancelable means the job has already been leased or finalized.
 var ErrJobNotCancelable = errors.New("job is not safely cancellable")
 
@@ -36,7 +43,7 @@ func (s *SQLiteStore) CancelForContext(ctx context.Context, tenant, requester, i
 		// Recheck current access, not just the identity that created the job.
 		// Never reveal another tenant's or another requester's job IDs.
 		if err := authorizedRequester(ctx, q, tenant, requester, "jobs:cancel"); err != nil {
-			return ErrNotFound
+			return cancelAuthorizationError(err)
 		}
 		var err error
 		cancelled, err = scanJob(q.QueryRowContext(ctx,
