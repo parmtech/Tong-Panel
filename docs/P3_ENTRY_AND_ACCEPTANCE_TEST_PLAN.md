@@ -219,6 +219,22 @@ An executable, non-normative in-memory example is in [`prototypes/p3-deploy-reco
 - Removing a recipe must not delete customer-created data unless a separately authorized, explicit, recoverable operation chooses that outcome.
 - Start with a narrow supported compatibility list; adding a framework or marketplace claim requires its own repeatable test evidence.
 
+#### Recipe trust and removal decision matrix
+
+Use inert synthetic manifest fixtures only. These are admission/removal test inputs, not executable apps, signing policy, or a production schema. The verifier and trust-root lifecycle must be reviewed before any fixture is connected to a fetch or install path.
+
+| Fixture condition | Required outcome | Evidence to record |
+|---|---|---|
+| Valid schema, trusted non-revoked signer, immutable source/version digest, supported permission/resource set, known licence metadata | May proceed to the separate reviewed install flow; signature alone does not waive other policy checks | Manifest digest, signer/key ID, trust metadata revision, policy revision, deterministic decision and audit redaction |
+| Malformed, oversized, duplicate-field, or unknown-field manifest | Reject without interpreting it as a partial/defaulted recipe | Parser result, bounded error, no artifact fetch/execution or state mutation |
+| Missing signature, unknown signer, revoked key, or stale/replayed trust metadata | Reject before dependency/source artifact fetch or execution | Exact trust snapshot/key status and denial reason; no secret or sensitive object enumeration |
+| Mutable-only tag, missing immutable digest, or digest mismatch | Reject before build or promotion; preserve the current app/release | Requested and observed synthetic digest, unchanged release pointer, no partial artifact |
+| Undeclared capability, unsupported permission, or resource requirement outside reviewed limits | Deny by default before execution | Requested-vs-allowed permission/resource diff and attributable denial audit |
+| Missing, unknown, or policy-blocked licence/provenance metadata | Reject or hold for explicit maintainer disposition; never infer approval from a signature | Licence/provenance source, policy version and review disposition |
+| Recipe removal references customer-created data or backups | Remove recipe-owned metadata only; preserve customer data unless a distinct, explicit, authorized and recoverable export/delete action is completed | Before/after object inventory, actor/authorization, backup/export choice, restore proof and audit record |
+
+For every denial case, verify no app process starts, route changes, customer data is deleted, or unbounded sensitive detail is returned. The accepted trust policy must define which cases are hard-deny versus maintainer-review; no behavior is inferred from this test table alone.
+
 ## Phase exit dossier
 
 P3 can be proposed for acceptance only when all prerequisite rows are proven and every in-scope P3 acceptance scenario has exact-commit evidence:

@@ -301,3 +301,7 @@ Added `prototypes/p3-deploy-recovery-model`, a pure in-memory Go example for a f
 Extended the same model with same-request admission idempotency examples: exact retry returns the original simulated job ID, changed payload conflicts, and the illustrative tenant/app key namespace stays separate. This key scope is explicitly not an approved policy. Ten model tests now pass; `go vet` and formatting checks pass with Go 1.27.3 on Windows. Persistence, atomicity, concurrency, authorization and real job execution remain untested and out of scope. P3 remains gated.
 
 Extended the admission example to serialize 64 concurrent identical retries within one process and assert they all receive one simulated job ID. This is an in-memory synchronization test only; it does not prove database atomicity, multi-process safety or durable idempotency. Eleven model tests now pass on Windows; see the current test command in the model README.
+
+## P3 catalogue trust acceptance oracle — 2026-11-10
+
+Expanded P3-09 with an inert-manifest decision matrix covering trusted baseline, malformed/oversized input, signer revocation/staleness, mutable or mismatched digests, overprivilege/resources, licence/provenance uncertainty, and data-preserving recipe removal. This specifies test outcomes and required evidence without creating a production manifest schema or deciding trust policy. Structural check and `git diff --check` passed. No hostile input was executed; P3 remains gated.
