@@ -1,3 +1,9 @@
+### 2026-11-10 19:56 +11:00 — Workstream G, refresh Phase 4 gate snapshot
+- **Branch/state:** docs/p4-hosting-parity-continuation; evidence update to the existing design checkpoint.
+- **Change:** recorded current P1/P2 gate verdicts, exact P1 preview workflow heads, narrow P2 lab evidence, and current P2/P3 planning PR scopes so Phase 4 work is not duplicated or misrepresented.
+- **Evidence:** git diff --check passed. GitHub CLI is unavailable in this Windows executor, so this update relies on the previously fetched GitHub records; re-fetch before acting on any gate change. Product tests not run; documentation only.
+- **Limits:** P1/P2/P3 entry/exit gates remain open; no implementation, privileged host action, merge or deployment.
+- **Next:** refresh upstream PR and gate statuses using an authenticated GitHub client; continue only isolated design/specification work until entry gates pass.
 ### 2026-11-10 19:52 +11:00 — Workstream G, close blocked migration-plan ambiguity
 - **Branch/state:** docs/p4-hosting-parity-continuation; clarification to the candidate dry-run report proposal.
 - **Change:** only fully classified ready reports may present a candidate create/update plan, and execution still needs separate later authorization. Blocked, partial and rejected reports contain no executable actions.
