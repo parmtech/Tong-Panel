@@ -3,6 +3,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -89,6 +90,8 @@ func (s *Server) Handler() http.Handler {
 
 type secured func(http.ResponseWriter, *http.Request, rbac.Principal)
 
+type sessionProofKey struct{}
+
 func (s *Server) protected(h secured) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.Keys == nil && s.Sessions == nil {
@@ -106,6 +109,12 @@ func (s *Server) protected(h secured) http.HandlerFunc {
 				fail(w, code, reason)
 				return
 			}
+			proof, valid := s.Sessions.ReadProof(cookie.Value)
+			if !valid {
+				fail(w, http.StatusUnauthorized, "unauthorized")
+				return
+			}
+			r = r.WithContext(context.WithValue(r.Context(), sessionProofKey{}, proof))
 		} else {
 			if s.Keys == nil {
 				fail(w, 401, "unauthorized")

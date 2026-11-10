@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/parmtech/tong-panel/internal/auth"
 	"github.com/parmtech/tong-panel/internal/rbac"
 	"github.com/parmtech/tong-panel/internal/sites"
 )
@@ -104,13 +105,23 @@ func (s *Server) siteList(w http.ResponseWriter, r *http.Request, p rbac.Princip
 		}
 	}
 	after := values.Get("after")
-	items, next, err := s.SiteCatalog.ListPageFor(r.Context(), p.TenantID, p.UserID, after, limit)
+	var items []sites.SiteSummary
+	var next string
+	if proof, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof); ok {
+		items, next, err = s.SiteCatalog.ListPageForSession(r.Context(), p.TenantID, p.UserID, after, limit, proof)
+	} else {
+		items, next, err = s.SiteCatalog.ListPageFor(r.Context(), p.TenantID, p.UserID, after, limit)
+	}
 	if errors.Is(err, sites.ErrInvalidPage) {
 		fail(w, http.StatusBadRequest, "invalid_page")
 		return
 	}
 	if errors.Is(err, sites.ErrSiteReadDenied) {
 		fail(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if errors.Is(err, sites.ErrSiteSessionDenied) {
+		fail(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	if err != nil {

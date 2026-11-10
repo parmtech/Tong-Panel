@@ -14,9 +14,14 @@ The browser validates and bounds responses and renders values as text.
 The site-list query checks the active tenant, enabled identity, current
 membership and permitted role in the same SQLite statement that selects the
 page. This check uses the catalog database for every HTTP caller, including
-developer tokens. Session validation remains a separate operation: session
-revocation racing after authentication is not covered by this query. Other
-site endpoints have not been changed by this read-specific guard.
+developer tokens. For cookie sessions, the same statement also checks the
+session hash and revocation state; expiry is validated before returning the
+page. The session store and catalog must share the same SQLite connection pool,
+or the read fails closed. A read whose snapshot predates a revocation may still
+finish. An observed timeout is conditionally recorded as revoked; if that write
+fails, the read fails closed but persistence against a later clock rollback is
+not guaranteed. Other site endpoints have not been changed by this read-specific
+guard.
 
 The stock development daemon does not configure public browser login or TLS;
 browser tests use synthetic cookie sessions and a loopback TLS fixture. Site

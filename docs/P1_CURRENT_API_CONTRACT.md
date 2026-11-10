@@ -111,8 +111,10 @@ authorize another tenant. ID ordering is live, not a snapshot, so refresh to
 observe inserts before the cursor. Catalog entries do not imply provisioned
 hosting. Site summary fields use snake_case. Site-list reads recheck the
 active identity, tenant and membership in the catalog database in the same
-statement as the page; a missing or revoked membership returns 403. Session
-token revocation is still checked separately by authentication middleware.
+statement as the page. Cookie reads also recheck session revocation and expiry
+at the catalog snapshot; the catalog and session store must share the same
+database pool. An already-started snapshot can finish after a later revocation.
+Membership-only bearer denial returns 403; an invalid cookie session returns 401.
 
 Only job creation requires `Idempotency-Key`: use 8–128 ASCII bytes. Identical
 retries return the original job with 202; tenant-scoped reuse for different work
