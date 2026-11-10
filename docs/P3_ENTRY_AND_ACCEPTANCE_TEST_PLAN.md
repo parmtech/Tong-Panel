@@ -193,6 +193,22 @@ For every rejected case, assert durable job count, process/build count, artifact
 - Verify abort, timeout, worker crash, disk pressure, and retry leave no published partial artifact and no orphan process/mount/reservation.
 - Evidence: isolation boundary review, adversarial test matrix, measured limits and host health before/after, cleanup and retry state.
 
+#### Resource-limit measurement matrix
+
+These hostile workloads must run only in the reviewed unprivileged runner inside a disposable Linux guest after entry gates. Never run the hostile workload itself on the Windows developer host. Limit values are selected by owners for a supported guest/profile; this specification does not invent numeric budgets.
+
+| Limit dimension | Synthetic pressure case | Required pass oracle |
+|---|---|---|
+| CPU | Bounded sustained compute loop | The reviewed throttle/termination policy is applied within its measured bound; guest API/agent and unrelated app remain responsive; job reports the correct limit outcome |
+| Memory | Bounded incremental allocation | The worker is contained by the reviewed memory policy; host services and unrelated app remain healthy; no orphan worker or ambiguous partial release remains |
+| Workspace/disk | Fill only the assigned build workspace to the approved boundary | Writes cannot escape the workspace or consume unaccounted tenant/global space; reservation/quota returns to a reconciled value after termination |
+| Wall-clock | Wait beyond the configured build deadline | Cancellation is observable and bounded; child processes, temporary files and reservations are cleaned; retry starts from a clean attributable state |
+| Process count | Create child processes up to and beyond the approved cap | The cap is enforced without signaling other app/host processes; cleanup finds no orphan descendants and reports a typed outcome |
+| Network | Attempt denied loopback/private/link-local/metadata targets and controlled redirects/rebinding cases | Denied destinations return no internal response or credential; approved destinations, if any, match the reviewed allowlist; logs redact request material |
+| Combined pressure | Apply selected CPU, memory, disk, time, process and network pressures concurrently | The guest and unrelated app remain healthy; actual limit cause(s), cleanup, quota accounting, audit and prior active release are consistent and attributable |
+
+For every row capture configured policy revision, observed usage/time-to-enforcement, guest health before/during/after, unrelated app health, process/workspace inventory, quota delta, release pointer, typed job result and cleanup status. Report raw measurements and exclusions; a workload that merely exits is not proof that the intended limit fired.
+
 ### P3-04: Immutable artifact and release history
 
 - Publish a build only after successful completion and integrity verification; associate source revision, runtime/dependency lock, builder identity, output digest, and deployment job.

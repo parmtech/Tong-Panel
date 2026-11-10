@@ -321,3 +321,7 @@ Expanded P3-02 with eight provider-neutral delivery cases, each tied to durable 
 ## P3 runtime profile and benchmark evidence — 2026-11-10
 
 Expanded P3-01 to trace each named Node/Python framework family and WSGI/ASGI/interface claims to exact profile evidence, and added a clean-guest benchmark protocol for install/build, artifact size, startup/readiness, CPU/RSS, shutdown/restart and contention. No version matrix, numeric threshold, SLA, or support claim was invented. Documentation structural checks and `git diff --check` passed; no runtime was installed or benchmarked on the Windows host. P3 remains gated.
+
+## P3 isolated build resource-limit oracle — 2026-11-10
+
+Expanded P3-03 with seven measured dimensions (CPU, memory, workspace/disk, wall-clock, process count, network, and combined pressure) and required host/unrelated-app health, cleanup, quota, release and typed-job evidence. The plan explicitly forbids running the hostile workloads on the Windows developer host and sets no numeric budgets. Structural check and `git diff --check` passed; no hostile workload was run. P3 remains gated.
