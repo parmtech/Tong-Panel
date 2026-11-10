@@ -19,6 +19,23 @@ This document translates the existing Phase 5 plan into independently verifiable
 
 **Decision:** Restrict current P5 work to this design/test specification and isolated non-privileged prototypes that cannot access real nodes, credentials, production networks, or privileged operations. Recheck every gate against GitHub before implementation begins; this assessment is a point-in-time snapshot.
 
+## Scope-to-evidence traceability
+
+This matrix maps the canonical P5 scope bullets to prerequisite evidence and the scenario IDs above. “Depends on” names required foundations, not authorization to start implementation.
+
+| P5 scope | Required upstream evidence before implementation | Acceptance scenarios | Remaining review/design output |
+|---|---|---|---|
+| Remote agent enrollment, per-server identity, mutual TLS, revocation, rotation, scoped actions | P0 trust/secret decisions; P1 identity, authorization, audit and durable-job acceptance; P2/P4 operational incident and recovery procedures | 1–8, 10 | Reviewed enrollment lifecycle, identity binding, expiry/revocation propagation, lease limits, key custody and incident response. |
+| Node inventory, placement, health, labels and maintenance | Accepted P1 job authorization and cancellation/reconciliation; P2/P3 workload/resource inventory and supported-host behavior | 6–10 | Inventory freshness contract, capacity facts, eligibility semantics and behavior for unknown/stale data. |
+| Workload moves, DNS/SSL cutover, app/DB backup handoff and rollback | P2 measured backup/restore and service lifecycle; P3 deploy/rollback and app isolation; P4 DNS, database, migration and quota acceptance | 11–15 | Migration state ownership, consistency checks, dual-write/divergence treatment, cutover authority, rollback limits and measured RPO/RTO. |
+| Mirrored DNS, mail and database designs | P4 tested single-host service contracts and failure handling; approved service-specific consistency and recovery decisions | 5–6, 13, 15, 23–24 | Separate topology and failure-boundary review per service; no generic HA claim from control-plane replication. |
+| Marketplace templates and third-party plugin framework | P0 supply-chain/privilege decisions; P1 auth/audit foundations; P3 app isolation; reviewed licensing and artifact provenance | 16–20 | Separate declarative app-recipe and executable panel-plugin threat models, permission review, provenance, moderation, deprecation and recovery policy. |
+| Usage reporting, tenant analytics and billing/provisioning APIs | P1 tenant identity/audit; P2/P3/P4 stable ownership and resource-accounting sources | 7, 21–22 | Define event authority, correction/reconciliation policy, privacy/retention boundaries and ensure accounting cannot directly cause privileged provisioning without authorization. |
+| Notifications, audit export and ecosystem APIs | P1 reviewed identity, authorization, durable events and audit integrity; P4 operational event contracts | 7–8, 21–22 | Versioned contract, tenant scope, replay/idempotency, redaction, retention and delivery-failure semantics. |
+| Additional distributions and arm64 | Existing supported-platform matrix and phase-specific automated install, upgrade, rollback, recovery and workload tests | 2, 11–15, 24 | A distinct evidence package for each OS/architecture pair; no inference from another target. |
+
+The traceability map is a planning aid, not a substitute for prerequisite closure. At this assessment, the Phase 1 report still describes Phase 1 as incomplete, the P4 plan remains planned/not implemented, and the pinned Phase 4 branch is a design checkpoint rather than exit evidence. Therefore every row remains **not authorized for production implementation**.
+
 ## Proposed test architecture (for review)
 
 Use deterministic, local-only fakes for control-plane logic, a disposable isolated network for protocol/integration tests, and synthetic tenant/node data. Every test must record the exact source commit and configuration. Tests involving persistence, time, rotation, revocation, retry, or migration should use controllable clocks and failpoints. No test may use real server credentials, contact a production node, mutate a host, or claim HA from a simulated component.
