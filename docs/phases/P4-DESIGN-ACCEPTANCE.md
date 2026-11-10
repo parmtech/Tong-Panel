@@ -65,14 +65,13 @@ Every eventual result must record exact source commit, OS/architecture/service p
 
 ## Current evidence and remaining gates
 
-- Read required repository instructions and the phase/blueprint documents from GitHub's content API.
-- Verified repository default branch is `main`, currently at source commit `0aad68e81138a0f226e83e401f90bae4d0b6bddc`.
-- The main branch documents P1 as in progress; P2 and P3 plans remain gated. The inspected open PR results were Phase 1 work; no P4 PR or matching P4 branch was found.
-- `AGENTS.md` requires UPDATES journal entries for meaningful repository work. The existing `.agents/skills` path was absent on main (404); no repository-local skills were available to read from the verified tree.
-- Local clone was attempted in the authorized task workspace and failed before checkout because the sandbox could not resolve `github.com`. No retry or network/security workaround was attempted. GitHub API branch/commit operations remain available and are used as the shared checkpoint.
-- Tests: **not run**; this is a design/specification document only.
-- P4 status remains **BLOCKED** until verified P2 and P3 handoffs are present. No service, DNS, mail, migration or live-host mutation was performed.
+- **Snapshot checked 2026-11-10 against GitHub:** P1 remains unaccepted. Draft PR #143 (`feature/p1-file-quota-request-context`, head `482017005f9872c1fe7f2969ebfb477ea7de30dd`) is open and describes a development API quota-reservation change; its description says corrected-head hosted workflows are still running. This is not P1 exit evidence.
+- P2 has an active draft chain, including #87 (pinned WordPress recipe), #89 (two isolated WordPress installations), and #91 (fresh-VM restore). Their draft/open status does not establish the P2 alpha gate: supported signed package, authenticated lifecycle, two-tenant end-to-end isolation, clean restore acceptance, rollback, and reviewed trust decisions remain unverified here.
+- No P3 draft or P4 pull request was present in the inspected open-PR results. P3's plan still depends on completed P2 routing, auth/quota, backup and deploy-job contracts; no P3 hostile-app isolation or deploy/rollback acceptance evidence was found.
+- This snapshot is a gate check, not a complete audit of every workflow artifact. Before implementation, re-fetch the referenced PRs, exact heads and CI/review state; link each required P1/P2/P3 acceptance artifact and an explicit maintainer gate decision. Open draft PRs and passing component tests do not count as accepted phase gates.
+- The checkpoint's P4 design and acceptance specifications are preserved; this continuation only corrects its time-sensitive dependency evidence. Tests were **not run** for this documentation-only update. No DNS, mail, migration, host-service or live-host mutation was performed.
+- P4 status remains **BLOCKED / design only** until verified P2 and P3 handoffs and relevant architecture/security approvals are recorded.
 
 ## Next action
 
-Recheck P1/P2/P3 gates from GitHub before each new P4 session. Once those gates and relevant ADR approvals are evidenced, split this plan into scoped issues and implement one isolated capability slice at a time with disposable service labs and phase-specific acceptance evidence.
+Recheck P1/P2/P3 gates from GitHub before each new P4 session. Ask maintainers to link exact verified P2/P3 contracts and acceptance artifacts, plus relevant ADR decisions, before translating this plan into implementation issues. Until then, continue only with evidence-led design and test-spec clarification; do not start service mutations or claim phase acceptance.

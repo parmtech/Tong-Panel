@@ -1,3 +1,9 @@
+### 2026-11-10 19:27 +11:00 — Workstream G, refresh Phase 4 prerequisite evidence
+- **Branch/state:** docs/p4-hosting-parity-continuation, based on preserved P4 design checkpoint 029b39aa5ebb2056506892b18b400a31402977b; follow-on documentation work only.
+- **Change:** refreshed the existing P4 design acceptance file's time-sensitive gate snapshot from the current GitHub open-PR list. P1 PR #143 remains draft with exact-head hosted checks pending; P2 WordPress work exists in draft PRs #87, #89 and #91; no P3 or P4 PR appeared in the inspected open-PR results. This records prototypes separately from accepted phase gates.
+- **Evidence:** Windows executor and task cwd verified; GitHub branch SHA matched the checkpoint; isolated worktree created. git diff --check passed before this edit. Tests not run (documentation only).
+- **Security/licence/blockers:** no dependency or implementation changes, service/DNS/mail/migration/host mutation, merge or release. P1 remains unaccepted, so P4 remains design-only and blocked on verified P2/P3 contracts and security/ADR decisions.
+- **Next:** obtain exact reviewed upstream gate evidence from P1/P2/P3 before converting any P4 slice into implementation work.
 # Tong Panel — Live Project Status and Work Journal
 **Updated:** 2026-10-28 (Sydney)  
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
