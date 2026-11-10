@@ -968,7 +968,7 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - PR119 remains a draft. No production VPS, main merge, release or P1 completion.
 
 ### 2026-11-10 — P1 login limiter bucket-cap boundary
-- **Branch/state:** `feature/p1-login-bucket-cap`, based on PR120 stack head `3b575c40fcd5faa7c11dee3993e9774025b495e0`; implementation commit `a8fa6e3` with stack merge `31b6bc7314b0419598d664aaf16c13b21800785b`; draft publication is pending.
+- **Branch/state:** [draft PR121](https://github.com/parmtech/Tong-Panel/pull/121), `feature/p1-login-bucket-cap`, based on PR120 stack head `3b575c40fcd5faa7c11dee3993e9774025b495e0`; implementation commit `a8fa6e3`, final journal head `f51a0b8973fe91ad6e9ffdd5cd490b4c55fcfbf5`.
 - **Change:** admission now counts the absent account/source buckets before insertion and commits stale-window pruning while denying any request that would raise the persisted count above 50,000. Existing accounts and sources can still consume their already allocated buckets at capacity.
 - **Evidence:** regression seeded 49,999 existing rows and confirmed a request needing two new rows is denied without exceeding the cap. Full Windows `go test ./internal/auth ./internal/jobs -count=1`, `go vet ./internal/auth ./internal/jobs` and `git diff --check` passed.
 - **Limits:** preserves the documented development cap; no login route, rate policy, key custody, production host or account-lockout policy change. P0/P1 gates remain open.
