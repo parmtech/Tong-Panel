@@ -1,3 +1,10 @@
+### 2026-11-10 20:22 +11:00 — Workstream G, map P2 issue handoffs to P4 cases
+- **Phase/workspace/branch:** P4 design only; `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-p4-continuation`; `docs/p4-hosting-parity-continuation`.
+- **Owned files:** P4 acceptance plan and `UPDATES.md` only. Dependencies are P1/P2/P3 gate decisions and reviewed producer contracts.
+- **Change:** mapped open P2 issues #150–#156 to the P4 cases that consume them, marked PR #144/#157 matrix as navigation only, and explicitly kept P4 PostgreSQL separate from P2 MariaDB credential evidence. Refreshed PR #144 exact head.
+- **Evidence:** read authenticated GitHub issue/PR bodies; confirmed branch refs; `git diff --check` passed. No product tests apply.
+- **Limits:** P2/P3 items remain open design inputs, not accepted gates. No cross-phase edits, implementation, host action, merge or deployment.
+- **Next:** after accepted upstream artifacts exist, replace planning references with exact contract versions/tests/reviewer decisions; continue design-only meanwhile.
 ### 2026-11-10 20:20 +11:00 — Workstream G, record Debian guest rerun result
 - **Phase/workspace/branch:** P4 design only; `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-p4-continuation`; `docs/p4-hosting-parity-continuation`.
 - **Owned files:** P4 acceptance plan and `UPDATES.md` only. Dependencies remain accepted P1/P2/P3 gate decisions and producer contracts.
