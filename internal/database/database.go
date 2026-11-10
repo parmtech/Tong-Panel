@@ -37,13 +37,19 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 	if err := os.MkdirAll(filepath.Dir(abs), 0700); err != nil {
 		return nil, fmt.Errorf("create SQLite directory: %w", err)
 	}
-	fileURI := "file:" + filepath.ToSlash(abs)
+	uriPath := filepath.ToSlash(abs)
+	// A Windows drive must be a URI path (/C:/...), never a URI host.
+	// Existing UNC paths retain their leading double slash and empty authority.
+	if !strings.HasPrefix(uriPath, "/") {
+		uriPath = "/" + uriPath
+	}
 	query := url.Values{}
 	query.Add("_pragma", "foreign_keys(1)")
 	query.Add("_pragma", "busy_timeout(5000)")
 	query.Add("_pragma", "journal_mode(WAL)")
 	query.Add("_pragma", "synchronous(FULL)")
-	db, err := sql.Open("sqlite", fileURI+"?"+query.Encode())
+	fileURI := (&url.URL{Scheme: "file", Path: uriPath, RawQuery: query.Encode()}).String()
+	db, err := sql.Open("sqlite", fileURI)
 	if err != nil {
 		return nil, fmt.Errorf("open SQLite: %w", err)
 	}
