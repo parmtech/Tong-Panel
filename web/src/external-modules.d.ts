@@ -10,4 +10,21 @@ declare module '*.mjs' {
         timeoutMs?: number,
     ): Promise<PanelStatusResult>;
     export function loadNginxPreview(siteID: string, fetcher?: typeof fetch): Promise<string>;
+    export interface FileEntry { name: string; kind: 'file' | 'directory' | 'symlink' | 'other'; size: number; }
+    export function listTenantFiles(path: string, fetcher?: typeof fetch): Promise<FileEntry[]>;
+    export function downloadTenantFile(path: string, fetcher?: typeof fetch): Promise<{ name: string; blob: Blob }>;
+    export interface MyJob {
+        id: string;
+        tenant_id: string;
+        requested_by?: string;
+        kind: string;
+        state: string;
+        idempotency_key: string;
+        created_at: string;
+        updated_at: string;
+    }
+    export interface MyJobsOptions { signal?: AbortSignal; timeoutMs?: number; }
+    export class MyJobsError extends Error { code: string; }
+    export function loadMyJobs(fetcher?: typeof fetch, options?: MyJobsOptions): Promise<MyJob[]>;
+    export function loadMyJob(id: string, fetcher?: typeof fetch, options?: MyJobsOptions): Promise<MyJob>;
 }

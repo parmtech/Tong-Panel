@@ -1,7 +1,7 @@
 import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
 import { downloadTenantFile, listTenantFiles } from './files-explorer.mjs';
-
+import { loadMyJobs, loadMyJob, MyJobsError } from './my-jobs.mjs';
 const tiles = [
     { title: 'Websites', icon: '🌐', subtitle: 'Sites & PHP', stage: 'P2' },
     { title: 'Domains', icon: '🪐', subtitle: 'Aliases & redirects', stage: 'P2' },
@@ -29,10 +29,6 @@ const sitePreviewID = document.querySelector('#site-preview-id');
 const sitePreviewStatus = document.querySelector('#site-preview-status');
 const sitePreviewOutput = document.querySelector('#site-preview-output');
 const sitePreviewSubmit = document.querySelector('#site-preview-submit');
-const filesRefresh = document.querySelector('#files-refresh');
-const filesStatus = document.querySelector('#files-status');
-const filesList = document.querySelector('#files-list');
-const filesBreadcrumbs = document.querySelector('#files-breadcrumbs');
 const filterText = (text) => {
     if (!list)
         return;
@@ -100,7 +96,6 @@ async function refreshStatus() {
 }
 refreshStatusButton?.addEventListener('click', () => void refreshStatus());
 void refreshStatus();
-
 sitePreviewForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!sitePreviewID || !sitePreviewStatus || !sitePreviewOutput || !sitePreviewSubmit)
@@ -127,7 +122,200 @@ sitePreviewForm?.addEventListener('submit', async (event) => {
         sitePreviewSubmit.removeAttribute('aria-busy');
     }
 });
-
+const jobsRefresh = document.querySelector('#jobs-refresh');
+const jobsStatus = document.querySelector('#jobs-status');
+const jobsList = document.querySelector('#jobs-list');
+const jobDetail = document.querySelector('#job-detail');
+const jobDetailTitle = document.querySelector('#job-detail-title');
+const jobDetailStatus = document.querySelector('#job-detail-status');
+const jobDetailFields = document.querySelector('#job-detail-fields');
+const jobDetailRetry = document.querySelector('#job-detail-retry');
+let jobsRequest = 0;
+let detailRequest = 0;
+let jobsController;
+let detailController;
+let selectedJob;
+function jobsErrorCode(error) {
+    return error instanceof MyJobsError ? error.code : 'unavailable';
+}
+function jobsErrorMessage(code) {
+    switch (code) {
+        case 'session_required': return 'A secure browser session is required. Public sign-in is not available in this preview.';
+        case 'auth_unconfigured': return 'Job access is not configured on this panel. Public sign-in is not available in this preview.';
+        case 'forbidden': return 'Your current session cannot read jobs. Refresh after your access changes.';
+        case 'not_found': return 'This job was not found for your current access. Retry or refresh the list.';
+        case 'jobs_unconfigured': return 'Job storage is not enabled on this panel. Refresh jobs to retry.';
+        case 'jobs_unavailable': return 'Job storage is unavailable. Try again.';
+        case 'timeout': return 'The job request timed out. Try again.';
+        case 'invalid_response': return 'The panel returned an unsupported job response. Try again.';
+        default: return 'The job request could not be completed. Try again.';
+    }
+}
+function isJobAccessFailure(code) {
+    return code === 'session_required' || code === 'auth_unconfigured' || code === 'forbidden';
+}
+function clearJobDetail() {
+    selectedJob = undefined;
+    ++detailRequest;
+    detailController?.abort();
+    jobDetailFields?.replaceChildren();
+    if (jobDetail) {
+        jobDetail.hidden = true;
+        jobDetail.removeAttribute('aria-busy');
+    }
+    if (jobDetailStatus)
+        jobDetailStatus.textContent = '';
+    if (jobDetailRetry)
+        jobDetailRetry.hidden = true;
+}
+function clearJobsForAccessFailure(code) {
+    ++jobsRequest;
+    jobsController?.abort();
+    jobsList?.replaceChildren();
+    jobsList?.removeAttribute('aria-busy');
+    clearJobDetail();
+    if (jobsStatus) {
+        jobsStatus.textContent = jobsErrorMessage(code);
+        jobsStatus.dataset.state = code;
+    }
+    if (jobsRefresh) {
+        jobsRefresh.textContent = 'Refresh jobs';
+        jobsRefresh.removeAttribute('aria-busy');
+    }
+}
+function jobDate(raw) {
+    const date = new Date(raw);
+    return Number.isNaN(date.valueOf()) ? raw : date.toLocaleString();
+}
+function renderJobs(jobs) {
+    if (!jobsList)
+        return;
+    jobsList.replaceChildren();
+    for (const job of jobs) {
+        const row = document.createElement('li');
+        row.className = 'job-entry';
+        const copy = document.createElement('div');
+        copy.className = 'job-entry-copy';
+        const kind = document.createElement('strong');
+        kind.textContent = job.kind;
+        const id = document.createElement('span');
+        id.className = 'job-id';
+        id.textContent = job.id;
+        const summary = document.createElement('span');
+        summary.className = 'job-summary';
+        summary.textContent = `${job.state} · Created ${jobDate(job.created_at)}`;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = 'View details';
+        button.dataset.jobId = job.id;
+        button.setAttribute('aria-label', `View details for job ${job.id}`);
+        button.setAttribute('aria-controls', 'job-detail');
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => void selectJob(job.id, true));
+        copy.append(kind, id, summary);
+        row.append(copy, button);
+        jobsList.append(row);
+    }
+}
+async function refreshJobs() {
+    if (!jobsStatus || !jobsList || !jobsRefresh)
+        return;
+    const request = ++jobsRequest;
+    jobsController?.abort();
+    jobsController = new AbortController();
+    const controller = jobsController;
+    clearJobDetail();
+    jobsList.replaceChildren();
+    jobsList.setAttribute('aria-busy', 'true');
+    jobsRefresh.setAttribute('aria-busy', 'true');
+    jobsRefresh.textContent = 'Refresh jobs';
+    jobsStatus.dataset.state = 'loading';
+    jobsStatus.textContent = 'Loading jobs for your current session…';
+    try {
+        const jobs = await loadMyJobs(undefined, { signal: controller.signal });
+        if (request !== jobsRequest || controller.signal.aborted)
+            return;
+        renderJobs(jobs);
+        jobsStatus.dataset.state = jobs.length ? 'available' : 'empty';
+        jobsStatus.textContent = jobs.length ? `${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'} returned for your current session. Select a job to read its metadata.` : 'No jobs returned for your current access.';
+    }
+    catch (error) {
+        if (request !== jobsRequest || controller.signal.aborted)
+            return;
+        const code = jobsErrorCode(error);
+        if (isJobAccessFailure(code)) {
+            clearJobsForAccessFailure(code);
+            return;
+        }
+        jobsStatus.dataset.state = code;
+        jobsStatus.textContent = jobsErrorMessage(code);
+    }
+    finally {
+        if (request === jobsRequest) {
+            jobsList.removeAttribute('aria-busy');
+            jobsRefresh.removeAttribute('aria-busy');
+        }
+    }
+}
+async function selectJob(id, moveFocus) {
+    if (!jobDetail || !jobDetailStatus || !jobDetailFields || !jobDetailTitle || !jobDetailRetry)
+        return;
+    const request = ++detailRequest;
+    detailController?.abort();
+    detailController = new AbortController();
+    const controller = detailController;
+    selectedJob = id;
+    for (const button of Array.from(jobsList?.querySelectorAll('button[data-job-id]') ?? []))
+        button.setAttribute('aria-pressed', String(button.dataset.jobId === id));
+    jobDetail.hidden = false;
+    jobDetail.setAttribute('aria-busy', 'true');
+    jobDetailFields.replaceChildren();
+    jobDetailRetry.hidden = true;
+    jobDetailTitle.textContent = `Job ${id}`;
+    jobDetailStatus.dataset.state = 'loading';
+    jobDetailStatus.textContent = 'Loading job metadata…';
+    if (moveFocus)
+        jobDetailTitle.focus();
+    try {
+        const job = await loadMyJob(id, undefined, { signal: controller.signal });
+        if (request !== detailRequest || controller.signal.aborted)
+            return;
+        const values = [['Job ID', job.id], ['Kind', job.kind], ['State', job.state], ['Tenant', job.tenant_id], ['Requester', job.requested_by ?? 'Not recorded'], ['Created', jobDate(job.created_at)], ['Updated', jobDate(job.updated_at)], ['Idempotency key', job.idempotency_key]];
+        for (const [label, value] of values) {
+            const term = document.createElement('dt');
+            term.textContent = label;
+            const description = document.createElement('dd');
+            description.textContent = value;
+            jobDetailFields.append(term, description);
+        }
+        jobDetailStatus.dataset.state = 'available';
+        jobDetailStatus.textContent = 'Recorded queue metadata. A completed validation.noop job does not provision a site or change the host.';
+    }
+    catch (error) {
+        if (request !== detailRequest || controller.signal.aborted)
+            return;
+        const code = jobsErrorCode(error);
+        if (isJobAccessFailure(code)) {
+            clearJobsForAccessFailure(code);
+            jobsRefresh?.focus();
+            return;
+        }
+        jobDetailStatus.dataset.state = code;
+        jobDetailStatus.textContent = jobsErrorMessage(code);
+        jobDetailRetry.hidden = false;
+    }
+    finally {
+        if (request === detailRequest)
+            jobDetail.removeAttribute('aria-busy');
+    }
+}
+jobsRefresh?.addEventListener('click', () => void refreshJobs());
+jobDetailRetry?.addEventListener('click', () => { if (selectedJob)
+    void selectJob(selectedJob, true); });
+const filesRefresh = document.querySelector('#files-refresh');
+const filesStatus = document.querySelector('#files-status');
+const filesList = document.querySelector('#files-list');
+const filesBreadcrumbs = document.querySelector('#files-breadcrumbs');
 let filesPath = [];
 function formatFileSize(size) {
     if (size < 1024)
@@ -261,4 +449,3 @@ async function downloadFile(name, button) {
 }
 filesRefresh?.addEventListener('click', () => void refreshFiles());
 renderFilesBreadcrumbs();
-export {};

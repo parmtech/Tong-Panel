@@ -1,2 +1,5 @@
 __pycache__/
 *.py[cod]
+tools/ui-browser/node_modules/
+tools/ui-browser/test-results/
+tools/ui-browser/playwright-report/
