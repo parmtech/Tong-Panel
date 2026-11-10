@@ -1,3 +1,9 @@
+### 2026-11-10 20:00 +11:00 — Workstream G, bind migration authorization to reviewed plan
+- **Branch/state:** docs/p4-hosting-parity-continuation; nonbinding refinement to the existing P4 migration proposal.
+- **Change:** require any later execution approval to bind tenant, destination, principal, exact plan fingerprint and approved action set; revalidate current principal scope/capability and policy revision immediately before execution. Added corresponding stale/revoked authorization cases to candidate tests.
+- **Evidence:** git diff --check passed; docs-only contract change, product tests not applicable.
+- **Limits:** proposal is unapproved and unimplemented; no archive processed, durable write, external service, privileged operation, merge or deployment. P1/P2/P3 gates remain open.
+- **Next:** request architecture/security review of authorization binding alongside the prerequisite phase contracts before implementation.
 ### 2026-11-10 19:59 +11:00 — Workstream G, reconcile current upstream planning heads
 - **Branch/state:** docs/p4-hosting-parity-continuation; evidence update to the existing P4 checkpoint.
 - **Change:** refreshed exact heads for draft P2/P3 planning PRs #144/#145 and clarified current PR #149 non-VM checks pass while its clean-VM workflow remains active.
