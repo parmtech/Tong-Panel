@@ -9,6 +9,8 @@ import (
 	"net"
 	"strings"
 	"time"
+
+	"github.com/parmtech/tong-panel/internal/database"
 )
 
 // SQLiteLoginLimiter is a shared single-node, persistent *admission* gate.
@@ -86,9 +88,11 @@ func (l *SQLiteLoginLimiter) Admit(ctx context.Context, tenant, username, truste
 		return false, err
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := database.BeginImmediate(ctx, conn, 0)
+	if err != nil {
 		return false, err
 	}
+	defer restoreBusyTimeout()
 	committed := false
 	defer func() {
 		if !committed {

@@ -233,6 +233,63 @@ func TestSQLiteLoginLimiterSamplesTimeAfterWriterWait(t *testing.T) {
 	}
 }
 
+func TestSQLiteLoginLimiterHonorsCancellationDuringWriterWait(t *testing.T) {
+	path, db, _, _ := limiterFixture(t)
+	peerDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer peerDB.Close()
+	limiter, err := NewSQLiteLoginLimiter(peerDB, bytes.Repeat([]byte{0x78}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	writer, err := db.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Close()
+	if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer writer.ExecContext(context.Background(), "ROLLBACK")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	result := make(chan error, 1)
+	go func() {
+		_, admitErr := limiter.Admit(ctx, "tenant-cancel", "alice", "192.0.2.88")
+		result <- admitErr
+	}()
+	deadline := time.Now().Add(2 * time.Second)
+	for peerDB.Stats().InUse == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if peerDB.Stats().InUse == 0 {
+		cancel()
+		t.Fatal("limiter did not acquire a connection while waiting for the writer")
+	}
+	cancel()
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("admission error=%v, want context cancellation", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("limiter did not stop after caller cancellation")
+	}
+	var count int
+	if err := peerDB.QueryRow("SELECT count(*) FROM login_attempt_buckets").Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("canceled admission changed bucket state: count=%d", count)
+	}
+	var busyTimeout int
+	if err := peerDB.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout); err != nil || busyTimeout != 5000 {
+		t.Fatalf("busy_timeout=%d err=%v, want restored 5000ms", busyTimeout, err)
+	}
+}
+
 func TestSQLiteLoginLimiterDoesNotExceedGlobalBucketCap(t *testing.T) {
 	_, db, limiter, clock := limiterFixture(t)
 	if allowed, err := limiter.Admit(context.Background(), "tenant-cap", "existing-user", "192.0.2.222"); !allowed || err != nil {
