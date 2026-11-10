@@ -48,9 +48,25 @@ func (s *MFAEnrollmentStore) BeginTrusted(ctx context.Context, tenant, identity 
 	if err != nil {
 		return nil, err
 	}
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+		return nil, err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+		}
+	}()
+	// Start the pending-enrollment lifetime only after obtaining the writer
+	// reservation, so a connection or SQLite wait cannot consume its window.
 	now := s.now().UTC()
 	expiry := now.Add(10 * time.Minute).Format(time.RFC3339Nano)
-	res, err := s.db.ExecContext(ctx, `INSERT INTO mfa_totp_enrollments(identity_id,secret_envelope,status,pending_expires_at)
+	res, err := conn.ExecContext(ctx, `INSERT INTO mfa_totp_enrollments(identity_id,secret_envelope,status,pending_expires_at)
 		SELECT i.id,?,'pending',? FROM identities i
 		JOIN memberships m ON m.identity_id=i.id
 		JOIN tenants t ON t.id=m.tenant_id
@@ -71,6 +87,13 @@ func (s *MFAEnrollmentStore) BeginTrusted(ctx context.Context, tenant, identity 
 	if n != 1 {
 		return nil, ErrMFAEnrollmentUnavailable
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+		return nil, err
+	}
+	committed = true
 	// Only trusted callers may show this once; the DB stores encrypted bytes.
 	delivered = true
 	return secret, nil

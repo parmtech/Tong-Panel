@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -69,6 +70,56 @@ func TestMFAEnrollmentEncryptedPendingConfirmationAndReplay(t *testing.T) {
 	var replayCount int
 	if err := db.QueryRow("SELECT count(*) FROM totp_replay_state WHERE identity_id='user-a'").Scan(&replayCount); err != nil || replayCount != 1 {
 		t.Fatalf("missing identity replay fence: %d %v", replayCount, err)
+	}
+}
+
+func TestMFABeginStartsPendingLifetimeAfterConnectionWait(t *testing.T) {
+	store, db, clock := testMFAEnrollment(t)
+	seed, err := store.BeginTrusted(context.Background(), "tenant-a", "user-a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer clear(seed)
+	expiredAt := clock.Add(-time.Second).Format(time.RFC3339Nano)
+	if _, err := db.Exec("UPDATE mfa_totp_enrollments SET pending_expires_at=? WHERE identity_id='user-a'", expiredAt); err != nil {
+		t.Fatal(err)
+	}
+	var current atomic.Int64
+	current.Store(clock.Unix())
+	store.now = func() time.Time { return time.Unix(current.Load(), 0).UTC() }
+	db.SetMaxOpenConns(1)
+	blocker, err := db.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitsBefore := db.Stats().WaitCount
+	result := make(chan error, 1)
+	go func() {
+		replacement, beginErr := store.BeginTrusted(context.Background(), "tenant-a", "user-a")
+		clear(replacement)
+		result <- beginErr
+	}()
+	waitForDBPoolWait(t, db, waitsBefore)
+	late := clock.Add(time.Minute)
+	current.Store(late.Unix())
+	if err := blocker.Close(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-result:
+		if err != nil {
+			t.Fatalf("expired pending enrollment was not replaced: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("enrollment start did not finish after connection release")
+	}
+	var expiry string
+	if err := db.QueryRow("SELECT pending_expires_at FROM mfa_totp_enrollments WHERE identity_id='user-a'").Scan(&expiry); err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, expiry)
+	if err != nil || !parsed.Equal(late.Add(10*time.Minute)) {
+		t.Fatalf("pending expiry=%q err=%v, want %s", expiry, err, late.Add(10*time.Minute))
 	}
 }
 
