@@ -42,6 +42,6 @@
 - The authoritative P1 exit report must show the complete auth/identity/typed-job/agent/signing/install/recovery/supply-chain/accessibility gate verified before Phase 2 implementation or privileged integration testing.
 - The exact supported OS/architecture matrix and signed artifacts must be approved before clean-guest certification. Existing Ubuntu 24.04/Debian 12 labs remain draft evidence.
 - The latest P2 exit report remains **NOT PASSED**. Component PRs, this matrix, and the integrated plan are not acceptance results.
-- Current P1 evidence is still in progress: PR #149 is draft at `8764d0fef218a36a4cc9411e5481656d014cdf0c`; its Go/non-VM checks have passed, but Ubuntu and Debian clean-VM reruns remain in progress. Earlier exact-head guest failures remain unresolved until current-head reruns conclude.
+- Current P1 evidence is still in progress: PR #149 is draft at `8764d0fef218a36a4cc9411e5481656d014cdf0c`; its Go/non-VM checks and [Debian 12 clean-VM rerun](https://github.com/parmtech/Tong-Panel/actions/runs/42787324539/job/129731712883) have passed, while the [Ubuntu 24.04 clean-VM rerun](https://github.com/parmtech/Tong-Panel/actions/runs/42787324539/job/129731713114) remains in progress. This supersedes the earlier Debian failure at code head `4d42ca0`; the current Ubuntu result is still needed and the authoritative P1 gate remains blocked.
 
 No code implementation, host action, dependency, package installation, merge or deployment is authorized by this matrix.
