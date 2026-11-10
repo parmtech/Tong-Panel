@@ -386,3 +386,10 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Change/evidence:** added five synthetic test cases for one-time enrollment races/replay, credential identity binding, lost-ack rotation, connected revocation and revocation during partition/in-flight work. The tests leave CA choice, key custody, lease duration and running-job policy for review. Latest P3 head `0931292d30fcc68210eb9f5383dd1ccace4ac80a` remains entry NOT PROVEN; latest P4 continuation `34d0076bf89502d965878bb3c6b2c4e78a63b71f` remains BLOCKED/design only. P4 checkpoint stays `0029b39aa5ebb2056506892b18b400a31402977b`.
 - **Validation:** `git diff --check` passed; acceptance scenario count remains 24 and five node-trust fixtures are enumerated. Documentation-only; no product tests run.
 - **Gates/safety:** P1 run #42785167173 remains active on Ubuntu 24.04 with Debian 12 successful at last poll. No architecture approval, implementation, privileged operation, deployment, merge, or security-gate bypass.
+
+### 2026-11-10 — Workstream G, repin P4 continuation evidence
+
+- **Ownership/checkpoint:** Phase 5 only; isolated worktree `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-Phase5-20261110`, branch `phase5/prereq-and-acceptance-spec`; owned files `docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md` and `UPDATES.md`. Clean tree checked before this change. No other phase worktree was modified.
+- **Evidence/change:** P4 continuation advanced to `e3009a56ae696ef6958f18a19795819a2b4655a3`; inspected status text remains BLOCKED / design only with P1/P2/P3 handoffs pending. Updated its exact SHA link. The original `docs/p4-hosting-parity-design` checkpoint remains `0029b39aa5ebb2056506892b18b400a31402977b`.
+- **Validation:** `git diff --check` passed; documentation-only.
+- **Other gates:** P1 PR #149 run #42785167173 remains in progress on Ubuntu 24.04 with Debian 12 successful at last poll. No gate change.
