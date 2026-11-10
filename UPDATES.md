@@ -1,3 +1,9 @@
+### 2026-11-10 19:32 +11:00 — Workstream G, link current P1 gate verdict into Phase 4 dependency record
+- **Branch/state:** docs/p4-hosting-parity-continuation; evidence-only follow-up.
+- **Change:** linked the live P1 exit report at PR #143's branch ref and recorded its explicit verdict: P1 incomplete, not publish/install ready, and P2 entry blocked; unresolved ADR/security approval, public auth/key custody, recovery and signed installer/recovery evidence remain.
+- **Evidence:** fetched the P1 exit report from GitHub at the PR branch and rechecked exact-head workflow run #42781985275; six non-VM checks pass and both clean-VM jobs remain in progress. git diff --check is the local verification for this docs-only edit.
+- **Limits:** no Phase 1 workspace edits, implementation changes, service mutation or gate claim. P4 remains blocked/design-only.
+- **Next:** re-evaluate after the current P1 VM run and owner/security gate evidence change.
 ### 2026-11-10 19:31 +11:00 — Workstream G, verify current P2 disposable-VM acceptance evidence
 - **Branch/state:** docs/p4-hosting-parity-continuation, follow-up to the Phase 4 evidence refresh.
 - **Change:** recorded exact P2 PR #89/#91 heads and clean-VM run evidence in the existing P4 gate snapshot. Run #42631444449 logs report two isolated WordPress installs and tenant DB separation; run #42633862164 logs report encrypted WordPress restore on fresh Ubuntu/Debian guests with homepage/upload verification and private-config/privileged-DB denials. Clarified these are narrow unsigned-preview lab results, not P2 exit acceptance.
