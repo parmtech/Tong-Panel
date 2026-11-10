@@ -34,14 +34,16 @@ func TestMayReplayRequiresCompleteBindingAndDurableDedupeForUnknown(t *testing.T
 		evidence ReplayEvidence
 		want     bool
 	}{
-		{name: "not dispatched", outcome: NotDispatched, want: true},
-		{name: "unknown with complete binding", outcome: Unknown, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}, want: true},
-		{name: "unknown with new key", outcome: Unknown, evidence: ReplayEvidence{SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}},
-		{name: "unknown with changed target", outcome: Unknown, evidence: ReplayEvidence{SameIdempotencyKey: true, SameRequest: true, DurableWorkerDedupe: true}},
-		{name: "unknown with changed request", outcome: Unknown, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, DurableWorkerDedupe: true}},
-		{name: "unknown without durable dedupe", outcome: Unknown, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true}},
-		{name: "rejected", outcome: RejectedBeforeEffect, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}},
-		{name: "succeeded", outcome: Succeeded, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}},
+		{name: "not dispatched but revoked", outcome: NotDispatched},
+		{name: "not dispatched and authorized", outcome: NotDispatched, evidence: ReplayEvidence{CurrentlyAuthorized: true}, want: true},
+		{name: "unknown with complete binding", outcome: Unknown, evidence: ReplayEvidence{CurrentlyAuthorized: true, SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}, want: true},
+		{name: "unknown with revoked authorization", outcome: Unknown, evidence: ReplayEvidence{SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}},
+		{name: "unknown with new key", outcome: Unknown, evidence: ReplayEvidence{CurrentlyAuthorized: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}},
+		{name: "unknown with changed target", outcome: Unknown, evidence: ReplayEvidence{CurrentlyAuthorized: true, SameIdempotencyKey: true, SameRequest: true, DurableWorkerDedupe: true}},
+		{name: "unknown with changed request", outcome: Unknown, evidence: ReplayEvidence{CurrentlyAuthorized: true, SameIdempotencyKey: true, SameTargetNode: true, DurableWorkerDedupe: true}},
+		{name: "unknown without durable dedupe", outcome: Unknown, evidence: ReplayEvidence{CurrentlyAuthorized: true, SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true}},
+		{name: "rejected", outcome: RejectedBeforeEffect, evidence: ReplayEvidence{CurrentlyAuthorized: true, SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}},
+		{name: "succeeded", outcome: Succeeded, evidence: ReplayEvidence{CurrentlyAuthorized: true, SameIdempotencyKey: true, SameTargetNode: true, SameRequest: true, DurableWorkerDedupe: true}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

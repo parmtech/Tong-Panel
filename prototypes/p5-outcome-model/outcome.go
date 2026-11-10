@@ -57,6 +57,7 @@ func Classify(e Evidence) Outcome {
 // attempt. SameRequest means tenant, target, action, and immutable payload all
 // match the original attempt; it is not merely a caller-provided key match.
 type ReplayEvidence struct {
+	CurrentlyAuthorized bool
 	SameIdempotencyKey  bool
 	SameTargetNode      bool
 	SameRequest         bool
@@ -68,6 +69,9 @@ type ReplayEvidence struct {
 // replayed with the same key, target node, and immutable request against a
 // worker with durable dedupe.
 func MayReplay(outcome Outcome, e ReplayEvidence) bool {
+	if !e.CurrentlyAuthorized {
+		return false
+	}
 	switch outcome {
 	case NotDispatched:
 		return true
