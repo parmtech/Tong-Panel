@@ -2535,6 +2535,198 @@
             }
           }
         }
+      },
+      "get": {
+        "operationId": "listSites",
+        "summary": "List tenant site summaries",
+        "tags": [
+          "Sites"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:read",
+        "x-tong-backend-gate": "SiteCatalog.",
+        "x-query-policy": "Only optional limit and after; unknown, duplicate, empty and malformed parameters are rejected.",
+        "responses": {
+          "200": {
+            "description": "Bounded tenant site summary page.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SitePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A paged request has an invalid limit/cursor, duplicate parameter, unknown parameter or malformed query encoding.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_page"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role cannot read this tenant's site metadata.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns at most 50 catalog entries in ascending site ID order. The cursor is a boundary, not authority. Pages are not snapshots; refresh to see inserts before the cursor. Site records do not prove hosting is provisioned.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size, default 50, range 1 through 50.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "Exclusive site ID boundary from next_after.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63,
+              "pattern": "^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$"
+            }
+          }
+        ]
       }
     },
     "/api/v1/sites/{site_id}": {
@@ -5162,6 +5354,57 @@
             "items": {
               "$ref": "#/components/schemas/SiteDatabaseRecord"
             }
+          }
+        }
+      },
+      "SiteSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "site_id",
+          "primary_domain",
+          "ownership_state"
+        ],
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$"
+          },
+          "primary_domain": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253
+          },
+          "ownership_state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "verified"
+            ]
+          }
+        }
+      },
+      "SitePage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sites",
+          "next_after"
+        ],
+        "properties": {
+          "sites": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/SiteSummary"
+            }
+          },
+          "next_after": {
+            "type": "string",
+            "maxLength": 63,
+            "description": "Empty when no later row; otherwise the last returned site ID."
           }
         }
       }

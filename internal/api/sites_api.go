@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/parmtech/tong-panel/internal/rbac"
@@ -14,12 +16,16 @@ import (
 const maxSiteRequestBytes = 16 << 10
 
 func (s *Server) siteCollection(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
-	if r.URL.Path != "/api/v1/sites" || r.URL.RawQuery != "" {
+	if r.URL.Path != "/api/v1/sites" || (r.Method != http.MethodGet && r.URL.RawQuery != "") {
 		fail(w, http.StatusNotFound, "not_found")
 		return
 	}
+	if r.Method == http.MethodGet {
+		s.siteList(w, r, p)
+		return
+	}
 	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
+		w.Header().Set("Allow", "GET, POST")
 		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
 		return
 	}
@@ -59,6 +65,55 @@ func (s *Server) siteCollection(w http.ResponseWriter, r *http.Request, p rbac.P
 		return
 	}
 	writeJSON(w, http.StatusCreated, created)
+}
+
+// siteList always returns a bounded tenant-scoped page. Cursors are ordering
+// boundaries and never select a tenant or confer access.
+func (s *Server) siteList(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
+	if !p.Can("sites:read", p.TenantID) {
+		fail(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	if s.SiteCatalog == nil {
+		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
+		return
+	}
+	values, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		fail(w, http.StatusBadRequest, "invalid_page")
+		return
+	}
+	for key, entries := range values {
+		if (key != "limit" && key != "after") || len(entries) != 1 || entries[0] == "" {
+			fail(w, http.StatusBadRequest, "invalid_page")
+			return
+		}
+	}
+	limit := 50
+	if v, ok := values["limit"]; ok {
+		for _, digit := range v[0] {
+			if digit < '0' || digit > '9' {
+				fail(w, http.StatusBadRequest, "invalid_page")
+				return
+			}
+		}
+		limit, err = strconv.Atoi(v[0])
+		if err != nil || limit < 1 || limit > 50 {
+			fail(w, http.StatusBadRequest, "invalid_page")
+			return
+		}
+	}
+	after := values.Get("after")
+	items, next, err := s.SiteCatalog.ListPage(r.Context(), p.TenantID, after, limit)
+	if errors.Is(err, sites.ErrInvalidPage) {
+		fail(w, http.StatusBadRequest, "invalid_page")
+		return
+	}
+	if err != nil {
+		writeSiteError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"sites": items, "next_after": next})
 }
 
 func decodeSiteJSON(body io.Reader, dst any) error {

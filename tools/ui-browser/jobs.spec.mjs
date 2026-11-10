@@ -146,6 +146,77 @@ async function load(page) {
     await expect(page.locator('#jobs-status')).not.toHaveAttribute('data-state', 'loading');
 }
 
+async function loadSites(page) {
+    await page.locator('#sites-load').click();
+    await expect(page.locator('#sites-status')).not.toHaveAttribute('data-state', 'loading');
+}
+
+test('real site catalog pages stay tenant scoped and selection fills preview', async ({ page }) => {
+    await open(page, 'auditor');
+    await loadSites(page);
+    await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+    await expect(page.locator('#sites-list li')).toHaveCount(50);
+    await expect(page.locator('#sites-list')).toContainText('site-000.example.test');
+    await expect(page.locator('#sites-list')).not.toContainText('other.example.test');
+    await expect(page.locator('#sites-previous')).toBeDisabled();
+    await page.locator('#sites-next').click();
+    await expect(page.locator('#sites-page')).toHaveText('Page 2');
+    await expect(page.locator('#sites-list li')).toHaveCount(11);
+    await expect(page.locator('#sites-list')).toContainText('site-060.example.test');
+    await page.locator('#sites-previous').click();
+    await expect(page.locator('#sites-page')).toHaveText('Page 1');
+    await page.locator('#sites-list button').first().click();
+    await expect(page.locator('#site-preview-id')).toHaveValue('site-000');
+    await expect(page.locator('#site-preview-id')).toBeFocused();
+    await page.context().clearCookies();
+    await page.context().addCookies([{ name: '__Host-tong_session', value: fixture.Tokens.carol, url: fixture.Primary, secure: true, httpOnly: true, sameSite: 'Strict' }]);
+    await loadSites(page);
+    await expect(page.locator('#sites-list li')).toHaveCount(1);
+    await expect(page.locator('#sites-list')).toContainText('other.example.test');
+    await expect(page.locator('#sites-list')).not.toContainText('site-000.example.test');
+});
+
+test('site catalog empty and absent authentication states do not expose stale sites', async ({ page }) => {
+    await open(page, 'siteempty');
+    await loadSites(page);
+    await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'empty');
+    await expect(page.locator('#sites-list li')).toHaveCount(0);
+    await page.context().clearCookies();
+    await loadSites(page);
+    await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'unavailable');
+    await expect(page.locator('#sites-list li')).toHaveCount(0);
+});
+
+test('selecting a different site suppresses a held stale preview response', async ({ page }) => {
+    await open(page);
+    await loadSites(page);
+    let markHeld, releaseHeld, markReleased;
+    const held = new Promise(resolve => { markHeld = resolve; });
+    const release = new Promise(resolve => { releaseHeld = resolve; });
+    const released = new Promise(resolve => { markReleased = resolve; });
+    await page.route('**/api/v1/sites/site-000/preview/nginx', async route => {
+        markHeld();
+        await release;
+        try {
+            await route.fulfill({ status: 200, contentType: 'text/plain', body: 'synthetic old site configuration' });
+        } finally { markReleased(); }
+    });
+    try {
+        await page.getByRole('button', { name: 'Use site-000 for preview' }).click();
+        await page.locator('#site-preview-submit').click();
+        await held;
+        await expect(page.locator('#site-preview-status')).toHaveAttribute('data-state', 'loading');
+        await page.getByRole('button', { name: 'Use site-001 for preview' }).click();
+        await expect(page.locator('#site-preview-id')).toHaveValue('site-001');
+        releaseHeld();
+        await released;
+        await expect(page.locator('#site-preview-submit')).toBeEnabled();
+        await expect(page.locator('#site-preview-output')).toBeHidden();
+        await expect(page.locator('#site-preview-output')).not.toContainText('synthetic old site configuration');
+        await expect(page.locator('#site-preview-status')).toHaveText('No preview loaded.');
+    } finally { releaseHeld(); }
+});
+
 test('actual TLS session shows only own SQL jobs, supports keyboard details and passes scoped accessibility checks', async ({ page, browser }) => {
     const methods = [];
     page.on('request', request => {

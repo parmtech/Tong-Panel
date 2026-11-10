@@ -16,6 +16,7 @@ import (
 	"github.com/parmtech/tong-panel/internal/database"
 	"github.com/parmtech/tong-panel/internal/jobs"
 	"github.com/parmtech/tong-panel/internal/rbac"
+	"github.com/parmtech/tong-panel/internal/sites"
 )
 
 // This explicitly selected test helper serves synthetic metadata over local TLS.
@@ -33,11 +34,11 @@ func TestJobsBrowserFixture(t *testing.T) {
 		t.Fatal("fixture database unavailable")
 	}
 	defer db.Close()
-	if _, err := db.Exec(`INSERT INTO tenants(id,name) VALUES('tenant-a','A'),('tenant-b','B');
-		INSERT INTO identities(id,username) VALUES('alice','alice'),('bob','bob'),('carol','carol'),('auditor','auditor'),('empty','empty'),('bulk','bulk');
+	if _, err := db.Exec(`INSERT INTO tenants(id,name) VALUES('tenant-a','A'),('tenant-b','B'),('tenant-c','C');
+		INSERT INTO identities(id,username) VALUES('alice','alice'),('bob','bob'),('carol','carol'),('auditor','auditor'),('empty','empty'),('bulk','bulk'),('siteempty','siteempty');
 		INSERT INTO memberships(tenant_id,identity_id,role) VALUES
 		('tenant-a','alice','owner'),('tenant-a','bob','customer'),('tenant-b','carol','customer'),
-		('tenant-a','auditor','owner'),('tenant-a','empty','customer'),('tenant-a','bulk','customer');`); err != nil {
+		('tenant-a','auditor','owner'),('tenant-a','empty','customer'),('tenant-a','bulk','customer'),('tenant-c','siteempty','customer');`); err != nil {
 		t.Fatal("fixture identities unavailable")
 	}
 	queue, err := jobs.NewSQLiteStore(db)
@@ -93,6 +94,19 @@ func TestJobsBrowserFixture(t *testing.T) {
 	if err := tx.Commit(); err != nil {
 		t.Fatal("fixture bulk commit failed")
 	}
+	catalog, err := sites.NewCatalog(db)
+	if err != nil {
+		t.Fatal("fixture site catalog unavailable")
+	}
+	for i := 0; i < 61; i++ {
+		id := fmt.Sprintf("site-%03d", i)
+		if err := catalog.Create(context.Background(), sites.SiteSpec{TenantID: "tenant-a", SiteID: id, PrimaryDomain: id + ".example.test", DocumentRoot: "sites/" + id + "/public"}); err != nil {
+			t.Fatal("fixture site unavailable")
+		}
+	}
+	if err := catalog.Create(context.Background(), sites.SiteSpec{TenantID: "tenant-b", SiteID: "other-site", PrimaryDomain: "other.example.test", DocumentRoot: "sites/other-site/public"}); err != nil {
+		t.Fatal("fixture other site unavailable")
+	}
 	sessions, err := auth.NewSQLiteSessionStore(db)
 	if err != nil {
 		t.Fatal("fixture sessions unavailable")
@@ -105,6 +119,7 @@ func TestJobsBrowserFixture(t *testing.T) {
 		{UserID: "auditor", TenantID: "tenant-a", Role: rbac.Auditor},
 		{UserID: "empty", TenantID: "tenant-a", Role: rbac.Customer},
 		{UserID: "bulk", TenantID: "tenant-a", Role: rbac.Customer},
+		{UserID: "siteempty", TenantID: "tenant-c", Role: rbac.Customer},
 	} {
 		token, _, _, err := sessions.Issue(principal, time.Hour)
 		if err != nil {
@@ -112,7 +127,7 @@ func TestJobsBrowserFixture(t *testing.T) {
 		}
 		tokens[principal.UserID] = token
 	}
-	primary := httptest.NewTLSServer(publicHandler(&api.Server{Sessions: sessions, SQLJobs: queue}))
+	primary := httptest.NewTLSServer(publicHandler(&api.Server{Sessions: sessions, SQLJobs: queue, SiteCatalog: catalog}))
 	defer primary.Close()
 	unconfigured := httptest.NewTLSServer(publicHandler(&api.Server{}))
 	defer unconfigured.Close()

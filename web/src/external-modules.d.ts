@@ -10,6 +10,8 @@ declare module '*.mjs' {
         timeoutMs?: number,
     ): Promise<PanelStatusResult>;
     export function loadNginxPreview(siteID: string, fetcher?: typeof fetch): Promise<string>;
+    export interface SiteSummary { site_id: string; primary_domain: string; ownership_state: string; }
+    export function loadSitesPage(after?: string, fetcher?: typeof fetch, signal?: AbortSignal): Promise<{sites: SiteSummary[]; next_after: string}>;
     export interface FileEntry { name: string; kind: 'file' | 'directory' | 'symlink' | 'other'; size: number; }
     export function listTenantFiles(path: string, fetcher?: typeof fetch): Promise<FileEntry[]>;
     export function downloadTenantFile(path: string, fetcher?: typeof fetch): Promise<{ name: string; blob: Blob }>;

@@ -1,7 +1,7 @@
 # Current development API contract
 
 `api/openapi.json` records the implemented control-plane handlers as OpenAPI
-3.0.3: 17 path templates and 22 operations. It is a snapshot of the unmerged
+3.0.3: 17 path templates and 23 operations. It is a snapshot of the unmerged
 development implementation, not an approved production interface, stable release,
 security assessment or complete P1 acceptance. It adds no routes or behavior.
 
@@ -19,7 +19,7 @@ Swagger-UI HTTP route is invented by checking in the artifact.
 - Authenticated GET principal, and conditional POST browser-session logout.
 - Job list/create/read and SQLite-only queued cancellation.
 - Conditional tenant-relative Files list/read/new-file upload/delete.
-- Site/domain metadata creation/read, alias changes and DNS TXT proof lifecycle.
+- Bounded site catalog list, site/domain metadata creation/read, alias changes and DNS TXT proof lifecycle.
 - Read-only Nginx text preview, with separately configured hosting paths.
 - Site-bound database-name metadata creation/list/read.
 
@@ -102,6 +102,15 @@ when empty. POST query behavior is unchanged. The response's disjoint `oneOf`
 schemas distinguish the legacy list from a bounded page; paging does not enable
 job mutations, cookie/session issuance or production authentication.
 
+`GET /api/v1/sites` returns a bounded tenant catalog page of site ID, primary
+domain and ownership state. The default and maximum `limit` are 50; `after` is
+an exclusive site ID boundary. Only these nonempty parameters are accepted,
+once each; invalid queries return 400 `invalid_page`. `next_after` is empty on
+the final page, otherwise the last returned site ID. The boundary does not
+authorize another tenant. ID ordering is live, not a snapshot, so refresh to
+observe inserts before the cursor. Catalog entries do not imply provisioned
+hosting. Site summary fields use snake_case.
+
 Only job creation requires `Idempotency-Key`: use 8–128 ASCII bytes. Identical
 retries return the original job with 202; tenant-scoped reuse for different work
 conflicts, and SQLite also binds the requester. Current mutation permission is
@@ -124,8 +133,8 @@ logout and delete operations do not require parsed JSON request bodies.
 
 Files queries accept a single `path`, and directory listing additionally accepts
 a single `limit` from 1 to 1000 (default 200). Unknown/duplicate query keys fail.
-The limit is an entry ceiling, not a paginated/truncated result. Sites reject
-nonempty queries; the collection returns 404 and resources return 400. Other
+The limit is an entry ceiling, not a paginated/truncated result. Site collection
+POST rejects nonempty queries with 404; site resources reject them with 400. Other
 core/job handlers generally ignore query strings.
 
 ## Errors and evidence limits

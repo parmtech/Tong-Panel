@@ -11,7 +11,7 @@ import (
 
 func TestUIAndStaticRouting(t *testing.T) {
 	h := publicHandler(&api.Server{})
-	for _, p := range []string{"/", "/ui/style.css", "/ui/app.js", "/ui/panel-status.mjs", "/ui/site-preview.mjs", "/ui/files-explorer.mjs", "/ui/my-jobs.mjs"} {
+	for _, p := range []string{"/", "/ui/style.css", "/ui/app.js", "/ui/panel-status.mjs", "/ui/site-preview.mjs", "/ui/files-explorer.mjs", "/ui/my-jobs.mjs", "/ui/sites-list.mjs"} {
 		r := httptest.NewRecorder()
 		h.ServeHTTP(r, httptest.NewRequest(http.MethodGet, p, nil))
 		if r.Code != 200 {

@@ -1,5 +1,6 @@
 import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
+import { loadSitesPage } from './sites-list.mjs';
 import { downloadTenantFile, listTenantFiles } from './files-explorer.mjs';
 import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';
 const tiles = [
@@ -29,6 +30,7 @@ const sitePreviewID = document.querySelector('#site-preview-id');
 const sitePreviewStatus = document.querySelector('#site-preview-status');
 const sitePreviewOutput = document.querySelector('#site-preview-output');
 const sitePreviewSubmit = document.querySelector('#site-preview-submit');
+let sitePreviewRequest = 0;
 const filterText = (text) => {
     if (!list)
         return;
@@ -96,10 +98,95 @@ async function refreshStatus() {
 }
 refreshStatusButton?.addEventListener('click', () => void refreshStatus());
 void refreshStatus();
+const sitesLoad = document.querySelector('#sites-load');
+const sitesStatus = document.querySelector('#sites-status');
+const sitesList = document.querySelector('#sites-list');
+const sitesPager = document.querySelector('#sites-pagination');
+const sitesPrevious = document.querySelector('#sites-previous');
+const sitesNext = document.querySelector('#sites-next');
+const sitesPageLabel = document.querySelector('#sites-page');
+let sitesCursors = [''], sitesNextAfter = '', sitesRequest = 0;
+let sitesController;
+async function showSites(cursors, moveFocus = false) {
+    if (!sitesStatus || !sitesList || !sitesLoad)
+        return;
+    const request = ++sitesRequest;
+    sitesController?.abort();
+    sitesController = new AbortController();
+    const controller = sitesController;
+    sitesList.replaceChildren();
+    sitesList.setAttribute('aria-busy', 'true');
+    if (sitesPager)
+        sitesPager.hidden = true;
+    sitesStatus.textContent = 'Loading sites…';
+    sitesStatus.dataset.state = 'loading';
+    if (moveFocus)
+        sitesStatus.focus();
+    try {
+        const page = await loadSitesPage(cursors[cursors.length - 1], undefined, controller.signal);
+        if (request !== sitesRequest || controller.signal.aborted)
+            return;
+        sitesCursors = cursors;
+        sitesNextAfter = page.next_after;
+        for (const site of page.sites) {
+            const row = document.createElement('li');
+            row.className = 'job-entry';
+            const label = document.createElement('span');
+            label.textContent = `${site.site_id} · ${site.primary_domain} · ${site.ownership_state}`;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = 'Use for preview';
+            button.setAttribute('aria-label', `Use ${site.site_id} for preview`);
+            button.addEventListener('click', () => {
+                ++sitePreviewRequest;
+                if (sitePreviewOutput) {
+                    sitePreviewOutput.hidden = true;
+                    sitePreviewOutput.textContent = '';
+                }
+                if (sitePreviewStatus) {
+                    sitePreviewStatus.dataset.state = '';
+                    sitePreviewStatus.textContent = 'No preview loaded.';
+                }
+                if (sitePreviewID) {
+                    sitePreviewID.value = site.site_id;
+                    sitePreviewID.focus();
+                }
+            });
+            row.append(label, button);
+            sitesList.append(row);
+        }
+        sitesStatus.dataset.state = page.sites.length ? 'available' : 'empty';
+        sitesStatus.textContent = page.sites.length ? `Page ${cursors.length}: ${page.sites.length} catalog sites. Domain status does not confirm hosting is provisioned.` : 'No sites found in this workspace.';
+        if (sitesPager && sitesPrevious && sitesNext && sitesPageLabel) {
+            sitesPrevious.disabled = cursors.length === 1;
+            sitesNext.disabled = !page.next_after;
+            sitesPageLabel.textContent = `Page ${cursors.length}`;
+            sitesPager.hidden = cursors.length === 1 && !page.next_after;
+        }
+    }
+    catch (error) {
+        if (request !== sitesRequest || controller.signal.aborted)
+            return;
+        sitesCursors = [''];
+        sitesNextAfter = '';
+        sitesStatus.dataset.state = 'unavailable';
+        sitesStatus.textContent = error instanceof Error ? error.message : 'Sites could not be loaded. Try again.';
+    }
+    finally {
+        if (request === sitesRequest)
+            sitesList.removeAttribute('aria-busy');
+    }
+}
+sitesLoad?.addEventListener('click', () => void showSites(['']));
+sitesPrevious?.addEventListener('click', () => { if (sitesCursors.length > 1)
+    void showSites(sitesCursors.slice(0, -1), true); });
+sitesNext?.addEventListener('click', () => { if (sitesNextAfter)
+    void showSites([...sitesCursors, sitesNextAfter], true); });
 sitePreviewForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!sitePreviewID || !sitePreviewStatus || !sitePreviewOutput || !sitePreviewSubmit)
         return;
+    const request = ++sitePreviewRequest;
     sitePreviewSubmit.disabled = true;
     sitePreviewSubmit.setAttribute('aria-busy', 'true');
     sitePreviewStatus.dataset.state = 'loading';
@@ -108,12 +195,16 @@ sitePreviewForm?.addEventListener('submit', async (event) => {
     sitePreviewOutput.textContent = '';
     try {
         const config = await loadNginxPreview(sitePreviewID.value);
+        if (request !== sitePreviewRequest)
+            return;
         sitePreviewOutput.textContent = config;
         sitePreviewOutput.hidden = false;
         sitePreviewStatus.dataset.state = 'available';
         sitePreviewStatus.textContent = 'Preview loaded. Configuration has not been applied.';
     }
     catch (error) {
+        if (request !== sitePreviewRequest)
+            return;
         sitePreviewStatus.dataset.state = 'unavailable';
         sitePreviewStatus.textContent = error instanceof Error ? error.message : 'Preview unavailable. Try again.';
     }

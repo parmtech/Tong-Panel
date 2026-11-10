@@ -148,6 +148,8 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 	}
 	plain("delete rooted file", "deleteFile", "DELETE", filePath, "", 204)
 	plain("create catalog site", "createSite", "POST", "/api/v1/sites", `{"site_id":"contract-site","primary_domain":"contract.example.test","aliases":[]}`, 201)
+	plain("list catalog sites", "listSites", "GET", "/api/v1/sites?limit=1", "", 200)
+	run(h, "invalid site page", "listSites", "GET", "/api/v1/sites?limit=51", secret, "", "", 400, "invalid_page", nil)
 	sitePath := "/api/v1/sites/contract-site"
 	plain("get catalog site", "getSite", "GET", sitePath, "", 200)
 	run(h, "other tenant site", "getSite", "GET", sitePath, sqlOtherToken, "", "", 404, "not_found", nil)
@@ -200,7 +202,7 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 		t.Fatal("logout did not expire cookie")
 	}
 	run(ch, "revoked cookie denied", "getCurrentPrincipal", "GET", "/api/v1/me", "", "", "", 401, "unauthorized", cookie(false, ""))
-	for _, operation := range strings.Fields("getHealth getVersion getCurrentPrincipal logoutSession listJobs createJob getJob cancelJob listFiles readFile createFile deleteFile createSite getSite previewSiteNginx addSiteAlias deleteSiteAlias beginDomainVerification completeDomainVerification listSiteDatabases createSiteDatabase getSiteDatabase") {
+	for _, operation := range strings.Fields("getHealth getVersion getCurrentPrincipal logoutSession listJobs createJob getJob cancelJob listFiles readFile createFile deleteFile listSites createSite getSite previewSiteNginx addSiteAlias deleteSiteAlias beginDomainVerification completeDomainVerification listSiteDatabases createSiteDatabase getSiteDatabase") {
 		if !covered[operation] {
 			t.Fatalf("missing success scenario for %s", operation)
 		}
