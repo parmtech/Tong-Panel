@@ -248,6 +248,40 @@ test('actual TLS session shows only own SQL jobs, supports keyboard details and 
     await page.screenshot({ path: test.info().outputPath('jobs-desktop.png'), fullPage: true });
 });
 
+test('manual refresh announces observed same-user job state changes and supports dismissal', async ({ page }) => {
+    await open(page);
+    const job = {
+        id: 'f'.repeat(32), tenant_id: 'tenant-a', requested_by: 'alice', kind: 'validation.noop', state: 'queued',
+        idempotency_key: 'synthetic-notification-0001', created_at: '2026-10-28T01:00:00Z', updated_at: '2026-10-28T01:00:00Z',
+    };
+    let state = 'queued';
+    await page.route(url => url.pathname === '/api/v1/jobs' && url.searchParams.has('limit'), route => route.fulfill({
+        status: 200, contentType: 'application/json', body: JSON.stringify({ jobs: [{ ...job, state }], next_after: '' }),
+    }));
+    await load(page);
+    await expect(page.locator('#jobs-notifications li')).toHaveCount(0);
+    state = 'running';
+    await load(page);
+    await expect(page.locator('#jobs-notifications li')).toHaveCount(1);
+    await expect(page.locator('#jobs-notifications')).toContainText('changed from queued to running');
+    await page.getByRole('button', { name: `Dismiss update for job ${job.id}` }).click();
+    await expect(page.locator('#jobs-notifications li')).toHaveCount(0);
+    await load(page);
+    await expect(page.locator('#jobs-notifications li')).toHaveCount(0);
+    state = 'completed';
+    await load(page);
+    await expect(page.locator('#jobs-notifications li')).toHaveCount(1);
+    job.requested_by = 'bob';
+    state = 'queued';
+    await load(page);
+    await expect(page.locator('#jobs-notifications li')).toHaveCount(0);
+    state = 'failed';
+    await load(page);
+    await expect(page.locator('#jobs-notifications li')).toHaveCount(1);
+    const axe = await new AxeBuilder({ page }).include('#jobs-panel').withTags(['wcag2a', 'wcag2aa']).analyze();
+    expect(axe.violations.map(({ id }) => id)).toEqual([]);
+});
+
 test('auditor reads their own job and an empty account has a truthful empty state', async ({ page }) => {
     await open(page, 'auditor');
     await load(page);

@@ -144,6 +144,7 @@ sitePreviewForm?.addEventListener('submit', async (event: SubmitEvent) => {
 
 const jobsRefresh = document.querySelector<HTMLButtonElement>('#jobs-refresh');
 const jobsStatus = document.querySelector<HTMLElement>('#jobs-status');
+const jobsNotices = document.querySelector<HTMLUListElement>('#jobs-notifications');
 const jobsList = document.querySelector<HTMLUListElement>('#jobs-list');
 const jobsPagination = document.querySelector<HTMLElement>('#jobs-pagination');
 const jobsPrevious = document.querySelector<HTMLButtonElement>('#jobs-previous');
@@ -155,12 +156,41 @@ const jobDetailStatus = document.querySelector<HTMLElement>('#job-detail-status'
 const jobDetailFields = document.querySelector<HTMLDListElement>('#job-detail-fields');
 const jobDetailRetry = document.querySelector<HTMLButtonElement>('#job-detail-retry');
 let jobsRequest = 0;
+let jobStateScope = '';
 let detailRequest = 0;
 let jobsController: AbortController | undefined;
 let detailController: AbortController | undefined;
 let selectedJob: string | undefined;
 let jobsCursors: string[] = [''];
 let jobsNextAfter = '';
+const jobStates = new Map<string, string>();
+
+function renderJobChanges(jobs: MyJob[]): void {
+ const scope = jobs.length && jobs.every(job => job.requested_by && job.tenant_id === jobs[0].tenant_id && job.requested_by === jobs[0].requested_by)
+  ? `${jobs[0].tenant_id}\u0000${jobs[0].requested_by}` : '';
+ if(scope !== jobStateScope){
+  jobStates.clear(); jobsNotices?.replaceChildren(); jobStateScope = scope;
+ }
+ if(!scope) return;
+ const changes: {id:string;kind:string;previous:string;current:string}[] = [];
+ for(const job of jobs){
+  const previous = jobStates.get(job.id);
+  if(previous !== undefined && previous !== job.state) changes.push({id:job.id,kind:job.kind,previous,current:job.state});
+  if(!jobStates.has(job.id) && jobStates.size >= 5000) jobStates.delete(jobStates.keys().next().value!);
+  jobStates.set(job.id,job.state);
+ }
+ if(!jobsNotices || changes.length === 0) return;
+ for(const change of changes){
+  const item = document.createElement('li');
+  const message = document.createElement('span');
+  message.textContent = `Job ${change.id} (${change.kind}) changed from ${change.previous} to ${change.current}.`;
+  const dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.textContent = 'Dismiss';
+  dismiss.setAttribute('aria-label', `Dismiss update for job ${change.id}`);
+  dismiss.addEventListener('click', () => item.remove());
+  item.append(message, dismiss); jobsNotices.prepend(item);
+ }
+ while(jobsNotices.children.length > 5) jobsNotices.lastElementChild?.remove();
+}
 
 function jobsErrorCode(error: unknown): string {
  return error instanceof MyJobsError ? error.code : 'unavailable';
@@ -198,6 +228,8 @@ function clearJobsForAccessFailure(code: string): void {
  jobsCursors = ['']; jobsNextAfter = '';
  if(jobsPagination) jobsPagination.hidden = true;
  clearJobDetail();
+ jobStates.clear(); jobStateScope = '';
+ jobsNotices?.replaceChildren();
  if(jobsStatus) { jobsStatus.textContent = jobsErrorMessage(code); jobsStatus.dataset.state = code; }
  if(jobsRefresh) { jobsRefresh.textContent = 'Refresh jobs'; jobsRefresh.removeAttribute('aria-busy'); }
 }
@@ -234,6 +266,7 @@ async function showJobsPage(cursors: string[], moveFocus = false): Promise<void>
  try{
   const page = await loadMyJobsPage(cursors[cursors.length - 1], undefined, {signal: controller.signal});
   if(request !== jobsRequest || controller.signal.aborted) return;
+  renderJobChanges(page.jobs);
   jobsCursors = cursors; jobsNextAfter = page.next_after;
   renderJobs(page.jobs);
   jobsStatus.dataset.state = page.jobs.length ? 'available' : 'empty';

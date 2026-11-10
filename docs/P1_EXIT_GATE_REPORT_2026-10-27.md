@@ -406,3 +406,8 @@ A streaming authenticated envelope library and focused Go tests have been added,
 ## Current P0 / P2 disposition — 29 October 2026
 
 An advisory technical review of ADR-001–009 and the draft threat model is recorded in `docs/ADR_SECURITY_REVIEW_2026-10-29.md`; recommendations are Needs revision, not Accepted/Rejected decisions. Reviewer authority is Codex advisory only. No human owner/security reviewer, decision date or linked approval evidence was established, so P0 remains pending. Draft PR #84 adds an encrypted MariaDB restore drill on fresh disposable hosts; see `docs/phases/P2-HOSTING-ALPHA.md` for exact-head CI state and limits. This remains a component checkpoint, not an exit-gate pass: P1 is NOT COMPLETE, P2 is IN PROGRESS, and no production readiness or security approval is claimed.
+
+
+## P1-08 Jobs screen and observed state-change notices — 10 November 2026
+
+The read-only Jobs UI now supports explicit-refresh state-change notices for records with a stable tenant/requester scope. Notices are bounded, dismissible and cleared when access or identity scope changes. The exact local change passed 32 Node tests and 17 real-browser tests (including keyboard, mobile, WCAG 2 A/AA and same-user/scope-reset cases); embedded JavaScript was confirmed equal to TypeScript output. This closes only one notification-centre slice: there is no live event stream, general notification centre, integrated login, or full P1-08 acceptance. P1 and P2 remain NOT COMPLETE; P0 human review and signed installer/recovery gates remain open.
