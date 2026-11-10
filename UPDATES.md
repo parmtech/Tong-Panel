@@ -329,3 +329,11 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Validation:** Windows Go 1.27.3 `go fmt ./...`, `go test -count=1 ./...`, and `go vet ./...` passed in both standalone P5 modules; staged `git diff --check` passed. These are prototype-only checks, not product or sandbox evidence.
 - **Gates:** P1 PR #143 run #42781985275 has both guest jobs successful, but P1 remains explicitly incomplete and Phase 2 entry blocked. P3 still says entry NOT PROVEN; P4 remains BLOCKED / design only. No P5 human review or architecture approval recorded.
 - **Safety/next:** no network logic, credentials, host integration, merge, deployment, or privileged changes. Continue only with gate-safe design/prototype work; recheck branch heads, review activity, and entry evidence before dependent implementation.
+
+### 2026-11-10 — Workstream G, operationalize the P5 HA evidence boundary
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; design-only follow-up to commit `bd94cf381b47e218d3a090cd318ce1c243270329`, intended for the existing draft PR #147 / issue #148.
+- **Change:** expanded scenario 23–24 review guidance into an evidence contract for mirrored-service topology and HA claims: partition/write-authority observations, stale replica and quorum-loss behavior, failover/recovery measurements, measured RPO/RTO derivation, and the distinction between management availability and workload HA. It does not select a topology or replication algorithm. Refreshed direct P3/P4 links to exact heads `ccbadf2c33e18e34745593c53da144bb8c01bee6` and `d03ec7c9688688c3d89e1041766c2f3d9abfacc4`; the P4 checkpoint remains `0029b39aa5ebb2056506892b18b400a31402977b`.
+- **Validation:** `git diff --check` passed; static count remains 24 numbered acceptance scenarios. Confirmed the pinned P3/P4 SHAs and referenced file paths against fetched upstream branches. Documentation-only; no product tests run.
+- **Gates:** P1 remains incomplete/P2 entry blocked; P3 says entry NOT PROVEN; P4 remains BLOCKED/design only; P5 review and architecture approval remain absent.
+- **Safety/next:** no implementation, privileged operation, node access, deployment, or HA claim. Continue only with reviewable dependency/test design or isolated non-privileged prototypes until entry gates pass.
