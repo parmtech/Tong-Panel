@@ -356,3 +356,10 @@ GPT-6.1 Sol Medium read-only review (no files changed) identified three gaps for
 ## P1 #149 exact-head checks completed — 2026-11-10
 
 Latest connected GitHub diagnostics at PR #149 head `8764d0fef218a36a4cc9411e5481656d014cdf0c` show all eight reported checks completed successfully, including Ubuntu 24.04 and Debian 12 clean-VM jobs in run #42787324539. PR #149 remains open/draft and uses unsigned developer-preview scope. This does not establish signed installer, full host lifecycle/recovery, owner/security review, or P1 gate acceptance. The evidence matrix supersedes the earlier in-progress snapshot; P3 remains NOT PROVEN.
+
+## P3 serialized restart-boundary model — 2026-11-10
+
+- Scope/ownership: P3-owned `prototypes/p3-deploy-recovery-model/model_test.go` and its README only; isolated worktree `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-phase3`, branch `docs/p3-prerequisite-evidence`, starting head `2304d9ee0f04b7d3cc4798a1585003b3c6670e24`. No shared/other phase checkout touched.
+- Added table-driven tests that JSON-round-trip the illustrative in-memory model before reconciliation at four switch/rollback interruption boundaries. README states this is not durable storage, process-termination, corruption, transaction-ordering, or cross-process evidence.
+- Windows Go 1.27.3: `GO111MODULE=off go test -count=10` passed; `go vet`, `gofmt -d model_test.go`, and `git diff --check` passed. No product, guest, privileged, hostile-workload, or phase-gate test was run.
+- Dependencies/blockers unchanged: P1/P2 entry and P0/security reviews remain unproven; stay within design and isolated non-privileged prototype scope. Before continuing, recheck this worktree/branch and remote P3/P4 heads; do not use JSON-round-trip tests as deployment acceptance evidence.

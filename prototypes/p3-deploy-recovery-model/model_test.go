@@ -1,10 +1,24 @@
 package recovery
 
 import (
+	"encoding/json"
 	"errors"
 	"sync"
 	"testing"
 )
+
+func restartModel(t *testing.T, before *Model) Model {
+	t.Helper()
+	serialized, err := json.Marshal(before)
+	if err != nil {
+		t.Fatalf("serialize model snapshot: %v", err)
+	}
+	var after Model
+	if err := json.Unmarshal(serialized, &after); err != nil {
+		t.Fatalf("restore model snapshot: %v", err)
+	}
+	return after
+}
 
 func readyForSwitch(t *testing.T) *Model {
 	t.Helper()
@@ -46,6 +60,87 @@ func TestSwitchEffectIsNotSuccessUntilCandidateRouteObserved(t *testing.T) {
 	m.Recover(m.ActualRoute)
 	if m.State != StateActive || m.Outcome != "promoted" {
 		t.Fatalf("observed promotion = state %q outcome %q", m.State, m.Outcome)
+	}
+}
+
+func TestRecoveryAfterSerializedRestartBoundaries(t *testing.T) {
+	tests := []struct {
+		name          string
+		prepare       func(t *testing.T) *Model
+		observedRoute string
+		wantState     State
+		wantOutcome   string
+	}{
+		{
+			name: "switch requested but route unchanged",
+			prepare: func(t *testing.T) *Model {
+				return readyForSwitch(t)
+			},
+			observedRoute: "release-old",
+			wantState:     StateFailed,
+			wantOutcome:   "not_promoted",
+		},
+		{
+			name: "route changed before observation",
+			prepare: func(t *testing.T) *Model {
+				m := readyForSwitch(t)
+				if err := m.ApplySwitch(); err != nil {
+					t.Fatal(err)
+				}
+				return m
+			},
+			observedRoute: "release-new",
+			wantState:     StateActive,
+			wantOutcome:   "promoted",
+		},
+		{
+			name: "rollback requested but route unchanged",
+			prepare: func(t *testing.T) *Model {
+				m := readyForSwitch(t)
+				if err := m.ApplySwitch(); err != nil {
+					t.Fatal(err)
+				}
+				m.Recover("release-new")
+				if err := m.RequestRollback(true, true); err != nil {
+					t.Fatal(err)
+				}
+				return m
+			},
+			observedRoute: "release-new",
+			wantState:     StateActive,
+			wantOutcome:   "rollback_not_observed",
+		},
+		{
+			name: "rollback route changed before observation",
+			prepare: func(t *testing.T) *Model {
+				m := readyForSwitch(t)
+				if err := m.ApplySwitch(); err != nil {
+					t.Fatal(err)
+				}
+				m.Recover("release-new")
+				if err := m.RequestRollback(true, true); err != nil {
+					t.Fatal(err)
+				}
+				if err := m.ApplyRollback(true, true); err != nil {
+					t.Fatal(err)
+				}
+				return m
+			},
+			observedRoute: "release-old",
+			wantState:     StateRolledBack,
+			wantOutcome:   "rolled_back",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			before := tt.prepare(t)
+			restarted := restartModel(t, before)
+			restarted.Recover(tt.observedRoute)
+			if restarted.State != tt.wantState || restarted.Outcome != tt.wantOutcome {
+				t.Fatalf("recovery after restart = state %q outcome %q, want state %q outcome %q", restarted.State, restarted.Outcome, tt.wantState, tt.wantOutcome)
+			}
+		})
 	}
 }
 
