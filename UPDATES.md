@@ -393,3 +393,10 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Evidence/change:** P4 continuation advanced to `e3009a56ae696ef6958f18a19795819a2b4655a3`; inspected status text remains BLOCKED / design only with P1/P2/P3 handoffs pending. Updated its exact SHA link. The original `docs/p4-hosting-parity-design` checkpoint remains `0029b39aa5ebb2056506892b18b400a31402977b`.
 - **Validation:** `git diff --check` passed; documentation-only.
 - **Other gates:** P1 PR #149 run #42785167173 remains in progress on Ubuntu 24.04 with Debian 12 successful at last poll. No gate change.
+
+### 2026-11-10 — Workstream G, reconcile completed P1 clean-VM rerun
+
+- **Ownership/checkpoint:** Phase 5 only; isolated worktree `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-Phase5-20261110`, branch `phase5/prereq-and-acceptance-spec`; owned files `docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md` and `UPDATES.md`. Rechecked clean status before editing; no other phase workspace touched.
+- **Verified P1 evidence:** GitHub API reports run #42785167173 attempt 2 completed successfully for both Debian 12 and Ubuntu 24.04 guest jobs on exact code head `4d42ca024a7628e424a9738aa258d70927122f02` (PR #149 documentation-follow-up head `8764d0fef218a36a4cc9411e5481656d014cdf0c`). Attempt 1's Ubuntu package-mirror size mismatch and Debian homepage timeout remain in history. The current P1 exit report still says NOT PHASE 1 COMPLETE / PHASE 2 ENTRY BLOCKED; preview VM success is not signed installer, full recovery, or phase-exit evidence.
+- **Change/checks:** updated the P1 gate row and exact-run source note. Refreshed P3 head `ccd86e6049f56aef25d68d5445072e3c01b7f97d` (still P3 entry NOT PROVEN) and P4 continuation `ae0d381bde57ce814e16b8102d607347880b62ba` (still BLOCKED/design only); checkpoint remains `0029b39aa5ebb2056506892b18b400a31402977b`. `git diff --check` passed; scenario count remains 24. Documentation-only.
+- **Disposition:** P1/P2/P3/P4/P5 entry gates remain unaccepted; no product implementation, privileged operation, deployment, or merge.
