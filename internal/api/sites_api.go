@@ -228,11 +228,11 @@ func (s *Server) siteDatabaseCollection(w http.ResponseWriter, r *http.Request, 
 			return
 		}
 		spec := sites.SiteDatabaseSpec{TenantID: p.TenantID, SiteID: siteID, DatabaseID: req.DatabaseID}
-		if err := s.SiteCatalog.CreateDatabase(r.Context(), spec); err != nil {
-			writeSiteError(w, err)
-			return
+		var proof *auth.SessionReadProof
+		if value, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof); ok {
+			proof = &value
 		}
-		record, err := s.SiteCatalog.GetDatabase(r.Context(), p.TenantID, siteID, req.DatabaseID)
+		record, err := s.SiteCatalog.CreateDatabaseFor(r.Context(), spec, p.UserID, proof)
 		if err != nil {
 			writeSiteError(w, err)
 			return
