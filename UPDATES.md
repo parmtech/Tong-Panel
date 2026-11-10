@@ -1,3 +1,10 @@
+### 2026-11-10 20:18 +11:00 — Workstream G, coordination checkpoint for P4 continuation
+- **Phase/workspace/branch:** P4 design only; `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-p4-continuation`; `docs/p4-hosting-parity-continuation` at `bc9bb76dcebbbf6599b1daaa3d6410e862cd717f`.
+- **Owned files:** `docs/phases/P4-DESIGN-ACCEPTANCE.md` and this journal only. No Phase 1 or other phase workspace touched.
+- **Dependencies:** P1 exit/P2 entry, integrated P2 contracts and accepted P3 runtime/isolation evidence; none currently accepted. Continue only design/specification work.
+- **Current blocker packet:** P1 report remains NOT COMPLETE / P2 entry blocked; P2 report remains IN PROGRESS / exit gate not passed; P3 hostile-app acceptance unproven. PR #149 run #42787324539 is still active for Ubuntu 24.04 and Debian 12 at extracted-preview smoke. Authenticated job-log fetch returned `BlobNotFound` for both jobs; no diagnosis is available. No retries of that log request.
+- **Verification:** `git diff --check` passed before this entry; product tests not applicable to docs-only work.
+- **Next:** poll the same live run through workflow-job status; continue no further than isolated P4 design until prerequisites pass. Coordinator relay is not available from this chat.
 ### 2026-11-10 20:17 +11:00 — Workstream G, refresh planning refs after upstream advances
 - **Branch/state:** docs/p4-hosting-parity-continuation; follow-up evidence sync.
 - **Change:** synchronized current P2/P3 planning heads observed during the operator-parity acceptance update.
