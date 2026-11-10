@@ -261,3 +261,14 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Security and third-party licence impact:
 - Blockers / constraints:
 - Next ONE step for handoff:
+
+
+## P4 gated design checkpoint — 2026-11-10 UTC
+
+- **Phase:** P4 hosting parity, design/specification only; remains **BLOCKED** on verified P2 and P3 handoffs. Phase index dependencies are P2/P3, and P2 remains blocked while P1 is in progress. No completion claim.
+- **Source baseline:** GitHub `main` commit `0aad68e81138a0f226e83e401f90bae4d0b6bddc`. New isolated branch: `docs/p4-hosting-parity-design`.
+- **Work:** added `docs/phases/P4-DESIGN-ACCEPTANCE.md` with dependency gates, separate DNS/mail, PostgreSQL/extensions, reseller/quota, migration dry-run/reconciliation design, and seven phase-specific acceptance matrices. No executable or privileged service changes.
+- **Tests:** not run; artifact is documentation/specification only.
+- **Setup:** local clone into the authorized task workspace failed because the environment could not resolve `github.com`; no retry or network workaround. Read-only GitHub API inspection was used for repository documents and branch/PR inventory. No existing P4 branch or PR was found. The repository-local `.agents/skills` path was absent on main (404).
+- **Safety/dependencies:** no DNS/mail/provider/migration/live-host actions; no P1 work touched; no P6 scope. P1 and P2/P3 gates remain unverified for P4 entry.
+- **Next action:** recheck source gates; when verified, open P4 capability issues and implement only in disposable labs with contract tests and reviewed ADRs.
