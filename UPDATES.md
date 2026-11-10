@@ -293,3 +293,7 @@ Added an ordered design-review packet to `docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN
 ## P3 deployment recovery test specification — 2026-11-10
 
 Added a crash/restart decision table under P3-04. It marks states as non-normative, requires an accepted versioned state model before implementation, and specifies recovery oracles across durable admission, build, artifact recording, process identity, health, route switch, success/audit, and rollback boundaries. No implementation/API/schema choice was made. Documentation structural check and `git diff --check` passed; P3 remains gated.
+
+## P3 in-memory recovery model — 2026-11-10
+
+Added `prototypes/p3-deploy-recovery-model`, a pure in-memory Go example for a few P3-04/P3-07 transition assertions. It performs no filesystem, process, network, database or proxy operations. Six tests, `go vet`, and `git diff --check` passed on Windows with Go 1.27.3 (`GO111MODULE=off`). The model omits durable jobs, tenant authorization, concurrency, audit, quotas and host behavior; it is not product code or acceptance evidence. P3 entry remains NOT PROVEN.
