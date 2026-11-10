@@ -313,3 +313,11 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Validation:** `git diff --check` passed. Static check confirmed 24 numbered scenarios, eight scope-traceability rows, seven fault-oracle rows, and direct source links. No product tests run (docs-only).
 - **Gates:** no accepted P1/P2/P3/P4 exits or P5 architecture approval. Latest exact poll of run #42781985275 still showed Debian success and Ubuntu in progress. P4 checkpoint SHA remains preserved.
 - **Next:** recheck PR/issue review and workflow state, then continue only on reviewable non-privileged design or offline prototypes.
+
+### 2026-11-10 — Workstream G, refresh completed P1 preview VM evidence
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; evidence refresh on the existing draft PR #147 / review issue #148.
+- **New evidence:** exact P1 PR #143 head `482017005f9872c1fe7f2969ebfb477ea7de30dd` now has both Debian 12 and Ubuntu 24.04 clean-VM jobs completed successfully in run #42781985275. PR #143 and the refreshed P1 report still explicitly say Phase 1 is incomplete and Phase 2 entry blocked; the guests ran an unsigned developer preview, not a signed installer or complete install/upgrade/recovery acceptance.
+- **Other gates:** current P3 design head `20dff399e1d75acc1d1a004812a051f40281ae57` still says P3 entry not proven. Current P4 evidence head `307fb0c5b4b6849a327c603c5a7f235ffa5dfbc7` records the preview run but keeps P4 blocked/design-only. P2 #89/#91 results remain narrow preview slices. No phase exit decision changed.
+- **Change/checks:** updated the P5 prerequisite matrix and pinned direct links to exact P3/P4 revisions. `git diff --check` and static link/scenario counts passed; no product tests run (docs-only).
+- **Safety/next:** no privileged code, host access, merge, or deployment. Continue only with gated design/offline work while P0/P1/P2/P3/P4 and P5 review remain open.
