@@ -176,6 +176,11 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 		}
 	}
 	ch := cookieServer.Handler()
+	run(ch, "plaintext cookie denied", "getCurrentPrincipal", "GET", "/api/v1/me", "", "", "", 401, "unauthorized", func(req *http.Request) {
+		cookie(false, "")(req)
+		req.URL.Scheme = "http"
+		req.TLS = nil
+	})
 	run(ch, "cookie mutation requires CSRF", "logoutSession", "POST", "/api/v1/session/logout", "", "", "", 403, "csrf_failed", cookie(false, "https://panel.test"))
 	run(ch, "cookie mutation requires same origin", "logoutSession", "POST", "/api/v1/session/logout", "", "", "", 403, "csrf_failed", cookie(true, "https://other.test"))
 	logout := run(ch, "revoke cookie session", "logoutSession", "POST", "/api/v1/session/logout", "", "", "", 204, "", cookie(true, "https://panel.test"))
