@@ -1,3 +1,9 @@
+### 2026-11-10 20:10 +11:00 — Workstream G, reconcile current P3 draft head
+- **Branch/state:** docs/p4-hosting-parity-continuation; evidence-only update on the existing P4 checkpoint.
+- **Change:** refreshed the exact P3 planning PR #145 head from the current remote ref.
+- **Evidence:** authenticated GitHub PR and workflow-job views confirm P1/P2 exit reports remain open and both current-head guest smoke jobs remain active at the extracted-preview step. git diff --check passed.
+- **Limits:** no phase acceptance, P4 execution, or privileged operation.
+- **Next:** poll the same live workflow run; wait for upstream gate decisions before P4 implementation.
 ### 2026-11-10 20:09 +11:00 — Workstream G, refresh live planning heads and VM stage
 - **Branch/state:** docs/p4-hosting-parity-continuation; current evidence update on the saved P4 design.
 - **Change:** refreshed exact heads for P2 PR #144 and P3 PR #145; recorded that both current-head P1 guest jobs reached extracted-preview smoke and remain active.
