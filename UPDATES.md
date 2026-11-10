@@ -333,3 +333,11 @@ Confirmed `origin/main` remains `0aad68e81138a0f226e83e401f90bae4d0b6bddc`. Conn
 ## P3 conflicting concurrent retry model — 2026-11-10
 
 Extended the in-memory admission example with 64 concurrent requests using the same modeled key but two payload digests. It asserts one payload winner, conflicts for every other payload, and exactly one simulated job record. Twelve model tests pass across ten suite runs; `go vet`, `gofmt -d`, and `git diff --check` pass on Windows. CGO is disabled in the supplied Go environment, so race-detector validation is unavailable. This still does not model durable or multi-process idempotency and is not product evidence.
+
+## P3 coordination checkpoint — 2026-11-10
+
+- Phase/workspace/branch: P3 design and non-privileged prototype only; `C:\Users\~MaNBiR~\Documents\Codex\work\Tong-Panel-phase3`; `docs/p3-prerequisite-evidence` at `e9140e4813088cdc5c911495d5a5ff66de312122` before this checkpoint.
+- Owned paths: `docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md`, `prototypes/p3-deploy-recovery-model/`, `testdata/p3-fixtures/`, and P3 checkpoint entries in `UPDATES.md`. No other phase checkout is owned or modified. The Phase 1 checkout was inspected read-only and clean; Phase 4 remote pin remains `0029b39aa5ebb2056506892b18b400a31402977b`.
+- Dependencies/blockers: P1 acceptance and P0/security review remain open; P2 remains planned on `main`. PR #149's exact-head Ubuntu/Debian clean-VM jobs remain in progress; P1/P2 drafts are not accepted gates.
+- Safe scope: test/design review, offline prototypes, and non-hostile synthetic harness checks only. Stop any product implementation or host/guest execution that would cross P1/P2 entry gates, overlap another phase's owned files, or require altering shared/production state.
+- Coordination channel: no operational project coordinator is configured in this session; this checkpoint is recorded for human relay. No sibling chat was notified. A bounded read-only acceptance review was requested; root-model switching is unavailable here.
