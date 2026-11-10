@@ -321,3 +321,11 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Other gates:** current P3 design head `20dff399e1d75acc1d1a004812a051f40281ae57` still says P3 entry not proven. Current P4 evidence head `307fb0c5b4b6849a327c603c5a7f235ffa5dfbc7` records the preview run but keeps P4 blocked/design-only. P2 #89/#91 results remain narrow preview slices. No phase exit decision changed.
 - **Change/checks:** updated the P5 prerequisite matrix and pinned direct links to exact P3/P4 revisions. `git diff --check` and static link/scenario counts passed; no product tests run (docs-only).
 - **Safety/next:** no privileged code, host access, merge, or deployment. Continue only with gated design/offline work while P0/P1/P2/P3/P4 and P5 review remain open.
+
+### 2026-11-10 — Workstream G, plugin capability scope prototype
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; commit `bb419c1ceca71f26b18ddb240cdf6f57bc622cb4`, pushed to the existing draft PR #147 / review issue #148.
+- **Change:** added `prototypes/p5-plugin-capability-model`, an offline standard-library Go model that allows only an enabled exact plugin/install/tenant/resource/capability binding, denies empty and wildcard values, and checks repeated requests after disabling. Updated scenarios 17–18 and pinned the latest observed P3 plan (`ccbadf2c33e18e34745593c53da144bb8c01bee6`) and P4 continuation (`d03ec7c9688688c3d89e1041766c2f3d9abfacc4`). Phase 4 checkpoint remains `0029b39aa5ebb2056506892b18b400a31402977b`.
+- **Validation:** Windows Go 1.27.3 `go fmt ./...`, `go test -count=1 ./...`, and `go vet ./...` passed in both standalone P5 modules; staged `git diff --check` passed. These are prototype-only checks, not product or sandbox evidence.
+- **Gates:** P1 PR #143 run #42781985275 has both guest jobs successful, but P1 remains explicitly incomplete and Phase 2 entry blocked. P3 still says entry NOT PROVEN; P4 remains BLOCKED / design only. No P5 human review or architecture approval recorded.
+- **Safety/next:** no network logic, credentials, host integration, merge, deployment, or privileged changes. Continue only with gate-safe design/prototype work; recheck branch heads, review activity, and entry evidence before dependent implementation.
