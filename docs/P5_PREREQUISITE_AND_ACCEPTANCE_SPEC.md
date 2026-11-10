@@ -26,7 +26,7 @@ This matrix maps the canonical P5 scope bullets to prerequisite evidence and the
 | P5 scope | Required upstream evidence before implementation | Acceptance scenarios | Remaining review/design output |
 |---|---|---|---|
 | Remote agent enrollment, per-server identity, mutual TLS, revocation, rotation, scoped actions | P0 trust/secret decisions; P1 identity, authorization, audit and durable-job acceptance; P2/P4 operational incident and recovery procedures | 1–8, 10 | Reviewed enrollment lifecycle, identity binding, expiry/revocation propagation, lease limits, key custody and incident response. |
-| Node inventory, placement, health, labels and maintenance | Accepted P1 job authorization and cancellation/reconciliation; P2/P3 workload/resource inventory and supported-host behavior | 6–10 | Inventory freshness contract, capacity facts, eligibility semantics and behavior for unknown/stale data. |
+| Node inventory, placement, health, labels and maintenance | Accepted P1 job authorization and cancellation/reconciliation; P2/P3 workload/resource inventory and supported-host behavior | 6–10, 29–30 | Inventory freshness, capacity and eligibility semantics; scheduled-maintenance disposition; staging/production label authority and separation. |
 | Workload moves, DNS/SSL cutover, app/DB backup handoff and rollback | P2 measured backup/restore and service lifecycle; P3 deploy/rollback and app isolation; P4 DNS, database, migration and quota acceptance | 11–15 | Migration state ownership, consistency checks, dual-write/divergence treatment, cutover authority, rollback limits and measured RPO/RTO. Existing PR #91 restore evidence is one narrow unsigned lab slice and does not satisfy this dependency. |
 | Mirrored DNS, mail and database designs | P4 tested single-host service contracts and failure handling; approved service-specific consistency and recovery decisions | 5–6, 13, 15, 23–24 | Separate topology and failure-boundary review per service; no generic HA claim from control-plane replication. |
 | Marketplace templates and third-party plugin framework | P0 supply-chain/privilege decisions; P1 auth/audit foundations; P3 app isolation; reviewed licensing and artifact provenance | 16–20, 25–28 | Separate declarative app-recipe and executable panel-plugin threat models, permission review, provenance, moderation, deprecation and recovery policy. |
@@ -83,6 +83,8 @@ Use synthetic identities, certificates, clocks, queues, and node state. The owne
 8. **Policy change in flight:** narrow permissions or remove placement eligibility between enqueue and execution; execution-time authorization must deny, with a stable reason code and no arbitrary command path.
 9. **Placement determinism:** given inventory, labels, constraints, health, and capacity, verify deterministic eligible-node selection; unknown/stale inventory and conflicting constraints fail closed.
 10. **No shell escape:** fuzz the typed job/action protocol with unknown action, extra fields, path/argument injection, oversized frames, duplicate keys, replayed IDs, and malformed encodings. No generic shell/exec operation is accepted.
+
+Scenarios 29–30 extend this area with scheduled maintenance and staging/production separation.
 
 ### Migration and recovery
 
@@ -181,6 +183,20 @@ Before implementation, owners must approve the moderation authority, review reco
 | Dependency advisory is repeated, stale, contradictory, or does not match the installed version | Deduplicate matching notices, preserve source/freshness, scope notices to affected installations, and label unresolved evidence; no silent update or privilege change. | Advisory IDs and digests, dependency lock/installed versions, tenant fixture, timestamps, emitted notice IDs, and action audit. |
 | Deprecated plugin has user-owned data or a proposed replacement | Identify affected installations and a reviewed migration/export route; preserve data through upgrade/retirement and keep unrelated panel/plugin boot healthy. | Synthetic data inventory, deprecation state/version, migration/rollback trace, export verification, and boot/health result. |
 | Declarative recipe attempts to request executable plugin capability or host action | Reject or route to the separate reviewed executable-plugin path before activation; recipe metadata alone cannot grant that capability. | Recipe and plugin fixtures, schema/decision trace, denied side-effect checks, and reviewed permission record. |
+
+29. **Scheduled maintenance:** use a fake clock to exercise entry to and exit from a maintenance window. Apply the reviewed disposition to queued/running jobs, deny new placement on affected nodes during the window, and require fresh health/eligibility evidence before returning a node to placement. Unspecified or conflicting disposition fails closed and is auditable.
+30. **Staging/production separation:** use synthetic nodes, tenants, jobs, and credentials labeled for separate environments. Placement, secret use, migration, and release actions must remain within the declared environment; missing/stale environment identity or a cross-environment request is denied before dispatch without leaking inventory.
+
+#### Review-only maintenance and environment evidence for scenarios 29–30
+
+Before implementation, approve maintenance entry/exit semantics, timezone/clock authority, queued and in-flight job disposition, environment-label authority, and which identity/credential bindings enforce staging versus production boundaries. Tests should use synthetic resources and establish no cross-environment dispatch, secret use, or data movement without choosing a scheduling engine or deployment topology.
+
+| Fixture or fault | Expected test result | Evidence to retain |
+|---|---|---|
+| Job is queued before maintenance begins; a dispatch races with the window start | Follow only the reviewed disposition; do not place new work on the affected node after the authoritative window begins. | Fake-clock timeline, schedule revision, queue/dispatch order, eligibility decision, and audit record. |
+| Maintenance ends but node health or inventory is stale | Keep the node ineligible until refreshed evidence satisfies the reviewed return criteria. | Window close time, health/inventory versions, refresh result, and placement decision. |
+| Staging request targets a production-only node/credential or environment identity is missing/stale | Deny before dispatch or secret access; do not expose production inventory details to the staging caller. | Synthetic principals/resources, environment labels and versions, denied action trace, and side-effect counters. |
+| Migration/release attempts to cross environments | Require an explicitly reviewed migration path with separate authorization and verified data/credential handling; reject unapproved direct crossover. | Source/destination environment fixture, authorization context, transfer records, and verified denied/approved outcome. |
 
 ## Review-only evidence contract for platform expansion
 
