@@ -14,8 +14,13 @@ import (
 // HTTPS is required from the actual TLS connection, never X-Forwarded-Proto.
 // A cookie must not be combined with developer bearer credentials.
 func (s *Server) cookiePrincipal(r *http.Request, c *http.Cookie) (rbac.Principal, int, string) {
+	p, code, reason, _ := s.cookiePrincipalContext(r, c)
+	return p, code, reason
+}
+
+func (s *Server) cookiePrincipalContext(r *http.Request, c *http.Cookie) (rbac.Principal, int, string, error) {
 	if s.Sessions == nil || r.TLS == nil || r.Header.Get("Authorization") != "" {
-		return rbac.Principal{}, http.StatusUnauthorized, "unauthorized"
+		return rbac.Principal{}, http.StatusUnauthorized, "unauthorized", nil
 	}
 	// Duplicate cookie names have ambiguous parsing semantics. Reject them.
 	count := 0
@@ -25,18 +30,28 @@ func (s *Server) cookiePrincipal(r *http.Request, c *http.Cookie) (rbac.Principa
 		}
 	}
 	if count != 1 {
-		return rbac.Principal{}, http.StatusUnauthorized, "unauthorized"
+		return rbac.Principal{}, http.StatusUnauthorized, "unauthorized", nil
 	}
-	p, ok := s.Sessions.Check(c.Value)
+	p, ok, err := s.Sessions.CheckContext(r.Context(), c.Value)
+	if err != nil {
+		return rbac.Principal{}, 0, "", err
+	}
 	if !ok {
-		return rbac.Principal{}, http.StatusUnauthorized, "unauthorized"
+		return rbac.Principal{}, http.StatusUnauthorized, "unauthorized", nil
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
-		if !sameTLSOrigin(r) || !s.Sessions.CheckCSRF(c.Value, r.Header.Get("X-CSRF-Token")) {
-			return rbac.Principal{}, http.StatusForbidden, "csrf_failed"
+		if !sameTLSOrigin(r) {
+			return rbac.Principal{}, http.StatusForbidden, "csrf_failed", nil
+		}
+		csrfOK, err := s.Sessions.CheckCSRFContext(r.Context(), c.Value, r.Header.Get("X-CSRF-Token"))
+		if err != nil {
+			return rbac.Principal{}, 0, "", err
+		}
+		if !csrfOK {
+			return rbac.Principal{}, http.StatusForbidden, "csrf_failed", nil
 		}
 	}
-	return p, 0, ""
+	return p, 0, "", nil
 }
 
 // sameTLSOrigin enforces the actual Host and HTTPS scheme. Never rely on

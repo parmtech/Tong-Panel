@@ -104,7 +104,11 @@ func (s *Server) protected(h secured) http.HandlerFunc {
 			// expired, malformed, duplicated, or sent over plaintext HTTP.
 			var code int
 			var reason string
-			p, code, reason = s.cookiePrincipal(r, cookie)
+			var authErr error
+			p, code, reason, authErr = s.cookiePrincipalContext(r, cookie)
+			if errors.Is(authErr, context.Canceled) || errors.Is(authErr, context.DeadlineExceeded) {
+				return
+			}
 			if code != 0 {
 				fail(w, code, reason)
 				return
@@ -132,7 +136,10 @@ func (s *Server) protected(h secured) http.HandlerFunc {
 			// In opt-in SQLite mode, the CURRENT database membership is
 			// authoritative. A stale dev token must not preserve a prior
 			// owner/admin role after account disablement or role downgrade.
-			role, err := s.SQLJobs.RoleFor(p.TenantID, p.UserID)
+			role, err := s.SQLJobs.RoleForContext(r.Context(), p.TenantID, p.UserID)
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
 			if err != nil {
 				w.Header().Set("WWW-Authenticate", "Bearer")
 				fail(w, 401, "unauthorized")

@@ -357,3 +357,38 @@ func TestSQLiteCookieSessionRevocationAndCurrentRole(t *testing.T) {
 		t.Fatalf("revoked session was accepted: %d", rec.Code)
 	}
 }
+
+func TestCookieAuthenticationStopsAfterRequestCancellation(t *testing.T) {
+	s, _, db, token, _ := setupCookieAPI(t)
+	db.SetMaxOpenConns(1)
+	blocker, err := db.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer blocker.Close()
+	waitsBefore := db.Stats().WaitCount
+	ctx, cancel := context.WithCancel(context.Background())
+	req := httptest.NewRequest(http.MethodGet, "https://panel.test/api/v1/me", nil).WithContext(ctx)
+	req.TLS = &tls.ConnectionState{}
+	req.AddCookie(&http.Cookie{Name: auth.BrowserCookieName, Value: token})
+	rec := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() { s.Handler().ServeHTTP(rec, req); close(done) }()
+	deadline := time.Now().Add(3 * time.Second)
+	for db.Stats().WaitCount == waitsBefore && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if db.Stats().WaitCount == waitsBefore {
+		cancel()
+		t.Fatal("cookie authentication did not wait for the held pooled connection")
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("cookie authentication did not stop after request cancellation")
+	}
+	if rec.Body.Len() != 0 {
+		t.Fatalf("canceled cookie request wrote a response: %s", rec.Body.String())
+	}
+}

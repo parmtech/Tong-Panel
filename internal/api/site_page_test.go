@@ -112,8 +112,8 @@ func TestSiteListPagesScopeAndValidation(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+secret)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
-	if w.Code != 503 {
-		t.Fatalf("canceled: %d %s", w.Code, w.Body.String())
+	if w.Body.Len() != 0 {
+		t.Fatalf("canceled request wrote a response: %d %s", w.Code, w.Body.String())
 	}
 	if err := db.Close(); err != nil {
 		t.Fatal(err)

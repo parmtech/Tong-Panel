@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
@@ -222,6 +223,88 @@ func TestSQLiteSessionCheckSamplesExpiryAfterWriterWait(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestSQLiteSessionCheckContextCancelsWriterWaitAndRestoresBusyTimeout(t *testing.T) {
+	path, db, store := openSessionDB(t)
+	token, _, _, err := store.Issue(rbac.Principal{UserID: "user-a", TenantID: "tenant-a", Role: rbac.Owner}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lockDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lockDB.Close()
+	lockConn, err := lockDB.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lockConn.Close()
+	if _, err := lockConn.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer lockConn.ExecContext(context.Background(), "ROLLBACK")
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	result := make(chan error, 1)
+	go func() {
+		_, _, err := store.CheckContext(ctx, token)
+		result <- err
+	}()
+	deadline := time.Now().Add(2 * time.Second)
+	for db.Stats().InUse == 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	if db.Stats().InUse == 0 {
+		t.Fatal("session check did not acquire a pooled connection")
+	}
+	started := time.Now()
+	select {
+	case err := <-result:
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("session check error=%v, want deadline exceeded", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("session check did not stop after request deadline")
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("session cancellation took too long: %s", elapsed)
+	}
+	var busyTimeout int
+	if err := db.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout); err != nil || busyTimeout != 5000 {
+		t.Fatalf("busy_timeout=%d err=%v, want restored 5000ms", busyTimeout, err)
+	}
+}
+
+func TestSQLiteSessionLegacyCheckKeepsFiniteWriterWait(t *testing.T) {
+	path, _, store := openSessionDB(t)
+	token, _, _, err := store.Issue(rbac.Principal{UserID: "user-a", TenantID: "tenant-a", Role: rbac.Owner}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lockDB, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lockDB.Close()
+	lockConn, err := lockDB.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lockConn.Close()
+	if _, err := lockConn.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+		t.Fatal(err)
+	}
+	defer lockConn.ExecContext(context.Background(), "ROLLBACK")
+	started := time.Now()
+	_, _, ok, err := store.lookupWithTimeout(context.Background(), token, 100*time.Millisecond)
+	if ok || err != nil {
+		t.Fatalf("bounded session lookup valid=%t err=%v, want timed-out invalid result", ok, err)
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("bounded session lookup took too long: %s", elapsed)
 	}
 }
 

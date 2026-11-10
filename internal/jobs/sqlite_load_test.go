@@ -370,7 +370,7 @@ func TestSQLiteActorReadsHonorCancellationDuringConnectionWait(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer blocker.Close()
-	for _, operation := range []string{"list", "detail"} {
+	for _, operation := range []string{"list", "detail", "role"} {
 		t.Run(operation, func(t *testing.T) {
 			waitsBefore := store.db.Stats().WaitCount
 			ctx, cancel := context.WithCancel(context.Background())
@@ -381,7 +381,12 @@ func TestSQLiteActorReadsHonorCancellationDuringConnectionWait(t *testing.T) {
 					result <- callErr
 					return
 				}
-				_, callErr := store.GetForContext(ctx, "tenant-a", "user-a", job.ID)
+				if operation == "detail" {
+					_, callErr := store.GetForContext(ctx, "tenant-a", "user-a", job.ID)
+					result <- callErr
+					return
+				}
+				_, callErr := store.RoleForContext(ctx, "tenant-a", "user-a")
 				result <- callErr
 			}()
 			deadline := time.Now().Add(3 * time.Second)

@@ -8,14 +8,17 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/parmtech/tong-panel/internal/rbac"
+	"modernc.org/sqlite"
 )
 
 // SQLiteSessionStore persists revocable token hashes with absolute and idle
 // expiry. It does not expose HTTP login, cookie issuing, or password verification.
 const sqliteSessionIdle = 30 * time.Minute
+const sqliteSessionLookupTimeout = 5 * time.Second
 
 type SQLiteSessionStore struct {
 	db  *sql.DB
@@ -91,22 +94,61 @@ func (s *SQLiteSessionStore) Issue(p rbac.Principal, lifetime time.Duration) (to
 }
 
 func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, bool) {
+	p, csrf, ok, _ := s.lookupContext(context.Background(), token)
+	return p, csrf, ok
+}
+
+func (s *SQLiteSessionStore) lookupContext(ctx context.Context, token string) (rbac.Principal, [32]byte, bool, error) {
+	return s.lookupWithTimeout(ctx, token, sqliteSessionLookupTimeout)
+}
+
+func (s *SQLiteSessionStore) lookupWithTimeout(ctx context.Context, token string, timeout time.Duration) (principal rbac.Principal, csrfHash [32]byte, valid bool, lookupErr error) {
 	var empty [32]byte
+	queryCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	defer func() {
+		if !valid && lookupErr == nil {
+			lookupErr = ctx.Err()
+		}
+	}()
 	if s == nil || s.db == nil {
-		return rbac.Principal{}, empty, false
+		return rbac.Principal{}, empty, false, nil
 	}
 	hash, ok := sessionKey(token)
 	if !ok {
-		return rbac.Principal{}, empty, false
+		return rbac.Principal{}, empty, false, nil
 	}
-	ctx := context.Background()
-	conn, err := s.db.Conn(ctx)
+	conn, err := s.db.Conn(queryCtx)
 	if err != nil {
-		return rbac.Principal{}, empty, false
+		return rbac.Principal{}, empty, false, nil
 	}
 	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
-		return rbac.Principal{}, empty, false
+	var busyTimeout int
+	if err := conn.QueryRowContext(queryCtx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
+		return rbac.Principal{}, empty, false, nil
+	}
+	if _, err := conn.ExecContext(queryCtx, "PRAGMA busy_timeout=0"); err != nil {
+		return rbac.Principal{}, empty, false, nil
+	}
+	defer func() {
+		_, _ = conn.ExecContext(context.Background(), fmt.Sprintf("PRAGMA busy_timeout=%d", busyTimeout))
+	}()
+	for {
+		if _, err := conn.ExecContext(queryCtx, "BEGIN IMMEDIATE"); err == nil {
+			break
+		} else if !sqliteBusy(err) {
+			return rbac.Principal{}, empty, false, nil
+		}
+		timer := time.NewTimer(25 * time.Millisecond)
+		select {
+		case <-queryCtx.Done():
+			timer.Stop()
+			if ctx.Err() != nil {
+				return rbac.Principal{}, empty, false, ctx.Err()
+			}
+			return rbac.Principal{}, empty, false, nil
+		case <-timer.C:
+		}
 	}
 	committed := false
 	defer func() {
@@ -121,7 +163,7 @@ func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, boo
 	var csrf []byte
 	var expires string
 	var idleDeadline int64
-	err = conn.QueryRowContext(ctx, `SELECT m.identity_id,m.tenant_id,m.role,s.csrf_sha256,s.expires_at,s.idle_deadline_unix
+	err = conn.QueryRowContext(queryCtx, `SELECT m.identity_id,m.tenant_id,m.role,s.csrf_sha256,s.expires_at,s.idle_deadline_unix
 		FROM sessions s
 		JOIN memberships m ON m.tenant_id=s.tenant_id AND m.identity_id=s.identity_id
 		JOIN identities i ON i.id=m.identity_id
@@ -129,28 +171,28 @@ func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, boo
 		WHERE s.token_sha256=? AND s.revoked_at IS NULL AND i.disabled=0`, hash[:]).
 		Scan(&p.UserID, &p.TenantID, &p.Role, &csrf, &expires, &idleDeadline)
 	if err != nil || len(csrf) != len(empty) {
-		return rbac.Principal{}, empty, false
+		return rbac.Principal{}, empty, false, nil
 	}
 	parsedExpiry, err := time.Parse(time.RFC3339Nano, expires)
 	if err != nil || !validRole(p.Role) {
-		return rbac.Principal{}, empty, false
+		return rbac.Principal{}, empty, false, nil
 	}
 	if !now.Before(parsedExpiry) {
 		// Absolute expiry never becomes valid again after a clock rollback.
-		if !s.revokeExpiredLookup(ctx, conn, now, hash[:]) {
-			return rbac.Principal{}, empty, false
+		if !s.revokeExpiredLookup(queryCtx, conn, now, hash[:]) {
+			return rbac.Principal{}, empty, false, nil
 		}
 		committed = true
-		return rbac.Principal{}, empty, false
+		return rbac.Principal{}, empty, false, nil
 	}
 	if idleDeadline <= now.Unix() {
 		// An observed idle timeout is permanently revoked. A competing
 		// request that already extended the deadline must not be revoked.
-		if !s.revokeExpiredLookup(ctx, conn, now, hash[:]) {
-			return rbac.Principal{}, empty, false
+		if !s.revokeExpiredLookup(queryCtx, conn, now, hash[:]) {
+			return rbac.Principal{}, empty, false, nil
 		}
 		committed = true
-		return rbac.Principal{}, empty, false
+		return rbac.Principal{}, empty, false, nil
 	}
 	newIdle := now.Add(sqliteSessionIdle)
 	if parsedExpiry.Before(newIdle) {
@@ -159,7 +201,7 @@ func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, boo
 	// A conditional write rechecks revocation and current membership. MAX
 	// makes simultaneous valid reads monotonic, so concurrent requests do not
 	// falsely expire one another after one refreshes the idle deadline.
-	result, err := conn.ExecContext(ctx, `UPDATE sessions SET idle_deadline_unix=MAX(idle_deadline_unix,?)
+	result, err := conn.ExecContext(queryCtx, `UPDATE sessions SET idle_deadline_unix=MAX(idle_deadline_unix,?)
 		WHERE token_sha256=? AND revoked_at IS NULL AND idle_deadline_unix>?
 		AND EXISTS(SELECT 1 FROM memberships m
 			JOIN identities i ON i.id=m.identity_id AND i.disabled=0
@@ -167,18 +209,23 @@ func (s *SQLiteSessionStore) lookup(token string) (rbac.Principal, [32]byte, boo
 			WHERE m.identity_id=sessions.identity_id AND m.tenant_id=sessions.tenant_id
 			AND m.role=?)`, newIdle.Unix(), hash[:], now.Unix(), string(p.Role))
 	if err != nil {
-		return rbac.Principal{}, empty, false
+		return rbac.Principal{}, empty, false, nil
 	}
 	updated, err := result.RowsAffected()
 	if err != nil || updated != 1 {
-		return rbac.Principal{}, empty, false
+		return rbac.Principal{}, empty, false, nil
 	}
-	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
-		return rbac.Principal{}, empty, false
+	if _, err := conn.ExecContext(queryCtx, "COMMIT"); err != nil {
+		return rbac.Principal{}, empty, false, nil
 	}
 	committed = true
 	copy(empty[:], csrf)
-	return p, empty, true
+	return p, empty, true, nil
+}
+
+func sqliteBusy(err error) bool {
+	var sqliteErr *sqlite.Error
+	return errors.As(err, &sqliteErr) && sqliteErr.Code()&0xff == 5
 }
 
 func (s *SQLiteSessionStore) revokeExpiredLookup(ctx context.Context, conn *sql.Conn, now time.Time, hash []byte) bool {
@@ -205,6 +252,14 @@ func (s *SQLiteSessionStore) Check(token string) (rbac.Principal, bool) {
 	return p, ok
 }
 
+// CheckContext revalidates the session while honoring request cancellation.
+// Database and invalid-session failures remain indistinguishable; only caller
+// cancellation is returned as an error.
+func (s *SQLiteSessionStore) CheckContext(ctx context.Context, token string) (rbac.Principal, bool, error) {
+	p, _, ok, err := s.lookupContext(ctx, token)
+	return p, ok, err
+}
+
 func (s *SQLiteSessionStore) CheckCSRF(token, csrf string) bool {
 	_, stored, ok := s.lookup(token)
 	if !ok {
@@ -215,6 +270,18 @@ func (s *SQLiteSessionStore) CheckCSRF(token, csrf string) bool {
 		return false
 	}
 	return subtle.ConstantTimeCompare(stored[:], csrfKey[:]) == 1
+}
+
+func (s *SQLiteSessionStore) CheckCSRFContext(ctx context.Context, token, csrf string) (bool, error) {
+	_, stored, ok, err := s.lookupContext(ctx, token)
+	if err != nil || !ok {
+		return false, err
+	}
+	csrfKey, ok := sessionKey(csrf)
+	if !ok {
+		return false, nil
+	}
+	return subtle.ConstantTimeCompare(stored[:], csrfKey[:]) == 1, nil
 }
 
 func (s *SQLiteSessionStore) Revoke(token string) error {
