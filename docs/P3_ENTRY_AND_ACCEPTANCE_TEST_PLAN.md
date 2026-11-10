@@ -198,6 +198,37 @@ P3 can be proposed for acceptance only when all prerequisite rows are proven and
 
 Each result must be classified **pass / fail / not run / excluded with rationale**. Any cross-tenant access, leaked canary secret, host breakout, untrusted artifact execution, or non-recoverable failed deployment blocks exit. Do not use a percentage-complete claim.
 
+## Manual developer acceptance walkthroughs
+
+Run only after P1/P2 entry gates, the P3 runner boundary, and the relevant UI/API contracts have been accepted. These steps describe outcomes rather than prescribing unreviewed screens or endpoints. Use a disposable lab, synthetic tenants, a disposable Git repository, synthetic credentials, and lab-only DNS/TLS. Never copy production secrets or point tests at a live host.
+
+### Node Git deployment and rollback
+
+1. As a tenant developer, create an app from the pinned Node fixture repository and choose a supported runtime. The app is visibly scoped to the current tenant and repository credential access is least-privileged.
+2. Deploy a known-good commit. Confirm the UI/job history identifies the source revision, runtime pin, build, artifact digest, health result and active release. Verify the app through its assigned lab hostname/TLS route.
+3. Push a second valid commit and deploy it. Verify the new release becomes active only after its health check passes; retain the previous release for rollback.
+4. Push a commit that intentionally fails readiness. Confirm the deployment reports a bounded error and remediation hint, the prior release continues serving, and the failure log contains no canary secret or Git credential.
+5. Roll back to the pinned previous release. Verify route content and release history agree, and the rollback is attributed and auditable.
+6. Rotate a synthetic runtime secret and repeat a deployment/restart. Verify only the intended app receives the new value; API views, build output, process listings visible to another tenant, runtime logs and audit exports do not expose it.
+7. In a second tenant session, attempt to enumerate the app, inspect its job/log/history/artifact, and access its route-management action. Every cross-tenant request is denied without leaking whether protected objects exist.
+
+### Python ASGI deployment and dependency isolation
+
+1. As a different tenant developer, deploy the pinned FastAPI/ASGI fixture with the approved Python runtime and its lockfile.
+2. Verify health and lab hostname/TLS routing. Record runtime and dependency digests; confirm no host Python packages changed.
+3. Deploy a second app using a different supported Python pin and dependency set. Confirm each app starts under its assigned identity and neither can read the other's tree, process secrets or artifacts.
+4. Submit a package/runtime digest mismatch and an unsupported runtime. Both must fail before execution and leave the healthy route/release unchanged.
+5. Trigger a bounded build limit and a failed readiness check. Verify job state is clear, the previous route remains healthy, and cleanup leaves no process, workspace reservation or partial artifact.
+
+### Operator review during both walkthroughs
+
+- The app owner can find deployment state, source revision, health, relevant redacted logs, and a concrete recovery action without access to another tenant's information.
+- An operator can distinguish build failure, health failure, route failure, unsupported runtime and policy denial; diagnostics must not suggest disabling security controls.
+- Keyboard-only operation and accessible status announcements work for long-running deploy, health, failure and rollback states. Any UI-only claim is labeled until the backend operation is verified.
+- Observe guest CPU, memory, disk and process health before, during and after hostile/resource-limit fixtures. Record actual measurements; do not invent thresholds in this plan.
+
+For every walkthrough, record operator role, tenant fixture IDs, source commit, environment and guest image digests, browser/runtime versions, exact job/test IDs, route verification method, expected/actual results per step, redacted evidence locations, reviewer and exclusions. A successful manual walkthrough complements automated negative tests; it does not replace them or establish phase acceptance by itself.
+
 ## Current next action
 
 Maintain this as a reviewable P3 design/test artifact while P1/P2 remain gated. The next implementation action must be selected only after GitHub records the P1 exit decisions and the complete P2 contracts stabilize. Recheck open PRs and current branch heads immediately before that selection to avoid duplicating active work.
