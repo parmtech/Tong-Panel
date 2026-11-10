@@ -30,6 +30,20 @@ Use this map to request exact producer evidence when the upstream phase gates re
 
 Before proposing an implementation issue, each dependency row must link the accepted contract version, exact source commit, relevant test run and artifact, reviewer/maintainer gate decision, and exclusions. A draft PR, component test, or unsigned VM smoke is not a substitute for any required contract.
 
+### P4 architecture-decision and threat crosswalk
+
+The ADR register and threat model are still proposals, not approvals. Resolve the applicable decisions through the repository review process before any privileged adapter or external-service mutation is implemented.
+
+| P4 capability group | Existing decision proposals to review | Threats and minimum P4 evidence |
+|---|---|---|
+| DNS and mail | ADR-006 optional module profiles; ADR-007 typed host boundary, secret encryption and rotation | T08/T09/T13; prove scoped provider credentials, DNS ownership and TLS challenge results, no webhook replay/SSRF, authenticated mail submission, no open relay, quota/rate enforcement, and honest port-25/deliverability status (cases 1, 2, 6) |
+| PostgreSQL and extensions | ADR-003 datastore/job boundaries; ADR-005 supported OS/package matrix; ADR-007 privileged package and credential boundary | T02/T03/T10/T15; prove per-tenant grants, allowlisted extension/package request, denial of arbitrary host operations, bounded restore and recovery from interrupted jobs (cases 3, 7) |
+| Resellers, packages and quotas | ADR-007 authorization at the typed adapter; P1 authentication/RBAC decision record; P2 authoritative quota contract | T01/T02/T15; prove delegated capability ceilings, request/job/adapter reauthorization, atomic quota accounting and safe suspend/restore under retries (case 4) |
+| cPanel/WHM migration | ADR-007 safe staging/privilege boundary; ADR-008 artifact provenance and supported-host/recovery policy | T02/T04/T10/T11/T15; prove hostile archive rejection, no dry-run writes, bounded unprivileged staging, source preservation and resumable compensation limits (cases 5–7) |
+| Operator API, CLI, events and webhooks | ADR-002 API boundary; ADR-007 typed operations and audit; P1 authentication/token decision record | T01/T02/T08/T15; prove scope checks at enqueue and execution, replay-resistant webhook handling, idempotent token rotation, audit attribution and bounded failure recovery (cross-cutting cases 1–7) |
+
+If review rejects or changes one of these proposals, update the affected P4 contract and tests before implementation; do not infer an accepted decision from the presence of this crosswalk.
+
 ## Non-overlapping P4 workstreams
 
 ### DNS and mail design

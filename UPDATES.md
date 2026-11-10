@@ -1,3 +1,9 @@
+### 2026-11-10 19:44 +11:00 — Workstream G, map Phase 4 decisions to repository threats
+- **Branch/state:** docs/p4-hosting-parity-continuation; design-only extension of the saved P4 plan.
+- **Change:** added a P4-specific crosswalk from DNS/mail, PostgreSQL, reseller/quota, migration and operator-interface slices to proposed ADRs, threat IDs and required evidence. The crosswalk explicitly keeps ADRs unapproved pending maintainer review.
+- **Evidence:** compared docs/ADR_REGISTER.md, docs/THREAT_MODEL.md, the P4 blueprint and existing acceptance cases. git diff --check passed; no product tests apply.
+- **Limits:** no policy was approved and no implementation, dependency, host action or external-service operation was added. P1/P2/P3 gates remain unresolved; P4 remains design-only.
+- **Next:** obtain recorded owner/security decisions and exact accepted producer contracts before selecting implementation work.
 ### 2026-11-10 19:41 +11:00 — Workstream G, add P4 capability dependency traceability
 - **Branch/state:** docs/p4-hosting-parity-continuation; continuation of the preserved P4 design checkpoint.
 - **Change:** mapped each P4 capability group to specific P1/P2/P3 producer contracts and its existing numbered acceptance cases. Corrected the design introduction to distinguish passing narrow P2 lab evidence from accepted P2/P3 phase gates.
