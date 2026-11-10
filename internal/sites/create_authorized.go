@@ -8,10 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/parmtech/tong-panel/internal/auth"
 	"github.com/parmtech/tong-panel/internal/rbac"
+	"modernc.org/sqlite"
 )
 
 // CreateFor authorizes and records a site creation under one SQLite writer
@@ -71,14 +73,17 @@ func (c *Catalog) withAuthorizedSiteWrite(ctx context.Context, tenantID, request
 		return fmt.Errorf("open site mutation connection: %w", err)
 	}
 	defer conn.Close()
-	if _, err = conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+	restoreBusyTimeout, err := beginSiteWrite(ctx, conn)
+	if err != nil {
 		return fmt.Errorf("begin guarded site mutation: %w", err)
 	}
+	defer restoreBusyTimeout()
 	defer func() { _, _ = conn.ExecContext(context.Background(), "ROLLBACK") }()
 	recordExpired := func(expiry string, now, expires time.Time) error {
 		if _, err := conn.ExecContext(context.Background(), "ROLLBACK"); err != nil {
 			return fmt.Errorf("rollback expired site mutation: %w", err)
 		}
+		restoreBusyTimeout()
 		if err := conn.Close(); err != nil {
 			return fmt.Errorf("release expired site mutation connection: %w", err)
 		}
@@ -134,4 +139,55 @@ func (c *Catalog) withAuthorizedSiteWrite(ctx context.Context, tenantID, request
 		return fmt.Errorf("commit guarded site mutation: %w", err)
 	}
 	return nil
+}
+
+func beginSiteWrite(ctx context.Context, conn *sql.Conn) (func(), error) {
+	var busyTimeout int
+	if err := conn.QueryRowContext(ctx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
+		return nil, err
+	}
+	var restoreOnce sync.Once
+	restore := func() {
+		restoreOnce.Do(func() {
+			_, _ = conn.ExecContext(context.Background(), fmt.Sprintf("PRAGMA busy_timeout=%d", busyTimeout))
+		})
+	}
+	if _, err := conn.ExecContext(ctx, "PRAGMA busy_timeout=0"); err != nil {
+		restore()
+		return nil, err
+	}
+	lockCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	var lastBusy error
+	for {
+		if _, err := conn.ExecContext(lockCtx, "BEGIN IMMEDIATE"); err == nil {
+			cancel()
+			return restore, nil
+		} else if !isSiteSQLiteBusy(err) {
+			restore()
+			cancel()
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return nil, err
+		} else {
+			lastBusy = err
+		}
+		timer := time.NewTimer(25 * time.Millisecond)
+		select {
+		case <-lockCtx.Done():
+			timer.Stop()
+			restore()
+			cancel()
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return nil, lastBusy
+		case <-timer.C:
+		}
+	}
+}
+
+func isSiteSQLiteBusy(err error) bool {
+	var sqliteErr *sqlite.Error
+	return errors.As(err, &sqliteErr) && sqliteErr.Code()&0xff == 5
 }

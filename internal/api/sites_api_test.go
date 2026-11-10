@@ -122,6 +122,23 @@ func TestSiteAPIRequiresAuthAndEnforcesTenantScope(t *testing.T) {
 	}
 }
 
+func TestSiteCreateCanceledContextDoesNotWriteErrorResponse(t *testing.T) {
+	server, _, db := setupSiteAPI(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/sites", strings.NewReader(`{"site_id":"canceled","primary_domain":"canceled.example.test"}`)).WithContext(ctx)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	server.siteCollection(rec, req, rbac.Principal{UserID: "u1", TenantID: "tenant-a", Role: rbac.Customer})
+	if rec.Body.Len() != 0 {
+		t.Fatalf("canceled site request wrote a response: %d %s", rec.Code, rec.Body.String())
+	}
+	var count int
+	if err := db.QueryRow("SELECT count(*) FROM sites WHERE site_id='canceled'").Scan(&count); err != nil || count != 0 {
+		t.Fatalf("canceled site request committed %d rows err=%v", count, err)
+	}
+}
+
 func TestSiteDatabaseMetadataAPIIsTenantScopedAndSecretFree(t *testing.T) {
 	server, _, _ := setupSiteAPI(t)
 	h := server.Handler()

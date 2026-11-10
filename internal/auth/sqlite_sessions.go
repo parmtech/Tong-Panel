@@ -216,14 +216,15 @@ func beginSessionWrite(ctx context.Context, conn *sql.Conn) (func(), error) {
 		cancel()
 		return nil, err
 	}
-	if _, err := conn.ExecContext(lockCtx, "PRAGMA busy_timeout=0"); err != nil {
-		cancel()
-		return nil, err
-	}
 	restore := func() {
 		_, _ = conn.ExecContext(context.Background(), fmt.Sprintf("PRAGMA busy_timeout=%d", busyTimeout))
 	}
 	fail := func(err error) (func(), error) {
+		restore()
+		cancel()
+		return nil, err
+	}
+	if _, err := conn.ExecContext(lockCtx, "PRAGMA busy_timeout=0"); err != nil {
 		restore()
 		cancel()
 		return nil, err

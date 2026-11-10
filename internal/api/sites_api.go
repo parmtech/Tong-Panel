@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -388,6 +389,8 @@ func (s *Server) siteDomainVerificationComplete(w http.ResponseWriter, r *http.R
 
 func writeSiteError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		return
 	case errors.Is(err, sites.ErrSiteReadDenied):
 		fail(w, http.StatusForbidden, "forbidden")
 	case errors.Is(err, sites.ErrSiteSessionDenied):

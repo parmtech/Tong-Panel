@@ -422,12 +422,12 @@ func withImmediate(ctx context.Context, db *sql.DB, fn func(sqliteSession) error
 	if err := conn.QueryRowContext(ctx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
 		return err
 	}
-	if _, err := conn.ExecContext(ctx, "PRAGMA busy_timeout=0"); err != nil {
-		return err
-	}
 	defer func() {
 		_, _ = conn.ExecContext(context.Background(), fmt.Sprintf("PRAGMA busy_timeout=%d", busyTimeout))
 	}()
+	if _, err := conn.ExecContext(ctx, "PRAGMA busy_timeout=0"); err != nil {
+		return err
+	}
 	for {
 		if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err == nil {
 			break
