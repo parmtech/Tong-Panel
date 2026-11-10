@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	ErrNoJobs    = errors.New("no eligible jobs")
-	ErrLeaseLost = errors.New("job lease is no longer valid")
+	ErrNoJobs            = errors.New("no eligible jobs")
+	ErrLeaseLost         = errors.New("job lease is no longer valid")
+	errInactiveRequester = errors.New("requester is not active in tenant")
 )
 
 const (
@@ -323,7 +324,7 @@ func activeRequester(ctx context.Context, q sqliteSession, tenant, requester str
 		JOIN identities i ON i.id=m.identity_id AND i.disabled=0
 		WHERE m.tenant_id=? AND m.identity_id=?`, tenant, requester).Scan(&found)
 	if errors.Is(err, sql.ErrNoRows) {
-		return errors.New("requester is not active in tenant")
+		return errInactiveRequester
 	}
 	return err
 }

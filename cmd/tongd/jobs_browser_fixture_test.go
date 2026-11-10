@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http/httptest"
 	"os"
@@ -33,10 +34,10 @@ func TestJobsBrowserFixture(t *testing.T) {
 	}
 	defer db.Close()
 	if _, err := db.Exec(`INSERT INTO tenants(id,name) VALUES('tenant-a','A'),('tenant-b','B');
-		INSERT INTO identities(id,username) VALUES('alice','alice'),('bob','bob'),('carol','carol'),('auditor','auditor'),('empty','empty');
+		INSERT INTO identities(id,username) VALUES('alice','alice'),('bob','bob'),('carol','carol'),('auditor','auditor'),('empty','empty'),('bulk','bulk');
 		INSERT INTO memberships(tenant_id,identity_id,role) VALUES
 		('tenant-a','alice','owner'),('tenant-a','bob','customer'),('tenant-b','carol','customer'),
-		('tenant-a','auditor','owner'),('tenant-a','empty','customer');`); err != nil {
+		('tenant-a','auditor','owner'),('tenant-a','empty','customer'),('tenant-a','bulk','customer');`); err != nil {
 		t.Fatal("fixture identities unavailable")
 	}
 	queue, err := jobs.NewSQLiteStore(db)
@@ -71,6 +72,27 @@ func TestJobsBrowserFixture(t *testing.T) {
 	if _, err := db.Exec("UPDATE memberships SET role='auditor' WHERE identity_id='auditor'"); err != nil {
 		t.Fatal("fixture role unavailable")
 	}
+	tx, err := db.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal("fixture bulk transaction unavailable")
+	}
+	defer tx.Rollback()
+	stmt, err := tx.Prepare(`INSERT INTO jobs(id,tenant_id,requested_by,kind,state,idempotency_key) VALUES(?,'tenant-a','bulk','validation.noop','queued',?)`)
+	if err != nil {
+		t.Fatal("fixture bulk statement unavailable")
+	}
+	for i := 1; i <= 1500; i++ {
+		if _, err := stmt.Exec(fmt.Sprintf("%032x", i), fmt.Sprintf("bulk-fixture-%04d", i)); err != nil {
+			stmt.Close()
+			t.Fatal("fixture bulk jobs unavailable")
+		}
+	}
+	if err := stmt.Close(); err != nil {
+		t.Fatal("fixture bulk statement close failed")
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal("fixture bulk commit failed")
+	}
 	sessions, err := auth.NewSQLiteSessionStore(db)
 	if err != nil {
 		t.Fatal("fixture sessions unavailable")
@@ -82,6 +104,7 @@ func TestJobsBrowserFixture(t *testing.T) {
 		{UserID: "carol", TenantID: "tenant-b", Role: rbac.Customer},
 		{UserID: "auditor", TenantID: "tenant-a", Role: rbac.Auditor},
 		{UserID: "empty", TenantID: "tenant-a", Role: rbac.Customer},
+		{UserID: "bulk", TenantID: "tenant-a", Role: rbac.Customer},
 	} {
 		token, _, _, err := sessions.Issue(principal, time.Hour)
 		if err != nil {

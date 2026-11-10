@@ -1,7 +1,7 @@
 import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
 import { downloadTenantFile, listTenantFiles, type FileEntry } from './files-explorer.mjs';
-import { loadMyJobs, loadMyJob, MyJobsError, type MyJob } from './my-jobs.mjs';
+import { loadMyJobsPage, loadMyJob, MyJobsError, type MyJob } from './my-jobs.mjs';
 
 export {};
 type Tile = { title: string; icon: string; subtitle: string; stage: string };
@@ -91,6 +91,10 @@ sitePreviewForm?.addEventListener('submit', async (event: SubmitEvent) => {
 const jobsRefresh = document.querySelector<HTMLButtonElement>('#jobs-refresh');
 const jobsStatus = document.querySelector<HTMLElement>('#jobs-status');
 const jobsList = document.querySelector<HTMLUListElement>('#jobs-list');
+const jobsPagination = document.querySelector<HTMLElement>('#jobs-pagination');
+const jobsPrevious = document.querySelector<HTMLButtonElement>('#jobs-previous');
+const jobsNext = document.querySelector<HTMLButtonElement>('#jobs-next');
+const jobsPage = document.querySelector<HTMLElement>('#jobs-page');
 const jobDetail = document.querySelector<HTMLElement>('#job-detail');
 const jobDetailTitle = document.querySelector<HTMLElement>('#job-detail-title');
 const jobDetailStatus = document.querySelector<HTMLElement>('#job-detail-status');
@@ -101,6 +105,8 @@ let detailRequest = 0;
 let jobsController: AbortController | undefined;
 let detailController: AbortController | undefined;
 let selectedJob: string | undefined;
+let jobsCursors: string[] = [''];
+let jobsNextAfter = '';
 
 function jobsErrorCode(error: unknown): string {
  return error instanceof MyJobsError ? error.code : 'unavailable';
@@ -135,6 +141,8 @@ function clearJobsForAccessFailure(code: string): void {
  jobsController?.abort();
  jobsList?.replaceChildren();
  jobsList?.removeAttribute('aria-busy');
+ jobsCursors = ['']; jobsNextAfter = '';
+ if(jobsPagination) jobsPagination.hidden = true;
  clearJobDetail();
  if(jobsStatus) { jobsStatus.textContent = jobsErrorMessage(code); jobsStatus.dataset.state = code; }
  if(jobsRefresh) { jobsRefresh.textContent = 'Refresh jobs'; jobsRefresh.removeAttribute('aria-busy'); }
@@ -159,20 +167,28 @@ function renderJobs(jobs: MyJob[]): void {
   copy.append(kind, id, summary); row.append(copy, button); jobsList.append(row);
  }
 }
-async function refreshJobs(): Promise<void> {
+async function showJobsPage(cursors: string[], moveFocus = false): Promise<void> {
  if(!jobsStatus || !jobsList || !jobsRefresh) return;
  const request = ++jobsRequest;
  jobsController?.abort(); jobsController = new AbortController();
  const controller = jobsController;
  clearJobDetail(); jobsList.replaceChildren(); jobsList.setAttribute('aria-busy', 'true');
+ if(jobsPagination) jobsPagination.hidden = true;
  jobsRefresh.setAttribute('aria-busy', 'true'); jobsRefresh.textContent = 'Refresh jobs';
  jobsStatus.dataset.state = 'loading'; jobsStatus.textContent = 'Loading jobs for your current session…';
+ if(moveFocus) jobsStatus.focus();
  try{
-  const jobs = await loadMyJobs(undefined, {signal: controller.signal});
+  const page = await loadMyJobsPage(cursors[cursors.length - 1], undefined, {signal: controller.signal});
   if(request !== jobsRequest || controller.signal.aborted) return;
-  renderJobs(jobs);
-  jobsStatus.dataset.state = jobs.length ? 'available' : 'empty';
-  jobsStatus.textContent = jobs.length ? `${jobs.length} ${jobs.length === 1 ? 'job' : 'jobs'} returned for your current session. Select a job to read its metadata.` : 'No jobs returned for your current access.';
+  jobsCursors = cursors; jobsNextAfter = page.next_after;
+  renderJobs(page.jobs);
+  jobsStatus.dataset.state = page.jobs.length ? 'available' : 'empty';
+  jobsStatus.textContent = page.jobs.length ? `Page ${cursors.length}: ${page.jobs.length} ${page.jobs.length === 1 ? 'job' : 'jobs'} returned for your current session. Select a job to read its metadata.` : 'No jobs returned for your current access.';
+  if(jobsPagination && jobsPrevious && jobsNext && jobsPage) {
+   jobsPrevious.disabled = cursors.length === 1; jobsNext.disabled = !page.next_after;
+   jobsPage.textContent = `Page ${cursors.length}`;
+   jobsPagination.hidden = cursors.length === 1 && !page.next_after;
+  }
  }catch(error){
   if(request !== jobsRequest || controller.signal.aborted) return;
   const code = jobsErrorCode(error);
@@ -207,7 +223,9 @@ async function selectJob(id: string, moveFocus: boolean): Promise<void> {
   jobDetailStatus.dataset.state = code; jobDetailStatus.textContent = jobsErrorMessage(code); jobDetailRetry.hidden = false;
  }finally{ if(request === detailRequest) jobDetail.removeAttribute('aria-busy'); }
 }
-jobsRefresh?.addEventListener('click', () => void refreshJobs());
+jobsRefresh?.addEventListener('click', () => void showJobsPage(['']));
+jobsPrevious?.addEventListener('click', () => { if(jobsCursors.length > 1) void showJobsPage(jobsCursors.slice(0, -1), true); });
+jobsNext?.addEventListener('click', () => { if(jobsNextAfter) void showJobsPage([...jobsCursors, jobsNextAfter], true); });
 jobDetailRetry?.addEventListener('click', () => { if(selectedJob) void selectJob(selectedJob, true); });
 
 const filesRefresh = document.querySelector<HTMLButtonElement>('#files-refresh');

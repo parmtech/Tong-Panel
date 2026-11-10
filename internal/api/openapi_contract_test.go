@@ -100,6 +100,8 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 	run((&Server{}).Handler(), "unconfigured auth", "getCurrentPrincipal", "GET", "/api/v1/me", "", "", "", 503, "auth_unconfigured", nil)
 	run((&Server{Keys: s.Keys}).Handler(), "unconfigured jobs", "listJobs", "GET", "/api/v1/jobs", secret, "", "", 503, "jobs_unconfigured", nil)
 	plain("empty SQLite queue", "listJobs", "GET", "/api/v1/jobs", "", 200)
+	plain("empty SQLite bounded page", "listJobs", "GET", "/api/v1/jobs?limit=2", "", 200)
+	run(h, "invalid page limit", "listJobs", "GET", "/api/v1/jobs?limit=101", secret, "", "", 400, "invalid_page", nil)
 	journal := setup(t)
 	run(journal.Handler(), "empty journal queue", "listJobs", "GET", "/api/v1/jobs", secret, "", "", 200, "", nil)
 	created := run(h, "enqueue", "createJob", "POST", "/api/v1/jobs", secret, "application/json", `{"kind":"validation.noop"}`, 202, "", idem)
@@ -107,6 +109,16 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 	if err := json.Unmarshal(created.Body.Bytes(), &job); err != nil || job.ID == "" {
 		t.Fatal("missing created job ID")
 	}
+	run(h, "enqueue additional page fixture", "createJob", "POST", "/api/v1/jobs", secret, "application/json", `{"kind":"validation.noop"}`, 202, "", func(req *http.Request) { req.Header.Set("Idempotency-Key", "contract-page-extra-0001") })
+	pageResponse := plain("bounded page with continuation", "listJobs", "GET", "/api/v1/jobs?limit=1", "", 200)
+	var page struct {
+		Jobs []jobs.Job `json:"jobs"`
+		Next string     `json:"next_after"`
+	}
+	if err := json.Unmarshal(pageResponse.Body.Bytes(), &page); err != nil || len(page.Jobs) != 1 || page.Next != page.Jobs[0].ID {
+		t.Fatal("bounded contract page missing continuation")
+	}
+	plain("bounded page after job", "listJobs", "GET", "/api/v1/jobs?after="+job.ID, "", 200)
 	replay := run(h, "idempotent enqueue", "createJob", "POST", "/api/v1/jobs", secret, "application/json", `{"kind":"validation.noop"}`, 202, "", idem)
 	var replayJob jobs.Job
 	if err := json.Unmarshal(replay.Body.Bytes(), &replayJob); err != nil || replayJob.ID != job.ID {

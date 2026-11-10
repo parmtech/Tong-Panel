@@ -9,6 +9,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/parmtech/tong-panel/internal/auth"
@@ -182,6 +184,34 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 			fail(w, 403, "forbidden")
 			return
 		}
+		after, limit, paged, err := parseJobPage(r.URL.RawQuery)
+		if err != nil {
+			fail(w, 400, "invalid_page")
+			return
+		}
+		if paged {
+			var items []jobs.Job
+			var next string
+			if s.SQLJobs != nil {
+				items, next, err = s.SQLJobs.ListPageFor(r.Context(), p.TenantID, p.UserID, after, limit)
+			} else {
+				items, next, err = s.Jobs.ListPage(r.Context(), p.TenantID, after, limit)
+			}
+			if errors.Is(err, jobs.ErrInvalidPage) {
+				fail(w, 400, "invalid_page")
+				return
+			}
+			if errors.Is(err, jobs.ErrNotFound) {
+				fail(w, 403, "forbidden")
+				return
+			}
+			if err != nil {
+				fail(w, 503, "jobs_unavailable")
+				return
+			}
+			writeJSON(w, 200, map[string]any{"jobs": items, "next_after": next})
+			return
+		}
 		if s.SQLJobs != nil {
 			items, err := s.SQLJobs.ListFor(p.TenantID, p.UserID)
 			if errors.Is(err, jobs.ErrNotFound) {
@@ -252,6 +282,58 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 		w.Header().Set("Allow", "GET, POST")
 		fail(w, 405, "method_not_allowed")
 	}
+}
+
+// Paging is opt-in, preserving historical no-query and unrelated-query GETs.
+// Decode keys independently so a malformed recognized value cannot silently
+// fall back to the legacy unbounded response.
+func parseJobPage(raw string) (after string, limit int, paged bool, err error) {
+	for _, pair := range strings.Split(raw, "&") {
+		key, _, _ := strings.Cut(pair, "=")
+		decoded, decodeErr := url.QueryUnescape(key)
+		if decodeErr == nil && (decoded == "limit" || decoded == "after") {
+			paged = true
+		}
+	}
+	if !paged {
+		return "", 0, false, nil
+	}
+	values, err := url.ParseQuery(raw)
+	if err != nil {
+		return "", 0, true, jobs.ErrInvalidPage
+	}
+	for key, entries := range values {
+		if (key != "limit" && key != "after") || len(entries) != 1 {
+			return "", 0, true, jobs.ErrInvalidPage
+		}
+	}
+	limit = 50
+	if entries, ok := values["limit"]; ok {
+		if entries[0] == "" {
+			return "", 0, true, jobs.ErrInvalidPage
+		}
+		for _, digit := range entries[0] {
+			if digit < '0' || digit > '9' {
+				return "", 0, true, jobs.ErrInvalidPage
+			}
+		}
+		limit, err = strconv.Atoi(entries[0])
+		if err != nil || limit < 1 || limit > 100 {
+			return "", 0, true, jobs.ErrInvalidPage
+		}
+	}
+	if entries, ok := values["after"]; ok {
+		after = entries[0]
+		if len(after) != 32 {
+			return "", 0, true, jobs.ErrInvalidPage
+		}
+		for _, digit := range after {
+			if (digit < '0' || digit > '9') && (digit < 'a' || digit > 'f') {
+				return "", 0, true, jobs.ErrInvalidPage
+			}
+		}
+	}
+	return after, limit, true, nil
 }
 
 // jobDetail is read-only unless SQLJobs is explicitly configured. JSON-journal

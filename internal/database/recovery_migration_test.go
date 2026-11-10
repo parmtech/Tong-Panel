@@ -41,7 +41,7 @@ func TestRecoveryMigrationUpgradesV11AndPreservesMetadata(t *testing.T) {
 		t.Fatalf("migration lost existing metadata: %v", err)
 	}
 	var version, sets, codes int
-	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 12 {
+	if err := db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != SchemaVersion {
 		t.Fatalf("version=%d err=%v", version, err)
 	}
 	if err := db.QueryRow("SELECT count(*) FROM mfa_recovery_sets").Scan(&sets); err != nil || sets != 0 {

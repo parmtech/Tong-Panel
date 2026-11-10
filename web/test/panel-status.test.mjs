@@ -138,12 +138,12 @@ test('Refresh button announces a result, blocks duplicate clicks, then retries',
         .replace("import { loadPanelStatus } from './panel-status.mjs';", 'const loadPanelStatus = globalThis.testLoadPanelStatus;')
         .replace("import { loadNginxPreview } from './site-preview.mjs';", 'const loadNginxPreview = globalThis.testLoadNginxPreview;')
         .replace("import { downloadTenantFile, listTenantFiles } from './files-explorer.mjs';", 'const downloadTenantFile = globalThis.testDownloadTenantFile; const listTenantFiles = globalThis.testListTenantFiles;')
-        .replace("import { loadMyJobs, loadMyJob, MyJobsError } from './my-jobs.mjs';", 'const loadMyJobs = globalThis.testLoadMyJobs; const loadMyJob = globalThis.testLoadMyJob; const MyJobsError = globalThis.testMyJobsError;')
+        .replace("import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';", 'const loadMyJobsPage = globalThis.testLoadMyJobsPage; const loadMyJob = globalThis.testLoadMyJob; const MyJobsError = globalThis.testMyJobsError;')
         .replace(/\nexport \{\};\s*$/, '\n');
     runInNewContext(source, {
         document,
         testLoadPanelStatus: () => loadPanelStatus(fetcher),
-        testLoadMyJobs: async () => [],
+        testLoadMyJobsPage: async () => ({ jobs: [], next_after: '' }),
         testLoadMyJob: async () => ({}),
         testMyJobsError: class extends Error {},
         testLoadNginxPreview: async () => '',

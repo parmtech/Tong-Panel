@@ -264,6 +264,41 @@ test('existing file explorer remains wired when the fixture has no file backend'
     await expect(page.locator('#files-status')).toHaveText('File access is not enabled on this server yet.');
 });
 
+test('large actual job history navigates bounded pages and returns to the first page', async ({ page }) => {
+    await open(page, 'bulk');
+    const legacyBytes = await page.evaluate(async () => {
+        const response = await fetch('/api/v1/jobs', { credentials: 'same-origin' });
+        return new TextEncoder().encode(await response.text()).byteLength;
+    });
+    expect(legacyBytes).toBeGreaterThan(256 * 1024);
+    await load(page);
+    await expect(page.locator('#jobs-list .job-entry')).toHaveCount(50);
+    await expect(page.locator('#jobs-page')).toHaveText('Page 1');
+    await expect(page.locator('#jobs-previous')).toBeDisabled();
+    const first = await page.locator('button[data-job-id]').evaluateAll(buttons => buttons.map(button => button.dataset.jobId));
+    await page.locator('#jobs-next').click();
+    await expect(page.locator('#jobs-page')).toHaveText('Page 2');
+    await expect(page.locator('#jobs-status')).toBeFocused();
+    await expect(page.locator('#jobs-list .job-entry')).toHaveCount(50);
+    const second = await page.locator('button[data-job-id]').evaluateAll(buttons => buttons.map(button => button.dataset.jobId));
+    expect(second.every(id => !first.includes(id))).toBe(true);
+    await page.locator('#jobs-previous').click();
+    await expect(page.locator('#jobs-page')).toHaveText('Page 1');
+    expect(await page.locator('button[data-job-id]').evaluateAll(buttons => buttons.map(button => button.dataset.jobId))).toEqual(first);
+    await expect(page.locator('#jobs-list')).not.toContainText(fixture.IDs.completed);
+});
+
+test('failed page navigation retains keyboard focus on the status', async ({ page }) => {
+    await open(page, 'bulk');
+    await load(page);
+    await page.route(url => url.pathname === '/api/v1/jobs' && url.searchParams.has('after'), route => route.fulfill({
+        status: 503, contentType: 'application/json', body: JSON.stringify({ error: { code: 'jobs_unavailable' } }),
+    }));
+    await page.locator('#jobs-next').click();
+    await expect(page.locator('#jobs-status')).toHaveAttribute('data-state', 'jobs_unavailable');
+    await expect(page.locator('#jobs-status')).toBeFocused();
+});
+
 test('mocked HTML-looking job metadata stays literal text without executing script', async ({ page }) => {
     await open(page);
     const tenant = '<img src=x onerror="globalThis.tongJobInjection=true">';
@@ -278,8 +313,8 @@ test('mocked HTML-looking job metadata stays literal text without executing scri
         created_at: '2026-10-28T01:00:00Z',
         updated_at: '2026-10-28T01:01:00Z',
     };
-    await page.route('**/api/v1/jobs', route => route.fulfill({
-        status: 200, contentType: 'application/json', body: JSON.stringify({ jobs: [job] }),
+    await page.route(url => url.pathname === '/api/v1/jobs' && url.searchParams.has('limit'), route => route.fulfill({
+        status: 200, contentType: 'application/json', body: JSON.stringify({ jobs: [job], next_after: "" }),
     }));
     await page.route(`**/api/v1/jobs/${job.id}`, route => route.fulfill({
         status: 200, contentType: 'application/json', body: JSON.stringify(job),
@@ -309,14 +344,14 @@ test('overlapping refresh keeps actual current jobs after a held stale list is r
     const release = new Promise(resolve => { releaseHeld = resolve; });
     const released = new Promise(resolve => { markReleased = resolve; });
     let first = true;
-    await page.route('**/api/v1/jobs', async route => {
+    await page.route(url => url.pathname === '/api/v1/jobs' && url.searchParams.has('limit'), async route => {
         if (!first) return route.continue(); // The second request reaches the real Go handler.
         first = false;
         heldRequest = route.request();
         markHeld();
         await release;
         try {
-            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ jobs: [staleJob] }) });
+            await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ jobs: [staleJob], next_after: "" }) });
         } catch (error) {
             // An intentionally aborted first request may no longer accept a
             // response. Other fulfillment failures must still fail the test.

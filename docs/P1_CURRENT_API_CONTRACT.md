@@ -85,6 +85,23 @@ Unix seconds; job times are date-time strings. Empty journal job lists are `null
 SQLite own-job and site-database lists return arrays. Job `requested_by` is omitted
 by the JSON journal and present in SQLite mode.
 
+`GET /api/v1/jobs` supports opt-in paging when `limit` or `after` occurs in the
+query. A paged request accepts only those two keys, once each. `limit` is a
+decimal integer from 1 to 100 and defaults to 50; a supplied `after` must be a
+nonempty 32-character lowercase hexadecimal job ID. Invalid, duplicate, unknown
+or malformed page parameters return 400 `invalid_page`. Pages return
+`{"jobs":[],"next_after":""}` with at most the requested number of jobs, sorted
+by ascending ID. A nonempty `next_after` is the final returned ID and means more
+visible jobs remain. It is a position, not authority to read another requester
+or tenant. Each page rechecks the caller's current access.
+
+Pages are live reads rather than a frozen history: inserts before the cursor
+appear only after refreshing from the beginning. No-query and unrelated-query-only
+legacy GETs still return the original unbounded list, including journal `null`
+when empty. POST query behavior is unchanged. The response's disjoint `oneOf`
+schemas distinguish the legacy list from a bounded page; paging does not enable
+job mutations, cookie/session issuance or production authentication.
+
 Only job creation requires `Idempotency-Key`: use 8–128 ASCII bytes. Identical
 retries return the original job with 202; tenant-scoped reuse for different work
 conflicts, and SQLite also binds the requester. Current mutation permission is

@@ -102,7 +102,7 @@ async function request(path, fetcher, { signal, timeoutMs = 10000 } = {}) {
             try { data = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, length))); }
             catch { throw new MyJobsError('invalid_response'); }
             if (!response.ok) {
-                if (response.status === 404 && path !== '/api/v1/jobs') throw new MyJobsError('not_found');
+                if (response.status === 404 && path.split('?')[0] !== '/api/v1/jobs') throw new MyJobsError('not_found');
                 const code = data?.error?.code;
                 if (response.status === 503 && ['auth_unconfigured', 'jobs_unconfigured', 'jobs_unavailable'].includes(code)) throw new MyJobsError(code);
                 throw new MyJobsError('unavailable');
@@ -128,6 +128,25 @@ export async function loadMyJobs(fetcher = globalThis.fetch, options) {
     const result = (data.jobs ?? []).map(validateJob);
     if (new Set(result.map(job => job.id)).size !== result.length) throw new MyJobsError('invalid_response');
     return result;
+}
+
+// Explicit pagination bounds each response while preserving the legacy API for
+// other development clients. The cursor is an ordering boundary, not authority.
+export async function loadMyJobsPage(after = '', fetcher = globalThis.fetch, options) {
+    if (typeof after !== 'string' || (after !== '' && !jobID.test(after))) throw new MyJobsError('invalid_response');
+    const path = `/api/v1/jobs?limit=50${after ? `&after=${after}` : ''}`;
+    const data = await request(path, fetcher, options);
+    if (!data || typeof data !== 'object' || Array.isArray(data) || !Array.isArray(data.jobs)
+        || data.jobs.length > 50 || typeof data.next_after !== 'string'
+        || (data.next_after !== '' && !jobID.test(data.next_after))) throw new MyJobsError('invalid_response');
+    const jobs = data.jobs.map(validateJob);
+    let previous = after;
+    for (const job of jobs) {
+        if (previous && job.id <= previous) throw new MyJobsError('invalid_response');
+        previous = job.id;
+    }
+    if (data.next_after && (jobs.length !== 50 || data.next_after !== jobs[jobs.length - 1].id)) throw new MyJobsError('invalid_response');
+    return { jobs, next_after: data.next_after };
 }
 
 export async function loadMyJob(id, fetcher = globalThis.fetch, options) {

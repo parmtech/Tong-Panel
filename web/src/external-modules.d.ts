@@ -26,5 +26,7 @@ declare module '*.mjs' {
     export interface MyJobsOptions { signal?: AbortSignal; timeoutMs?: number; }
     export class MyJobsError extends Error { code: string; }
     export function loadMyJobs(fetcher?: typeof fetch, options?: MyJobsOptions): Promise<MyJob[]>;
+    export interface MyJobsPage { jobs: MyJob[]; next_after: string; }
+    export function loadMyJobsPage(after?: string, fetcher?: typeof fetch, options?: MyJobsOptions): Promise<MyJobsPage>;
     export function loadMyJob(id: string, fetcher?: typeof fetch, options?: MyJobsOptions): Promise<MyJob>;
 }

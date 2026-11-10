@@ -1,11 +1,34 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { loadMyJob, loadMyJobs, MyJobsError } from '../../cmd/tongd/ui/my-jobs.mjs';
+import { loadMyJob, loadMyJobs, loadMyJobsPage, MyJobsError } from '../../cmd/tongd/ui/my-jobs.mjs';
 
 const fixture = () => ({ id: 'a'.repeat(32), tenant_id: 'tenant-a', requested_by: 'user-a', kind: 'validation.noop',
     state: 'queued', idempotency_key: 'request-fixture-001', created_at: '2026-11-10T01:02:03.123456789Z', updated_at: '2026-11-10T01:02:03Z' });
 const response = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 const rejects = (promise, code) => assert.rejects(promise, error => error instanceof MyJobsError && error.code === code && !error.message.includes('private-canary'));
+
+test('requests bounded, ordered pages and validates continuation boundaries', async () => {
+    const items = Array.from({ length: 50 }, (_, i) => ({ ...fixture(), id: (i + 1).toString(16).padStart(32, '0') }));
+    const first = await loadMyJobsPage('', async (path, options) => {
+        assert.equal(path, '/api/v1/jobs?limit=50');
+        assert.equal(options.credentials, 'same-origin');
+        return response({ jobs: items, next_after: items[49].id });
+    });
+    assert.equal(first.jobs.length, 50);
+    const next = { ...fixture(), id: (51).toString(16).padStart(32, '0') };
+    assert.deepEqual(await loadMyJobsPage(first.next_after, async path => {
+        assert.equal(path, `/api/v1/jobs?limit=50&after=${items[49].id}`);
+        return response({ jobs: [next], next_after: '' });
+    }), { jobs: [next], next_after: '' });
+    for (const data of [{ jobs: null, next_after: '' }, { jobs: items, next_after: 'bad' },
+        { jobs: items.slice(0, 1), next_after: items[0].id }, { jobs: [items[1], items[0]], next_after: '' },
+        { jobs: [...items, next], next_after: '' }, { jobs: items }]) {
+        await rejects(loadMyJobsPage('', async () => response(data)), 'invalid_response');
+    }
+    await rejects(loadMyJobsPage(items[0].id, async () => response({ jobs: [items[0]], next_after: '' })), 'invalid_response');
+    await rejects(loadMyJobsPage('../bad', () => assert.fail('unsafe cursor issued')), 'invalid_response');
+    await rejects(loadMyJobsPage('', async () => response({ error: { code: 'private-canary' } }, 404)), 'unavailable');
+});
 
 test('requests only fixed same-origin read-only paths and projects validated metadata', async () => {
     const job = fixture();

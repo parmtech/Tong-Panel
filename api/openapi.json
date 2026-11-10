@@ -445,10 +445,10 @@
         ],
         "x-tong-rbac-action": "jobs:read",
         "x-tong-backend-gate": "JSON journal or SQLite job store.",
-        "description": "SQLite returns only the active requester's own jobs; owner/admin are not cross-user exceptions. JSON-journal mode is tenant-scoped and has no requester attribution. No pagination is implemented.",
+        "description": "SQLite returns only the active requester's own jobs; owner/admin are not cross-user exceptions. JSON-journal mode is tenant-scoped and has no requester attribution. A recognized limit or after query key opts into bounded ID-ascending pages. Paged requests allow only limit and after, each at most once; limit defaults to 50 and ranges from 1 to 100, while an explicitly supplied after must be 32 lowercase hexadecimal characters. The cursor is only a position, never authorization. next_after is the last returned ID only when more visible jobs exist, otherwise empty. Pages are live reads, not a frozen snapshot; newly inserted IDs before the cursor require a fresh traversal. No-query and unrelated-query-only legacy requests remain unbounded and return the original JobList shape. POST is unchanged.",
         "responses": {
           "200": {
-            "description": "Visible jobs; journal empty list may be null.",
+            "description": "Legacy visible jobs (journal empty may be null), or an opt-in bounded page with an array and next_after.",
             "headers": {
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestID"
@@ -463,7 +463,38 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobList"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/JobList"
+                    },
+                    {
+                      "$ref": "#/components/schemas/JobPage"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A paged request has an invalid limit/cursor, duplicate parameter, unknown parameter or malformed query encoding.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_page"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -569,7 +600,33 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Opts into paging. Decimal integer 1-100; default 50 when paging is selected by after alone. Each page parameter may occur once.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "Opts into paging and returns only visible IDs strictly after this position. Use the previous next_after; this does not grant access to the cursor owner. Omit for the first page; an explicit empty value is invalid.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$",
+              "minLength": 32,
+              "maxLength": 32
+            }
+          }
+        ]
       },
       "post": {
         "operationId": "createJob",
@@ -4588,6 +4645,7 @@
                   "invalid_request",
                   "idempotency_conflict",
                   "invalid_job",
+                  "invalid_page",
                   "not_found",
                   "sql_jobs_required",
                   "job_not_cancellable",
@@ -4764,6 +4822,28 @@
             },
             "nullable": true,
             "description": "An empty JSON-journal list is null; SQLite own-job lists return [] when empty."
+          }
+        }
+      },
+      "JobPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "jobs",
+          "next_after"
+        ],
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/Job"
+            }
+          },
+          "next_after": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{32})?$",
+            "description": "Empty at the end; otherwise the final returned job ID, with more visible jobs available."
           }
         }
       },
