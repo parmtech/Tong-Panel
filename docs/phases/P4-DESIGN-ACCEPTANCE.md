@@ -79,6 +79,50 @@ If review rejects or changes one of these proposals, update the affected P4 cont
 - Reconciliation compares desired manifest with destination inventory under a pinned revision, shows create/update/skip/conflict actions and exact pending writes, and requires a fresh review if the source or destination revision changes.
 - Execution, once later authorized by upstream gates, should be resumable and idempotent by migration ID and step; record a durable journal, validate post-import services, preserve source, and provide rollback/compensation boundaries. DNS cutover is a separate explicit operator decision with TTL/propagation checks and reversal plan.
 
+#### Candidate dry-run report contract (review only)
+
+The following shape makes the already-required manifest fields and safe preview behavior testable. It is a **proposal for review**, not an approved API or execution schema. Keep identifiers opaque, use stable reason codes, and never include passwords, tokens, DKIM keys, serialized source secrets, or host filesystem paths.
+
+```json
+{
+  "schema_version": "tongpanel.migration-dry-run/v1",
+  "source": {
+    "format": "cpanel-whm",
+    "archive_sha256": "<64 lowercase hex characters>"
+  },
+  "parser": { "id": "cpanel-whm", "version": "<pinned parser version>" },
+  "destination": { "inventory_revision": "<pinned opaque revision>" },
+  "generated_at": "<RFC 3339 UTC timestamp>",
+  "result": "blocked",
+  "inventory": [
+    { "source_ref": "<opaque ref>", "kind": "mailbox", "classification": "supported" }
+  ],
+  "planned_actions": [
+    {
+      "step_ref": "<stable ref>",
+      "action": "manual_review",
+      "source_ref": "<opaque ref>",
+      "destination_ref": null,
+      "reason_codes": ["destination_conflict"],
+      "depends_on": []
+    }
+  ],
+  "required_capabilities": ["mail.profile.v1"],
+  "secret_actions": [
+    { "source_ref": "<opaque ref>", "kind": "mailbox_credential", "action": "reset" }
+  ],
+  "unsupported_items": [],
+  "warnings": [],
+  "resource_estimates": { "expanded_bytes": 0, "database_bytes": 0, "file_bytes": 0 },
+  "limits_observed": { "entries": 0, "expanded_bytes": 0, "elapsed_ms": 0 },
+  "plan_fingerprint": "<sha256 of canonical plan fields>"
+}
+```
+
+`result` is limited to `ready`, `blocked`, `partial`, or `rejected`; `ready` means the preview is fully classified, not that any import ran. A partial or rejected report must contain no executable write plan. Sort inventory, actions, reason codes and capability lists deterministically. Compute `plan_fingerprint` from canonical source/parser/destination revisions, inventory classifications, planned actions, secret actions, warnings and estimates; exclude `generated_at`, temporary staging names and the fingerprint itself. A new source digest or destination revision invalidates approval and requires a fresh preview. Estimates and limits must state units and reflect observed data, never source-declared sizes alone.
+
+Candidate contract tests: identical archive bytes, parser version and destination revision yield the same fingerprint; changing source bytes, parser version or destination revision changes it; action dependencies form an acyclic graph and every inventory reference resolves; all planned creates/updates appear in the review list; unsupported/manual-review items cannot be executed; credential canaries never appear in serialized output or logs; limit overflow rejects without an executable plan; and a dry-run leaves durable destination state unchanged and removes temporary staging on success, failure and cancellation.
+
 ## P4 acceptance specification (not yet executed)
 
 1. **DNS provider matrix:** in isolated test doubles and a disposable authoritative-DNS lab, verify create/update/delete/import/export, DNSSEC invalid states, split-horizon behavior, stale revisions, idempotent retry, provider timeout/rate-limit, partial failure, propagation pending/failure, credential scope and drift reconciliation.

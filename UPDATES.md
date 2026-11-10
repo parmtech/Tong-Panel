@@ -1,3 +1,9 @@
+### 2026-11-10 19:49 +11:00 — Workstream G, specify migration dry-run report contract
+- **Branch/state:** docs/p4-hosting-parity-continuation; proposal added to the existing Phase 4 checkpoint.
+- **Change:** added a nonbinding versioned report shape, result semantics, stable plan fingerprint inputs, revision invalidation, secrecy constraints and focused candidate contract tests for P4 migration dry-run.
+- **Evidence:** embedded JSON example parses with ConvertFrom-Json; Markdown local links resolve; git diff --check passed. Product tests not run; no parser or import implementation was added.
+- **Security/licence/blockers:** schema remains explicitly unapproved. No archive processed, destination write, dependency, service action or live-host change. P1/P2/P3 gates remain open.
+- **Next:** review the candidate contract with maintainers and security owners only after phase entry gates; then derive implementation tests from the accepted version.
 ### 2026-11-10 19:44 +11:00 — Workstream G, map Phase 4 decisions to repository threats
 - **Branch/state:** docs/p4-hosting-parity-continuation; design-only extension of the saved P4 plan.
 - **Change:** added a P4-specific crosswalk from DNS/mail, PostgreSQL, reseller/quota, migration and operator-interface slices to proposed ADRs, threat IDs and required evidence. The crosswalk explicitly keeps ADRs unapproved pending maintainer review.
