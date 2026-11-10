@@ -365,3 +365,10 @@ Issue [#148](https://github.com/parmtech/Tong-Panel/issues/148) tracks maintaine
 - **Change:** detailed the Phase 5 usage/billing scenarios with five synthetic fixtures: duplicate delivery, conflicting duplicate identity, delayed/offline reports across restart, clock skew and tenant transfer, and billing during unverified/correction states. Required results protect attribution, idempotence and auditability without prescribing a ledger schema or billing integration. Rechecked latest P3 `e84bf54c7608ade953d29c322d60c486bbcfdf89` (entry still NOT PROVEN) and P4 continuation `0202ff4773b91c8792546b756c889d15bf07bf6a` (still BLOCKED/design-only); preserved P4 checkpoint remains `0029b39aa5ebb2056506892b18b400a31402977b`.
 - **Validation:** `git diff --check` passed; 24 numbered scenarios remain and five usage-accounting cases were added. Documentation-only; no product tests run.
 - **Gates/safety:** P1 run #42785167173 remains in progress on Ubuntu 24.04 with Debian 12 successful at last poll. P1/P2/P3/P4 and P5 architecture gates remain open. No implementation or privileged operation.
+
+### 2026-11-10 — Workstream G, refresh P4 gate snapshot pin
+
+- **Branch/state:** `phase5/prereq-and-acceptance-spec`; upstream evidence-only refresh for draft PR #147 / issue #148.
+- **Evidence/change:** P4 continuation advanced to exact head `5607e8889f7d05e989497b3ea560835e36bddc66`; its P4 design acceptance remains BLOCKED / design only with P1/P2/P3 handoffs pending. Replaced the prior P4 continuation pin in the P5 prerequisite row and source list. The preserved `docs/p4-hosting-parity-design` checkpoint remains `0029b39aa5ebb2056506892b18b400a31402977b`.
+- **Validation:** `git diff --check` passed; documentation-only.
+- **Other gate:** P1 PR #149 run #42785167173 still has Debian 12 success and Ubuntu 24.04 in progress at last poll. No gate decision changed.
