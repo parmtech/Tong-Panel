@@ -38,7 +38,7 @@ The traceability map is a planning aid, not a substitute for prerequisite closur
 
 ## Proposed test architecture (for review)
 
-Use deterministic, local-only fakes for control-plane logic, a disposable isolated network for protocol/integration tests, and synthetic tenant/node data. Every test must record the exact source commit and configuration. Tests involving persistence, time, rotation, revocation, retry, or migration should use controllable clocks and failpoints. No test may use real server credentials, contact a production node, mutate a host, or claim HA from a simulated component.
+Use deterministic, local-only fakes for control-plane logic, a disposable isolated network for protocol/integration tests, and synthetic tenant/node data. Every test must record the exact source commit and configuration. Tests involving persistence, time, rotation, revocation, retry, or migration should use controllable clocks and failpoints. No test may use real server credentials, contact a production node, mutate a host, or claim HA from a simulated component. The standalone `prototypes/p5-outcome-model` package explores only conservative outcome reporting after a lost remote response; it is non-normative and has no networking, persistence, credentials, or product-runtime integration.
 
 ## Phase 5 acceptance scenarios
 
