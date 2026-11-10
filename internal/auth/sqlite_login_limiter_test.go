@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -156,6 +157,79 @@ func TestSQLiteLoginLimiterInvalidSourcesKeysAndClockRegression(t *testing.T) {
 	*clock = clock.Add(-time.Minute)
 	if ok, err := limiter.Admit(context.Background(), "tenant", "alice", "192.0.2.1"); ok || err != nil {
 		t.Fatalf("backward clock reset account limit: %v %v", ok, err)
+	}
+}
+
+func TestSQLiteLoginLimiterSamplesTimeAfterWriterWait(t *testing.T) {
+	for _, expired := range []bool{true, false} {
+		name := "still within window"
+		if expired {
+			name = "window expires during writer wait"
+		}
+		t.Run(name, func(t *testing.T) {
+			_, db, limiter, clock := limiterFixture(t)
+			if allowed, err := limiter.Admit(context.Background(), "tenant-lock", "alice", "192.0.2.45"); !allowed || err != nil {
+				t.Fatalf("seed attempt: %v %v", allowed, err)
+			}
+			accountKey := limiter.bucket('a', "tenant-lock", "alice")
+			for range maxAccountAttempts - 1 {
+				if allowed, err := limiter.Admit(context.Background(), "tenant-lock", "alice", "192.0.2.45"); !allowed || err != nil {
+					t.Fatalf("seed account budget: %v %v", allowed, err)
+				}
+			}
+			var current atomic.Int64
+			current.Store(clock.Unix())
+			limiter.now = func() time.Time { return time.Unix(current.Load(), 0).UTC() }
+			blocker, err := db.Conn(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := blocker.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+				t.Fatal(err)
+			}
+			waitsBefore := db.Stats().WaitCount
+			result := make(chan struct {
+				allowed bool
+				err     error
+			}, 1)
+			go func() {
+				allowed, admitErr := limiter.Admit(context.Background(), "tenant-lock", "alice", "192.0.2.45")
+				result <- struct {
+					allowed bool
+					err     error
+				}{allowed, admitErr}
+			}()
+			waitForDBPoolWait(t, db, waitsBefore)
+			late := clock.Add(loginWindow + time.Second)
+			if !expired {
+				late = clock.Add(time.Minute)
+			}
+			current.Store(late.Unix())
+			if _, err := blocker.ExecContext(context.Background(), "ROLLBACK"); err != nil {
+				t.Fatal(err)
+			}
+			if err := blocker.Close(); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case got := <-result:
+				if got.err != nil || got.allowed != expired {
+					t.Fatalf("admission=%t err=%v expired=%t", got.allowed, got.err, expired)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("limiter admission did not finish after releasing the writer")
+			}
+			var attempts, storedAt int64
+			if err := db.QueryRow("SELECT attempts,window_start_unix FROM login_attempt_buckets WHERE bucket_sha256=?", accountKey).Scan(&attempts, &storedAt); err != nil {
+				t.Fatal(err)
+			}
+			if expired && (attempts != 1 || storedAt != late.Unix()) {
+				t.Fatalf("expired budget not reset at authoritative time: attempts=%d start=%d want=%d", attempts, storedAt, late.Unix())
+			}
+			if !expired && attempts != maxAccountAttempts {
+				t.Fatalf("active budget changed: attempts=%d want=%d", attempts, maxAccountAttempts)
+			}
+		})
 	}
 }
 

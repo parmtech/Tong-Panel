@@ -80,11 +80,11 @@ func (s *MFAEnrollmentStore) ConfirmTrusted(ctx context.Context, tenant, identit
 	if s == nil || !validMFAIdentity(tenant) || !validMFAIdentity(identity) {
 		return false, ErrMFAEnrollmentUnavailable
 	}
-	now := s.now().UTC()
+	preflightNow := s.now().UTC()
 	var envelope, pendingExpiry string
 	err := s.db.QueryRowContext(ctx, `SELECT secret_envelope,pending_expires_at FROM mfa_totp_enrollments
 		WHERE identity_id=? AND status='pending' AND julianday(pending_expires_at)>julianday(?)`,
-		identity, now.Format(time.RFC3339Nano)).Scan(&envelope, &pendingExpiry)
+		identity, preflightNow.Format(time.RFC3339Nano)).Scan(&envelope, &pendingExpiry)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -96,18 +96,46 @@ func (s *MFAEnrollmentStore) ConfirmTrusted(ctx context.Context, tenant, identit
 		return false, err
 	} // tampered ciphertext must fail closed
 	defer clear(secret)
+	if _, ok := acceptedTOTPStep(secret, code, preflightNow); !ok {
+		return false, nil
+	}
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+		return false, err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+		}
+	}()
+	// Pending expiry and the TOTP window must be checked after acquiring the
+	// writer reservation; otherwise this confirmation can age out while waiting.
+	now := s.now().UTC()
+	var currentEnvelope, currentExpiry string
+	err = conn.QueryRowContext(ctx, `SELECT secret_envelope,pending_expires_at FROM mfa_totp_enrollments
+		WHERE identity_id=? AND status='pending' AND julianday(pending_expires_at)>julianday(?)`,
+		identity, now.Format(time.RFC3339Nano)).Scan(&currentEnvelope, &currentExpiry)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if currentEnvelope != envelope || currentExpiry != pendingExpiry {
+		return false, nil
+	}
 	step, ok := acceptedTOTPStep(secret, code, now)
 	if !ok {
 		return false, nil
 	}
-	// One transaction couples replay consumption to enrollment activation.
-	// If the identity/tenant is revoked or another client won, both roll back.
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return false, err
-	}
-	defer tx.Rollback()
-	r, err := tx.ExecContext(ctx, `INSERT INTO totp_replay_state(identity_id,last_accepted_step)
+	// The same writer transaction couples replay consumption to activation.
+	// If authority or enrollment state changed, both operations roll back.
+	r, err := conn.ExecContext(ctx, `INSERT INTO totp_replay_state(identity_id,last_accepted_step)
 		SELECT e.identity_id,? FROM mfa_totp_enrollments e
 		JOIN identities i ON i.id=e.identity_id AND i.disabled=0
 		JOIN memberships m ON m.identity_id=i.id AND m.tenant_id=?
@@ -130,7 +158,7 @@ func (s *MFAEnrollmentStore) ConfirmTrusted(ctx context.Context, tenant, identit
 	if n != 1 {
 		return false, nil
 	}
-	r, err = tx.ExecContext(ctx, `UPDATE mfa_totp_enrollments
+	r, err = conn.ExecContext(ctx, `UPDATE mfa_totp_enrollments
 		SET status='active',activated_at=?
 		WHERE identity_id=? AND status='pending'
 			AND secret_envelope=? AND pending_expires_at=?
@@ -146,9 +174,13 @@ func (s *MFAEnrollmentStore) ConfirmTrusted(ctx context.Context, tenant, identit
 	if n != 1 {
 		return false, nil
 	}
-	if err := tx.Commit(); err != nil {
+	if err := ctx.Err(); err != nil {
 		return false, err
 	}
+	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+		return false, err
+	}
+	committed = true
 	return true, nil
 }
 
@@ -158,9 +190,13 @@ func (s *MFAEnrollmentStore) VerifyActive(ctx context.Context, tenant, identity,
 	if s == nil || !validMFAIdentity(tenant) || !validMFAIdentity(identity) {
 		return false, ErrMFAEnrollmentUnavailable
 	}
+	preflightNow := s.now().UTC()
 	var envelope string
-	err := s.db.QueryRowContext(ctx, `SELECT secret_envelope FROM mfa_totp_enrollments WHERE identity_id=? AND status='active'`,
-		identity).Scan(&envelope)
+	err := s.db.QueryRowContext(ctx, `SELECT e.secret_envelope FROM mfa_totp_enrollments e
+		JOIN identities i ON i.id=e.identity_id AND i.disabled=0
+		JOIN memberships m ON m.identity_id=i.id AND m.tenant_id=?
+		JOIN tenants t ON t.id=m.tenant_id AND t.status='active'
+		WHERE e.identity_id=? AND e.status='active'`, tenant, identity).Scan(&envelope)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -172,9 +208,67 @@ func (s *MFAEnrollmentStore) VerifyActive(ctx context.Context, tenant, identity,
 		return false, err
 	}
 	defer clear(secret)
-	guard, err := NewTOTPReplayGuard(s.db)
+	if _, ok := acceptedTOTPStep(secret, code, preflightNow); !ok {
+		return false, nil
+	}
+	conn, err := s.db.Conn(ctx)
 	if err != nil {
 		return false, err
 	}
-	return guard.VerifyAndConsume(ctx, tenant, identity, secret, code, s.now().UTC())
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, "BEGIN IMMEDIATE"); err != nil {
+		return false, err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+		}
+	}()
+	now := s.now().UTC()
+	var currentEnvelope string
+	err = conn.QueryRowContext(ctx, `SELECT e.secret_envelope FROM mfa_totp_enrollments e
+		JOIN identities i ON i.id=e.identity_id AND i.disabled=0
+		JOIN memberships m ON m.identity_id=i.id AND m.tenant_id=?
+		JOIN tenants t ON t.id=m.tenant_id AND t.status='active'
+		WHERE e.identity_id=? AND e.status='active'`, tenant, identity).Scan(&currentEnvelope)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if currentEnvelope != envelope {
+		return false, nil
+	}
+	step, ok := acceptedTOTPStep(secret, code, now)
+	if !ok {
+		return false, nil
+	}
+	r, err := conn.ExecContext(ctx, `INSERT INTO totp_replay_state(identity_id,last_accepted_step)
+		SELECT i.id,? FROM identities i
+		JOIN memberships m ON m.identity_id=i.id AND m.tenant_id=?
+		JOIN tenants t ON t.id=m.tenant_id AND t.status='active'
+		JOIN mfa_totp_enrollments e ON e.identity_id=i.id AND e.status='active' AND e.secret_envelope=?
+		WHERE i.id=? AND i.disabled=0
+		ON CONFLICT(identity_id) DO UPDATE SET
+			last_accepted_step=excluded.last_accepted_step,
+			updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+		WHERE excluded.last_accepted_step > totp_replay_state.last_accepted_step`,
+		step, tenant, envelope, identity)
+	if err != nil {
+		return false, err
+	}
+	changed, err := r.RowsAffected()
+	if err != nil || changed != 1 {
+		return false, err
+	}
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
+		return false, err
+	}
+	committed = true
+	return true, nil
 }

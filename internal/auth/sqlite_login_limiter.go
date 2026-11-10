@@ -76,10 +76,6 @@ func (l *SQLiteLoginLimiter) Admit(ctx context.Context, tenant, username, truste
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
-	now := l.now().UTC().Unix()
-	if now < 0 {
-		return false, ErrInvalidLoginLimiter
-	}
 	keys := [][]byte{
 		l.bucket('a', tenant, strings.ToLower(username)),
 		l.bucket('s', ip.String()),
@@ -99,6 +95,12 @@ func (l *SQLiteLoginLimiter) Admit(ctx context.Context, tenant, username, truste
 			_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
 		}
 	}()
+	// Use the time observed after acquiring the SQLite writer reservation so
+	// a long lock wait cannot record an attempt in an already-expired window.
+	now := l.now().UTC().Unix()
+	if now < 0 {
+		return false, ErrInvalidLoginLimiter
+	}
 
 	// Prune expired windows with the indexed cutoff; never delete a future
 	// record on clock regression. An absolute row cap fails closed under a
