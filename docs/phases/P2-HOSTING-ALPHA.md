@@ -11,7 +11,7 @@
 7. Cron, sites logs, versioned server templates; graceful service failure handling. See the [proposed Slice 7 acceptance and test plan](../P2_CRON_LOGS_TEMPLATES_TEST_PLAN.md); this is design only and does not authorize implementation.
 8. WordPress/pure PHP deploy recipe with pinned versions, checksums and restore.
 9. Account backup schedules, offsite encrypted targets, retention and complete restore drills.
-10. Multi-tenant adversarial testing and understandable UX/onboarding.
+10. Multi-tenant adversarial testing and understandable UX/onboarding. See the [proposed two-tenant end-to-end acceptance plan](../P2_TWO_TENANT_END_TO_END_ACCEPTANCE.md); design only, not gate evidence.
 
 ## Must-pass end-to-end tests
 - Two sites and two separate tenants cannot access each other's data via API, files, DB users or job logs.

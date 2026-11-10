@@ -1,8 +1,17 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-10 19:33 AEDT (Sydney)
+**Updated:** 2026-11-10 19:37 AEDT (Sydney)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## 2026-11-10 — P2 integrated two-tenant acceptance design (Windows)
+
+- **Branch/base:** `phase2/cron-logs-templates-test-plan-20261110`, based on GitHub `main`; dedicated isolated Phase 2 clone.
+- **State:** proposed test design only. Added `docs/P2_TWO_TENANT_END_TO_END_ACCEPTANCE.md` and linked it from Phase 2 implementation slice 10.
+- **Scope:** one clean-guest sequence across preflight/install, authentication, domains, Nginx/PHP-FPM, tenant DB grants, Files/quota, jobs/logs, config rollback, encrypted backup/restore, and accessible UI. The plan calls out component PRs #40/#62/#64/#70/#73/#74/#79/#80/#84/#91 to reuse and adds only the missing integrated assertions.
+- **Gate:** current P1 report still says Phase 2 entry blocked; current P2 report says no integrated panel-to-agent two-tenant suite exists. This document is not approval or acceptance evidence.
+- **Validation:** documentation/link checks only; no host-facing code or live-host test was run.
+- **Next:** owner/security review the entry-gate evidence and proposed integrated test prerequisites; once gates are approved, execute the whole scenario in supported fresh disposable guests and attach exact hashes and sanitized evidence.
 
 ## 2026-11-10 — P2 Slice 7 design-only checkpoint (Windows)
 
