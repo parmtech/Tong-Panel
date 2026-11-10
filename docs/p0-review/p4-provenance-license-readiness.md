@@ -11,7 +11,7 @@
 
 The repository declares AGPL-3.0 for original Tong Panel code and separately licensed third-party components. The checked P1 source snapshot has pinned Go and npm dependency manifests, but there is no tracked third-party `NOTICE`/licence bundle or checked-in generated SBOM. A later P1 draft documents an unsigned developer-archive SBOM for two Go binaries; it explicitly excludes full source, UI/assets, OS packages and deployment inventory and performs no automated licence detection.
 
-A tracked-file scan of the P1 snapshot found no `vendor`/`third_party` tree, standalone asset/icon/font/image directory, common image/font file extensions, `NOTICE`, `COPYRIGHT`, `COPYING`, SPDX file, or per-source SPDX/copyright headers. This is a bounded path/content search, not proof that all code is original or all inline assets are cleared. `cmd/tongd/ui/app.js` appears to be compiled output corresponding to `web/src/app.ts`, but the current workflow only type-checks with `--noEmit`; the source/output regeneration and equivalence contract is not recorded in the inspected files.
+A tracked-file scan of the P1 snapshot found no `vendor`/`third_party` tree, standalone asset/icon/font/image directory, common image/font file extensions, `NOTICE`, `COPYRIGHT`, `COPYING`, SPDX file, or per-source SPDX/copyright headers. This is a bounded path/content search, not proof that all code is original or all inline assets are cleared. `cmd/tongd/ui/app.js` appears to be compiled output corresponding to `web/src/app.ts`; the browser workflow compiles the TypeScript and compares emitted `app.js` with the embedded file, while the separate type-check workflow uses `--noEmit`. A documented local regeneration command was not found in the inspected files.
 
 The policy documents prohibit copying proprietary cPanel assets/design and characterize the project as original. These declarations are useful constraints, not provenance evidence or a legal determination. P0 item P0-09 therefore remains **unverified** pending a file-level inventory, contributor-rights evidence, dependency licence/NOTICE review, generated-output provenance, trademark review, and the owner's/security/licence review record.
 
@@ -41,16 +41,17 @@ These are development/test packaging paths observed at the P1 source snapshot. T
 | `scripts/build_deb.sh:35–43` and `scripts/test_deb_package.sh:25–45` Debian test fixtures | `.deb` contains `tongd`, `tongctl`, systemd service, `DO_NOT_INSTALL.txt`, `LICENSE` installed as Debian `copyright`, maintainer scripts and package metadata; fixture harness builds v1/v2 packages and a checksum list. | Builder does not add an SBOM, Go/npm manifests, or separate third-party notice bundle. The fixtures are test inputs, not a supported package. |
 
 The release-scope checklist below should treat each path separately. Which test-only artifacts need SBOM/notice handling remains a maintainer/release-policy decision; the existence of a checksum or a binary SBOM does not establish a signed release or complete provenance.
+
 ## Source, asset and generated-file observations
 
 At P1 source commit `4dab4c60cc86186935e9a7d987b9fe1ca97a1f23`:
 
 - A `git ls-tree` scan found no tracked `vendor` or `third_party` directory, common standalone `assets`, `icons`, `fonts` or `images` directory, common image/font files (`png`, `jpg/jpeg`, `webp`, `svg`, `ico`, `woff/woff2`, `ttf`, `otf`), or source-file `SPDX-License-Identifier`/copyright headers under `cmd`, `internal`, `db`, `web`, `scripts`, and `tools`.
-- UI static files are embedded by `cmd/tongd/ui.go` via `//go:embed ui/*`. The inspected UI uses Unicode emoji tile symbols in `app.js`; no third-party icon/font image files were found by the scan.
-- `web/tsconfig.json` sets `outDir` to `../cmd/tongd/ui`, and `cmd/tongd/ui/app.js` has TypeScript-stripping characteristics and matching UI imports with `web/src/app.ts`. The UI type-check workflow runs with `--noEmit`; separately, `.github/workflows/ui-browser-checks.yml:34–37` compiles using TypeScript 5.9.3 to a temporary directory and compares emitted `app.js` with the embedded file using `cmp`. This CI check supports the generated-output relationship. A generated-file header or documented local update/regeneration command was not found in the inspected files.
+- UI static files are embedded by `cmd/tongd/ui.go:10–11` via `//go:embed ui/*`. The inspected UI uses Unicode emoji tile symbols in `app.js`; no third-party icon/font image files were found by the scan.
+- `web/tsconfig.json:8–11` sets `outDir` to `../cmd/tongd/ui`, and `cmd/tongd/ui/app.js` has TypeScript-stripping characteristics and matching UI imports with `web/src/app.ts`. `.github/workflows/ui-checks.yml:25–26` runs a type check with `--noEmit`; separately, `.github/workflows/ui-browser-checks.yml:34–37` compiles using TypeScript 5.9.3 to a temporary directory and compares emitted `app.js` with the embedded file using `cmp`. This CI check supports the generated-output relationship. A generated-file header or documented local update/regeneration command was not found in the inspected files.
 - No file-level source-origin manifest was found. The tracked-tree scan cannot establish absence of copied snippets in inline source, historic commits, generated files, or material not matched by these extensions and names. It also does not inspect P1's uncommitted paths.
 
-The P1 source branch's `README.md:41–42` describes cPanel/WHM as third-party marks and says the project is unaffiliated; `README.md:10` and `docs/UX_UI_SPEC.md` call for original design. `CONTRIBUTING.md:29` requires original UI/icons and prohibits cPanel assets and commercial/proprietary source while requiring contributor rights and dependency notices. `docs/UPSTREAM_RESEARCH.md:37–40,47` says permission/licence compatibility does not automatically clear icons, screenshots, brands, designs, plugins or exceptions. These are policy declarations. This audit did not perform a legal trademark search or inspect every visible string, screenshot, commit, or binary.
+The P1 source branch's `README.md:41–42` describes cPanel/WHM as third-party marks and says the project is unaffiliated; `README.md:10` and `docs/UX_UI_SPEC.md:5` call for original design. `CONTRIBUTING.md:29` requires original UI/icons and prohibits cPanel assets and commercial/proprietary source while requiring contributor rights and dependency notices. `docs/UPSTREAM_RESEARCH.md:37–40,47` says permission/licence compatibility does not automatically clear icons, screenshots, brands, designs, plugins or exceptions. These are policy declarations. This audit did not perform a legal trademark search or inspect every visible string, screenshot, commit, or binary.
 
 ## Gaps and questions for owner/security/licence reviewers
 
@@ -61,7 +62,7 @@ The P1 source branch's `README.md:41–42` describes cPanel/WHM as third-party m
 5. What is the release-scope licence inventory for npm test packages, source/UI assets, OS packages, and deployment dependencies, given the binary-only SBOM's stated exclusions?
 6. Which CI actions/tools must be pinned by immutable digest/checksum, and what reviewed build-provenance/signature evidence is required before distributing artifacts?
 7. Can the project provide an explicit third-party notice bundle or generated licence report for every distributed dependency, and who reviews exceptions/compatibility questions?
-8. Does the README phrase ‘a future cPanel/WHM alternative’ remain an acceptable factual compatibility reference alongside the project’s affiliation disclaimer, and are all branding, screenshots, icons, fonts and visual assets independently created or properly authorized? A legal reviewer should determine any trademark concerns; this draft does not conclude that the wording is cleared or infringing.
+8. How should a legal reviewer assess the README’s comparative product-positioning phrase “a future cPanel/WHM alternative” alongside the affiliation disclaimer? The phrase is not evidence of tested compatibility or affiliation. Are all branding, screenshots, icons, fonts and visual assets independently created or properly authorized? This draft does not conclude that any wording is cleared or infringing.
 
 These are unresolved review questions, not a request to repeat routine project authorization. Project-work authorization does not answer technical licence choices or create legal/security approval.
 
@@ -71,6 +72,7 @@ These checks identify evidence needed for owner/security/licence review. They do
 
 | Check | Evidence required | Reviewer role | Unresolved detail |
 |---|---|---|---|
+| Close P0-09 provenance review | Bounded file/source/asset inventory with scan method and limits; for each identified external/copied/embedded/generated item, exact origin/version/commit, rights/licence/attribution and trademark-review status. If none are identified, record the scoped none-found result and scan limits. Record the maintainer/reviewer disposition and unresolved exclusions. | P0 owner/maintainer and licence/trademark reviewer | Named reviewer, review method and any items needing legal advice |
 | Freeze snapshot | Exact source SHA and retained hashes or copies of Go/npm manifests, lockfiles and relevant workflows | P1 maintainer / release engineer | Required retention format and location |
 | Review root Go graph | Full direct/transitive inventory with version, verified SPDX identifier, source and notice reference; record exceptions | Dependency/SCA and licence reviewers | Compatibility and transitive notice obligations |
 | Scan nested Go tool | Snapshot-bound vulnerability and licence reports for `tools/openapi-check`, or documented exclusions | Dependency/SCA reviewer | Whether this tool is distributed or source/CI-only |
@@ -81,6 +83,7 @@ These checks identify evidence needed for owner/security/licence review. They do
 | Complete notices | Reviewed third-party notice/licence bundle or component-specific reason none is required, tied to package contents | Licence reviewer | Notice format, attribution placement and exceptions |
 | Record build provenance | Source commit, workflow/tool versions, binary hashes, retained SBOMs and any required signature/attestation verification | Security/release reviewer | Provenance standard, signing identity and verification method |
 | Record disposition | Exact snapshot, reports, reviewer decisions, exclusions, unresolved items and distribution scope | P0 decision owner and P1 maintainer | Named reviewers and distribution blockers |
+
 ## Verification state and next action
 
 This is a documentation-only draft. The inventory used tracked-tree queries and read-only review of repository declarations/manifests at the exact commits listed above. No tests were run. No dependency was installed, updated, or copied. No legal review or owner/security sign-off was performed. P0-09 remains **NOT VERIFIED**.
