@@ -4,6 +4,14 @@
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
 
+## 2026-11-10 — P1 dependency evidence recheck for gated P2 work
+
+- **Source reviewed:** draft PR #91 head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1` ([PR #91](https://github.com/parmtech/Tong-Panel/pull/91)). No files in that PR or its working checkout were changed.
+- **Windows limitations:** WSL is not installed. The local full Go suite cannot run on Windows because `internal/preflight` uses Linux-only `syscall.Statfs_t`/`syscall.Statfs`; focused `internal/sites` and `internal/backups` tests plus vet passed, as recorded below.
+- **Remote evidence:** GitHub reports all five checks successful at that exact head: [Go test/vet](https://github.com/parmtech/Tong-Panel/actions/runs/42633862439), [Ubuntu 24.04 clean VM](https://github.com/parmtech/Tong-Panel/actions/runs/42633862164/job/129216767234), [Debian 12 clean VM](https://github.com/parmtech/Tong-Panel/actions/runs/42633862164/job/129216766868), [unsigned developer archive](https://github.com/parmtech/Tong-Panel/actions/runs/42633862158), and [daemon dry-run](https://github.com/parmtech/Tong-Panel/actions/runs/42633863742). The clean-VM workflow source at this head runs `scripts/clean_vm_smoke.sh`, which includes the disposable WordPress backup-source and fresh-VM restore-target smoke scripts; both distro job steps completed successfully.
+- **Gate interpretation:** these checks are meaningful component evidence, including clean-guest backup/restore behavior, but do not supersede the latest P1 exit-gate report's NOT COMPLETE / Phase 2 entry blocked verdict. They also do not establish the integrated Phase 2 panel-to-agent, two-tenant acceptance gate.
+- **P2 scope decision:** no host-facing Phase 2 implementation, privileged operation, package installation, merge, or deployment is authorized by this evidence. Continue with design, test specifications, or isolated non-privileged prototypes until P1 entry approval is recorded.
+
 ## 2026-11-10 — P2 integrated two-tenant acceptance design (Windows)
 
 - **Branch/base:** `phase2/cron-logs-templates-test-plan-20261110`, based on GitHub `main`; dedicated isolated Phase 2 clone.
