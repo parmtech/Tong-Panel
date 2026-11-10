@@ -1,0 +1,5245 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Tong Panel current development API",
+    "version": "0.0.0-development",
+    "description": "Contract snapshot of implemented handlers in unmerged development drafts. This is not an approved production API or deployment. Only the loopback development daemon is configured below. Optional Server backends expose additional handler capabilities but are not enabled by this document. No password login, cookie/session issuance or rotation, MFA/recovery HTTP, privileged agent, host provisioning, certificate issuance, site deletion or database provisioning routes exist."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8090",
+      "description": "Actual fixed IPv4-loopback development listener. It serves no TLS; browser-session authentication and logout are not usable on this daemon configuration."
+    }
+  ],
+  "tags": [
+    {
+      "name": "Public"
+    },
+    {
+      "name": "Identity"
+    },
+    {
+      "name": "Jobs"
+    },
+    {
+      "name": "Files"
+    },
+    {
+      "name": "Sites"
+    },
+    {
+      "name": "Domains"
+    },
+    {
+      "name": "Databases"
+    }
+  ],
+  "security": [
+    {
+      "DevBearer": []
+    },
+    {
+      "BrowserSession": []
+    }
+  ],
+  "x-tong-contract-notes": {
+    "stage": "Preview contract; does not close P0/P1 acceptance or imply production support.",
+    "authentication": "A recognized session cookie takes precedence and is never downgraded to bearer. A nonempty Authorization header combined with the cookie is unauthorized. Cookie auth requires actual TLS, exactly one named cookie, active SQLite session/membership and, for mutation methods, one matching HTTPS Origin plus CSRF. Forwarded headers are not trusted. OpenAPI OR alternatives do not encode this precedence/conditional-origin policy.",
+    "default-daemon": "No Sessions, Files, FileQuota, FileMutationBarrier or SiteHostingPaths backend is configured. SiteCatalog/TXTLookup and SQLJobs require opt-in SQLite mode and existing identity/membership. Without configured credentials protected routes return auth_unconfigured before backend gates.",
+    "authorization": "Authenticated tenant context is server-derived; client tenant/user selectors do not elevate access. SQLJobs refreshes current membership before the handler; job mutations additionally recheck transactionally. No atomic role-revalidation guarantee is claimed for every site/Files mutation.",
+    "json-parser": "Canonical request property spelling is documented. Go encoding/json also accepts case-insensitive field matches and duplicate object members with its normal last-value behavior. DisallowUnknownFields rejects unknown fields; exactly one top-level JSON value is required. This contract does not claim duplicate JSON rejection.",
+    "content-types": "JSON and binary writes compare Content-Type strings exactly and reject parameters such as charset. x-max-request-bytes records byte caps, not JSON Schema character lengths.",
+    "errors": "x-error-codes lists per-response codes in addition to the shared Error schema. Message is the standard HTTP status text. Auth checks can fail before method/route/backend checks. Unknown paths and ServeMux canonical redirects can be native Go HTTP text/redirect responses, outside these declared operations.",
+    "scope": "Embedded UI/static assets are outside this control-plane contract. HEAD/OPTIONS/CORS methods are not added; API handlers generally reject unimplemented methods."
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Process liveness only",
+        "tags": [
+          "Public"
+        ],
+        "security": [],
+        "description": "Does not check database, workers, host services or installation readiness.",
+        "responses": {
+          "200": {
+            "description": "The process handler is reachable.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Only GET is implemented, including for HEAD requests.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/version": {
+      "get": {
+        "operationId": "getVersion",
+        "summary": "Experimental API identification",
+        "tags": [
+          "Public"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Static experimental product/API identifiers.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Only GET is implemented.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "getCurrentPrincipal",
+        "summary": "Read the authenticated principal",
+        "tags": [
+          "Identity"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "description": "Response names are case-sensitive Go field names. No CSRF value or session token is returned.",
+        "responses": {
+          "200": {
+            "description": "The current authenticated tenant principal.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Principal"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/session/logout": {
+      "post": {
+        "operationId": "logoutSession",
+        "summary": "Revoke the current browser session",
+        "tags": [
+          "Identity"
+        ],
+        "security": [
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-backend-gate": "Separately configured SQLiteSessionStore and direct TLS.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "description": "Only an already issued browser session can log out. A bearer token does not satisfy this route. The development daemon does not configure this backend or serve TLS. Repeat use of a revoked cookie is unauthorized, not an idempotent 204.",
+        "responses": {
+          "204": {
+            "description": "Session revocation and audit committed; host-only cookie expired. No JSON body.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "Set-Cookie": {
+                "$ref": "#/components/headers/ExpiredSession"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cookie mutation Origin or CSRF check failed.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "csrf_failed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "session_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs": {
+      "get": {
+        "operationId": "listJobs",
+        "summary": "List visible development jobs",
+        "tags": [
+          "Jobs"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "x-tong-rbac-action": "jobs:read",
+        "x-tong-backend-gate": "JSON journal or SQLite job store.",
+        "description": "SQLite returns only the active requester's own jobs; owner/admin are not cross-user exceptions. JSON-journal mode is tenant-scoped and has no requester attribution. No pagination is implemented.",
+        "responses": {
+          "200": {
+            "description": "Visible jobs; journal empty list may be null.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current principal cannot read these jobs.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "jobs_unconfigured",
+              "jobs_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createJob",
+        "summary": "Enqueue the allowlisted no-op job",
+        "tags": [
+          "Jobs"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-rbac-action": "jobs:create",
+        "x-tong-backend-gate": "JSON journal or SQLite job store.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Exact Content-Type: application/json, without parameters. Unknown fields and trailing JSON values are rejected; see the Go JSON matching caveat in the contract notes.",
+          "x-max-request-bytes": 2048,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobCreateRequest"
+              }
+            }
+          }
+        },
+        "description": "Only validation.noop is accepted; there is no command, path, payload or host executor. SQLite rechecks current requester mutation authority inside the create/idempotency transaction. By default jobs stay queued; the separately opted-in development worker runs only no-op metadata transitions.",
+        "responses": {
+          "202": {
+            "description": "New or idempotently reused job. Acceptance is not proof of an external operation.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing idempotency key, invalid JSON/body size, invalid kind or invalid job/key.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "idempotency_required",
+              "invalid_request",
+              "invalid_job"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Mutation authority or cookie CSRF check failed, including a transactional requester downgrade.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden",
+              "csrf_failed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Key already identifies different work or requester in the same tenant.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "idempotency_conflict"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must equal application/json exactly.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "json_required"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "jobs_unconfigured"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/JobID"
+        }
+      ],
+      "get": {
+        "operationId": "getJob",
+        "summary": "Read a visible development job",
+        "tags": [
+          "Jobs"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "x-tong-rbac-action": "jobs:read",
+        "x-tong-backend-gate": "JSON journal or SQLite job store.",
+        "description": "SQLite requires matching tenant and requester, with current active membership. Journal mode is tenant-scoped.",
+        "responses": {
+          "200": {
+            "description": "Visible job.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role does not permit job reads.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Job shape, ownership or existence is not disclosed.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "jobs_unconfigured",
+              "jobs_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "cancelJob",
+        "summary": "Cancel the requester's own queued SQLite job",
+        "tags": [
+          "Jobs"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-rbac-action": "jobs:cancel",
+        "x-tong-backend-gate": "SQLite job store; journal cancellation is not implemented.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "description": "Only queued jobs may be cancelled. Repeated cancellation returns the same cancelled Job while current mutation authority remains. Leased/running/finalized jobs conflict; no host signal is sent.",
+        "responses": {
+          "200": {
+            "description": "Cancelled job, including an authorized identical repeat.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role or cookie CSRF check failed.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden",
+              "csrf_failed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown/inaccessible job, malformed ID, or transactional requester denial.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Job is no longer safely queued for cancellation.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "job_not_cancellable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "JSON-journal mode cannot safely cancel actor-owned jobs.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "sql_jobs_required"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "jobs_unconfigured",
+              "jobs_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/files": {
+      "get": {
+        "operationId": "listFiles",
+        "summary": "List a tenant-relative directory",
+        "tags": [
+          "Files"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "x-tong-rbac-action": "files:read",
+        "x-tong-backend-gate": "TenantFileService; not configured by the current daemon.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/OptionalFilePath"
+          },
+          {
+            "$ref": "#/components/parameters/FileLimit"
+          }
+        ],
+        "x-query-policy": "Only one path and one limit allowed; unknown keys, duplicate values and malformed query encoding are rejected.",
+        "responses": {
+          "200": {
+            "description": "Non-following entry metadata; no absolute server paths.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or tenant-relative path.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_file_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Auditor and other unauthorized principals cannot access Files.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Path not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Directory exceeds the requested entry ceiling.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "file_limit_exceeded"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "files_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/files/content": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequiredFilePath"
+        }
+      ],
+      "get": {
+        "operationId": "readFile",
+        "summary": "Read a bounded tenant-relative file",
+        "tags": [
+          "Files"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "x-tong-rbac-action": "files:read",
+        "x-tong-backend-gate": "TenantFileService; not configured by the current daemon.",
+        "x-query-policy": "Only one nonempty path is accepted. No limit or tenant selector.",
+        "x-max-response-bytes": 16777216,
+        "responses": {
+          "200": {
+            "description": "Raw file bytes; the service never follows an escaped path.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Content-Length": {
+                "description": "Exact number of returned bytes.",
+                "schema": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 0,
+                  "maximum": 16777216
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing/invalid path, unknown/duplicate query key, or unsafe path.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_file_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Files permission or tenant-root access denied.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "File exceeds the 16 MiB read cap.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "file_limit_exceeded"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "files_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createFile",
+        "summary": "Create a new file without replacement",
+        "tags": [
+          "Files"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-rbac-action": "files:write",
+        "x-tong-backend-gate": "TenantFileService + quota + shared mutation barrier; none is configured by the current daemon.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "description": "Exact application/octet-stream, without parameters, even for a zero-byte file. Known Content-Length must not exceed 16 MiB; unknown length reserves the full cap before reading. A quota reservation and mutation barrier are required before body consumption.",
+          "x-max-request-bytes": 16777216,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "description": "New-file publication only; existing paths are never overwritten. On durability/quota errors a file may already exist. Do not interpret 503 as guaranteed rollback or blindly retry as replacement.",
+        "responses": {
+          "201": {
+            "description": "New file published and quota finalized.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileWriteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing/invalid path, unknown/duplicate query key, or unsafe path.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_file_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Files permission, tenant-root or cookie CSRF check denied.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden",
+              "csrf_failed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Destination already exists; no replacement performed.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "already_exists"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Declared or streamed body exceeds the admitted 16 MiB bound.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "file_limit_exceeded"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must equal application/octet-stream exactly.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "binary_required"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "files_unavailable",
+              "quota_unavailable",
+              "file_durability_unconfirmed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "507": {
+            "description": "Insufficient admitted tenant quota.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "file_quota_exceeded"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFile",
+        "summary": "Remove one tenant-relative file",
+        "tags": [
+          "Files"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-rbac-action": "files:write",
+        "x-tong-backend-gate": "TenantFileService + quota + shared mutation barrier.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "description": "No recursive directory operation. Quota finalization failure can follow deletion and returns quota_unavailable; it is not guaranteed rollback. An unlink/durability error may report file_durability_unconfirmed after a visible filesystem change.",
+        "responses": {
+          "204": {
+            "description": "File removed and quota accounting updated; no body.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "400": {
+            "description": "Missing/invalid path, unknown/duplicate query key, or unsafe path.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_file_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Files permission, tenant-root or cookie CSRF check denied.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden",
+              "csrf_failed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "File service reported an existing-path conflict.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "already_exists"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "File service limit exceeded.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "file_limit_exceeded"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "files_unavailable",
+              "quota_unavailable",
+              "file_durability_unconfirmed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "507": {
+            "description": "File service quota failure.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "file_quota_exceeded"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sites": {
+      "post": {
+        "operationId": "createSite",
+        "summary": "Create pending site/domain metadata",
+        "tags": [
+          "Sites"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:write",
+        "x-tong-backend-gate": "SiteCatalog; daemon enables it only in opt-in SQLite mode.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "x-query-policy": "Any nonempty query is rejected with 404 not_found.",
+        "requestBody": {
+          "required": true,
+          "description": "Exact Content-Type: application/json, without parameters. Unknown fields and trailing JSON values are rejected; see the Go JSON matching caveat in the contract notes.",
+          "x-max-request-bytes": 16384,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiteCreateRequest"
+              }
+            }
+          }
+        },
+        "description": "Tenant ID and document root are server-derived. Domain claims begin pending. This creates no directory, service, database, certificate or hosted application.",
+        "responses": {
+          "201": {
+            "description": "Created metadata and pending domain claims.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid site/domain/database metadata or forbidden query.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role or cookie CSRF check denied the metadata mutation.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden",
+              "csrf_failed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Metadata conflict, unverified primary domain or forbidden primary-domain removal.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "site_conflict"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must equal application/json exactly.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "json_required"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sites/{site_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SiteID"
+        }
+      ],
+      "get": {
+        "operationId": "getSite",
+        "summary": "Read tenant-scoped site metadata",
+        "tags": [
+          "Sites"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:read",
+        "x-tong-backend-gate": "SiteCatalog.",
+        "x-query-policy": "Any nonempty query is rejected with 400 invalid_site_request.",
+        "responses": {
+          "200": {
+            "description": "Site metadata; domains are not proof of provisioning.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid site/domain/database metadata or forbidden query.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role cannot read this tenant's site metadata.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sites/{site_id}/preview/nginx": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SiteID"
+        }
+      ],
+      "get": {
+        "operationId": "previewSiteNginx",
+        "summary": "Render an unapplied HTTP Nginx preview",
+        "tags": [
+          "Sites"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:read",
+        "x-tong-backend-gate": "SiteCatalog + trusted SiteHostingPaths; hosting paths are not configured by the daemon.",
+        "description": "Read-only text rendering requires a verified primary domain. It neither writes config nor reloads a service and does not issue TLS certificates.",
+        "x-query-policy": "No query is accepted.",
+        "responses": {
+          "200": {
+            "description": "Unapplied Nginx HTTP vhost text.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid site/domain/database metadata or forbidden query.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role cannot read this tenant's site metadata.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Required verified primary domain is not ready.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "site_not_ready"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "site_preview_unavailable",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sites/{site_id}/domains": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SiteID"
+        }
+      ],
+      "post": {
+        "operationId": "addSiteAlias",
+        "summary": "Add a pending alias metadata claim",
+        "tags": [
+          "Domains"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:write",
+        "x-tong-backend-gate": "SiteCatalog.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Exact Content-Type: application/json, without parameters. Unknown fields and trailing JSON values are rejected; see the Go JSON matching caveat in the contract notes.",
+          "x-max-request-bytes": 4096,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AliasCreateRequest"
+              }
+            }
+          }
+        },
+        "description": "Globally unique normalized domain claim; no DNS record or host configuration is created. No query is accepted.",
+        "responses": {
+          "201": {
+            "description": "Pending alias claim.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainClaim"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid site/domain/database metadata or forbidden query.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role or cookie CSRF check denied the metadata mutation.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden",
+              "csrf_failed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Metadata conflict, unverified primary domain or forbidden primary-domain removal.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "site_conflict"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must equal application/json exactly.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "json_required"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sites/{site_id}/domains/{domain}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SiteID"
+        },
+        {
+          "$ref": "#/components/parameters/Domain"
+        }
+      ],
+      "delete": {
+        "operationId": "deleteSiteAlias",
+        "summary": "Remove an alias metadata claim",
+        "tags": [
+          "Domains"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:write",
+        "x-tong-backend-gate": "SiteCatalog.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "description": "The primary claim cannot be removed. Removing an alias changes metadata only. No query is accepted.",
+        "responses": {
+          "204": {
+            "description": "Alias claim removed; no body.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid site/domain/database metadata or forbidden query.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role or cookie CSRF check denied the metadata mutation.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden",
+              "csrf_failed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Metadata conflict, unverified primary domain or forbidden primary-domain removal.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "primary_domain_required"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sites/{site_id}/domains/{domain}/verification": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SiteID"
+        },
+        {
+          "$ref": "#/components/parameters/Domain"
+        }
+      ],
+      "post": {
+        "operationId": "beginDomainVerification",
+        "summary": "Issue a one-time DNS TXT proof instruction",
+        "tags": [
+          "Domains"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:write",
+        "x-tong-backend-gate": "SiteCatalog.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "description": "For a pending claim. Returns a new value and replaces the earlier proof digest/expiry. No request body or Content-Type is required; supplied body is not parsed. No query is accepted.",
+        "responses": {
+          "201": {
+            "description": "Publish this one-time value at the indicated TXT record name.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainVerificationInstruction"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid site/domain/database metadata or forbidden query.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role or cookie CSRF check denied the metadata mutation.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden",
+              "csrf_failed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Metadata conflict, unverified primary domain or forbidden primary-domain removal.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "site_conflict"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sites/{site_id}/domains/{domain}/verification/complete": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SiteID"
+        },
+        {
+          "$ref": "#/components/parameters/Domain"
+        }
+      ],
+      "post": {
+        "operationId": "completeDomainVerification",
+        "summary": "Check issued proof against DNS TXT and mark metadata verified",
+        "tags": [
+          "Domains"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:write",
+        "x-tong-backend-gate": "SiteCatalog + TXTLookup; the SQLite daemon wires the host DNS resolver.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Exact Content-Type: application/json, without parameters. Unknown fields and trailing JSON values are rejected; see the Go JSON matching caveat in the contract notes.",
+          "x-max-request-bytes": 4096,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DomainProofRequest"
+              }
+            }
+          }
+        },
+        "description": "Verifies the stored issued value, expiry and observed DNS TXT response, with a final conditional metadata update. This neither manages DNS nor grants certificate/host-action authority. No query is accepted.",
+        "responses": {
+          "200": {
+            "description": "Domain metadata marked verified.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainVerified"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed metadata/query/JSON or empty proof value.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request",
+              "invalid_domain_proof"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Role/CSRF or issued/observed DNS proof did not match.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden",
+              "csrf_failed",
+              "domain_proof_invalid"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Metadata conflict, unverified primary domain or forbidden primary-domain removal.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "site_conflict"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Domain proof expired or was replaced.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "domain_proof_expired"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must equal application/json exactly.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "json_required"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable",
+              "domain_verifier_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sites/{site_id}/databases": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SiteID"
+        }
+      ],
+      "get": {
+        "operationId": "listSiteDatabases",
+        "summary": "List site database ownership metadata",
+        "tags": [
+          "Databases"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:read",
+        "x-tong-backend-gate": "SiteCatalog.",
+        "description": "No query is accepted. Missing parent site is 404, not an empty successful list.",
+        "responses": {
+          "200": {
+            "description": "Database metadata records; [] when the existing site has none.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteDatabaseList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid site/domain/database metadata or forbidden query.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request",
+              "invalid_database_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role cannot read this tenant's site metadata.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSiteDatabase",
+        "summary": "Create site database names in metadata only",
+        "tags": [
+          "Databases"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": [],
+            "CSRFToken": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:write",
+        "x-tong-backend-gate": "SiteCatalog.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Origin"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Exact Content-Type: application/json, without parameters. Unknown fields and trailing JSON values are rejected; see the Go JSON matching caveat in the contract notes.",
+          "x-max-request-bytes": 4096,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiteDatabaseCreateRequest"
+              }
+            }
+          }
+        },
+        "description": "Generates tenant/site/database-bound names but creates no MariaDB database/user/grant and no credential. No query is accepted.",
+        "responses": {
+          "201": {
+            "description": "Metadata-only generated names; not provisioned database credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteDatabaseRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid site/domain/database metadata or forbidden query.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request",
+              "invalid_database_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role or cookie CSRF check denied the metadata mutation.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden",
+              "csrf_failed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Metadata conflict, unverified primary domain or forbidden primary-domain removal.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "site_conflict"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must equal application/json exactly.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "json_required"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sites/{site_id}/databases/{database_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SiteID"
+        },
+        {
+          "$ref": "#/components/parameters/DatabaseID"
+        }
+      ],
+      "get": {
+        "operationId": "getSiteDatabase",
+        "summary": "Read a tenant/site-bound database metadata record",
+        "tags": [
+          "Databases"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:read",
+        "x-tong-backend-gate": "SiteCatalog.",
+        "description": "No password exists in this record and no provisioning is implied. No query is accepted.",
+        "responses": {
+          "200": {
+            "description": "Database metadata names and ownership only.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteDatabaseRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid site/domain/database metadata or forbidden query.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request",
+              "invalid_database_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role cannot read this tenant's site metadata.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "auth_unconfigured",
+                  "unauthorized",
+                  "csrf_failed",
+                  "method_not_allowed",
+                  "jobs_unconfigured",
+                  "forbidden",
+                  "jobs_unavailable",
+                  "json_required",
+                  "idempotency_required",
+                  "invalid_request",
+                  "idempotency_conflict",
+                  "invalid_job",
+                  "not_found",
+                  "sql_jobs_required",
+                  "job_not_cancellable",
+                  "files_unavailable",
+                  "invalid_file_request",
+                  "binary_required",
+                  "file_limit_exceeded",
+                  "file_quota_exceeded",
+                  "quota_unavailable",
+                  "already_exists",
+                  "file_durability_unconfirmed",
+                  "sites_unavailable",
+                  "invalid_site_request",
+                  "invalid_database_request",
+                  "site_preview_unavailable",
+                  "domain_verifier_unavailable",
+                  "invalid_domain_proof",
+                  "site_not_ready",
+                  "site_conflict",
+                  "primary_domain_required",
+                  "domain_proof_invalid",
+                  "domain_proof_expired",
+                  "session_unavailable"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "description": "The standard HTTP status text; no underlying error detail."
+              }
+            }
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          }
+        }
+      },
+      "Version": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "product",
+          "stage",
+          "api"
+        ],
+        "properties": {
+          "product": {
+            "type": "string",
+            "enum": [
+              "Tong Panel"
+            ]
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "experimental-core"
+            ]
+          },
+          "api": {
+            "type": "string",
+            "enum": [
+              "v1"
+            ]
+          }
+        }
+      },
+      "Principal": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "UserID",
+          "TenantID",
+          "Role"
+        ],
+        "properties": {
+          "UserID": {
+            "type": "string",
+            "minLength": 1
+          },
+          "TenantID": {
+            "type": "string",
+            "minLength": 1
+          },
+          "Role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "admin",
+              "reseller",
+              "customer",
+              "auditor"
+            ]
+          }
+        }
+      },
+      "Job": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "tenant_id",
+          "kind",
+          "state",
+          "idempotency_key",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "requested_by": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Present for SQLite jobs; omitted for JSON-journal jobs."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "validation.noop"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "leased",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "JobList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "jobs"
+        ],
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Job"
+            },
+            "nullable": true,
+            "description": "An empty JSON-journal list is null; SQLite own-job lists return [] when empty."
+          }
+        }
+      },
+      "JobCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "validation.noop"
+            ]
+          }
+        }
+      },
+      "FileEntry": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "kind",
+          "size"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "file",
+              "directory",
+              "symlink",
+              "other"
+            ]
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Regular-file size; other entry kinds report zero. Links are named, not followed."
+          }
+        }
+      },
+      "FileList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entries"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileEntry"
+            }
+          }
+        }
+      },
+      "FileWriteResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bytes"
+        ],
+        "properties": {
+          "bytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 16777216
+          }
+        }
+      },
+      "DomainClaim": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "Name",
+          "Kind",
+          "OwnershipState"
+        ],
+        "properties": {
+          "Name": {
+            "type": "string",
+            "description": "Normalized lowercase ASCII domain, without a final dot."
+          },
+          "Kind": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "alias"
+            ]
+          },
+          "OwnershipState": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "verified"
+            ]
+          }
+        }
+      },
+      "SiteRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "TenantID",
+          "SiteID",
+          "DocumentRoot",
+          "CreatedAt",
+          "Domains"
+        ],
+        "properties": {
+          "TenantID": {
+            "type": "string",
+            "minLength": 1
+          },
+          "SiteID": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$"
+          },
+          "DocumentRoot": {
+            "type": "string",
+            "description": "Tenant-relative sites/<SiteID>/public, generated by the server."
+          },
+          "CreatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix time in seconds."
+          },
+          "Domains": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DomainClaim"
+            }
+          }
+        }
+      },
+      "SiteCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "site_id",
+          "primary_domain"
+        ],
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$"
+          },
+          "primary_domain": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 254,
+            "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1–63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 254,
+              "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1–63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+            },
+            "maxItems": 32,
+            "nullable": true,
+            "description": "Optional aliases; no normalized duplicates or primary-domain duplicate. Null is treated as no aliases."
+          }
+        }
+      },
+      "AliasCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "domain"
+        ],
+        "properties": {
+          "domain": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 254,
+            "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1–63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+          }
+        }
+      },
+      "DomainProofRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The exact value returned by beginDomainVerification, not a caller-selected DNS name."
+          }
+        }
+      },
+      "DomainVerificationInstruction": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "Name",
+          "Value",
+          "ExpiresAt"
+        ],
+        "properties": {
+          "Name": {
+            "type": "string",
+            "description": "_tong-panel-challenge.<normalized-domain> TXT record name."
+          },
+          "Value": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "description": "One-time proof value. Only its digest is persisted; do not log it."
+          },
+          "ExpiresAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix expiry in seconds, normally issue time + one hour. A new begin replaces the old proof."
+          }
+        }
+      },
+      "DomainVerified": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "verified"
+            ]
+          }
+        }
+      },
+      "SiteDatabaseCreateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "database_id"
+        ],
+        "properties": {
+          "database_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$"
+          }
+        }
+      },
+      "SiteDatabaseRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "TenantID",
+          "SiteID",
+          "DatabaseID",
+          "DatabaseName",
+          "Username",
+          "CreatedAt"
+        ],
+        "properties": {
+          "TenantID": {
+            "type": "string",
+            "minLength": 1
+          },
+          "SiteID": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$"
+          },
+          "DatabaseID": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$"
+          },
+          "DatabaseName": {
+            "type": "string",
+            "pattern": "^tp_[a-z2-7]{26}$"
+          },
+          "Username": {
+            "type": "string",
+            "pattern": "^tu_[a-z2-7]{26}$"
+          },
+          "CreatedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix time in seconds."
+          }
+        }
+      },
+      "SiteDatabaseList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "databases"
+        ],
+        "properties": {
+          "databases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiteDatabaseRecord"
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "JobID": {
+        "name": "job_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "description": "Server-issued job ID. Invalid shapes or unknown/inaccessible jobs are not disclosed."
+      },
+      "SiteID": {
+        "name": "site_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$"
+        }
+      },
+      "DatabaseID": {
+        "name": "database_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$"
+        }
+      },
+      "Domain": {
+        "name": "domain",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 254,
+          "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1–63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+        }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128
+        },
+        "description": "8–128 bytes in the implementation; use ASCII. Tenant-scoped. In SQLite mode it is also bound to the requester and kind. Identical retries return the same job (202); different work/requester conflicts (409)."
+      },
+      "Origin": {
+        "name": "Origin",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Required only for browser-cookie mutations: exactly one HTTPS Origin with no path/user/query/fragment, matching the actual Host including port (case-insensitive). Forwarded headers do not prove TLS/origin. OAS cannot express this credential-conditional requirement."
+      },
+      "OptionalFilePath": {
+        "name": "path",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "default": ""
+        },
+        "description": "Tenant-relative directory; omitted or empty means the authenticated tenant root. No absolute path, traversal or tenant selector."
+      },
+      "RequiredFilePath": {
+        "name": "path",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Tenant-relative file path selected inside the authenticated tenant root. No absolute path, traversal or following symlinks."
+      },
+      "FileLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 200
+        },
+        "description": "Directory entry ceiling, not pagination. A directory exceeding this ceiling fails with 413 rather than returning a truncated page."
+      }
+    },
+    "headers": {
+      "RequestID": {
+        "description": "New 16-character lowercase hex request identifier; caller X-Request-ID is not used. It is not the independently generated audit request_id.",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$"
+        }
+      },
+      "NoStore": {
+        "description": "This response must not be cached.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "no-store"
+          ]
+        }
+      },
+      "NoSniff": {
+        "description": "Disables content-type sniffing.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "nosniff"
+          ]
+        }
+      },
+      "Allow": {
+        "description": "Methods supported by the route; present on most method-rejection responses.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ExpiredSession": {
+        "description": "Expires __Host-tong_session with Path=/, Secure, HttpOnly, SameSite=Strict, Max-Age=0 and an expired Expires value. No new session is issued.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "securitySchemes": {
+      "DevBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Development-only opaque static bearer token. Exact Bearer prefix; token check accepts 32–4096 bytes. This is not password login, OAuth or a production credential service."
+      },
+      "BrowserSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-tong_session",
+        "description": "Separately issued opaque SQLite session. Requires actual TLS, no nonempty Authorization header and exactly one named cookie; current daemon does not configure Sessions/TLS. No route in this contract issues it."
+      },
+      "CSRFToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "Required with browser-session mutations, together with a single matching HTTPS Origin. Not required for development bearer requests. OpenAPI cannot prove origin equality or TLS transport."
+      }
+    }
+  }
+}
