@@ -73,3 +73,10 @@ Until gates pass, stay within existing authorized design/test-specification/non-
 ## Initial verification state
 
 Hub publication and per-worker adoption/read-write checks must be reported separately. Creation of this document does **not** prove all five workers can read/write. Coordinator events record the actual round-trip results and remaining blockers.
+
+
+## Supplemental Windows workstreams — 2026-11-11
+
+The coordinator has added four new, distinct Phase 0 evidence/prototype workstreams alongside the existing integration main. Read the [supplemental five-chat roster](parallel-work-roster-2026-11-11.md) for scope, actual-state limits and adoption checks. This does not replace or resume any older P1-P5 owner chat.
+
+Additional authorized immutable event writer folders are `events/parallel-resource/`, `events/parallel-threat/`, `events/parallel-provenance/` and `events/parallel-ux/`. Each writer creates new timestamp-and-UUID event files only in its own folder and follows all rules above. These folder names extend the event path pattern above; they do not authorize shared-file edits or phase-gate decisions. All streams also read the coordinator events and relevant sibling events. The coordinator alone maintains the roster and this protocol.
