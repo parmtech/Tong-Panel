@@ -1,0 +1,18 @@
+# Coordinator evidence follow-up — 2026-11-11 02:49 UTC
+
+**Event type:** append-only P0 evidence update. This records source facts and owner-scoped follow-up; it makes no ADR, security, legal, support, P0 exit, or production decision.
+
+## Verified new evidence
+
+- A read-only Markdown link audit covered `README.md`, `AGENTS.md`, `UPDATES.md`, `docs/PHASE_INDEX.md`, `docs/phases/P0-PLANNING.md`, and all nine local `docs/p0-review/p0-*.md` records (14 files total). It parsed 224 inline link/image destinations; excluded 163 external/scheme URLs; and resolved all 61 local targets with zero missing targets and zero unresolved heading anchors. External URL availability, reference-style/raw-HTML links, and some uncommon Markdown syntax were not checked. This is scoped local link evidence, not full documentation approval or P0 exit.
+- The P0-02 UX evidence form now has a blank coverage matrix for all ten screens in `UX_UI_SPEC.md` §Screens (design acceptance), plus a theme/density prompt linked to the actual source sections. Independent read-only review confirmed all items match the source and all status fields remain blank. No UX/accessibility outcome, scope choice, or user testing result is recorded.
+- The P1 readiness packet `docs/p0-review/p1-architecture-readiness.md` was read with `git show` from local commit `439f2e4abf9e1c9d0caa9aec63c0710451910378` in the clean source clone, branch `feature/p1-file-mutation-context` at `4dab4c60cc86186935e9a7d987b9fe1ca97a1f23`. The 85-line packet labels itself working evidence/proposals only and records no ADR or threat approval. It is committed locally but was not verified published or merged. P1-owned refresh deltas include the latest PR #149 exact-head candidate checks and artifact/history limits; P2's proposal at `317c72058b2609a4127f253e7e2a0f98d0688cd8`; P3/P4/P5 published draft references and stale P4-publication language; and the existing datastore, Debian sequencing, phase-label, and issue #6 numbering conflicts. These are owner reconciliation items, not decisions.
+- PR #149 at `4dab4c60cc86186935e9a7d987b9fe1ca97a1f23` has eight passing exact-head checks including Ubuntu 24.04 and Debian 12 candidate VM jobs. No exact-head VM artifacts were returned; historical attempt-1/retry linkage remains unverified. These checks do not certify supported operating systems or satisfy P0-10.
+- P5 owns its staged checklist. P0 made no edit to its bytes. The P5 owner may consider updating: row 25 with the blank ten-screen UX matrix while keeping UX acceptance open; row 45 with scoped local-link results while retaining partial status; and row 53 from “unpublished/uncommitted” to “committed locally at `439f2e4…`, unpublished/unmerged, proposal-only,” with refresh/acceptance unverified.
+- P0-05’s recommendation agenda now uses neutral evaluate/revise/reject/defer language for ADR-001, 007 and 008. P0-07’s form now describes five owner choices and makes the agent/host-service profile conditional on inclusion. Neither change selects a decision.
+
+## Coordination and limits
+
+A bounded native recent/history metadata pass verified only the current P0 owner chat: `Complete Tong Panel Phase 0`, thread `01a1c5ca-d4bd-7960-80dd-8791426f3175`, host `local`. It did not establish exact P1–P5 owner thread IDs/hosts. No owner chats were messaged, no acknowledgments are claimed, no unknown or previously failed IDs were retried, and no internal app database was inspected.
+
+The P0 owner records these findings for the established cross-phase handoff. P1/P5 source files remain under their owners. The local P0 goal remains active; Phase 0 remains IN PROGRESS / NOT ACCEPTED. Repository visibility and AGPL-3.0 remain unchanged.
