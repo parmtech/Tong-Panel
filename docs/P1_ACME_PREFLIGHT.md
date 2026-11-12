@@ -10,7 +10,15 @@ The authenticated GET /api/v1/sites/{site_id}/preflight/acme-http01 route now ex
 
 Worker behavior is unchanged. The tested lego provider remains in its isolated module, with no main-module dependency. No certificate issuance, account creation, network access, challenge publication, key storage, configuration write or service reload is introduced. OpenAPI documents the new read operation without adding any executable certificate operation.
 
-## Executed verification — 2026-11-12
+## Recorded domain evidence — 13 November 2026
+
+Migration 14 adds `ownership_observed_at`, `ownership_verified_at` and `ownership_verification_id` to domain metadata. Both existing DNS-proof completion paths write these facts only on successful completion, consume the pending proof, and retain the authorized path's audit event in the same transaction. Observation time is captured after the matching DNS answer, before waiting for the final writer; verification time is sampled inside that writer transaction. Legacy verified rows keep all three fields null. No migration-time proof is invented.
+
+The internal `Catalog.DomainVerificationEvidenceFor` method reads current membership/session authority and domain evidence in one SQLite statement snapshot. It applies the existing verified-primary/alias selection and requires every selected name to have a valid receipt and ordered, positive, nonfuture timestamps. The trusted caller must supply a positive maximum observation age. Evidence expires at the exact age boundary; delayed database writes do not freshen an observation. The returned records are detached information, not certificate-operation permission. The HTTP route and public site/domain JSON remain unchanged and do not expose these fields.
+
+The [certificate operation and key-custody contract](P1_CERTIFICATE_OPERATION_CONTRACT.md) distinguishes this implemented metadata foundation from the proposed issue/renew permissions, re-verification policy, key store, worker fencing and host installation. No certificate executor or public CA has been added. The separate provider prototype now supports cancellation of an attempt and terminal cleanup; its local tests do not establish production lifecycle acceptance.
+
+## Historical executed verification — 2026-11-12
 
 Using official Go 1.27.4 windows/amd64 with a process-scoped module cache and checksum verification enabled:
 
@@ -21,4 +29,4 @@ Using official Go 1.27.4 windows/amd64 with a process-scoped module cache and ch
 
 Follow-up route evidence: portable handler tests cover success/pending primary, pending alias exclusion, anonymous/cross-tenant requests, methods/query rejection, auditor read, backend absence and no DNS calls/queued work. The existing site-detail recheck matrix now includes this route, covering post-authentication membership changes, disabled identity, suspended tenant and revoked/expired/idle-expired cookie sessions. OpenAPI includes the strict response schema; Linux contract-report scenarios include new success, pending-primary and other-tenant cases. Linux runtime evidence remains pending where no Linux environment is available.
 
-Next concrete review: a separately named local-test-only workflow with a fixed loopback test CA. Before any executable certificate job, define explicit operation permission, domain recheck at claim/start, cancellation/lease fencing, account/key custody, failed-order reconciliation and renewal/expiry handling. Public CA access and host effects remain outside this step and existing P0/security/phase gates remain open.
+Current verification and exact commit are recorded in [UPDATES.md](../UPDATES.md) and [the resume handoff](RESUME_HANDOFF_2026-11-12.md). The separate Linux prototype workflow now runs the fixed-loopback test CA. Next concrete review: resolve the explicit choices and acceptance cases in the [certificate operation contract](P1_CERTIFICATE_OPERATION_CONTRACT.md) before adding an executable certificate job. Public CA access and host effects remain outside this step and existing P0/security/phase gates remain open.
