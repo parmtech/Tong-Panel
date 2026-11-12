@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.27.3'
+          go-version: '1.27.4'
           cache: false
       - name: Compile real daemon
         run: go build -trimpath -o "$RUNNER_TEMP/tongd" ./cmd/tongd

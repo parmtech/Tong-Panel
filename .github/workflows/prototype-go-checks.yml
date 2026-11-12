@@ -1,0 +1,73 @@
+name: Isolated Go prototype checks
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/acme-prototype/**'
+      - 'tools/prometheus-prototype/**'
+      - '.github/workflows/prototype-go-checks.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/acme-prototype/**'
+      - 'tools/prometheus-prototype/**'
+      - '.github/workflows/prototype-go-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  prototype:
+    name: ${{ matrix.name }} Linux validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ACME
+            module: tools/acme-prototype
+            acme_e2e: true
+          - name: Prometheus
+            module: tools/prometheus-prototype
+            acme_e2e: false
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ matrix.module }}
+    env:
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Verify downloaded module checksums
+        run: |
+          go mod download
+          go mod verify
+      - name: Test default suite with race detection
+        run: go test -race -count=1 -timeout=120s ./...
+      - name: Vet default suite
+        run: go vet ./...
+      - name: Test local Pebble success and failure with race detection
+        if: matrix.acme_e2e
+        run: go test -race -tags acme_e2e -count=1 -timeout=120s ./...
+      - name: Vet local Pebble fixture
+        if: matrix.acme_e2e
+        run: go vet -tags acme_e2e ./...
+      - name: Install pinned Go vulnerability scanner
+        run: GOBIN="$RUNNER_TEMP/tong-prototype-security-bin" go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+      - name: Scan source and default tests for reachable known vulnerabilities
+        run: '"$RUNNER_TEMP/tong-prototype-security-bin/govulncheck" -test -scan symbol -show version ./...'
+      - name: Scan the tagged local Pebble dependency graph
+        if: matrix.acme_e2e
+        run: '"$RUNNER_TEMP/tong-prototype-security-bin/govulncheck" -test -tags acme_e2e -scan symbol -show version ./...'
+      - name: Check module manifests remain unchanged
+        run: git diff --exit-code -- go.mod go.sum

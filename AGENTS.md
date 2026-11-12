@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-10-27):** P0 ADR/security review still pending; **P1 developer-only loopback prototype exists** in stacked, unmerged draft PRs #14–#25. No verified production hosting panel, signed installer or deployable release. Read UPDATES.md and the new Phase 1 gate report first.
+**Current checkpoint (2026-11-12):** resume from the current checkpoint at the top of UPDATES.md and `docs/RESUME_HANDOFF_2026-11-12.md`. The implementation baseline is draft PR #166 (`audit/p1-local-checkpoint-20261112`), not the documentation-only default branch. Linux prototype validation continues on a focused development branch. P0 ADR/security decisions and production release gates remain open.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.
@@ -25,11 +25,12 @@
 8. Record factual status, test results, blockers, next action and exact current branch/commit in UPDATES.md at handoff.
 
 ## Current work snapshot
-- P0 planning documents and AGPL-3.0 licence published, but ADR-001 through ADR-009 and threat model are still **draft/unapproved**.
-- P1 experimental local Go API exists in draft #14 and later stacked drafts, with developer-only auth, SQLite session/job components, prototype tenant RBAC and read-only doctor. The local agent is non-root, Unix-socket ping-only, with **no host mutations**.
-- Go race tests/vet and SQLite schema tests have passing evidence in UPDATES.md. A non-destructive real-process daemon/SQLite/doctor dry-run passed [GitHub workflow #40507195050](https://github.com/parmtech/Tong-Panel/actions/runs/40507195050) on an Ubuntu runner.
-- **No approved installer, secure public login/MFA flow, fully functioning hosted-site lifecycle, signed release, OS VM install/rollback or security audit exists.** P1 Phase 2 entry is blocked.
-- Safe nonprivileged implementation can continue in reviewed development branches. **No privileged host actions, public release or real customer deployment before P0/security gate approval.**
+- P0 architecture and threat-model decisions remain open. Public review/handoff drafts include PR #161 and #165; prepared documents and passing tests do not record owner or independent security approval.
+- The implementation baseline is draft PR #166 at `03f294f0ef0be142da5b5cce314f2094deaa0e3a`. Read UPDATES.md for the resumed branch, new commits and validation evidence. Fetch current refs before editing.
+- The latest SSL interface is an authorized read-only domain snapshot. Certificate issuance is exercised only in a separate, loopback test-CA module. The local metrics endpoint reports a development marker, not complete server health.
+- Root-module Go checks do not test separate modules under tools/. The dedicated prototype workflow must enter those modules and run their tagged Linux/race/scanner checks explicitly.
+- `docs/FEATURE_MATRIX.md` uses the roadmap's canonical P0–P6 phases and explains older labels. The first-release target includes DNS, email and Node.js/Python apps; phase numbering does not remove them from that target.
+- Safe nonprivileged implementation can continue on focused development branches. No privileged host actions, public login, public release or real customer deployment before the existing owner/security gates. No complete hosting release is certified by this checkpoint.
 
 ## Workstream boundaries
 - A: UX/UI, accessibility, tours, documentation.

@@ -29,3 +29,26 @@ Test CA/account/certificate keys stay in RAM and are never logged or written. Te
 - Race detection remains unverified because this Windows environment lacks cgo/compiler support.
 
 Pebble is a test CA with deliberately different behavior. These checks do not establish public CA issuance, tenant/domain authorization, production security approval or phase completion. Next: account/key custody, interrupted-order/restart reconciliation, renewal/expiry and authorization/host integration review.
+
+## Automated Linux coverage
+
+[Isolated Go prototype checks](../../.github/workflows/prototype-go-checks.yml) runs the following from this module with pinned Go 1.27.4 and cgo enabled on Ubuntu 24.04:
+
+```sh
+go mod download
+go mod verify
+go test -race -count=1 -timeout=120s ./...
+go vet ./...
+go test -race -tags acme_e2e -count=1 -timeout=120s ./...
+go vet -tags acme_e2e ./...
+```
+
+It installs `golang.org/x/vuln/cmd/govulncheck@v1.9.0` into a temporary tool directory and scans both the default and `acme_e2e` source/test graphs with `-test -scan symbol`. Module manifests must remain unchanged. A failed test, race report, analyzer error or known reachable vulnerability fails its job; no failure is treated as a skip. The 20-minute job limit includes dependency/tool downloads, while each test process has a 120-second limit.
+
+This closes the automation gap caused by root-module Go commands excluding nested modules. Read the workflow run for the exact reviewed commit before asserting Linux/race success. The historical evidence above is unchanged, and the same reserved-domain, loopback, in-memory-key and no-public-CA boundaries apply.
+
+### Executed local Linux evidence for this continuation
+
+The commands above were executed with the verified official Go 1.27.4 linux/amd64 toolchain, cgo enabled, `GOTOOLCHAIN=local`, and read-only module mode. The default race suite passed in 1.026s; the tagged race suite, including real local validation success and forced-404 cleanup, passed in 13.691s. Both vet variants and module verification passed, and both module manifests remained unchanged. No race report was produced.
+
+`govulncheck v1.9.0` reported no vulnerabilities for either the default or tagged source/test graph using the database updated at `2026-11-11T02:51:11Z`. These are local Linux execution results; they do not substitute for the new hosted workflow result on its reviewed commit or cover production authorization, key custody, renewal or restart behavior.

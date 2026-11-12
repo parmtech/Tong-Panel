@@ -36,13 +36,15 @@ jobs:
   unsigned-dev-archive:
     runs-on: ubuntu-latest
     timeout-minutes: 18
+    env:
+      GOTOOLCHAIN: local
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
-          go-version: '1.27.3'
+          go-version: '1.27.4'
           cache: false
       - name: Test binary SBOM verification contracts
         run: python3 -m unittest discover -s scripts -p 'test_verify_binary_sbom.py'
@@ -61,6 +63,23 @@ jobs:
             'The source is on unmerged development branches; do not use with customers.' \
             'This is NOT a supported distro package or signed release.' \
             > "$RUNNER_TEMP/tong-p1-dev/DO_NOT_INSTALL.txt"
+      - name: Require the patched toolchain in developer binaries
+        run: |
+          python3 - <<'PY_BUILD'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "tong-p1-dev" / "bin"
+          for name in ("tongd", "tongctl"):
+              result = subprocess.run(["go", "version", "-m", "-json", str(root / name)],
+                                      check=True, capture_output=True, text=True, timeout=30)
+              build = json.loads(result.stdout)
+              if build.get("GoVersion") != "go1.27.4":
+                  raise SystemExit(f"{name}: expected go1.27.4, found {build.get('GoVersion')!r}")
+              print(f"{name}: verified go1.27.4 build metadata")
+          PY_BUILD
       - name: Generate and verify SBOMs for the exact developer binaries
         env:
           GOOS: linux

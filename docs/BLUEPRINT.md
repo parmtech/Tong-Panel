@@ -96,7 +96,7 @@ A phase is not complete just because UI renders. It needs backend tests, safe pe
 
 ### Phase-by-phase integration plan and checkpoint (2026-11-12)
 
-The following follows the Gate 0–6 numbering above and `ROADMAP.md`. `FEATURE_MATRIX.md` currently uses different phase labels; reconcile that discrepancy before assigning milestones. Upstream components are candidates, not approved production selections; retain their licenses/notices and review exact versions, dependencies, security, tenant boundaries, rollback and maintenance before release.
+The following follows the Gate 0–6 numbering above and `ROADMAP.md`. `FEATURE_MATRIX.md` now follows the same P0–P6 phases and records the legacy-label crosswalk for historical notes. Upstream components are candidates, not approved production selections; retain their licenses/notices and review exact versions, dependencies, security, tenant boundaries, rollback and maintenance before release.
 
 | Gate | Planned use and current state | Next acceptance work |
 |---|---|---|

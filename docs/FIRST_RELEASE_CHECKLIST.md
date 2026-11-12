@@ -7,7 +7,7 @@
 ## 1. Decide scope before building
 
 - [ ] Owner approves target users, release name, supported OS/version/architecture, system requirements, support policy and exactly which features are in/out.
-- [ ] Complete P0 architecture, threat-model, dependency/provenance and independent security decision records. Reconcile differing phase numbers in `ROADMAP.md` and `FEATURE_MATRIX.md`.
+- [ ] Complete P0 architecture, threat-model, dependency/provenance and independent security decision records. Use the canonical P0–P6 phases and historical crosswalk in `FEATURE_MATRIX.md` when matching requirements to `ROADMAP.md`.
 - [ ] Specify whether this is single-tenant admin hosting or multi-tenant shared hosting. Do not market multi-tenant support until isolation is tested.
 - [ ] Set measurable feature acceptance, recovery targets and known limitations; agree who can approve release.
 
