@@ -92,6 +92,22 @@ Design priorities in order: **safety of customer data and server**, correct work
 
 A phase is not complete just because UI renders. It needs backend tests, safe permissions, integration and rollback tests, manual acceptance, docs and changelog evidence.
 
+### Phase-by-phase integration plan and checkpoint (2026-11-12)
+
+The following follows the Gate 0–6 numbering above and `ROADMAP.md`. `FEATURE_MATRIX.md` currently uses different phase labels; reconcile that discrepancy before assigning milestones. Upstream components are candidates, not approved production selections; retain their licenses/notices and review exact versions, dependencies, security, tenant boundaries, rollback and maintenance before release.
+
+| Gate | Planned use and current state | Next acceptance work |
+|---|---|---|
+| 0 — Planning | Complete owner decisions, architecture, threat model and provenance. The [research report](OPEN_SOURCE_RESEARCH_REPORT_2026-11-12.md) maps possible upstream components; decisions remain open. | Record actual owner/security decisions, component review and phase gates. Draft prototypes do not approve a design. |
+| 1 — Foundation | An opt-in Prometheus Go client integration exposes only a local development marker; see [development metrics](P1_DEVELOPMENT_METRICS.md). Authentication, jobs and agent boundaries remain broader foundation work. | Define real metrics, credential and proxy policy, tenant isolation, secure transport and tests before production monitoring. |
+| 2 — Hosting MVP | Evaluate [lego](https://github.com/go-acme/lego) for SSL/ACME, Nginx for web serving, and [restic](https://github.com/restic/restic) or another reviewed tool for backup. A local lego challenge test and an authorized read-only domain preflight exist; no certificate issuance is wired into the panel. The restic fixture restore passed, but its tested binary has unresolved scanner findings and is not approved. | Implement reviewed certificate permissions, key custody, renewal and rollback; test with a local CA, then approved environments. Resolve backup tool findings and test tenant isolation, failure recovery and full restore before use. |
+| 3 — Modern apps | Evaluate [Coolify](https://github.com/coollabsio/coolify) workflows or a separately operated integration for Git/app deployment; Node/Python and optional isolated containers remain planned. | Review credentials, build isolation, resource limits, deployment/rollback and compatible integration boundaries; do not assume its control plane is already integrated. |
+| 4 — Full hosting | Evaluate PowerDNS/BIND for optional DNS, Postfix/Dovecot for optional mail, PostgreSQL, enhanced backups, reseller controls and supervised migration. | Test scoped service adapters, mail delivery/DNS failure cases, recovery, tenant separation and migration reconciliation. |
+| 5 — Scale | Plan node enrollment, placement, revocation, marketplace permissions and cross-server operations. | Prove partial failure, credential revocation, placement and recovery in disposable environments. |
+| 6 — Stable release | Complete independent security review, signed releases, SBOM, support matrix, accessibility and recovery evidence. Optional [Coraza](https://github.com/corazawaf/coraza) or [CrowdSec](https://github.com/crowdsecurity/crowdsec) hardening requires its own evaluation. | Triage scanner findings, run supported-OS and restore drills, complete security review and document residual limitations. |
+
+The detailed current paths, test evidence and step-by-step resume instructions are in [the resume handoff](RESUME_HANDOFF_2026-11-12.md); precise component provenance and blockers are in the individual prototype READMEs linked there. This is a draft plan, not evidence that the listed services are installed or phases completed.
+
 ## 5. Proposed user journeys (acceptance)
 
 1. New VPS: preflight identifies incompatible distro or occupied ports BEFORE making changes; fresh supported distro provisions panel and serves TLS admin UI.
