@@ -28,6 +28,16 @@ Each case constructs its provider with `NewForAttempt` and closes it at cleanup.
 
 Test CA/account/certificate keys stay in RAM and are never logged or written. Test listeners close after each subtest. Pebble's internal validation workers have no shutdown API and end with the short-lived go test process; do not embed this test setup in a persistent service.
 
+## Interrupted order response and reconciliation
+
+`order_reconciliation_test.go` extends the lab with a response barrier after Pebble accepts a finalize request. Canceling the attempt or timing out that HTTP response produces a local error while the test CA can finish issuing the certificate. A nil local result is therefore not evidence that no certificate exists remotely.
+
+The lab retains the account registration/key, exact requested name, validated order URL and a separate certificate private key in RAM. A new bounded recovery context reads that same order through lego's lower-level ACME API and retrieves its certificate. It verifies the exact SAN, chain to the generated local root and match to the original certificate key. Request counters must remain at one new order and one finalize; recovery does not call `Obtain` again. Invalid recovery inputs are rejected without starting another order.
+
+The `newAttemptTransport` helper lives only in a `_test.go` file. It requires an explicit underlying transport and combines the attempt's cancellation/deadline with the original request context. Registration cleanup covers dispatch errors and the response body's EOF, read error or close. Network-free unit tests exercise blocked requests and response bodies, original-context preservation and resource cleanup. The tagged client still enforces verified TLS, exact fixture dialing and bounded requests; it has no public-CA access or persistent keys.
+
+This proves recovery of a known local order while the process and its RAM keys survive. It does not implement crash/restart persistence, authorization of a real tenant, a production retry budget, key backup, certificate installation or renewal. The pinned lego polling loop can continue sleeping after transport cancellation, so this helper is not a claim of prompt whole-`Obtain` cancellation. The enclosing client, certificate and test-process time limits remain in place.
+
 ## Historical Windows evidence — 2026-11-12
 
 These results predate the attempt-lifecycle changes and cover only the original success and forced-404 cases.
@@ -82,3 +92,24 @@ On branch `feature/p1-acme-evidence-lifecycle`, based on the baseline above, the
 Both scans used `govulncheck v1.9.0` and the database updated at `2026-11-11T02:51:11Z`. After the complete race/vet runs, a startup barrier was added only to the constructor-cancellation regression. The focused `go test -race -run '^TestCancellationDuringAttemptConstruction$' -count=1 -timeout=120s ./...` rerun passed in 1.032s. A final complete tagged race run after that test change passed in 6.201s, including the default tests and all three local Pebble scenarios. Production code did not change after the first complete runs; exact-commit hosted results remain separate evidence to record.
 
 These checks establish the tested local provider lifecycle and local-CA outcomes. They do not approve production issuance, entire-order cancellation, certificate revocation, persistent key storage, renewal, restart reconciliation, host changes or phase completion.
+
+The subsequent [PR #168 prototype run](https://github.com/parmtech/Tong-Panel/actions/runs/43230471748) passed on `d14e5611d7b3d0302d4ae76bdbb8f210827e1bb9`. All ten triggered workflows on that parent, including both clean VMs, completed successfully. Those results precede the interrupted-order tests below.
+
+### Interrupted order continuation — local Linux evidence
+
+Branch `feature/p1-acme-order-reconciliation` continues from that parent. Official Go 1.27.4 linux/amd64, cgo/race enabled, `GOTOOLCHAIN=local` and read-only module mode:
+
+| Check | Executed result |
+|---|---|
+| Full default race suite | PASS, 1.286s |
+| Final focused transport race suite after a test-accounting adjustment | PASS, 1.220s |
+| Focused lost-finalize/reconciliation race test | PASS, 11.591s |
+| Final complete tagged race suite | PASS, 10.965s; original three scenarios, both new interruption modes, all 19 recovery denials and default unit tests |
+| Default and tagged vet | PASS |
+| Default and tagged source/test vulnerability scans | No vulnerabilities found |
+| Module verification and manifest stability | PASS; `go.mod` and `go.sum` unchanged |
+| Independent review and whitespace | No blocking issue found; whitespace passed |
+
+Both scans used govulncheck v1.9.0 with database timestamp `2026-11-11T02:51:11Z`. The new modes are `attempt-canceled` and `http-deadline`; each withholds a real successful finalize response, proves local failure, and recovers the original certificate with one account/order/finalize. Denials include malformed/foreign URLs, changed account/domain, missing keys, invalid/expired contexts, a wrong signing key, a wrong certificate key and an unknown order. Invalid preflight inputs produce no network traffic; authenticated read failures return no artifact and do not issue again.
+
+All new adapters and recovery helpers are test-only. Production provider code and dependency manifests are unchanged. Exact published source commit and subsequent hosted results are recorded in [UPDATES.md](../../UPDATES.md) and the continuation draft PR.

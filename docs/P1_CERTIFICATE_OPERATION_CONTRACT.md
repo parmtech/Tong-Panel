@@ -1,6 +1,6 @@
 # Certificate operation authorization and key custody
 
-**Status: development contract and review proposal, 13 November 2026.** This document does not approve a certificate executor, role grant, public CA, persistent key store or host adapter. The current continuation implements domain-verification evidence and cancellation of an isolated HTTP-01 provider attempt. The rest of this contract specifies the evidence needed for the next implementation stages.
+**Status: development contract and review proposal, 13 November 2026.** This document does not approve a certificate executor, role grant, public CA, persistent key store or host adapter. Current foundations include domain-verification evidence and cancellation of an isolated HTTP-01 provider attempt. A separate test-only extension investigates interrupted responses and recovery of the same local-CA order. The rest of this contract specifies the evidence needed for the next implementation stages.
 
 ## 1. Current boundary and implemented foundations
 
@@ -74,6 +74,8 @@ ACME separates account-authentication keys from certificate keys. Account rollov
 | Renewal/revocation | Use current explicit service authority and current domain evidence; respect bounded retry/rate policy and distinguish renewal, account-key rotation and certificate revocation |
 
 Local idempotency keys need bounded retention and exact intent matching. Local retry limits and CA response/backoff handling must be reviewed together; retrying must not mint unlimited accounts/orders. No automatic renewal interval, CA-specific limit or production retry budget is chosen by this proposal.
+
+The [local interruption experiment](../tools/acme-prototype/LOCAL_E2E.md#interrupted-order-response-and-reconciliation) exercises one uncertainty boundary: a finalize request accepted by Pebble whose response is withheld, followed by same-account recovery of the saved order without another order/finalize. The account and separate certificate key stay in RAM, and a new bounded context performs recovery. Its test-only transport cancels outgoing requests and bodies; lego polling sleeps can still continue until their configured bound. This evidence does not provide durable restart recovery, persistent key custody or production authorization.
 
 ## 6. Next implementation stages and acceptance
 

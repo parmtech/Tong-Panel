@@ -14,6 +14,14 @@ Response admission copies the authorized key authorization while holding the sta
 
 The tagged local test now checks a provider attempt canceled immediately after `Present`, alongside success and forced-404 failure. See [the local fixture assertions and evidence](LOCAL_E2E.md). Future executable certificate work must satisfy the separate [certificate operation authorization and key-custody contract](../../docs/P1_CERTIFICATE_OPERATION_CONTRACT.md); this provider is not an execution permission, a persistent key store or a daemon certificate feature.
 
+## Interrupted responses and order reconciliation
+
+The lab also separates canceling outgoing HTTP work from canceling the challenge provider. A test-only transport in `attempt_transport_test.go` binds requests and response bodies to an explicit attempt context while retaining the original request's values, cancellation and earlier deadline. The caller supplies the underlying restricted transport; the helper does not select a CA or grant network/operation authority. Its cancellation registration remains active until the response body ends or closes, rather than ending as soon as headers arrive.
+
+The tagged `order_reconciliation_test.go` fixture withholds a finalize response after the local CA has accepted it. A local cancellation or timeout can therefore coexist with remote issuance. Recovery uses a fresh bounded context, the same account and the saved, validated order URL. It reads that order and fetches its certificate without repeating `Obtain`, creating a new order or resubmitting finalize. The fixture retains a distinct caller-generated certificate key in RAM before issuance, so recovery can verify the returned chain, exact name and match to that original key.
+
+This is a test/helper experiment. It does not add a daemon issuer, durable operation store, production permission, retry policy, persistent key custody or recovery after process loss. Transport cancellation also does not interrupt lego's internal polling sleeps; the configured client and certificate timeouts remain necessary bounds. See [the local interruption evidence](LOCAL_E2E.md#interrupted-order-response-and-reconciliation) and the [operation contract](../../docs/P1_CERTIFICATE_OPERATION_CONTRACT.md) for the remaining boundaries.
+
 ## Choice and provenance
 
 Lego provides the small explicit provider contract needed for this experiment. CertMagic also offers full automated TLS management, storage, listeners and renewal; those are broader than the behavior being evaluated here. This choice is an experiment, not a production architecture decision.
@@ -45,3 +53,5 @@ The workflow uses read-only repository permissions, no persisted checkout creden
 The previous baseline at commit `188851da58480f13b486b43b9d6e29ea3fd7c968` passed the [PR #167 hosted prototype workflow](https://github.com/parmtech/Tong-Panel/actions/runs/43224283911). That result predates the attempt-lifecycle changes and does not verify them.
 
 Local lifecycle verification passed the default and tagged race suites, both vet variants, module verification and both source/test vulnerability scans with Go 1.27.4. See [the lifecycle continuation evidence](LOCAL_E2E.md#attempt-lifecycle-continuation--local-linux-evidence) for commands, timings, the subsequent test-only barrier check, scanner version/database timestamp and remaining limits. Final integrated and exact-commit hosted checks must be recorded separately.
+
+The interrupted-response continuation passed its complete tagged race suite in 10.965s, including the original scenarios, default unit tests, both lost-finalize modes and 19 recovery-denial cases. Default and tagged vet/scans and module verification passed. See [the new executed evidence](LOCAL_E2E.md#interrupted-order-continuation--local-linux-evidence); the earlier PR #168 prototype result is baseline evidence only.
