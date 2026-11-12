@@ -26,6 +26,7 @@
 - [ ] **Email and webmail:** mailbox, alias and forwarding management, browser access, routing, DNS configuration and delivery diagnostics; validate send/receive and port-25 limitations.
 - [ ] **PHP settings and cron:** per-site PHP versions/configuration and scoped scheduled jobs, with safe ownership, limits, logs and tests.
 - [ ] **FTP/SFTP/SSH:** define which protocols are enabled and how, prefer encrypted access, enforce tenant isolation, credentials, audit and safe defaults; test connection and revocation. Plain FTP must not be assumed secure.
+- [ ] **Browser terminal:** provide an opt-in terminal for explicitly authorized accounts, confined to the account's isolated environment. Specify session authentication, per-user identity, transport and origin checks, idle timeout, revocation, resource limits and audit before enabling any shell. Test cross-tenant and host-escape denial. This is a first-release target, not an implemented or production-ready feature. See [implementation proposal](P1_BROWSER_TERMINAL_PROPOSAL.md).
 
 ## 3. Candidate tools and additional scope
 

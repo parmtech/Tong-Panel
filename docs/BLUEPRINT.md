@@ -37,6 +37,7 @@ Design priorities in order: **safety of customer data and server**, correct work
 - Nginx-first supported profile with PHP-FPM; optional Apache interoperability adapter in subsequent phases. Do not install conflicting active web-stack configurations.
 - PHP version selector per app/site; per-site process pool, resource isolation, extension management, safe php.ini policies, logs and cron.
 - SSH/SFTP access, tightly scoped file permissions, quotas; no unrestricted web-root ownership by panel service.
+- Opt-in browser terminal for authorized accounts in their own isolated environment, with session revocation, bounded resources and audit. It is a planned first-release feature; no unrestricted root shell or cross-tenant access. See the [terminal implementation proposal](P1_BROWSER_TERMINAL_PROPOSAL.md) for unresolved scope and acceptance tests.
 
 ### Application development/deployment
 - PHP (WordPress, Laravel, 84PAD, etc.), HTML/static, Node.js (Express, Next.js build/runtime), Python (Django, Flask, FastAPI), Ruby, Go binary and generic container/Compose profiles.
