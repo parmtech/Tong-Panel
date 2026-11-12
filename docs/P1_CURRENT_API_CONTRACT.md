@@ -13,6 +13,10 @@ The listener remains plaintext and development only. See
 static assets are outside this control-plane contract. No OpenAPI-document or
 Swagger-UI HTTP route is invented by checking in the artifact.
 
+The separately configured development-only `GET /metrics` endpoint is also
+outside this control-plane contract; it is disabled by default and requires its
+own credential. See [development metrics](P1_DEVELOPMENT_METRICS.md).
+
 ## Implemented surface
 
 - Public GET process liveness and experimental version identification.
