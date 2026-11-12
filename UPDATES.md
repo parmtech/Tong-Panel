@@ -356,3 +356,7 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Security and third-party licence impact:
 - Blockers / constraints:
 - Next ONE step for handoff:
+
+## 2026-11-12 — P2 planning checkpoint
+
+Branch `audit/p2-plan-checkpoint-20261112`, based on PR #144 head `2cf9211d592c7233dff01ab1e059aa260752af76`, preserves local documentation changes to P2 entry prerequisites and acceptance traceability. These are proposed requirements only. P2 entry and exit remain blocked pending applicable P0/P1 decisions and integrated evidence; no phase approval is implied. Staged whitespace check passed; no product, VM or security tests ran. Next: review these requirements with phase owners and reconcile against the current P2 plan and approved upstream contracts.
