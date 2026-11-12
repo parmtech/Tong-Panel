@@ -561,3 +561,7 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - Exact code head Go race/vet and gofmt passed [run 42344239716](https://github.com/parmtech/Tong-Panel/actions/runs/42344239716); daemon [run 42344239685](https://github.com/parmtech/Tong-Panel/actions/runs/42344239685) and unsigned archive [run 42344239718](https://github.com/parmtech/Tong-Panel/actions/runs/42344239718) passed. Ubuntu/Debian clean guest job [run 42344239745](https://github.com/parmtech/Tong-Panel/actions/runs/42344239745) is still running; the PHP syntax step is not yet verified.
 - ADR-001–009 and threat-model owner/security decisions remain pending. No host mutation or real deployment was performed. P2 remains open.
 - Next action: inspect both clean-VM results and confirm the PHP lint step ran successfully; fix failures before selecting the next P2 lifecycle gate.
+
+## 2026-11-12 — historical WordPress script repair snapshot
+
+Branch `audit/wp-fix-local-checkpoint-20261112` preserves a locally modified clean-VM script on historical base `e6b880d66e74253f7d60da8b84e8186e5bbe90ae`. It removes a large malformed region and adds generated-guest-script syntax preflight; it is an archival snapshot, not a proposed replacement for current lab branches. Outer `bash -n` passed, but no generated guest, VM, product or security test ran. Next: compare the repair with current PR #88/#89/#91, review the large deletion and run appropriate disposable-VM checks before considering reuse. No phase completion is claimed.
