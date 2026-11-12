@@ -60,14 +60,14 @@ jobs:
               raise SystemExit("gosec did not produce a non-empty report")
           with path.open(encoding="utf-8") as stream:
               report = json.load(stream)
-          if not isinstance(report, dict) or not all(key in report for key in ("Issues", "Stats", "Errors")):
-              raise SystemExit("gosec report is missing the expected Issues, Stats, or Errors fields")
+          if not isinstance(report, dict) or not all(key in report for key in ("Issues", "Stats", "Golang errors")):
+              raise SystemExit("gosec report is missing the expected Issues, Stats, or Golang errors fields")
           issues = report["Issues"]
           if issues is not None and not isinstance(issues, list):
               raise SystemExit("gosec report Issues field is not a list or null")
-          errors = report["Errors"]
+          errors = report["Golang errors"]
           if errors is not None and not isinstance(errors, dict):
-              raise SystemExit("gosec report Errors field is not an object or null")
+              raise SystemExit("gosec report Golang errors field is not an object or null")
           if errors:
               raise SystemExit(f"gosec reported analyzer errors: {errors}")
           print(f"Validated gosec JSON report; findings: {len(issues or [])}")
