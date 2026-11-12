@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-11-12):** resume from the current checkpoint at the top of UPDATES.md and `docs/RESUME_HANDOFF_2026-11-12.md`. The implementation baseline is draft PR #166 (`audit/p1-local-checkpoint-20261112`), not the documentation-only default branch. Linux prototype validation continues on a focused development branch. P0 ADR/security decisions and production release gates remain open.
+**Current checkpoint (2026-11-13):** resume from the current checkpoint at the top of UPDATES.md and `docs/RESUME_HANDOFF_2026-11-12.md`. The implementation baseline is draft PR #166 (`audit/p1-local-checkpoint-20261112`), not the documentation-only default branch. Linux prototype validation continues on a focused development branch. P0 ADR/security decisions and production release gates remain open.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.
@@ -26,10 +26,10 @@
 
 ## Current work snapshot
 - P0 architecture and threat-model decisions remain open. Public review/handoff drafts include PR #161 and #165; prepared documents and passing tests do not record owner or independent security approval.
-- The implementation baseline is draft PR #166 at `03f294f0ef0be142da5b5cce314f2094deaa0e3a`. Read UPDATES.md for the resumed branch, new commits and validation evidence. Fetch current refs before editing.
+- The implementation baseline is draft PR #166 at `001f801c47a5cd251486c2939b783b72946257de`; continuation code is `cd3ed4361426061a51aac613e01aa57c89a348ab` on `feature/p1-linux-prototype-validation`. Read UPDATES.md for the resumed branch, new commits and validation evidence. Fetch current refs before editing.
 - The latest SSL interface is an authorized read-only domain snapshot. Certificate issuance is exercised only in a separate, loopback test-CA module. The local metrics endpoint reports a development marker, not complete server health.
 - Root-module Go checks do not test separate modules under tools/. The dedicated prototype workflow must enter those modules and run their tagged Linux/race/scanner checks explicitly.
-- `docs/FEATURE_MATRIX.md` uses the roadmap's canonical P0–P6 phases and explains older labels. The first-release target includes DNS, email and Node.js/Python apps; phase numbering does not remove them from that target.
+- `docs/FEATURE_MATRIX.md` uses the roadmap's canonical P0–P6 phases and explains older labels. The first-release target includes DNS, email, Node.js/Python apps, an isolated browser terminal, resellers/quotas and cPanel migration. Integrated software must be free and open source without mandatory paid components; Softaculous is not selected. Phase numbering does not remove requested features from that target.
 - Safe nonprivileged implementation can continue on focused development branches. No privileged host actions, public login, public release or real customer deployment before the existing owner/security gates. No complete hosting release is certified by this checkpoint.
 
 ## Workstream boundaries

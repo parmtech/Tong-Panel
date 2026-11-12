@@ -39,6 +39,7 @@ Installer and API foundations begin in P1; installable hosting packages are a P2
 | Node.js | runtime versions, builds, process health, domain proxy | P3 | Express/Next app deployed/rolled back |
 | Python | venv builds, WSGI/ASGI, secrets, proxy, logs | P3 | Flask/Django/FastAPI sample deployments |
 | Git deploy | OAuth/keys, webhook signatures, build history | P3 | Git-based deployment and rollback |
+| Browser terminal | real interactive terminal; exact account scope, isolation and permissions need T0 decisions | P3 proposed; P1 authentication/isolation prerequisites | [T0–T5 evidence](P1_BROWSER_TERMINAL_PROPOSAL.md): current authorization, ticket replay/expiry, cross-tenant denial and complete process cleanup |
 | Containers | isolated workloads, Compose profile, resource caps | P3 | no exposed docker socket/host files |
 | App catalog | vetted recipes, upgrades, signatures, permissions | P3 | signed recipe and rollback tests |
 | Mail | Postfix/Dovecot, mailboxes, DKIM/SPF/DMARC checks, webmail | P4 | send/receive/queue/reputation diagnostics |
