@@ -51,3 +51,10 @@ Nine locally changed or untracked MFA code, migration, test, smoke and primitive
 
 - P2 planning changes from the separate P2 worktree are preserved in draft PR [#164](https://github.com/parmtech/Tong-Panel/pull/164), head `149d214155390bf8f991b6503cd214b3fabf9198`; whitespace check passed. They do not approve P2 entry.
 - The clean coordination worktree head `aec646542074a05e7e90b070110cbe896f5f7fcc` was verified as an ancestor of remote `docs/phase-coordination` head `75d466c392c7d0de696e9cb24358c787ef9edb55`. Two other clean P0/P2 worktree heads were found as exact remote refs. Other folders and history still need inventory; this is not a complete backup certificate.
+
+## Additional local preservation — 2026-11-12
+
+- The historical MFA journal is preserved in `mfa-local-journal-2026-11-10.md`; its unintegrated status and later PR #90 must be read together.
+- The historical restore worktree, including the distinct workflow trigger, is preserved on `audit/wp-restore-local-checkpoint-20261112` at `738a5aea9536af73f6bcc4b9ee0df10a51b5c867`. Three scripts passed shell syntax and the Linux sites test binary cross-compiled; tests were not executed. This branch does not replace PR #91.
+- WordPress 7.1.4 source inventory CSVs and modernc libc verification manifest are preserved under `evidence/`. Downloaded third-party archives, extracted licence corpus, module caches and the unsigned PR #149 preview archive are not included. Their digests and source context are recorded in the P0 evidence; exact artifacts and applicable notices must be retrieved and reviewed separately. No licence decision or distribution clearance follows.
+- All examined clean local Tong-Panel worktree heads were found as remote branch tips or ancestors. This is a bounded filesystem audit, not proof that no other project file exists elsewhere on the machine. Original P0 files contain omitted private paths/conversation metadata and are not byte-for-byte backed up in this public repository. Review privacy and evidence limits before resetting any machine or deleting history.
