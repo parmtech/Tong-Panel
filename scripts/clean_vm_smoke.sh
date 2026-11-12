@@ -149,7 +149,7 @@ grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' tong-p1-dev/DO_NOT_INSTALL.txt
 ./tong-p1-dev/tests/sites.test -test.v -test.timeout=4m
 TONG_TEST_PINNED_WORDPRESS_RELEASE=1 ./tong-p1-dev/tests/sites.test -test.run '^TestPinnedWordPressCoreReleaseOnCleanGuest$' -test.timeout=5m
 sudo apt-get update
-sudo apt-get install -y --no-install-recommends nginx php-fpm php-cli mariadb-server curl
+sudo apt-get install -y --no-install-recommends nginx php-fpm php-cli php-mysql mariadb-server curl
 command -v php >/dev/null
 ./tong-p1-dev/tests/sites.test -test.run '^TestWordPressDatabaseConfigParsesWithPHP$' -test.timeout=1m
 sudo systemctl start mariadb
@@ -206,6 +206,69 @@ sudo install -d -o "$pool_user_a" -g "$pool_user_a" -m 0755 /srv/tong/tenants/te
 sudo install -d -o "$pool_user_b" -g "$pool_user_b" -m 0755 /srv/tong/tenants/tenant-b/sites/site-b/public
 sudo install -d -o "$pool_user_a" -g "$pool_user_a" -m 0700 /srv/tong/tenants/tenant-a/run/site-a/tmp /srv/tong/tenants/tenant-a/run/site-a/sessions
 sudo install -d -o "$pool_user_b" -g "$pool_user_b" -m 0700 /srv/tong/tenants/tenant-b/run/site-b/tmp /srv/tong/tenants/tenant-b/run/site-b/sessions
+wp_db_a="tp_wp_a_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
+wp_db_b="tp_wp_b_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
+wp_user_a="tu_wp_a_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
+wp_user_b="tu_wp_b_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
+wp_password_a="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
+wp_password_b="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
+cleanup_wp_lab() {
+  sudo mariadb --protocol=socket -uroot >/dev/null 2>&1 <<SQL || true
+DROP USER IF EXISTS '$wp_user_a'@'localhost';
+DROP USER IF EXISTS '$wp_user_b'@'localhost';
+DROP DATABASE IF EXISTS \`$wp_db_a\`;
+DROP DATABASE IF EXISTS \`$wp_db_b\`;
+SQL
+  rm -f /home/ci/wp-tenant-a.cnf /home/ci/wp-tenant-b.cnf /home/ci/wp-tenant-a.json /home/ci/wp-tenant-b.json
+}
+trap cleanup_wp_lab EXIT
+sudo mariadb --protocol=socket -uroot <<SQL
+CREATE DATABASE \`$wp_db_a\`;
+CREATE DATABASE \`$wp_db_b\`;
+CREATE USER '$wp_user_a'@'localhost' IDENTIFIED BY '$wp_password_a';
+CREATE USER '$wp_user_b'@'localhost' IDENTIFIED BY '$wp_password_b';
+GRANT ALL PRIVILEGES ON \`$wp_db_a\`.* TO '$wp_user_a'@'localhost';
+GRANT ALL PRIVILEGES ON \`$wp_db_b\`.* TO '$wp_user_b'@'localhost';
+CREATE TABLE \`$wp_db_a\`.tong_lab_marker (value VARCHAR(32) NOT NULL);
+CREATE TABLE \`$wp_db_b\`.tong_lab_marker (value VARCHAR(32) NOT NULL);
+INSERT INTO \`$wp_db_a\`.tong_lab_marker VALUES ('tenant-a-db');
+INSERT INTO \`$wp_db_b\`.tong_lab_marker VALUES ('tenant-b-db');
+SQL
+umask 077
+cat > /home/ci/wp-tenant-a.cnf <<EOF
+[client]
+user=$wp_user_a
+password=$wp_password_a
+host=localhost
+protocol=socket
+EOF
+cat > /home/ci/wp-tenant-b.cnf <<EOF
+[client]
+user=$wp_user_b
+password=$wp_password_b
+host=localhost
+protocol=socket
+EOF
+printf '{"Name":"%s","User":"%s","Password":"%s","Host":"localhost","TablePrefix":"tenant_a_"}\n' "$wp_db_a" "$wp_user_a" "$wp_password_a" > /home/ci/wp-tenant-a.json
+printf '{"Name":"%s","User":"%s","Password":"%s","Host":"localhost","TablePrefix":"tenant_b_"}\n' "$wp_db_b" "$wp_user_b" "$wp_password_b" > /home/ci/wp-tenant-b.json
+chmod 0600 /home/ci/wp-tenant-a.cnf /home/ci/wp-tenant-b.cnf /home/ci/wp-tenant-a.json /home/ci/wp-tenant-b.json
+sudo chown ci:ci /srv/tong/tenants/tenant-a/sites/site-a/public /srv/tong/tenants/tenant-b/sites/site-b/public
+TONG_WORDPRESS_RUNTIME_ROOT=/srv/tong/tenants/tenant-a/sites/site-a/public TONG_WORDPRESS_RUNTIME_CREDENTIALS=/home/ci/wp-tenant-a.json TONG_WORDPRESS_RUNTIME_INSTALL=1 ./tong-p1-dev/tests/sites.test -test.run '^TestPrepareWordPressRuntimeForCleanVM$' -test.timeout=5m
+sudo rm -f /srv/tong/tenants/tenant-a/sites/site-a/public/wordpress/wp-config.php
+sudo cp -a /srv/tong/tenants/tenant-a/sites/site-a/public/wordpress /srv/tong/tenants/tenant-b/sites/site-b/public/wordpress
+TONG_WORDPRESS_RUNTIME_ROOT=/srv/tong/tenants/tenant-b/sites/site-b/public TONG_WORDPRESS_RUNTIME_CREDENTIALS=/home/ci/wp-tenant-b.json ./tong-p1-dev/tests/sites.test -test.run '^TestPrepareWordPressRuntimeForCleanVM$' -test.timeout=1m
+TONG_WORDPRESS_RUNTIME_ROOT=/srv/tong/tenants/tenant-a/sites/site-a/public TONG_WORDPRESS_RUNTIME_CREDENTIALS=/home/ci/wp-tenant-a.json ./tong-p1-dev/tests/sites.test -test.run '^TestPrepareWordPressRuntimeForCleanVM$' -test.timeout=1m
+sudo chown -R "$pool_user_a:$pool_user_a" /srv/tong/tenants/tenant-a/sites/site-a/public/wordpress
+sudo chown -R "$pool_user_b:$pool_user_b" /srv/tong/tenants/tenant-b/sites/site-b/public/wordpress
+sudo chmod 0600 /srv/tong/tenants/tenant-a/sites/site-a/public/wordpress/wp-config.php /srv/tong/tenants/tenant-b/sites/site-b/public/wordpress/wp-config.php
+if mariadb --defaults-extra-file=/home/ci/wp-tenant-a.cnf "$wp_db_b" -e 'SELECT value FROM tong_lab_marker' >/dev/null 2>&1; then
+  echo 'WordPress tenant A database user unexpectedly read tenant B data' >&2
+  exit 1
+fi
+if mariadb --defaults-extra-file=/home/ci/wp-tenant-b.cnf "$wp_db_a" -e 'SELECT value FROM tong_lab_marker' >/dev/null 2>&1; then
+  echo 'WordPress tenant B database user unexpectedly read tenant A data' >&2
+  exit 1
+fi
 sudo tee /srv/tong/tenants/tenant-a/sites/site-a/public/index.php >/dev/null <<'PHP'
 <?php
 $other = @file_get_contents('/srv/tong/tenants/tenant-b/run/site-b/secret.txt');
@@ -252,6 +315,7 @@ NGINX
 sudo nginx -t -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
 sudo nginx -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
 cleanup_site_services() {
+  cleanup_wp_lab
   sudo systemctl stop mariadb >/dev/null 2>&1 || true
   sudo nginx -s quit -p /etc/nginx/ -c /home/ci/nginx-e2e.conf >/dev/null 2>&1 || true
   sudo nginx -s quit -p /etc/nginx/ -c /home/ci/nginx-https-e2e.conf >/dev/null 2>&1 || true
@@ -282,6 +346,29 @@ for host, marker in [
     assert hidden_status == 403, (host, hidden_status)
 print("two-tenant Nginx/PHP-FPM smoke passed; cross-tenant reads denied and hidden files blocked")
 PY
+for host in tenant-a.example.test tenant-b.example.test; do
+  response="$(curl --silent --show-error --fail --resolve "$host:80:127.0.0.1" "http://$host/wordpress/wp-admin/install.php")"
+  [[ "$response" == *"Welcome to the famous five-minute WordPress installation process"* ]]
+done
+for tenant in a b; do
+  public_root="/srv/tong/tenants/tenant-$tenant/sites/site-$tenant/public/wordpress"
+  probe_name="tong-db-probe-$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n').php"
+  if [[ "$tenant" == a ]]; then marker=tenant-a-db; else marker=tenant-b-db; fi
+  sudo tee "$public_root/$probe_name" >/dev/null <<PHP
+<?php
+define('WP_INSTALLING', true);
+require __DIR__ . '/wp-load.php';
+echo DB_NAME . '|' . \$wpdb->get_var('SELECT value FROM tong_lab_marker LIMIT 1');
+PHP
+  if [[ "$tenant" == a ]]; then pool_user="$pool_user_a"; expected_db="$wp_db_a"; else pool_user="$pool_user_b"; expected_db="$wp_db_b"; fi
+  sudo chown "$pool_user:$pool_user" "$public_root/$probe_name"
+  sudo chmod 0644 "$public_root/$probe_name"
+  result="$(curl --silent --show-error --fail --resolve "tenant-$tenant.example.test:80:127.0.0.1" "http://tenant-$tenant.example.test/wordpress/$probe_name")"
+  [[ "$result" == "$expected_db|$marker" ]]
+  sudo rm -f "$public_root/$probe_name"
+done
+! find /srv/tong/tenants/tenant-a/sites/site-a/public/wordpress /srv/tong/tenants/tenant-b/sites/site-b/public/wordpress -maxdepth 1 -name 'tong-db-probe-*.php' -print -quit | grep -q .
+printf '%s\n' 'two-tenant WordPress runtime passed; installer loads, each PHP-FPM pool reads its own DB marker, cross-tenant DB reads denied'
 sudo nginx -s quit -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
 sudo install -d -m 0755 /etc/tong/certs/tenant-a/site-a /etc/tong/certs/tenant-b/site-b
 sudo openssl req -x509 -nodes -days 1 -newkey rsa:2048 -subj "/CN=tenant-a.example.test" -addext "subjectAltName=DNS:tenant-a.example.test,DNS:www.tenant-a.example.test" -keyout /etc/tong/certs/tenant-a/site-a/privkey.pem -out /etc/tong/certs/tenant-a/site-a/fullchain.pem >/dev/null 2>&1

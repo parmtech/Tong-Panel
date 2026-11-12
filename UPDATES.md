@@ -576,3 +576,7 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - Code commit `ea73329f9efb68b6a2c22a827aec09a438b74f9e`, draft PR #87: the existing PHP guest test now executes generated config against a harmless settings stub and asserts exact database values, prefix, charset/debug flags, canonical 64-byte encodings and uniqueness of all eight salts. Quote/backslash/dollar-sign and PHP-like input must remain literal data; an execution marker must stay absent.
 - Diagnostics avoid printing generated credentials or captured PHP output. The guest already explicitly installs/requires PHP CLI and invokes this test by name.
 - Local Go/PHP execution unavailable; hosted checks on this new test are pending. Earlier script-repair code a8fd4b9 passed Go/race/vet, daemon smoke and package lab; clean-VM run #42625887081 remains active. No product acceptance or production readiness claimed.
+
+## 2026-11-12 — historical WordPress runtime lab snapshot
+
+Branch `audit/wp-runtime-local-checkpoint-20261112` preserves the local clean-VM script and runtime test based on `dbc624bd247bcf636ea28ec7d354918aaa5cb1aa`. This is an archival draft, not a replacement for newer PR #88; compare both files with that current branch before reuse. `bash -n` passed and the Linux/amd64 `internal/sites` test binary cross-compiled; the tests were not executed. No VM, product, security or production-host validation ran. Next: reconcile the diff and inspect current hosted evidence. No phase completion is implied.
