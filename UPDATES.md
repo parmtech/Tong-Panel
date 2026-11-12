@@ -1,8 +1,18 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-13 (Australia/Sydney; package-archive QA checkpoint)
+**Updated:** 2026-11-13 (Australia/Sydney; offline release-verification model checkpoint)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## CURRENT CHECKPOINT — ADR-008 signed-release verification model (13 November 2026)
+
+- **Task / branch:** continued [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) in sole review [#171](https://github.com/parmtech/Tong-Panel/pull/171), based on exact parent `08608f971809a0ac80205df42e60d7c56ff4b77d`. The parent already passed eleven non-VM checks, plus successful actual Debian-package structural validation in both Ubuntu and Debian clean-VM jobs; full guest smoke was still running at the latest source observation. Parent CI does **not** verify this new module.
+- **New safe work:** isolated standard-library-only Go module `prototypes/p1-release-manifest-model`. Its canonical JSON manifest binds a deliberately inert product/channel to an exact source commit, version and Linux amd64 target. Domain-separated Ed25519 signature verification uses a trusted key **pinned independently by the caller**, never claimed by the artifact itself. Every listed in-memory artifact has exact SHA-256, size and name checks; unexpected payloads, duplicate/unsafe names and ambiguous/unknown fields reject.
+- **Negative security evidence:** ephemeral keys generated only inside tests; checks reject altered signatures/manifests, wrong key ID/public key, no independent trust, correctly signed downgrade/target/source/product/channel mismatch, modified/missing/extra content, altered checksums, malformed/oversized signed JSON, unexpected fields and signature use without domain separation. No signing key is committed. This is **not** a real signer, signed package, installer, anti-rollback policy, production trust store, remote fetch or permission grant.
+- **Local execution:** Go 1.23.2 linux/amd64, `GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOFLAGS=-mod=readonly`, race tests passed and `go vet ./...` passed; formatting passed. The dedicated Go 1.27.4 GitHub job is added to `.github/workflows/offline-model-checks.yml`; its exact published result still needs independent verification.
+- **Next single action:** publish and confirm the exact new commit, inspect the new offline model matrix and all triggered GitHub workflows, and correct actual failures. Maintain the nine P1 blocker snapshot; only real owner/independent security acceptance of ADR-007/008/009 can enable a production signer, root installer, private-key custody or public login. No live host change or merge.
+
+## Historical checkpoint — unsigned Debian package control-archive verification
 
 ## CURRENT CHECKPOINT — unsigned Debian package control-archive verification (13 November 2026)
 

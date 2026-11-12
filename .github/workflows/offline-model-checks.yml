@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'prototypes/p1-release-manifest-model/**'
       - 'prototypes/p3-deploy-recovery-model/**'
       - 'prototypes/p4-migration-review/**'
       - 'prototypes/p5-outcome-model/**'
@@ -16,6 +17,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'prototypes/p1-release-manifest-model/**'
       - 'prototypes/p3-deploy-recovery-model/**'
       - 'prototypes/p4-migration-review/**'
       - 'prototypes/p5-outcome-model/**'
@@ -38,6 +40,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: P1 signed-release verification lab
+            directory: prototypes/p1-release-manifest-model
           - name: P3 deployment recovery
             directory: prototypes/p3-deploy-recovery-model
           - name: P4 migration review

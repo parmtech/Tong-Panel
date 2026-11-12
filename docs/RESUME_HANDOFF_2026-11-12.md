@@ -1,5 +1,14 @@
 # Tong Panel resume and integration handoff — 2026-11-12
 
+## Current continuation — ADR-008 offline signed-release model (13 November 2026)
+
+The owner is continuing [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) on single draft [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Latest parent `08608f971809a0ac80205df42e60d7c56ff4b77d` passed its package structural validation in both clean VMs; full guest smoke was still running at the last observation. Recheck current exact-head results rather than substituting parents.
+
+Added the standalone [P1 release-verification lab](../prototypes/p1-release-manifest-model/README.md), which tests a candidate offline Ed25519 signature/checksum model on **synthetic bytes only**. Out-of-band key/target pins, canonical JSON, source/version and whole artifact inventory are checked; altered/cross-domain signatures, wrong key, signed rollback/platform changes and missing/extra/tampered payloads reject. Inert test-only product/channel and ephemeral test signing keys cannot represent a production release. The [offline-model workflow](../.github/workflows/offline-model-checks.yml) now runs the sixth model on Go 1.27.4 (format/race/vet, downloads disabled). Local Go 1.23.2 race tests and vet passed.
+
+**Next single action:** verify new-head hosted Go release-model CI and package/guest workflows, then continue bounded design/testing under [ADR-008](ADR_REGISTER.md) without a production signer or privileged installer. The nine release blockers still require recorded independent owner/security decisions and separate signed package, distro, restart and restore acceptance. Do not merge, deploy or claim a complete P1/P2 gate.
+
+
 ## Current continuation — unsigned developer package structural verification (13 November 2026)
 
 The owner requested continued integrated work on [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) and single [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `e9baa0b6dbc6a952203ba73a16aef26986b9712f` passed all thirteen hosted workflows including both clean VMs. This continuation changes the package test/helper, so its exact-head results must be checked independently.

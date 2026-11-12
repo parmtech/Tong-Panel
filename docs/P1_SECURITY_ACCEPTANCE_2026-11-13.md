@@ -6,6 +6,8 @@
 
 This is a factual checklist to make unresolved decisions actionable. It is **not** a security approval or completed third-party audit. No owner, security reviewer, release signer or supported production distro has been designated here. The GitHub integration review supersedes 149 historical draft PRs; historical failure/cancellation and missing checks are preserved in [the reconciliation report](PR_RECONCILIATION_2026-11-13.md).
 
+**Additional lab evidence (13 Nov 2026):** the [ADR-008 offline signature-verification model](../prototypes/p1-release-manifest-model/README.md) tests separately pinned Ed25519 public keys, exact source/version/target metadata and signed artifact digests using ephemeral keys and synthetic bytes. This is non-product contract evidence only; it does **not** select a production trust anchor, sign a release, prove provenance or change any gate below. Its distinct GitHub CI outcome must be checked on the new published head.
+
 ## Verified baseline (development only)
 
 The original integration head passed **12/12 GitHub workflows**, including root Go race/fuzz/vet, API contract, UI/browser, schema, static-analysis reporting, vulnerability checks, isolated ACME/Prometheus, offline P3/P4/P5 models, unsigned package, developer smoke and both Ubuntu 24.04/Debian 12 disposable VM jobs. See [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) for exact run links. No workflow verifies formal P0 architecture acceptance, real operator identity, production issuance/key custody, supported installer signatures or an independent red-team assessment. Reporting success does not close untriaged scanner findings.

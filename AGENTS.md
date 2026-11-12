@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-11-13):** one active [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) and [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172). Read the latest journal/handoff. The unsigned developer package now has [exact control/data archive QA](docs/P1_DEV_PACKAGE_STRUCTURE.md), including nine local tamper tests. New code is not hosted-verified until the exact branch workflow passes. P0/security decisions and signed installer/release gates remain open.
+**Current checkpoint (2026-11-13):** [#171](https://github.com/parmtech/Tong-Panel/pull/171) and [master #172](https://github.com/parmtech/Tong-Panel/issues/172) now include an [isolated ADR-008 signing-verification model](prototypes/p1-release-manifest-model/README.md) with negative tests and dedicated offline CI. It uses only ephemeral test keys and deliberately inert artifacts: not a signer, release, installer or owner/security approval. Verify new-head CI and read UPDATES.md / resume handoff before other edits.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.
