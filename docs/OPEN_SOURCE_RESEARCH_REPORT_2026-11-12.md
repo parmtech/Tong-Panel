@@ -1,6 +1,6 @@
 # Tong Panel open-source research report
 
-Research snapshot: 2026-11-12. Audience: maintainers and the next worker. **This is a candidate shortlist, not an exhaustive internet search, authorization to copy code, proof of security, or completed integration.** Repository-level license labels are preliminary; check the precise release, subcomponents, bundled rules, trademarks and notices before use. Phase references follow `ROADMAP.md`; the feature matrix calls its backlog aspirational.
+Research snapshot: 2026-11-12. Audience: maintainers and the next worker. **This is a candidate shortlist, not an exhaustive internet search, authorization to copy code, proof of security, or completed integration.** Repository-level license labels are preliminary; check the precise release, subcomponents, bundled rules, trademarks and notices before use. Phase labels in the table follow `FEATURE_MATRIX.md`, whose backlog is aspirational. The current `ROADMAP.md` uses different phase numbering (for example, SSL/backup are P2 there, not P1); reconcile the documents before treating any label as an approved milestone.
 
 ## Priorities and candidates
 
