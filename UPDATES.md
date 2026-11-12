@@ -1,8 +1,18 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-13 (Australia/Sydney; offline release-verification model checkpoint)
+**Updated:** 2026-11-13 (Australia/Sydney; signed-upgrade recovery model checkpoint)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## CURRENT CHECKPOINT — offline signed-upgrade interruption and rollback model (13 November 2026)
+
+- **Task/branch:** continued the owner's Tong Panel [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) on sole development [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). This change starts from parent `b9956c881ac0e4ff3c5a1e032a6f640eea4f5f64`, whose twelve non-VM workflows passed including the isolated signed-release model; the clean Ubuntu/Debian VM run remained in progress at last observation. Parent checks do **not** verify the new recovery code.
+- **Safe implementation:** the standard-library-only, **inert** `prototypes/p1-release-manifest-model` gains `recovery.go` and `recovery_test.go`: canonical, bounded JSON journal phases for an interrupted upgrade; fresh Ed25519 manifest/artifact verification with externally pinned trust; exact journal-vs-candidate source/version/manifest identity; simulated active-version/health/fencing/prior-release observations. It returns **advice only**, with no filesystem, package manager, root, signing, persistent keys, real journal, host action or production capability.
+- **Failure behavior:** missing/mismatched keys, changed signed payload, malformed/duplicated journal fields, unknown active release, unknown health, unfenced effects, lost prior rollback copy and phase/observation mismatch never produce a success. An observed healthy candidate is only `candidate_ready_for_reviewed_commit`, not committed; an unhealthy candidate with retained prior is only `request_reviewed_rollback`, never an executed rollback. A repeated planner call does not mutate state.
+- **Local verification:** official environment Go 1.23.2 linux/amd64 with CGO/race; `go test -race -count=1 ./...`, `go vet ./...` and gofmt passed; focused recovery tests passed across 20 repeat runs. Eighteen phase/health/effect cases, all five JSON-restart phases, fresh trust/key/artifact denial and malformed journal/observation regressions are covered. Hosted Go 1.27.4 offline-model CI must be verified on this **new** published head.
+- **Limits/next:** a JSON roundtrip in one process does not prove real power-loss recovery, journal fsync/atomicity, signed source provenance, accepted human key custody, installer rollback or supported-distro release. Verify new-head CI, record its actual outcomes in #171/#172, then continue bounded negative tests while owner/security decisions on ADR-007/008/009 remain pending. P0 security, production login, privileged agent, ACME private keys, terminal T0 and signed installer/release gates remain blocked.
+
+## Historical checkpoint — offline signed-release verification model
 
 ## CURRENT CHECKPOINT — ADR-008 signed-release verification model (13 November 2026)
 

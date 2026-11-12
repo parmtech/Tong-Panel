@@ -1,5 +1,14 @@
 # Tong Panel resume and integration handoff — 2026-11-12
 
+## Current continuation — signed-upgrade interruption and rollback advice (13 November 2026)
+
+The owner asked to continue Tong Panel in one workstream: [master #172](https://github.com/parmtech/Tong-Panel/issues/172), single draft [#171](https://github.com/parmtech/Tong-Panel/pull/171), parent `b9956c881ac0e4ff3c5a1e032a6f640eea4f5f64`. All twelve parent non-VM workflows passed, including Go 1.27.4 offline signed-release model tests; the longer disposable VM run was still in progress when last checked. Do not count parent results as verification of this continuation.
+
+The isolated [ADR-008 model](../prototypes/p1-release-manifest-model/README.md) now also simulates an interrupted upgrade journal and produces **read-only recovery recommendations**. Signed candidate verification is repeated against independent trust and unchanged payload bytes, journal identity and phase must be canonical, and reported active version/health/fencing/prior-release must agree. Unknown or unfenced outcomes remain `manual_review`; unhealthy candidate with prior retained yields only a rollback *recommendation*, never a host action. Tests also deny altered trusted keys, source/version, artifact bytes, malformed journal or externally unrecognized active version. All local Go 1.23.2 race/vet/gofmt tests passed, focused recovery cases passed 20 repeated runs. This is a JSON snapshot in one test process, not durable crash recovery or signoff.
+
+**Next single action:** verify the newly published exact SHA and GitHub offline-model job, investigate any actual failure, record evidence in [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) and #172. Reconcile pending installer, backup and permission decisions under ADR-007/008/009 and the P1 acceptance packet before any real signer, root host operations, package installation or merge to main.
+
+
 ## Current continuation — ADR-008 offline signed-release model (13 November 2026)
 
 The owner is continuing [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) on single draft [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Latest parent `08608f971809a0ac80205df42e60d7c56ff4b77d` passed its package structural validation in both clean VMs; full guest smoke was still running at the last observation. Recheck current exact-head results rather than substituting parents.
