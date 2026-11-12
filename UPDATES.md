@@ -593,3 +593,7 @@ Added `docs/P2_EXIT_GATE_REPORT_2026-10-29.md` with a slice-by-slice and must-pa
 - Checks installed option/admin/post rows, distinct HTTP homepages, and reciprocal database denial only after both schemas exist. Lab-only mu-plugin suppresses cron, mail and external WordPress HTTP. Cleanup removes runtime credentials/runners/logs and SQL fixtures.
 - Local Bash syntax and whitespace checks passed; PHP/WordPress/MariaDB execution awaits hosted Ubuntu/Debian CI. No full-install runtime success claimed, no production provisioning or VPS change. Complete application restore and phase gates remain open.
 
+
+## 2026-11-12 — historical WordPress restore lab snapshot
+
+Branch `audit/wp-restore-local-checkpoint-20261112` preserves the local restore lab work against its original base `0f6b3529b68dc676aa875f374338711c15fa744b`. The four restore source files matched the newer `feature/lab-wordpress-fresh-restore` versions by Git blob when compared; the local workflow also tracks `UPDATES.md`. This is an archival snapshot, not a replacement for draft PR #91. Shell syntax checks passed for all three scripts and the Linux/amd64 sites test binary cross-compiled; no tests were executed and no VM, production or security validation ran. Next: compare the workflow with current PR #91 and inspect its hosted evidence before reuse.

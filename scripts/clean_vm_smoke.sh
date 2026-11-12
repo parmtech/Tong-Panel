@@ -124,6 +124,7 @@ retry_guest_scp "$VM_RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" "$VM_R
 retry_guest_scp "$VM_RUNNER_TEMP/tong-package-lab/tong-panel-dev-v1.deb" "$VM_RUNNER_TEMP/tong-package-lab/tong-panel-dev-v2.deb" "$VM_RUNNER_TEMP/tong-package-lab/PACKAGES.SHA256SUMS" "$guest:/home/ci/"
 retry_guest_scp scripts/smoke_p1.py "$guest:/home/ci/smoke_p1.py"
 retry_guest_scp scripts/p2_package_install_vm.sh "$guest:/home/ci/p2_package_install_vm.sh"
+retry_guest_scp scripts/smoke_wordpress_backup_source.sh "$guest:/home/ci/smoke_wordpress_backup_source.sh"
 cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -500,6 +501,7 @@ sudo install -d -o root -g root -m 0755 /srv/tong/tenants/tenant-a/sites/site-a/
 sudo install -d -o root -g root -m 0755 /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge
 printf '%s\n' 'tenant-a-challenge' | sudo tee /srv/tong/tenants/tenant-a/sites/site-a/public/.well-known/acme-challenge/token >/dev/null
 printf '%s\n' 'tenant-b-challenge' | sudo tee /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge/token >/dev/null
+sudo chmod 0644 /srv/tong/tenants/tenant-a/sites/site-a/public/.well-known/acme-challenge/token /srv/tong/tenants/tenant-b/sites/site-b/public/.well-known/acme-challenge/token
 for host in tenant-a.example.test tenant-b.example.test; do
   headers="$(curl --silent --show-error --resolve "$host:80:127.0.0.1" -D - -o /dev/null "http://$host/path?from=http")"
   grep -qE '^HTTP/[^ ]+ 308' <<<"$headers"
@@ -525,6 +527,7 @@ fi
 python3 -c 'import json; d=json.load(open("install-preflight.json")); assert d["gate"]["allowed"] is False; assert "tcp_port_in_use:80" in d["gate"]["blockers"]; assert "tcp_port_in_use:443" in d["gate"]["blockers"]; assert "not installation authorization" in d["notice"]; print("clean-guest install preflight correctly blocked occupied web ports without host mutation")'
 bash ./tong-p1-dev/tests/mariadb-isolation.sh
 bash ./tong-p1-dev/tests/encrypted-backup-restore.sh
+sudo env TONG_DISPOSABLE_WORDPRESS_RESTORE=1 bash ./smoke_wordpress_backup_source.sh "$wp_db_a" tenant_a_ "$wp_admin_a"
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
 python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
@@ -538,9 +541,17 @@ ssh "${ssh_opts[@]}" "$guest" bash /home/ci/guest-check.sh "$VM_EXPECTED_ID" "$V
 # overlay from the pristine cloud image. The runner temp directory is transient
 # test staging; this is not a real offsite provider or durable backup service.
 retry_guest_scp "$guest:/home/ci/tenant-a.backup.tpbk" "$guest:/home/ci/wrapping.key" "$work/"
-chmod 600 "$work/tenant-a.backup.tpbk" "$work/wrapping.key"
+retry_guest_scp "$guest:/home/ci/tenant-a-wordpress.backup.tpbk" "$work/"
+chmod 600 "$work/tenant-a.backup.tpbk" "$work/tenant-a-wordpress.backup.tpbk" "$work/wrapping.key"
 if grep -aFq 'private-tenant-restore-fixture-v1' "$work/tenant-a.backup.tpbk"; then
   echo "runner staging received plaintext instead of an encrypted backup" >&2
+  exit 1
+fi
+if [[ "$(stat -c '%s' "$work/tenant-a-wordpress.backup.tpbk")" -gt $((32 * 1024 * 1024)) ]] ||
+   grep -aFq 'private-wp-restore-db-v1' "$work/tenant-a-wordpress.backup.tpbk" ||
+   grep -aFq 'private-wp-restore-upload-v1' "$work/tenant-a-wordpress.backup.tpbk" ||
+   grep -aFq 'Tong Tenant Alpha Lab' "$work/tenant-a-wordpress.backup.tpbk"; then
+  echo "runner staging received an oversized or plaintext WordPress backup" >&2
   exit 1
 fi
 source_vm_pid="$(cat "$pidfile")"
@@ -584,7 +595,10 @@ done
 [[ "$ready" == true ]] || { echo "Timed out waiting for fresh restore VM SSH"; exit 1; }
 retry_guest_ssh "cloud-init status --wait"
 retry_guest_scp "$work/tenant-a.backup.tpbk" "$work/wrapping.key" "$guest:/home/ci/"
+retry_guest_scp "$work/tenant-a-wordpress.backup.tpbk" "$guest:/home/ci/"
 retry_guest_scp "$VM_RUNNER_TEMP/tong-p1-dev/bin/tongbackup" "$guest:/home/ci/tongbackup"
+retry_guest_scp "$VM_RUNNER_TEMP/tong-p1-dev/tests/sites.test" "$guest:/home/ci/sites.test"
+retry_guest_scp scripts/smoke_wordpress_restore_target.sh "$guest:/home/ci/smoke_wordpress_restore_target.sh"
 cat > "$work/restore-check.sh" <<'RESTORE'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -601,8 +615,9 @@ if ./tongbackup decrypt --tenant tenant-b --key-file /home/ci/wrapping.key --out
   exit 1
 fi
 [[ ! -e /home/ci/should-not-exist.sql ]]
-rm -f -- /home/ci/wrapping.key /home/ci/restore.sql
 printf '%s\n' 'PASS: encrypted MariaDB backup restored on a fresh VM from a pristine distro image'
+TONG_DISPOSABLE_WORDPRESS_RESTORE=1 bash /home/ci/smoke_wordpress_restore_target.sh
+rm -f -- /home/ci/restore.sql /home/ci/tenant-a.backup.tpbk
 RESTORE
 retry_guest_scp "$work/restore-check.sh" "$guest:/home/ci/restore-check.sh"
 ssh "${ssh_opts[@]}" "$guest" bash /home/ci/restore-check.sh
