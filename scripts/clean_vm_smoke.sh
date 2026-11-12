@@ -212,6 +212,10 @@ wp_user_a="tu_wp_a_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
 wp_user_b="tu_wp_b_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
 wp_password_a="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
 wp_password_b="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
+wp_admin_a="tong_admin_a_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
+wp_admin_b="tong_admin_b_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
+wp_admin_password_a="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
+wp_admin_password_b="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
 cleanup_wp_lab() {
   sudo mariadb --protocol=socket -uroot >/dev/null 2>&1 <<SQL || true
 DROP USER IF EXISTS '$wp_user_a'@'localhost';
@@ -220,6 +224,7 @@ DROP DATABASE IF EXISTS \`$wp_db_a\`;
 DROP DATABASE IF EXISTS \`$wp_db_b\`;
 SQL
   rm -f /home/ci/wp-tenant-a.cnf /home/ci/wp-tenant-b.cnf /home/ci/wp-tenant-a.json /home/ci/wp-tenant-b.json
+  sudo rm -f /srv/tong/tenants/tenant-a/run/site-a/wp-install.json /srv/tong/tenants/tenant-b/run/site-b/wp-install.json /srv/tong/tenants/tenant-a/run/site-a/wp-install-lab.php /srv/tong/tenants/tenant-b/run/site-b/wp-install-lab.php /srv/tong/tenants/tenant-a/sites/site-a/public/wordpress/wp-content/mu-plugins/tong-lab-isolation.php /srv/tong/tenants/tenant-b/sites/site-b/public/wordpress/wp-content/mu-plugins/tong-lab-isolation.php /home/ci/wp-install-lab.php /home/ci/wp-install-a.log /home/ci/wp-install-b.log
 }
 trap cleanup_wp_lab EXIT
 sudo mariadb --protocol=socket -uroot <<SQL
@@ -358,11 +363,22 @@ for tenant in a b; do
   wp_root="/srv/tong/tenants/tenant-$tenant/sites/site-$tenant/public/wordpress"
   sudo -u www-data test -r "$wp_root/readme.html"
   sudo -u www-data test ! -r "$wp_root/wp-config.php"
+  if [[ "$tenant" == a ]]; then pool_user="$pool_user_a"; else pool_user="$pool_user_b"; fi
+  plugin_dir="$wp_root/wp-content/mu-plugins"
+  sudo install -d -o "$pool_user" -g "$pool_user" -m 0700 "$plugin_dir"
+  sudo tee "$plugin_dir/tong-lab-isolation.php" >/dev/null <<'PHP'
+<?php
+if (!defined('DISABLE_WP_CRON')) define('DISABLE_WP_CRON', true);
+if (!defined('WP_HTTP_BLOCK_EXTERNAL')) define('WP_HTTP_BLOCK_EXTERNAL', true);
+add_filter('pre_wp_mail', static function () { return true; });
+PHP
+  sudo chown "$pool_user:$pool_user" "$plugin_dir/tong-lab-isolation.php"
+  sudo chmod 0644 "$plugin_dir/tong-lab-isolation.php"
 done
 for host in tenant-a.example.test tenant-b.example.test; do
-  static_response="$(curl --silent --show-error --fail --resolve "$host:80:127.0.0.1" "http://$host/wordpress/readme.html")"
+  static_response="$(curl --silent --show-error --fail --max-time 30 --resolve "$host:80:127.0.0.1" "http://$host/wordpress/readme.html")"
   [[ "$static_response" == *WordPress* ]]
-  response="$(curl --silent --show-error --fail --resolve "$host:80:127.0.0.1" "http://$host/wordpress/wp-admin/install.php")"
+  response="$(curl --silent --show-error --fail --max-time 30 --resolve "$host:80:127.0.0.1" "http://$host/wordpress/wp-admin/install.php")"
   [[ "$response" == *"Welcome to the famous five-minute WordPress installation process"* ]]
 done
 for tenant in a b; do
@@ -378,12 +394,84 @@ PHP
   if [[ "$tenant" == a ]]; then pool_user="$pool_user_a"; expected_db="$wp_db_a"; else pool_user="$pool_user_b"; expected_db="$wp_db_b"; fi
   sudo chown "$pool_user:$pool_user" "$public_root/$probe_name"
   sudo chmod 0644 "$public_root/$probe_name"
-  result="$(curl --silent --show-error --fail --resolve "tenant-$tenant.example.test:80:127.0.0.1" "http://tenant-$tenant.example.test/wordpress/$probe_name")"
+  result="$(curl --silent --show-error --fail --max-time 30 --resolve "tenant-$tenant.example.test:80:127.0.0.1" "http://tenant-$tenant.example.test/wordpress/$probe_name")"
   [[ "$result" == "$expected_db|$marker" ]]
   sudo rm -f "$public_root/$probe_name"
 done
 ! find /srv/tong/tenants/tenant-a/sites/site-a/public/wordpress /srv/tong/tenants/tenant-b/sites/site-b/public/wordpress -maxdepth 1 -name 'tong-db-probe-*.php' -print -quit | grep -q .
 printf '%s\n' 'two-tenant WordPress runtime passed; installer loads, each PHP-FPM pool reads its own DB marker, cross-tenant DB reads denied'
+cat > /home/ci/wp-install-lab.php <<'PHP'
+<?php
+if ($argc !== 2) {
+    exit(2);
+}
+$settings = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
+$_SERVER['HTTP_HOST'] = $settings['host'];
+$_SERVER['SERVER_NAME'] = $settings['host'];
+$_SERVER['REQUEST_URI'] = '/wordpress/wp-admin/install.php';
+$_SERVER['SCRIPT_NAME'] = '/wordpress/wp-admin/install.php';
+$_SERVER['PHP_SELF'] = '/wordpress/wp-admin/install.php';
+define('WP_INSTALLING', true);
+define('DISABLE_WP_CRON', true);
+define('WP_HTTP_BLOCK_EXTERNAL', true);
+require $settings['root'] . '/wp-load.php';
+require ABSPATH . 'wp-admin/includes/upgrade.php';
+add_filter('pre_wp_mail', static function () { return true; });
+$result = wp_install($settings['title'], $settings['admin_user'], $settings['admin_email'], false, '', $settings['admin_password']);
+foreach (array('wp_version_check', 'wp_update_plugins', 'wp_update_themes') as $hook) {
+    wp_unschedule_hook($hook);
+}
+if (!is_array($result) || empty($result['user_id']) || get_option('blogname') !== $settings['title'] ||
+    get_option('siteurl') !== 'http://' . $settings['host'] . '/wordpress') {
+    exit(1);
+}
+$admin = get_userdata((int) $result['user_id']);
+if (!$admin || $admin->user_login !== $settings['admin_user'] || !$admin->has_cap('administrator')) {
+    exit(1);
+}
+PHP
+chmod 0644 /home/ci/wp-install-lab.php
+for tenant in a b; do
+  if [[ "$tenant" == a ]]; then
+    pool_user="$pool_user_a"; host=tenant-a.example.test; title='Tong Tenant Alpha Lab'; admin_user="$wp_admin_a"; admin_password="$wp_admin_password_a"; database="$wp_db_a"; prefix=tenant_a_
+  else
+    pool_user="$pool_user_b"; host=tenant-b.example.test; title='Tong Tenant Beta Lab'; admin_user="$wp_admin_b"; admin_password="$wp_admin_password_b"; database="$wp_db_b"; prefix=tenant_b_
+  fi
+  credentials="/srv/tong/tenants/tenant-$tenant/run/site-$tenant/wp-install.json"
+  runner="/srv/tong/tenants/tenant-$tenant/run/site-$tenant/wp-install-lab.php"
+  sudo install -o "$pool_user" -g "$pool_user" -m 0700 /home/ci/wp-install-lab.php "$runner"
+  printf '{"root":"/srv/tong/tenants/tenant-%s/sites/site-%s/public/wordpress","host":"%s","title":"%s","admin_user":"%s","admin_email":"admin-%s@example.invalid","admin_password":"%s"}\n' \
+    "$tenant" "$tenant" "$host" "$title" "$admin_user" "$tenant" "$admin_password" | sudo tee "$credentials" >/dev/null
+  sudo chown "$pool_user:$pool_user" "$credentials"
+  sudo chmod 0600 "$credentials"
+  logfile="/home/ci/wp-install-$tenant.log"
+  if ! timeout 90s sudo -u "$pool_user" php -d display_errors=0 -d log_errors=0 "$runner" "$credentials" >"$logfile" 2>&1; then
+    echo "isolated WordPress install failed for tenant $tenant; private diagnostic is withheld" >&2
+    exit 1
+  fi
+  sudo rm -f "$credentials" "$runner"
+  rm -f "$logfile"
+  installed_title="$(mariadb --defaults-extra-file="/home/ci/wp-tenant-$tenant.cnf" "$database" --batch --skip-column-names -e "SELECT option_value FROM ${prefix}options WHERE option_name='blogname'")"
+  installed_admin="$(mariadb --defaults-extra-file="/home/ci/wp-tenant-$tenant.cnf" "$database" --batch --skip-column-names -e "SELECT user_login FROM ${prefix}users WHERE ID=1")"
+  published_posts="$(mariadb --defaults-extra-file="/home/ci/wp-tenant-$tenant.cnf" "$database" --batch --skip-column-names -e "SELECT COUNT(*) FROM ${prefix}posts WHERE post_status='publish'")"
+  [[ "$installed_title" == "$title" && "$installed_admin" == "$admin_user" && "$published_posts" -gt 0 ]]
+  if [[ "$tenant" == a ]]; then other_database="$wp_db_b"; other_prefix=tenant_b_; other_title='Tong Tenant Beta Lab'; else other_database="$wp_db_a"; other_prefix=tenant_a_; other_title='Tong Tenant Alpha Lab'; fi
+  homepage="$(curl --silent --show-error --fail --max-time 30 --resolve "$host:80:127.0.0.1" "http://$host/wordpress/")"
+  [[ "$homepage" == *"$title"* && "$homepage" != *"$other_title"* ]]
+done
+for tenant in a b; do
+  if [[ "$tenant" == a ]]; then database="$wp_db_a"; other_database="$wp_db_b"; prefix=tenant_b_; config=/home/ci/wp-tenant-a.cnf
+  else database="$wp_db_b"; other_database="$wp_db_a"; prefix=tenant_a_; config=/home/ci/wp-tenant-b.cnf; fi
+  if mariadb --defaults-extra-file="$config" "$database" --batch --skip-column-names -e "SELECT option_value FROM \`${other_database}\`.${prefix}options WHERE option_name='blogname'" >/dev/null 2>&1; then
+    echo "tenant $tenant database user unexpectedly read the other installed WordPress database" >&2
+    exit 1
+  fi
+done
+if [[ "$wp_db_a" == "$wp_db_b" || "$wp_admin_a" == "$wp_admin_b" ]]; then
+  echo 'tenant WordPress fixtures unexpectedly share database or admin identity' >&2
+  exit 1
+fi
+printf '%s\n' 'full WordPress install passed for both tenants; distinct titles/admin rows persisted, published homepages served, lab cron execution/mail/external HTTP suppressed'
 sudo nginx -s quit -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
 sudo install -d -m 0755 /etc/tong/certs/tenant-a/site-a /etc/tong/certs/tenant-b/site-b
 sudo openssl req -x509 -nodes -days 1 -newkey rsa:2048 -subj "/CN=tenant-a.example.test" -addext "subjectAltName=DNS:tenant-a.example.test,DNS:www.tenant-a.example.test" -keyout /etc/tong/certs/tenant-a/site-a/privkey.pem -out /etc/tong/certs/tenant-a/site-a/fullchain.pem >/dev/null 2>&1
