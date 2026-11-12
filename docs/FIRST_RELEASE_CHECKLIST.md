@@ -27,6 +27,8 @@
 - [ ] **PHP settings and cron:** per-site PHP versions/configuration and scoped scheduled jobs, with safe ownership, limits, logs and tests.
 - [ ] **FTP/SFTP/SSH:** define which protocols are enabled and how, prefer encrypted access, enforce tenant isolation, credentials, audit and safe defaults; test connection and revocation. Plain FTP must not be assumed secure.
 - [ ] **Browser terminal:** provide an opt-in terminal for explicitly authorized accounts, confined to the account's isolated environment. Specify session authentication, per-user identity, transport and origin checks, idle timeout, revocation, resource limits and audit before enabling any shell. Test cross-tenant and host-escape denial. This is a first-release target, not an implemented or production-ready feature. See [implementation proposal](P1_BROWSER_TERMINAL_PROPOSAL.md).
+- [ ] **Resellers and quotas:** package and account management, quota enforcement, scoped delegation, suspension and concurrency tests, with strict tenant boundaries.
+- [ ] **cPanel migration:** inspect supported exports, validate archives, provide dry-run and unsupported-feature reports, stage restoration and require verified reconciliation and rollback. Do not claim complete cPanel compatibility.
 
 ## 3. Candidate tools and additional scope
 
@@ -37,7 +39,7 @@ DNS, email, file transfer and modern app capabilities above are part of the owne
 - [ ] **File transfer:** [SFTPGo Community](https://github.com/drakkan/sftpgo) or another tool; review per-component terms, especially its restricted UI theme, and verify isolation. Use original Tong Panel UI.
 - [ ] **Malware and intrusion tools:** [ClamAV](https://github.com/Cisco-Talos/clamav), [Fail2ban](https://github.com/fail2ban/fail2ban), [Coraza](https://github.com/corazawaf/coraza) or [CrowdSec](https://github.com/crowdsecurity/crowdsec) only after false-positive, update, resource and recovery testing.
 - [ ] **Git and modern app deployment:** assess [Coolify](https://github.com/coollabsio/coolify) as a separate integration or reference; isolate builds, secrets, ports and rollback.
-- [ ] **Multi-node, marketplace, resellers, cPanel import and high availability:** separately scoped unless explicitly selected and tested for this release. Do not imply parity with cPanel.
+- [ ] **Multi-node, marketplace and high availability:** separately scoped unless explicitly selected and tested for this release. Resellers and cPanel migration are first-release targets above; exact compatibility must be established by testing.
 
 ## 4. Release evidence — mandatory for the selected scope
 
