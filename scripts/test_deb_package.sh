@@ -37,11 +37,42 @@ for package in "$out/tong-panel-dev-v1.deb" "$out/tong-panel-dev-v2.deb"; do
     echo "unexpected pre-install package script found" >&2
     exit 1
   fi
+  control_dir="$work/control-$(basename "$package" .deb)"
+  data_dir="$work/data-$(basename "$package" .deb)"
+  mkdir -p "$control_dir" "$data_dir"
+  dpkg-deb --control "$package" "$control_dir"
+  dpkg-deb --extract "$package" "$data_dir"
+  for script in postinst prerm postrm; do
+    [[ -x "$control_dir/$script" ]]
+    cmp "$control_dir/$script" "packaging/debian/$script"
+  done
+  cmp "$data_dir/usr/lib/systemd/system/tong-panel-dev.service" "packaging/debian/tong-panel-dev.service"
 done
 [[ "$(dpkg-deb --field "$out/tong-panel-dev-v1.deb" Version)" == 0.0.0~dev.1 ]]
 [[ "$(dpkg-deb --field "$out/tong-panel-dev-v2.deb" Version)" == 0.0.0~dev.2 ]]
+
+# Keep package installation inert. Only the disposable-VM lifecycle test may
+# start the service, and package removal must preserve its state directory.
+if grep -Eq 'systemctl[[:space:]]+(enable|start|restart)' packaging/debian/postinst; then
+  echo "postinst must not enable or start the development service" >&2
+  exit 1
+fi
+grep -Fq 'systemctl daemon-reload' packaging/debian/postinst
+grep -Fq 'upgrade|remove|deconfigure)' packaging/debian/prerm
+grep -Fq 'systemctl stop tong-panel-dev.service' packaging/debian/prerm
+if grep -Eq 'rm[[:space:]].*(/var/lib/tong-panel-dev|TONG_DATA_DIR)' packaging/debian/postrm; then
+  echo "postrm must preserve development service state" >&2
+  exit 1
+fi
+grep -Fxq 'DynamicUser=yes' packaging/debian/tong-panel-dev.service
+grep -Fxq 'StateDirectoryMode=0700' packaging/debian/tong-panel-dev.service
+grep -Fxq 'UMask=0077' packaging/debian/tong-panel-dev.service
+grep -Fxq 'NoNewPrivileges=yes' packaging/debian/tong-panel-dev.service
+grep -Fxq 'ProtectSystem=strict' packaging/debian/tong-panel-dev.service
+grep -Fxq 'CapabilityBoundingSet=' packaging/debian/tong-panel-dev.service
+grep -Fxq 'AmbientCapabilities=' packaging/debian/tong-panel-dev.service
 (
   cd "$out"
   sha256sum tong-panel-dev-v1.deb tong-panel-dev-v2.deb > PACKAGES.SHA256SUMS
 )
-printf '%s\n' 'Debian package structure, version guards, and disclaimer checks passed.'
+printf '%s\n' 'Debian package structure, embedded lifecycle files, safe defaults, version guards, and disclaimer checks passed.'

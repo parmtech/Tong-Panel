@@ -490,3 +490,80 @@ test('overlapping refresh keeps actual current jobs after a held stale list is r
         releaseHeld();
     }
 });
+
+test('home search matches the documented feature synonyms', async ({ page }) => {
+    await open(page);
+    const search = page.getByRole('searchbox', { name: 'Search features' });
+    const tiles = page.locator('#tiles .tile');
+    const count = page.locator('#count');
+    const synonyms = [
+        ['make email', 'Email'],
+        ['new WordPress', 'Applications'],
+        ['Node app', 'Applications'],
+        ['PHP version', 'Websites'],
+        ['SSL redirect', 'SSL & HTTPS'],
+    ];
+
+    await expect(tiles).toHaveCount(12);
+    await expect(count).toHaveText('12 modules planned');
+    for (const [query, title] of synonyms) {
+        await search.fill(query);
+        await expect(tiles).toHaveCount(1);
+        await expect(tiles.locator('h3')).toHaveText(title);
+        await expect(count).toHaveText('1 module planned');
+    }
+});
+
+test('home search handles literal text, empty results, clear, and keyboard access', async ({ page }) => {
+    await open(page);
+    const search = page.getByRole('searchbox', { name: 'Search features' });
+    const tiles = page.locator('#tiles .tile');
+    const count = page.locator('#count');
+
+    let foundSearchByTab = false;
+    for (let tab = 0; tab < 20; tab++) {
+        await page.keyboard.press('Tab');
+        if (await page.evaluate(() => document.activeElement?.id === 'search')) {
+            foundSearchByTab = true;
+            break;
+        }
+    }
+    expect(foundSearchByTab).toBe(true);
+    await expect(search).toBeFocused();
+
+    await page.keyboard.type('  pHp  ');
+    await expect(tiles).toHaveCount(1);
+    await expect(tiles.locator('h3')).toHaveText('Websites');
+    await expect(count).toHaveText('1 module planned');
+
+    await search.fill('  rEdIrEcTs  ');
+    await expect(tiles).toHaveCount(1);
+    await expect(tiles.locator('h3')).toHaveText('Domains');
+    await expect(count).toHaveText('1 module planned');
+
+    await search.fill('feature with no matching module');
+    await expect(tiles).toHaveCount(0);
+    await expect(count).toHaveText('0 modules planned');
+
+    await search.fill('');
+    await expect(tiles).toHaveCount(12);
+    await expect(count).toHaveText('12 modules planned');
+    await expect(page.locator('#tiles .tile a, #tiles .tile button, #tiles .tile input')).toHaveCount(0);
+    await expect(page.locator('#tiles .planned')).toHaveCount(12);
+});
+
+test('home launcher grid fits representative desktop, tablet, and phone widths', async ({ page }) => {
+    await open(page);
+    for (const [width, columns] of [[1440, 4], [1024, 3], [768, 2], [390, 2], [320, 2]]) {
+        await page.setViewportSize({ width, height: 900 });
+        const layout = await page.evaluate(() => ({
+            viewport: window.innerWidth,
+            document: document.documentElement.scrollWidth,
+            columns: getComputedStyle(document.querySelector('#tiles')).gridTemplateColumns.split(' ').length,
+            searchRight: document.querySelector('#search').getBoundingClientRect().right,
+        }));
+        expect(layout.document, `document overflow at ${width}px`).toBeLessThanOrEqual(layout.viewport);
+        expect(layout.columns, `grid columns at ${width}px`).toBe(columns);
+        expect(layout.searchRight, `search field overflow at ${width}px`).toBeLessThanOrEqual(width);
+    }
+});

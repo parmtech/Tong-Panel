@@ -17,6 +17,14 @@ import (
 
 const maxSiteRequestBytes = 16 << 10
 
+func siteReadSessionProof(r *http.Request) *auth.SessionReadProof {
+	value, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof)
+	if !ok {
+		return nil
+	}
+	return &value
+}
+
 func (s *Server) siteCollection(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
 	if r.URL.Path != "/api/v1/sites" || (r.Method != http.MethodGet && r.URL.RawQuery != "") {
 		fail(w, http.StatusNotFound, "not_found")
@@ -201,7 +209,7 @@ func (s *Server) siteDatabaseCollection(w http.ResponseWriter, r *http.Request, 
 			fail(w, http.StatusServiceUnavailable, "sites_unavailable")
 			return
 		}
-		records, err := s.SiteCatalog.ListDatabases(r.Context(), p.TenantID, siteID)
+		records, err := s.SiteCatalog.ListDatabasesFor(r.Context(), p.TenantID, siteID, p.UserID, siteReadSessionProof(r))
 		if err != nil {
 			writeSiteError(w, err)
 			return
@@ -263,7 +271,7 @@ func (s *Server) siteDatabaseResource(w http.ResponseWriter, r *http.Request, p 
 		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
 		return
 	}
-	record, err := s.SiteCatalog.GetDatabase(r.Context(), p.TenantID, siteID, databaseID)
+	record, err := s.SiteCatalog.GetDatabaseFor(r.Context(), p.TenantID, siteID, databaseID, p.UserID, siteReadSessionProof(r))
 	if err != nil {
 		writeSiteError(w, err)
 		return
@@ -285,7 +293,7 @@ func (s *Server) siteNginxPreview(w http.ResponseWriter, r *http.Request, p rbac
 		fail(w, http.StatusServiceUnavailable, "site_preview_unavailable")
 		return
 	}
-	record, err := s.SiteCatalog.Get(r.Context(), p.TenantID, siteID)
+	record, err := s.SiteCatalog.GetFor(r.Context(), p.TenantID, siteID, p.UserID, siteReadSessionProof(r))
 	if err != nil {
 		writeSiteError(w, err)
 		return
@@ -315,7 +323,7 @@ func (s *Server) siteGet(w http.ResponseWriter, r *http.Request, p rbac.Principa
 		fail(w, http.StatusServiceUnavailable, "sites_unavailable")
 		return
 	}
-	record, err := s.SiteCatalog.Get(r.Context(), p.TenantID, siteID)
+	record, err := s.SiteCatalog.GetFor(r.Context(), p.TenantID, siteID, p.UserID, siteReadSessionProof(r))
 	if err != nil {
 		writeSiteError(w, err)
 		return

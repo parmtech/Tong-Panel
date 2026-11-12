@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"syscall"
 
 	"github.com/parmtech/tong-panel/internal/auth"
 	"github.com/parmtech/tong-panel/internal/database"
@@ -22,6 +21,9 @@ import (
 func localOwnerBootstrap(args []string, passwordPipe *os.File, output io.Writer) error {
 	if os.Getenv("TONG_ALLOW_LOCAL_OWNER_BOOTSTRAP") != "yes" {
 		return errors.New("bootstrap disabled: explicit local operator opt-in required")
+	}
+	if err := requireBootstrapPlatform(); err != nil {
+		return err
 	}
 	flags := flag.NewFlagSet("bootstrap-owner", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -110,9 +112,5 @@ func requireSecureOwnedPath(path string, directory bool) error {
 	if info.Mode().Perm()&0077 != 0 {
 		return errors.New("database and parent must not be accessible by group or others")
 	}
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok || stat.Uid != uint32(os.Geteuid()) {
-		return errors.New("database and parent must be owned by the local operator")
-	}
-	return nil
+	return requireSecureOwner(info)
 }

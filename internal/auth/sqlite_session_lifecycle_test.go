@@ -94,6 +94,45 @@ func TestSQLiteSessionRotateRevokesOldAndPreservesAbsoluteExpiry(t *testing.T) {
 	}
 }
 
+func TestSQLiteSessionRotateRollsBackOnAuditFailure(t *testing.T) {
+	_, db, store := openSessionDB(t)
+	token, _, _, err := store.Issue(
+		rbac.Principal{UserID: "user-a", TenantID: "tenant-a", Role: rbac.Owner},
+		time.Hour,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldHash, ok := sessionKey(token)
+	if !ok {
+		t.Fatal("issued token was not parseable")
+	}
+	if _, err := db.Exec("CREATE TRIGGER block_session_rotation_audit BEFORE INSERT ON audit_events " +
+		"WHEN NEW.action='auth.session_rotated' BEGIN SELECT RAISE(ABORT,'audit failed'); END"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, err := store.Rotate(context.Background(), token); err == nil {
+		t.Fatal("rotation committed without mandatory audit")
+	}
+
+	var sessionCount, oldActive, rotatedAudits int
+	if err := db.QueryRow("SELECT count(*) FROM sessions").Scan(&sessionCount); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT count(*) FROM sessions WHERE token_sha256=? AND revoked_at IS NULL", oldHash[:]).Scan(&oldActive); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT count(*) FROM audit_events WHERE action='auth.session_rotated'").Scan(&rotatedAudits); err != nil {
+		t.Fatal(err)
+	}
+	if sessionCount != 1 || oldActive != 1 || rotatedAudits != 0 {
+		t.Fatalf("audit failure did not roll back rotation: sessions=%d old active=%d rotated audits=%d", sessionCount, oldActive, rotatedAudits)
+	}
+	if _, ok := store.Check(token); !ok {
+		t.Fatal("audit failure incorrectly revoked the original session")
+	}
+}
+
 func TestSQLiteSessionRotateChecksExpiryAfterWaitingForConnection(t *testing.T) {
 	cases := []struct {
 		name       string

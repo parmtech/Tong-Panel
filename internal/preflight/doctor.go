@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 type Check struct {
@@ -219,11 +218,7 @@ func DetectSnapshot(path string) (Snapshot, error) {
 		}
 	}
 	if runtime.GOOS == "linux" {
-		var st syscall.Statfs_t
-		if err := syscall.Statfs("/", &st); err == nil {
-			s.DiskAvailableBytes = st.Bavail * uint64(st.Bsize)
-			s.DiskKnown = true
-		}
+		s.DiskAvailableBytes, s.DiskKnown = detectRootDiskAvailable()
 	}
 	listeners := map[uint16]bool{}
 	seen := 0

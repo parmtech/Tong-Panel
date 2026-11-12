@@ -4,13 +4,13 @@ import { loadSitesPage } from './sites-list.mjs';
 import { downloadTenantFile, listTenantFiles } from './files-explorer.mjs';
 import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';
 const tiles = [
-    { title: 'Websites', icon: '🌐', subtitle: 'Sites & PHP', stage: 'P2' },
+    { title: 'Websites', icon: '🌐', subtitle: 'Sites & PHP', stage: 'P2', searchTerms: ['PHP version'] },
     { title: 'Domains', icon: '🪐', subtitle: 'Aliases & redirects', stage: 'P2' },
-    { title: 'Applications', icon: '🧩', subtitle: 'Node.js, Python & more', stage: 'P3' },
+    { title: 'Applications', icon: '🧩', subtitle: 'Node.js, Python & more', stage: 'P3', searchTerms: ['new WordPress', 'Node app'] },
     { title: 'File Explorer', icon: '📁', subtitle: 'Files, uploads & editor', stage: 'P2' },
     { title: 'Databases', icon: '🗃️', subtitle: 'MySQL & PostgreSQL', stage: 'P2/P4' },
-    { title: 'Email', icon: '✉️', subtitle: 'Mailboxes & delivery', stage: 'P4' },
-    { title: 'SSL & HTTPS', icon: '🔒', subtitle: 'Certificates & renewals', stage: 'P2' },
+    { title: 'Email', icon: '✉️', subtitle: 'Mailboxes & delivery', stage: 'P4', searchTerms: ['make email'] },
+    { title: 'SSL & HTTPS', icon: '🔒', subtitle: 'Certificates & renewals', stage: 'P2', searchTerms: ['SSL redirect'] },
     { title: 'DNS', icon: '📡', subtitle: 'Records & nameservers', stage: 'P4' },
     { title: 'Backups', icon: '💾', subtitle: 'Back up & restore', stage: 'P2' },
     { title: 'Server Health', icon: '📊', subtitle: 'System monitoring', stage: 'P1+' },
@@ -31,12 +31,13 @@ const sitePreviewStatus = document.querySelector('#site-preview-status');
 const sitePreviewOutput = document.querySelector('#site-preview-output');
 const sitePreviewSubmit = document.querySelector('#site-preview-submit');
 let sitePreviewRequest = 0;
+const normalizeSearchText = (text) => text.trim().toLowerCase().replace(/\s+/g, ' ');
 const filterText = (text) => {
     if (!list)
         return;
     list.replaceChildren();
-    const needle = text.trim().toLowerCase();
-    const shown = tiles.filter(t => `${t.title} ${t.subtitle}`.toLowerCase().includes(needle));
+    const needle = normalizeSearchText(text);
+    const shown = tiles.filter(t => normalizeSearchText(`${t.title} ${t.subtitle} ${(t.searchTerms ?? []).join(' ')}`).includes(needle));
     for (const t of shown) {
         const card = document.createElement('article');
         card.className = 'tile';
@@ -56,7 +57,7 @@ const filterText = (text) => {
     }
     const counter = document.querySelector('#count');
     if (counter)
-        counter.textContent = `${shown.length} modules planned`;
+        counter.textContent = `${shown.length} module${shown.length === 1 ? '' : 's'} planned`;
 };
 search?.addEventListener('input', () => filterText(search.value));
 filterText('');
