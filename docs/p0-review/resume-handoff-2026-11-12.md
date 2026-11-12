@@ -24,3 +24,10 @@ The previous P0 task recorded P0-05–10 as open, including architecture decisio
 4. Reconcile and update this handoff with verified branch, commit, PR and test evidence as work is saved. Do not claim the complete local inventory is on GitHub until verified.
 
 This handoff is documentation only. No product, security, integration or VM tests were run for it.
+
+## Saved after the initial inventory
+
+- P3 offline deployment recovery model and acceptance-plan changes: draft PR [#162](https://github.com/parmtech/Tong-Panel/pull/162), head `4934cfa8b0be7aaa775f77d6211fad3b6303d3a0`, based on PR #145. The model tests and vet passed; this does not establish product acceptance.
+- P5 offline placement model, acceptance specification and trust-review packet: draft PR [#163](https://github.com/parmtech/Tong-Panel/pull/163), head `b8a2cab2dee5a1df299186b5d6ac4913ff898b4e`, based on PR #147. The model tests and vet passed; P5 entry remains blocked.
+
+Original local worktrees were not changed by these preservation copies. Remaining P0, MFA and WordPress work still requires the review described above.
