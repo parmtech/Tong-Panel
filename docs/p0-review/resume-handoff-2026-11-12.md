@@ -10,7 +10,7 @@
 
 ## Unfinished work and evidence
 
-A separate local P0 checkout contains modified README and UPDATES files, a staged version of the P5 checklist, and nine untracked P0 reconciliation and review-template drafts. The checklist differs from PR #159 only by a trailing blank line. The other local drafts are **not included in this branch**: they need thorough privacy, secret and factual review before publication to this public repository. Preserve the original files. Some contain machine-specific paths and local coordination details. A sanitized working copy was prepared separately but has not been fully reviewed.
+A separate local P0 checkout contains modified README and UPDATES files, a staged version of the P5 checklist, and nine untracked P0 reconciliation and review-template drafts. The checklist differs from PR #159 only by a trailing blank line. Redacted preservation copies of the nine local drafts are now included in this branch. Machine-local paths and selected private coordination details were omitted; the original files remain local. Pattern-based checks do not prove that every private detail was detected, and factual claims, links and redactions need reviewer verification. These are incomplete working documents, not approvals.
 
 Other local worktrees contain uncommitted MFA recovery, P3 model, P5 model and WordPress lab changes. Their bases, overlap with existing remote branches, tests, and public suitability still need individual review. They are not included in this branch. Do not reset or overwrite them.
 
@@ -31,3 +31,9 @@ This handoff is documentation only. No product, security, integration or VM test
 - P5 offline placement model, acceptance specification and trust-review packet: draft PR [#163](https://github.com/parmtech/Tong-Panel/pull/163), head `b8a2cab2dee5a1df299186b5d6ac4913ff898b4e`, based on PR #147. The model tests and vet passed; P5 entry remains blocked.
 
 Original local worktrees were not changed by these preservation copies. Remaining P0, MFA and WordPress work still requires the review described above.
+
+The local README and UPDATES changes have not been copied to this branch and still require comparison and privacy review. The local P5 checklist is already represented by the base PR except for a trailing blank line.
+
+## MFA recovery local comparison
+
+Nine locally changed or untracked MFA code, migration, test, smoke and primitive-document files were compared by Git blob hash with `feature/p1-mfa-recovery-codes` at `a4e8c73fa394ab727cbf20fc27b219ea46820d14`; all nine matched. Draft PR [#90](https://github.com/parmtech/Tong-Panel/pull/90) contains that branch. The local UPDATES journal includes an additional historical checkpoint which was not found by a narrow phrase search in that branch. It records the primitive as unintegrated, with external pepper provisioning/rotation, recovery orchestration, security review and acceptance still open. Its historical local Go test/vet claims have not been rerun in this audit; verify current PR checks and review before integration. The local journal remains to reconcile.
