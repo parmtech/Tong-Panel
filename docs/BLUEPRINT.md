@@ -19,6 +19,7 @@ Design priorities in order: **safety of customer data and server**, correct work
 - Single-server first, multi-server orchestration later via secure workers/agents.
 - Optional services remain optional: mail, authoritative DNS and Docker must not be required to host a basic website.
 - No hidden subscriptions/paid-feature gates for first-party core functionality. Third-party DNS, cloud storage, VPS, registrar, CA, mail relays etc. can charge fees.
+- First-release direction: do not require paid software or paid-only integrations for panel features. Prefer suitable free/open-source components or original implementation, subject to license, compatibility and security review. Softaculous is not selected. Infrastructure and optional external providers may charge independently.
 
 ## 2. Audiences and experience
 
