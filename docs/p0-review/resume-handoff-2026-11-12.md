@@ -46,3 +46,8 @@ Nine locally changed or untracked MFA code, migration, test, smoke and primitive
 
 - A local WordPress config test matches the current runtime, full-install and fresh-restore branch versions by Git blob hash. A separate detached VM-script repair was preserved on `audit/wp-fix-local-checkpoint-20261112` at `312c24911efbb495b4beb882e2e59d33cfb2312e`, based on `e6b880d`; its large deletion needs review and it is not a current implementation. Outer shell syntax passed, but no generated-guest or VM execution ran.
 - The staged local P3 scope backlog file matches PR #160's remote file by blob hash. The local P0 review drafts and README/UPDATES still require privacy review and reconciliation. Do not clean the machine until all remaining work is preserved and independently verified.
+
+## Further P2 and coordination checkpoint
+
+- P2 planning changes from the separate P2 worktree are preserved in draft PR [#164](https://github.com/parmtech/Tong-Panel/pull/164), head `149d214155390bf8f991b6503cd214b3fabf9198`; whitespace check passed. They do not approve P2 entry.
+- The clean coordination worktree head `aec646542074a05e7e90b070110cbe896f5f7fcc` was verified as an ancestor of remote `docs/phase-coordination` head `75d466c392c7d0de696e9cb24358c787ef9edb55`. Two other clean P0/P2 worktree heads were found as exact remote refs. Other folders and history still need inventory; this is not a complete backup certificate.
