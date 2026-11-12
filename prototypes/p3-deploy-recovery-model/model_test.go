@@ -156,6 +156,89 @@ func TestRepeatedPromotionRecoveryIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestCandidateRouteWithoutCompleteProofRemainsUncertainAfterSnapshotRoundTrip(t *testing.T) {
+	proofLoss := []struct {
+		name   string
+		mutate func(*Model)
+	}{
+		{name: "candidate verification", mutate: func(m *Model) { m.CandidateVerified = false }},
+		{name: "artifact record", mutate: func(m *Model) { m.ArtifactRecorded = false }},
+		{name: "candidate started", mutate: func(m *Model) { m.CandidateStarted = false }},
+		{name: "health check", mutate: func(m *Model) { m.HealthPassed = false }},
+	}
+
+	for _, tc := range proofLoss {
+		t.Run(tc.name, func(t *testing.T) {
+			before := readyForSwitch(t)
+			if err := before.ApplySwitch(); err != nil {
+				t.Fatal(err)
+			}
+			tc.mutate(before)
+
+			restarted := restartModel(t, before)
+			restarted.Recover(restarted.CandidateDigest)
+			if restarted.State != StateUncertain || restarted.Outcome != "uncertain" {
+				t.Fatalf("recovery with missing proof = state %q outcome %q, want uncertainty", restarted.State, restarted.Outcome)
+			}
+		})
+	}
+}
+
+func TestActiveRecoveryWithoutCompleteProofBecomesUncertain(t *testing.T) {
+	proofLoss := []struct {
+		name   string
+		mutate func(*Model)
+	}{
+		{name: "candidate verification", mutate: func(m *Model) { m.CandidateVerified = false }},
+		{name: "artifact record", mutate: func(m *Model) { m.ArtifactRecorded = false }},
+		{name: "candidate started", mutate: func(m *Model) { m.CandidateStarted = false }},
+		{name: "health check", mutate: func(m *Model) { m.HealthPassed = false }},
+	}
+
+	for _, tc := range proofLoss {
+		t.Run(tc.name, func(t *testing.T) {
+			m := readyForSwitch(t)
+			if err := m.ApplySwitch(); err != nil {
+				t.Fatal(err)
+			}
+			m.Recover(m.CandidateDigest)
+			routeBefore := m.ActualRoute
+			tc.mutate(m)
+			m.Recover(m.CandidateDigest)
+
+			if m.State != StateUncertain || m.Outcome != "uncertain" || m.ActualRoute != routeBefore || m.ObservedRoute != m.CandidateDigest {
+				t.Fatalf("active recovery with lost proof = state %q outcome %q actual=%q observed=%q", m.State, m.Outcome, m.ActualRoute, m.ObservedRoute)
+			}
+		})
+	}
+}
+
+func TestApplySwitchRechecksPromotionProof(t *testing.T) {
+	proofLoss := []struct {
+		name   string
+		mutate func(*Model)
+	}{
+		{name: "candidate verification", mutate: func(m *Model) { m.CandidateVerified = false }},
+		{name: "artifact record", mutate: func(m *Model) { m.ArtifactRecorded = false }},
+		{name: "candidate started", mutate: func(m *Model) { m.CandidateStarted = false }},
+		{name: "health check", mutate: func(m *Model) { m.HealthPassed = false }},
+	}
+
+	for _, tc := range proofLoss {
+		t.Run(tc.name, func(t *testing.T) {
+			m := readyForSwitch(t)
+			tc.mutate(m)
+			routeBefore := m.ActualRoute
+			if err := m.ApplySwitch(); !errors.Is(err, ErrInvalidTransition) {
+				t.Fatalf("promotion effect without complete proof = %v, want invalid transition", err)
+			}
+			if m.State != StateSwitching || m.ActualRoute != routeBefore || m.Outcome != "" {
+				t.Fatalf("rejected promotion effect changed model: state=%q route=%q outcome=%q", m.State, m.ActualRoute, m.Outcome)
+			}
+		})
+	}
+}
+
 func TestContradictoryObservationAfterPromotionBecomesUncertain(t *testing.T) {
 	m := readyForSwitch(t)
 	if err := m.ApplySwitch(); err != nil {
@@ -185,6 +268,44 @@ func TestRepeatedNotPromotedRecoveryIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestRecoveryFromNonRecoveryStateBecomesUncertain(t *testing.T) {
+	m := readyForSwitch(t)
+	m.State = StateReady
+	routeBefore := m.ActualRoute
+	m.Recover(m.CandidateDigest)
+	if m.State != StateUncertain || m.Outcome != "uncertain" || m.ActualRoute != routeBefore || m.ObservedRoute != m.CandidateDigest {
+		t.Fatalf("recovery from ready state = state %q outcome %q actual=%q observed=%q", m.State, m.Outcome, m.ActualRoute, m.ObservedRoute)
+	}
+}
+
+func TestContradictoryObservationAfterFailedPromotionBecomesUncertain(t *testing.T) {
+	m := readyForSwitch(t)
+	m.Recover(m.PriorDigest)
+	if m.State != StateFailed || m.Outcome != "not_promoted" {
+		t.Fatalf("initial failed promotion = state %q outcome %q", m.State, m.Outcome)
+	}
+	routeBefore := m.ActualRoute
+	m.Recover(m.CandidateDigest)
+	if m.State != StateUncertain || m.Outcome != "uncertain" || m.ActualRoute != routeBefore || m.ObservedRoute != m.CandidateDigest {
+		t.Fatalf("contradictory failed-promotion observation = state %q outcome %q actual=%q observed=%q", m.State, m.Outcome, m.ActualRoute, m.ObservedRoute)
+	}
+}
+
+func TestUnknownRouteDuringRollbackBecomesUncertain(t *testing.T) {
+	m := readyForSwitch(t)
+	if err := m.ApplySwitch(); err != nil {
+		t.Fatal(err)
+	}
+	m.Recover(m.CandidateDigest)
+	if err := m.RequestRollback(true, true); err != nil {
+		t.Fatal(err)
+	}
+	routeBefore := m.ActualRoute
+	m.Recover("unrecognized-release")
+	if m.State != StateUncertain || m.Outcome != "uncertain" || m.ActualRoute != routeBefore || m.ObservedRoute != "unrecognized-release" {
+		t.Fatalf("unknown rollback observation = state %q outcome %q actual=%q observed=%q", m.State, m.Outcome, m.ActualRoute, m.ObservedRoute)
+	}
+}
 func TestUnknownRouteRemainsUncertain(t *testing.T) {
 	m := readyForSwitch(t)
 	m.Recover("unrecognized-release")
@@ -252,17 +373,116 @@ func TestContradictoryObservationAfterRollbackBecomesUncertain(t *testing.T) {
 	}
 }
 
-func TestUnavailablePriorReleaseCannotBeSelectedForRollback(t *testing.T) {
-	m := readyForSwitch(t)
-	if err := m.ApplySwitch(); err != nil {
-		t.Fatal(err)
+func TestPriorReleaseMustBeAvailableAndVerifiedForRollback(t *testing.T) {
+	tests := []struct {
+		name           string
+		priorAvailable bool
+		priorVerified  bool
+	}{
+		{name: "unavailable", priorAvailable: false, priorVerified: true},
+		{name: "unverified", priorAvailable: true, priorVerified: false},
 	}
-	m.Recover(m.ActualRoute)
-	if err := m.RequestRollback(false, true); !errors.Is(err, ErrInvalidTransition) {
-		t.Fatalf("unavailable prior release rollback error = %v", err)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := readyForSwitch(t)
+			if err := m.ApplySwitch(); err != nil {
+				t.Fatal(err)
+			}
+			m.Recover(m.CandidateDigest)
+
+			if err := m.RequestRollback(tc.priorAvailable, tc.priorVerified); !errors.Is(err, ErrInvalidTransition) {
+				t.Fatalf("rollback request error = %v, want invalid transition", err)
+			}
+			if m.State != StateActive || m.ActualRoute != m.CandidateDigest || m.Outcome != "promoted" {
+				t.Fatalf("rejected rollback request changed state: state=%q route=%q outcome=%q", m.State, m.ActualRoute, m.Outcome)
+			}
+		})
 	}
 }
 
+func TestApplyRollbackRechecksPriorReleaseProof(t *testing.T) {
+	proofLoss := []struct {
+		name           string
+		priorAvailable bool
+		priorVerified  bool
+	}{
+		{name: "prior release unavailable", priorAvailable: false, priorVerified: true},
+		{name: "prior release unverified", priorAvailable: true, priorVerified: false},
+	}
+
+	for _, tc := range proofLoss {
+		t.Run(tc.name, func(t *testing.T) {
+			m := readyForSwitch(t)
+			if err := m.ApplySwitch(); err != nil {
+				t.Fatal(err)
+			}
+			m.Recover(m.CandidateDigest)
+			if err := m.RequestRollback(true, true); err != nil {
+				t.Fatal(err)
+			}
+			if err := m.ApplyRollback(tc.priorAvailable, tc.priorVerified); !errors.Is(err, ErrInvalidTransition) {
+				t.Fatalf("rollback effect without complete prior-release proof = %v, want invalid transition", err)
+			}
+			if m.State != StateRollingBack || m.ActualRoute != m.CandidateDigest || m.Outcome != "" {
+				t.Fatalf("rejected rollback effect changed state: state=%q route=%q outcome=%q", m.State, m.ActualRoute, m.Outcome)
+			}
+		})
+	}
+}
+
+func TestTransitionGuardsRejectCallsOutsideTheirState(t *testing.T) {
+	tests := []struct {
+		name string
+		run  func(*Model) error
+	}{
+		{name: "request switch outside healthy state", run: func(m *Model) error { return m.RequestSwitch() }},
+		{name: "apply switch outside switching state", run: func(m *Model) error { return m.ApplySwitch() }},
+		{name: "request rollback outside active state", run: func(m *Model) error { return m.RequestRollback(true, true) }},
+		{name: "apply rollback outside rolling-back state", run: func(m *Model) error { return m.ApplyRollback(true, true) }},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := New("release-old", "release-new", true)
+			if err := tc.run(&m); !errors.Is(err, ErrInvalidTransition) {
+				t.Fatalf("out-of-state transition error = %v, want invalid transition", err)
+			}
+			if m.ActualRoute != m.PriorDigest || m.State != StateReady || m.Outcome != "" {
+				t.Fatalf("rejected transition changed model: state=%q route=%q outcome=%q", m.State, m.ActualRoute, m.Outcome)
+			}
+		})
+	}
+}
+
+// This test constructs inconsistent in-memory records solely to exercise the guard predicates;
+// these states are not reachable through the legal model transition sequence.
+func TestRequestSwitchRequiresHealthAndArtifactProof(t *testing.T) {
+	tests := []struct {
+		name             string
+		artifactRecorded bool
+		healthPassed     bool
+	}{
+		{name: "health proof missing", artifactRecorded: true, healthPassed: false},
+		{name: "artifact proof missing", artifactRecorded: false, healthPassed: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := New("release-old", "release-new", true)
+			m.State = StateHealthy
+			m.CandidateStarted = true
+			m.ArtifactRecorded = tc.artifactRecorded
+			m.HealthPassed = tc.healthPassed
+			if err := m.RequestSwitch(); !errors.Is(err, ErrInvalidTransition) {
+				t.Fatalf("switch without required proof = %v, want invalid transition", err)
+			}
+			if m.State != StateHealthy || m.ActualRoute != m.PriorDigest || m.Outcome != "" {
+				t.Fatalf("rejected switch changed model: state=%q route=%q outcome=%q", m.State, m.ActualRoute, m.Outcome)
+			}
+		})
+	}
+}
 func TestAdmissionRetryWithSameKeyAndPayloadReturnsOneJob(t *testing.T) {
 	model := NewAdmissionModel()
 	request := AdmissionRequest{TenantID: "tenant-a", AppID: "app-a", Key: "request-1", PayloadDigest: "digest-a"}
@@ -282,12 +502,20 @@ func TestAdmissionRetryWithSameKeyAndPayloadReturnsOneJob(t *testing.T) {
 func TestAdmissionRejectsKeyReuseWithDifferentPayload(t *testing.T) {
 	model := NewAdmissionModel()
 	request := AdmissionRequest{TenantID: "tenant-a", AppID: "app-a", Key: "request-1", PayloadDigest: "digest-a"}
-	if _, err := model.Admit(request); err != nil {
+	originalID, err := model.Admit(request)
+	if err != nil {
 		t.Fatal(err)
 	}
-	request.PayloadDigest = "digest-b"
-	if _, err := model.Admit(request); !errors.Is(err, ErrIdempotencyConflict) {
+	changed := request
+	changed.PayloadDigest = "digest-b"
+	if _, err := model.Admit(changed); !errors.Is(err, ErrIdempotencyConflict) {
 		t.Fatalf("changed payload error = %v", err)
+	}
+	if retryID, err := model.Admit(request); err != nil || retryID != originalID {
+		t.Fatalf("original retry after conflict = id %q, error %v; want original id %q", retryID, err, originalID)
+	}
+	if _, err := model.Admit(changed); !errors.Is(err, ErrIdempotencyConflict) {
+		t.Fatalf("repeated changed payload error = %v, want idempotency conflict", err)
 	}
 	if model.JobCount() != 1 {
 		t.Fatalf("conflict changed job count to %d", model.JobCount())
@@ -315,6 +543,41 @@ func TestAdmissionKeysAreScopedByTenantAndAppInThisModel(t *testing.T) {
 	}
 	if first == second || first == third || second == third || model.JobCount() != 3 {
 		t.Fatalf("scope separation failed: ids=(%q,%q,%q) count=%d", first, second, third, model.JobCount())
+	}
+}
+
+func TestAdmissionSameKeyDifferentPayloadAcrossScopesIsIndependent(t *testing.T) {
+	model := NewAdmissionModel()
+	requests := []AdmissionRequest{
+		{TenantID: "tenant-a", AppID: "app-a", Key: "request-1", PayloadDigest: "digest-a"},
+		{TenantID: "tenant-b", AppID: "app-a", Key: "request-1", PayloadDigest: "digest-b"},
+		{TenantID: "tenant-a", AppID: "app-b", Key: "request-1", PayloadDigest: "digest-c"},
+	}
+
+	jobIDs := make([]string, len(requests))
+	for i, request := range requests {
+		jobID, err := model.Admit(request)
+		if err != nil {
+			t.Fatalf("admit request %d in another modeled scope: %v", i, err)
+		}
+		jobIDs[i] = jobID
+	}
+
+	for i, request := range requests {
+		retryID, err := model.Admit(request)
+		if err != nil {
+			t.Fatalf("retry request %d: %v", i, err)
+		}
+		if retryID != jobIDs[i] {
+			t.Errorf("retry %d returned job %q, want original %q", i, retryID, jobIDs[i])
+		}
+	}
+
+	if jobIDs[0] == jobIDs[1] || jobIDs[0] == jobIDs[2] || jobIDs[1] == jobIDs[2] {
+		t.Errorf("different modeled scopes aliased job IDs: %q", jobIDs)
+	}
+	if got := model.JobCount(); got != len(requests) {
+		t.Errorf("job count = %d, want %d", got, len(requests))
 	}
 }
 

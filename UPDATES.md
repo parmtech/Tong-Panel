@@ -374,3 +374,7 @@ Connected GitHub reports open/draft PR #149 advanced from `8764d0fef218a36a4cc94
 - Added one row for each of the nine phase-exit scenarios with current `NOT RUN` disposition and specific evidence bundle required to close it. Distinguished hostile-workload, profile exclusion, and unavailable-contract reasons; local fixtures/model tests are expressly not end-to-end evidence.
 - `git diff --check` passed; manual structural inspection confirms nine scenario rows. Documentation-only; no product or acceptance tests apply. P1/P2/P0/security blockers remain unchanged.
 - Next step: recheck P1 #149 exact-head diagnostics and phase branch refs; continue within P3-owned documentation/prototype files only.
+
+## 2026-11-12 — P3 offline model draft checkpoint
+
+Branch `audit/p3-model-checkpoint-20261112`, based on PR #145 head `24304bbba3d6d8882a0fd1d70aa9d13e751100c5`, preserves local changes to the P3 entry and acceptance plan and the non-normative deployment recovery model. The model and tests cover additional simulated promotion-proof and rollback boundaries; they do not establish real deployment, isolation, persistence, or P3 acceptance. P3 entry remains unproven and upstream phase gates remain open. Windows Go tests (`GO111MODULE=off`, `go test -count=1`) and `go vet` passed in the model directory; `git diff --check` passed. No product, integration, host, or security tests ran. Next: review the changes and current upstream contracts in the draft PR; run the specified end-to-end scenarios only after their prerequisites and approvals are met.

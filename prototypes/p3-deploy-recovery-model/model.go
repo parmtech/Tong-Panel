@@ -85,7 +85,7 @@ func (m *Model) RequestSwitch() error {
 // ApplySwitch models an external route effect. It does not mean the control
 // plane has observed or durably recorded that effect.
 func (m *Model) ApplySwitch() error {
-	if m.State != StateSwitching {
+	if m.State != StateSwitching || !m.CandidateVerified || !m.ArtifactRecorded || !m.CandidateStarted || !m.HealthPassed {
 		return ErrInvalidTransition
 	}
 	m.ActualRoute = m.CandidateDigest
