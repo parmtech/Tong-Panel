@@ -23,6 +23,8 @@ on:
       - 'scripts/test_probe_https_isolation.py'
       - 'scripts/build_deb.sh'
       - 'scripts/test_deb_package.sh'
+      - 'scripts/verify_dev_deb.py'
+      - 'scripts/test_verify_dev_deb.py'
       - 'scripts/p2_package_install_vm.sh'
       - 'scripts/smoke_mariadb_isolation.sh'
       - 'scripts/smoke_encrypted_backup_restore.sh'

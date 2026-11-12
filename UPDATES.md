@@ -1,8 +1,19 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-13 (Australia/Sydney; P1 gate-audit checkpoint)
+**Updated:** 2026-11-13 (Australia/Sydney; package-archive QA checkpoint)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## CURRENT CHECKPOINT — unsigned Debian package control-archive verification (13 November 2026)
+
+- **Task/branch:** continued the owner's unified Tong Panel master tracker [#172](https://github.com/parmtech/Tong-Panel/issues/172) in sole draft [PR #171](https://github.com/parmtech/Tong-Panel/pull/171), branch `integration/pr-reconciliation-20261113`, parent `e9baa0b6dbc6a952203ba73a16aef26986b9712f`. All thirteen exact-parent workflows passed, including P1 blocked-state QA, root Go checks and both disposable Ubuntu/Debian VMs. These do not verify the new package verifier.
+- **Finding:** an earlier `dpkg-deb --contents` assertion inspected the data archive, not the potentially privileged Debian control scripts. The existing package builder creates only three intended lifecycle scripts, but the package lab had no exact-control-archive allowlist to reject an injected `preinst` or changed installation hook.
+- **Safe fix:** new `scripts/verify_dev_deb.py` streams the control and payload archives read-only, checks the exact current source/compiled-binary bytes, file modes/owner, canonical paths and expected contents. It rejects hidden hooks, symlinks, extra payload, changed binaries, setuid, wrong developer versions and missing files. `scripts/test_deb_package.sh` now runs its real-package fixtures and validates both unsigned developer package versions before the existing clean-VM install lab. `.github/workflows/p2-clean-vm-smoke.yml` includes the new verifier/test paths. [Detailed contract](docs/P1_DEV_PACKAGE_STRUCTURE.md).
+- **Executed locally:** nine amd64 `dpkg-deb` fixture cases passed (including altered `preinst`, `postinst`, setuid and data); Python compilation passed; rerun with `ResourceWarning` treated as error passed after closing the child pipe on rejection. These are isolated local tests; the exact current published branch and hosted clean-VM package lifecycle must be verified separately.
+- **Security/release limits:** development-only, unsigned package; no trustworthy publisher signature, supported installer, owner/security ADR approval, real server deployment, production login, host mutation, certificate issue or key custody change. Never describe a structurally validated unsigned package as install-authorized.
+- **Next single action:** verify source publication and the exact new-head clean-VM job plus package regression step. Resolve any actual hosted failure before additional feature changes. Preserve one draft PR and update master tracker; separately obtain recorded ADR-007/008/009 and independent security approvals.
+
+## Historical checkpoint — P1 explicit blocker-inventory audit
 
 ## CURRENT CHECKPOINT — explicit P1 release blockers tested (13 November 2026, Sydney)
 

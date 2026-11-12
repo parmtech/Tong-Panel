@@ -21,9 +21,14 @@ if bash scripts/build_deb.sh "$work/missing.deb" "0.0.0~dev.1" "$work/absent-ton
   exit 1
 fi
 
+python3 -m unittest discover -s scripts -p 'test_verify_dev_deb.py' -v
+
 mkdir -p "$out"
 bash scripts/build_deb.sh "$out/tong-panel-dev-v1.deb" "0.0.0~dev.1" "$tongd" "$tongctl"
 bash scripts/build_deb.sh "$out/tong-panel-dev-v2.deb" "0.0.0~dev.2" "$tongd" "$tongctl"
+python3 scripts/verify_dev_deb.py "$out/tong-panel-dev-v1.deb" "0.0.0~dev.1" "$tongd" "$tongctl"
+python3 scripts/verify_dev_deb.py "$out/tong-panel-dev-v2.deb" "0.0.0~dev.2" "$tongd" "$tongctl"
+
 for package in "$out/tong-panel-dev-v1.deb" "$out/tong-panel-dev-v2.deb"; do
   [[ "$(dpkg-deb --field "$package" Package)" == tong-panel-dev ]]
   [[ "$(dpkg-deb --field "$package" Architecture)" == amd64 ]]

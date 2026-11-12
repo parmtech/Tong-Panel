@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-11-13):** consolidated review [#171](https://github.com/parmtech/Tong-Panel/pull/171) coordinates [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172). The P1 release blocker inventory at [docs/P1_GATE_BLOCKER_AUDIT.md](docs/P1_GATE_BLOCKER_AUDIT.md) is a *development-only blocked-state test*, never a security approval or installer authorization. See `UPDATES.md` and current handoff for exact-head checks and remaining decisions.
+**Current checkpoint (2026-11-13):** one active [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) and [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172). Read the latest journal/handoff. The unsigned developer package now has [exact control/data archive QA](docs/P1_DEV_PACKAGE_STRUCTURE.md), including nine local tamper tests. New code is not hosted-verified until the exact branch workflow passes. P0/security decisions and signed installer/release gates remain open.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.

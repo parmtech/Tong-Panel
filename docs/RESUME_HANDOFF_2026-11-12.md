@@ -1,5 +1,14 @@
 # Tong Panel resume and integration handoff — 2026-11-12
 
+## Current continuation — unsigned developer package structural verification (13 November 2026)
+
+The owner requested continued integrated work on [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) and single [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `e9baa0b6dbc6a952203ba73a16aef26986b9712f` passed all thirteen hosted workflows including both clean VMs. This continuation changes the package test/helper, so its exact-head results must be checked independently.
+
+The developer package's data listing missed control archive scripts; new `scripts/verify_dev_deb.py` reads **both** tar streams and rejects any unexpected lifecycle hook, file path/type, mode, ownership, version or byte content relative to the reviewed source and compiled binary inputs. [Nine real `dpkg-deb` fixture tests](../scripts/test_verify_dev_deb.py) passed locally, including injected preinst, changed postinst, symlink, setuid and binary tampering; `scripts/test_deb_package.sh` verifies both real unsigned versions. CI path filters include these files. Read [the structural QA contract](P1_DEV_PACKAGE_STRUCTURE.md).
+
+**Next single action:** verify the exact published new head and clean-VM package test job; resolve real failures without weakening the negative checks. Even if all CI is green, the unsigned package is not a supported installer or a signoff for ADR-008, production authentication, TLS/private keys or host actions. Do not merge or deploy before owner/security decisions.
+
+
 ## Current continuation — explicit P1 release blocker audit (13 November 2026)
 
 The owner's single coordinated workstream is [#172](https://github.com/parmtech/Tong-Panel/issues/172), executed on the sole development [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `2096a4e95eed98ef06bc268167c2250704ad02c4` passed all 12 hosted workflows (including both clean Ubuntu/Debian VMs). New-head checks for this continuation are separate.
