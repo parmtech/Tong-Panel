@@ -108,6 +108,8 @@ The following follows the Gate 0–6 numbering above and `ROADMAP.md`. `FEATURE_
 
 The detailed current paths, test evidence and step-by-step resume instructions are in [the resume handoff](RESUME_HANDOFF_2026-11-12.md); precise component provenance and blockers are in the individual prototype READMEs linked there. This is a draft plan, not evidence that the listed services are installed or phases completed.
 
+For a proposed limited first release and the evidence required before launch, see [the first release checklist](FIRST_RELEASE_CHECKLIST.md). Its scope needs owner approval and does not replace the roadmap's stable 1.0 gates.
+
 ## 5. Proposed user journeys (acceptance)
 
 1. New VPS: preflight identifies incompatible distro or occupied ports BEFORE making changes; fresh supported distro provisions panel and serves TLS admin UI.
