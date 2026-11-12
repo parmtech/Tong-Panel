@@ -60,12 +60,14 @@ Multiple agents may work in independent branches. Use CODEOWNERS later; never si
 ## Version/release format
 0.0.x planning/prototypes (not installable); 0.1.x experimental; 0.5.x beta only with explicit caution; 1.0.0 stable only after P6. A tagged release is not a compatibility promise by itself.
 
-## Current gate evidence — 2026-10-28
+## Historical gate evidence — 2026-10-28
 
 - P0 architecture ADRs and the threat model remain proposed/unapproved. Owner issue [#1](https://github.com/parmtech/Tong-Panel/issues/1) is open with no review comments. P1 authentication design issue [#6](https://github.com/parmtech/Tong-Panel/issues/6) is also open with no review comments.
 - P1 development prototypes are spread across unmerged draft PRs, including internal Argon2id/MFA/rate-limit/login/session work and the HTTPS cookie boundary. They do not constitute an approved public login or production authentication system.
 - Isolated P2 Files and QA prototypes are in draft PRs #35–#42. The clean VM workflow tests the unsigned preview runtime only; it is not an installer, service lifecycle, rollback or restore drill.
 - No supported production package, privileged host mutation path, authenticated Files API/UI, full hosting lifecycle, signed release or restore acceptance has been verified. Do not install or deploy to a real host.
+
+The current combined-source and CI evidence is tracked in the [PR reconciliation report](PR_RECONCILIATION_2026-11-13.md) and [resume handoff](RESUME_HANDOFF_2026-11-12.md); the dated inventory above is historical.
 
 ## Next concrete action — owner/security review required
 

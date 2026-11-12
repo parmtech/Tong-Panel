@@ -1,5 +1,18 @@
 # Tong Panel resume and integration handoff — 2026-11-12
 
+## Current continuation — complete draft PR reconciliation
+
+**Branch:** `integration/pr-reconciliation-20261113`. **Implementation:** [`4aea031878ef39ad82319b0db402cec50ceee3c9`](https://github.com/parmtech/Tong-Panel/commit/4aea031878ef39ad82319b0db402cec50ceee3c9). Read the [integration draft](https://github.com/parmtech/Tong-Panel/pulls?q=is%3Apr+head%3Aintegration%2Fpr-reconciliation-20261113) for the exact published review head, later hosted results and superseded-PR closure state. This section supersedes the older continuations below.
+
+The owner requested fixing all PRs. All 149 original open draft heads, plus the default branch, are preserved in the combined history. The [reconciliation report](PR_RECONCILIATION_2026-11-13.md) and [machine-readable ledger](PR_RECONCILIATION_2026-11-13.json) provide every source SHA and original CI result: 129 all observed checks successful, five historical failures, one cancellation, and 14 with no workflows. Five of the no-workflow drafts contained offline model code; the new dedicated workflow covers those models and fixtures. No historical failed/cancelled run is relabelled as successful.
+
+Concrete fixes include absolute DNS proof lookups on both completion paths, current cookie-session checks in SQL job list/page/detail reads, and SSH startup retries that preserve non-transport guest failures. The latest P0/P2/P3/P4/P5 review/model work is retained with its proposal and no-execution boundaries. Existing bearer behavior, roles, schema, public routes, dependencies and host adapters are unchanged.
+
+**Executed:** full sites race 18.043s; full jobs race 32.225s; final combined API race 51.085s; focused startup race 1.432s; affected vet; five model race/vet/format checks; Node/Python fixtures 2/2 each; four SSH helper regression cases; shell/workflow lint. Regression baselines reproduced the DNS rejection, stale-session job disclosure and retried guest-error masking. Independent reviews found no concrete blocker. Full root/Unix-socket and guest validation still require exact-head hosted evidence; see the integration draft for subsequent outcomes. Original PR170's eight workflows, including both VMs, also passed and verify only that parent source.
+
+**Next single action:** check the combined draft's actual head and all triggered workflows, resolve any failure, then complete the linked superseded-PR states without deleting source branches. Once that reconciliation is verified, continue the existing P0/security and certificate/terminal decision work. Do not reopen old stacked drafts or create overlapping follow-ons merely to repeat completed work.
+
+
 ## Status and working rules
 
 This is a **draft checkpoint, not a release or phase-completion certificate**. The original checkpoint followed the owner's stop after the certificate-domain UI test. The owner subsequently requested resuming Tong Panel and checking the latest GitHub handoff and blueprint. Continue from the resumed checkpoint below, inspect current refs and CI before editing, preserve unrelated work, and use focused branches/PRs as needed. Do not merge, deploy, change server configuration, issue public certificates, or treat test results as owner/security approval. Never publish secrets, personal paths or private review material. Keep third-party licenses and notices and review each exact dependency. Do not delete/archive chat history.
