@@ -4803,6 +4803,227 @@
           }
         }
       }
+    },
+    "/api/v1/sites/{site_id}/preflight/acme-http01": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/SiteID"
+        }
+      ],
+      "get": {
+        "operationId": "preflightSiteACMEHTTP01",
+        "summary": "Read a detached verified-domain HTTP-01 preflight snapshot",
+        "tags": [
+          "Sites"
+        ],
+        "security": [
+          {
+            "DevBearer": []
+          },
+          {
+            "BrowserSession": []
+          }
+        ],
+        "x-tong-rbac-action": "sites:read",
+        "x-tong-backend-gate": "SiteCatalog; opt-in development SQLite catalog. No ACME executor is configured.",
+        "description": "Informational only; execution_enabled is always false. Requires current sites:read membership/session and verified primary. Pending aliases are excluded. Does not authorize or queue issuance, contact DNS/CA, expose tokens or keys, or modify host configuration.",
+        "x-query-policy": "No query is accepted.",
+        "responses": {
+          "200": {
+            "description": "Detached informational snapshot; never an execution capability.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ACMEHTTP01Preflight"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid site/domain/database metadata or forbidden query.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "invalid_site_request"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, revoked or ambiguous credentials; cookie authentication additionally requires actual TLS and rejects mixed bearer credentials.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "unauthorized"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current role cannot read this tenant's site metadata.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "forbidden"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tenant-scoped site/domain/database not found.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "The authenticated request used a method not implemented by this route.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              },
+              "Allow": {
+                "$ref": "#/components/headers/Allow"
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Required verified primary domain is not ready.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "site_not_ready"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authentication or this operation's required backend is unavailable. Backend gates are evaluated only after authentication and, where applicable, permission checks.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestID"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "X-Content-Type-Options": {
+                "$ref": "#/components/headers/NoSniff"
+              }
+            },
+            "x-error-codes": [
+              "auth_unconfigured",
+              "sites_unavailable"
+            ],
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5199,7 +5420,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 254,
-            "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1–63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+            "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1\u00e2\u20ac\u201c63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
           },
           "aliases": {
             "type": "array",
@@ -5207,7 +5428,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 254,
-              "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1–63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+              "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1\u00e2\u20ac\u201c63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
             },
             "maxItems": 32,
             "nullable": true,
@@ -5226,7 +5447,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 254,
-            "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1–63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+            "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1\u00e2\u20ac\u201c63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
           }
         }
       },
@@ -5407,6 +5628,48 @@
             "description": "Empty when no later row; otherwise the last returned site ID."
           }
         }
+      },
+      "ACMEHTTP01Preflight": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "site_id",
+          "domains",
+          "challenge",
+          "snapshot_only",
+          "execution_enabled"
+        ],
+        "properties": {
+          "site_id": {
+            "type": "string"
+          },
+          "domains": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 33,
+            "items": {
+              "type": "string"
+            }
+          },
+          "challenge": {
+            "type": "string",
+            "enum": [
+              "http-01"
+            ]
+          },
+          "snapshot_only": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "execution_enabled": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          }
+        }
       }
     },
     "parameters": {
@@ -5450,7 +5713,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 254,
-          "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1–63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+          "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1\u00e2\u20ac\u201c63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
         }
       },
       "IdempotencyKey": {
@@ -5462,7 +5725,7 @@
           "minLength": 8,
           "maxLength": 128
         },
-        "description": "8–128 bytes in the implementation; use ASCII. Tenant-scoped. In SQLite mode it is also bound to the requester and kind. Identical retries return the same job (202); different work/requester conflicts (409)."
+        "description": "8\u00e2\u20ac\u201c128 bytes in the implementation; use ASCII. Tenant-scoped. In SQLite mode it is also bound to the requester and kind. Identical retries return the same job (202); different work/requester conflicts (409)."
       },
       "Origin": {
         "name": "Origin",
@@ -5549,7 +5812,7 @@
       "DevBearer": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Development-only opaque static bearer token. Exact Bearer prefix; token check accepts 32–4096 bytes. This is not password login, OAuth or a production credential service."
+        "description": "Development-only opaque static bearer token. Exact Bearer prefix; token check accepts 32\u00e2\u20ac\u201c4096 bytes. This is not password login, OAuth or a production credential service."
       },
       "BrowserSession": {
         "type": "apiKey",

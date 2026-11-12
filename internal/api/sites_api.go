@@ -158,6 +158,10 @@ func (s *Server) siteResource(w http.ResponseWriter, r *http.Request, p rbac.Pri
 		return
 	}
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/sites/"), "/")
+	if len(parts) == 3 && parts[0] != "" && parts[1] == "preflight" && parts[2] == "acme-http01" {
+		s.siteACMEHTTP01Preflight(w, r, p, parts[0])
+		return
+	}
 	if len(parts) == 1 && parts[0] != "" {
 		s.siteGet(w, r, p, parts[0])
 		return

@@ -1,7 +1,7 @@
 # Current development API contract
 
 `api/openapi.json` records the implemented control-plane handlers as OpenAPI
-3.0.3: 17 path templates and 23 operations. It is a snapshot of the unmerged
+3.0.3: 18 path templates and 24 operations. It is a snapshot of the unmerged
 development implementation, not an approved production interface, stable release,
 security assessment or complete P1 acceptance. It adds no routes or behavior.
 
@@ -25,6 +25,7 @@ own credential. See [development metrics](P1_DEVELOPMENT_METRICS.md).
 - Conditional tenant-relative Files list/read/new-file upload/delete.
 - Bounded site catalog list, site/domain metadata creation/read, alias changes and DNS TXT proof lifecycle.
 - Read-only Nginx text preview, with separately configured hosting paths.
+- Read-only verified-domain HTTP-01 preflight snapshot; execution remains disabled.
 - Site-bound database-name metadata creation/list/read.
 
 There is no public password login, MFA/recovery endpoint, cookie/session issuance

@@ -151,6 +151,7 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 	plain("list catalog sites", "listSites", "GET", "/api/v1/sites?limit=1", "", 200)
 	run(h, "invalid site page", "listSites", "GET", "/api/v1/sites?limit=51", secret, "", "", 400, "invalid_page", nil)
 	sitePath := "/api/v1/sites/contract-site"
+	run(h, "pending primary cannot prepare ACME", "preflightSiteACMEHTTP01", "GET", sitePath+"/preflight/acme-http01", secret, "", "", 409, "site_not_ready", nil)
 	plain("get catalog site", "getSite", "GET", sitePath, "", 200)
 	run(h, "other tenant site", "getSite", "GET", sitePath, sqlOtherToken, "", "", 404, "not_found", nil)
 	plain("add pending alias", "addSiteAlias", "POST", sitePath+"/domains", `{"domain":"alias.example.test"}`, 201)
@@ -167,6 +168,8 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 		t.Fatal(err)
 	}
 	plain("complete synthetic TXT proof", "completeDomainVerification", "POST", proofPath+"/complete", string(proofBody), 200)
+	plain("read verified ACME snapshot", "preflightSiteACMEHTTP01", "GET", sitePath+"/preflight/acme-http01", "", 200)
+	run(h, "other tenant ACME snapshot", "preflightSiteACMEHTTP01", "GET", sitePath+"/preflight/acme-http01", sqlOtherToken, "", "", 404, "not_found", nil)
 	s.SiteHostingPaths = &sites.HostingPaths{TenantRoot: "/srv/tong", PHPSocketRoot: "/run/tong/php"}
 	h = s.Handler()
 	preview := plain("render verified catalog preview", "previewSiteNginx", "GET", sitePath+"/preview/nginx", "", 200)
@@ -202,7 +205,7 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 		t.Fatal("logout did not expire cookie")
 	}
 	run(ch, "revoked cookie denied", "getCurrentPrincipal", "GET", "/api/v1/me", "", "", "", 401, "unauthorized", cookie(false, ""))
-	for _, operation := range strings.Fields("getHealth getVersion getCurrentPrincipal logoutSession listJobs createJob getJob cancelJob listFiles readFile createFile deleteFile listSites createSite getSite previewSiteNginx addSiteAlias deleteSiteAlias beginDomainVerification completeDomainVerification listSiteDatabases createSiteDatabase getSiteDatabase") {
+	for _, operation := range strings.Fields("getHealth getVersion getCurrentPrincipal logoutSession listJobs createJob getJob cancelJob listFiles readFile createFile deleteFile listSites createSite getSite previewSiteNginx preflightSiteACMEHTTP01 addSiteAlias deleteSiteAlias beginDomainVerification completeDomainVerification listSiteDatabases createSiteDatabase getSiteDatabase") {
 		if !covered[operation] {
 			t.Fatalf("missing success scenario for %s", operation)
 		}

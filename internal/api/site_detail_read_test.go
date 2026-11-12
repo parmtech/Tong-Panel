@@ -22,6 +22,7 @@ type siteDetailReadRoute struct {
 var siteDetailReadRoutes = []siteDetailReadRoute{
 	{name: "site", path: "/api/v1/sites/site-read"},
 	{name: "nginx preview", path: "/api/v1/sites/site-read/preview/nginx"},
+	{name: "ACME preflight", path: "/api/v1/sites/site-read/preflight/acme-http01"},
 	{name: "database list", path: "/api/v1/sites/site-read/databases"},
 	{name: "database detail", path: "/api/v1/sites/site-read/databases/wp"},
 }
