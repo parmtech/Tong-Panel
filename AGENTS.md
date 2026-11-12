@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-11-13):** resume from the current checkpoint at the top of UPDATES.md and `docs/RESUME_HANDOFF_2026-11-12.md`. The test-only ACME order-reconciliation continuation is `feature/p1-acme-order-reconciliation`, based on validated draft PR #168. The earlier implementation baseline is draft PR #166, not the documentation-only default branch. P0 ADR/security decisions and production release gates remain open.
+**Current checkpoint (2026-11-13):** resume from the current checkpoint at the top of UPDATES.md and `docs/RESUME_HANDOFF_2026-11-12.md`. Observed-session-expiry cancellation continues on `feature/p1-session-expiry-writer-context`, stacked on the test-only ACME recovery draft PR #169. The earlier implementation baseline is draft PR #166, not the documentation-only default branch. P0 ADR/security decisions and production release gates remain open.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.
@@ -26,7 +26,7 @@
 
 ## Current work snapshot
 - P0 architecture and threat-model decisions remain open. Public review/handoff drafts include PR #161 and #165; prepared documents and passing tests do not record owner or independent security approval.
-- Current continuation: `feature/p1-acme-order-reconciliation`, code `a853d7edbe73a2b49bb72f0a5561c6317aa3d450`, based on PR #168 head `d14e5611d7b3d0302d4ae76bdbb8f210827e1bb9`. All ten triggered workflows passed on that parent, including Ubuntu 24.04 and Debian 12 VMs. Read UPDATES.md for this new code's separate validation and current hosted outcomes; parent results do not verify the new slice. Fetch current refs before editing.
+- Current continuation: `feature/p1-session-expiry-writer-context`, code `d3e5c35b05e670c877c48015494bf2afadd59d22`, based on PR #169 head `1351db454a54408af8d2ffd928e0e1d1a6676ec8`. All seven applicable workflows passed on that parent; the earlier PR #168 passed all ten including both VMs. Read UPDATES.md for this new fix's local evidence and exact-head hosted outcomes; parent results do not verify it. Fetch current refs before editing.
 - The latest SSL interface is an authorized read-only domain snapshot. The catalog now records DNS observation/verification times and a receipt, with an internal current-authority freshness reader; the isolated provider supports cancellation and terminal cleanup. Read `docs/P1_CERTIFICATE_OPERATION_CONTRACT.md` before executable certificate work. Issuance is exercised only in a separate, loopback test-CA module. The local metrics endpoint reports a development marker, not complete server health.
 - Root-module Go checks do not test separate modules under tools/. The dedicated prototype workflow must enter those modules and run their tagged Linux/race/scanner checks explicitly.
 - `docs/FEATURE_MATRIX.md` uses the roadmap's canonical P0–P6 phases and explains older labels. The first-release target includes DNS, email, Node.js/Python apps, an isolated browser terminal, resellers/quotas and cPanel migration. Integrated software must be free and open source without mandatory paid components; Softaculous is not selected. Phase numbering does not remove requested features from that target.
