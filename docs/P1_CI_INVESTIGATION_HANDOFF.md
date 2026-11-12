@@ -7,3 +7,5 @@ On prior PR head 75d6e9a9c0afbff5301a2a23df097a5a686099c0, the pinned gosec scan
 The vulnerability scans reported GO-2026-6859 in Go 1.27.3, fixed in Go 1.27.4. The two affected scan workflows now select Go 1.27.4; hosted runs on the new head must confirm results. This does not establish that other vulnerabilities are absent.
 
 Local validation: the prior downloaded report passed the revised validator; synthetic analyzer-error and missing-field inputs were rejected. Other prior-head tests do not prove the new hosted checks pass. Review the new workflow results, assess all scanner findings, and complete the outstanding owner and security decisions before considering phase acceptance.
+
+Hosted verification update: on commit `c1f672a875f830c72daee60c444fd472afaed53f`, nine PR workflows succeeded, including gosec report validation, both vulnerability scans, API contract, Go checks, UI, jobs browser, developer smoke, unsigned package lab, and P2 disposable VM smoke. These results apply to that commit; the 241 reported findings still require triage and are not resolved by a passing report-validation job. Subsequent documentation commits are distinct heads.
