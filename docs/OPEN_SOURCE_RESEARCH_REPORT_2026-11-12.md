@@ -31,3 +31,32 @@ For each actual import record the upstream URL, exact release and commit, checks
 ## Current status
 
 The earlier candidate note records the lego and Coraza leads. This expanded document adds backup, service, DNS, monitoring, security and hosting-panel leads. It does not claim to cover every candidate or complete implementation; consult `UPSTREAM_RESEARCH.md`, `FEATURE_MATRIX.md`, and `ADR_REGISTER.md` for existing requirements and unresolved decisions.
+
+## Practical source and interface links
+
+These references point to upstream code and documentation; they are not imported code or proof that a particular version is suitable for production.
+
+| Need | Reference | What to examine | Suggested Tong Panel work |
+| --- | --- | --- | --- |
+| ACME certificate lifecycle | [lego source tree](https://github.com/go-acme/lego/tree/main/certificate), [challenge implementations](https://github.com/go-acme/lego/tree/main/challenge) | Issuance, renewal and challenge interfaces | Define a narrow certificate adapter; test staging server, expiry and failure recovery. |
+| Backup | [restic source tree](https://github.com/restic/restic), [backup documentation](https://restic.readthedocs.io/en/stable/040_backup.html) | Snapshot lifecycle and progress reporting | Prototype a typed background job and isolated restore test; keep keys out of logs. |
+| DNS | [PowerDNS source tree](https://github.com/PowerDNS/pdns), [authoritative API](https://doc.powerdns.com/authoritative/http-api/) | Zone API, scoped access and validation | Implement a test-only mock API adapter before connecting an actual server. |
+| Security | [Coraza source tree](https://github.com/corazawaf/coraza), [CrowdSec security engine](https://github.com/crowdsecurity/crowdsec) | WAF evaluation and detection/remediation separation | Evaluate opt-in service boundary, false positives and recovery; do not automatically block traffic. |
+| Monitoring | [Prometheus source](https://github.com/prometheus/prometheus), [HTTP API](https://prometheus.io/docs/prometheus/latest/querying/api/) | Query and response contract | Prototype read-only health queries with timeouts and bounded response sizes. |
+
+### Original illustrative interface
+
+This original Go sketch communicates the intended boundary; it does not integrate any upstream product, provide authorization, or execute a backup:
+
+```go
+type BackupRequest struct {
+    SiteID string
+    DestinationID string
+}
+
+type BackupRunner interface {
+    StartBackup(ctx context.Context, request BackupRequest) (jobID string, err error)
+}
+```
+
+The real implementation must validate tenant ownership and destination permissions, isolate secrets, enforce execution limits, and demonstrate an end-to-end restore. See the integration review checklist above before importing or running any third-party code.
