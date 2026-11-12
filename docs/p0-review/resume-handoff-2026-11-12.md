@@ -37,3 +37,9 @@ The local README and UPDATES changes have not been copied to this branch and sti
 ## MFA recovery local comparison
 
 Nine locally changed or untracked MFA code, migration, test, smoke and primitive-document files were compared by Git blob hash with `feature/p1-mfa-recovery-codes` at `a4e8c73fa394ab727cbf20fc27b219ea46820d14`; all nine matched. Draft PR [#90](https://github.com/parmtech/Tong-Panel/pull/90) contains that branch. The local UPDATES journal includes an additional historical checkpoint which was not found by a narrow phrase search in that branch. It records the primitive as unintegrated, with external pepper provisioning/rotation, recovery orchestration, security review and acceptance still open. Its historical local Go test/vet claims have not been rerun in this audit; verify current PR checks and review before integration. The local journal remains to reconcile.
+
+## WordPress lab inventory
+
+- The local full-install script was preserved on `audit/wp-full-local-checkpoint-20261112` at `1523590bb865a1e760d29403ff662efa9c580b07`, based on `7547a7d`. Bash syntax passed; no VM test ran. Compare against newer PR #89.
+- The local runtime script and test were preserved on `audit/wp-runtime-local-checkpoint-20261112` at `d15fc53a70b8856252595acadf60346d05b7b441`, based on `dbc624b`. Bash syntax passed and the Linux test binary cross-compiled; tests were not executed. Compare against newer PR #88.
+- In the local restore worktree, the script and three new restore files matched the remote `feature/lab-wordpress-fresh-restore` blobs at the comparison. Its workflow additionally tracks `UPDATES.md`; the two added script paths were also found in the remote workflow. Reconcile that remaining workflow difference and the detached config/fix worktrees before declaring the WordPress inventory complete.
