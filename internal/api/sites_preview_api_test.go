@@ -20,7 +20,7 @@ func verifySiteDomainViaAPI(t *testing.T, h http.Handler, lookup *siteTXTStub, t
 	if err := json.Unmarshal(begin.Body.Bytes(), &instruction); err != nil {
 		t.Fatal(err)
 	}
-	lookup.set(instruction.Name, instruction.Value)
+	lookup.set(instruction.Name+".", instruction.Value)
 	complete := call(h, http.MethodPost, path+"/complete", token, "", `{"value":"`+instruction.Value+`"}`)
 	if complete.Code != http.StatusOK {
 		t.Fatalf("complete ownership proof returned %d: %s", complete.Code, complete.Body.String())

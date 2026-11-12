@@ -162,7 +162,7 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 	if err := json.Unmarshal(proof.Body.Bytes(), &instruction); err != nil || instruction.Name == "" || instruction.Value == "" {
 		t.Fatal("invalid proof instruction")
 	}
-	lookup.set(instruction.Name, instruction.Value)
+	lookup.set(instruction.Name+".", instruction.Value)
 	proofBody, err := json.Marshal(map[string]string{"value": instruction.Value})
 	if err != nil {
 		t.Fatal(err)

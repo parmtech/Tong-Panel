@@ -1,6 +1,9 @@
 # P1 — Core Platform Foundation
-**Status:** PLANNED; limited non-privileged developer prototype may start in a feature branch.  
+**Status:** **IN PROGRESS — development-only prototype in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14); P1 NOT COMPLETE.** See [verified development report](../PHASE1_REPORT_2026-10-26.md).  
 **Depends on:** P0 review/ADR and threats. **Delivers:** installable *dev* component baseline, not full hosting.
+
+## Actual implementation snapshot — 2026-10-26
+Local Go build, race tests, vet and TypeScript checks passed, and [GitHub Actions Go workflow](https://github.com/parmtech/Tong-Panel/actions/runs/40260348235) succeeded on PR #14. The API, role/tenant policy, journal, Unix-socket peer-check, TOTP primitive, read-only diagnostic and original frontend launcher are **experimental prototypes** only. Production sessions/passwords and MFA, SQLite/SQL migrations/jobs, audited root-agent operations, installer/signing/clean VM tests and a11y review are unfinished. See detailed report linked above.
 
 ## Work packages
 1. **P1-01 Repository/workflow:** stable monorepo layout; Go workspace and TS frontend; contribution policy; CI with formatting, tests, lints and dependency/security scanning.

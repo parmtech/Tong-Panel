@@ -1,5 +1,5 @@
 # Tong Panel — UX and UI Blueprint
-Status: proposed; nothing implemented.
+Status: proposed; a static, non-functional UI preview exists on draft PR #14. The preview does not provide hosting operations or establish accessibility acceptance.
 
 ## Design language
 An original premium responsive experience combining a smartphone/iPad-like home icon grid, Windows/macOS Finder-style file explorer, discoverable contextual controls, global search, helpful first-run tours, accessible interfaces, clear feedback and light/dark/auto themes. Familiar patterns WITHOUT copying proprietary cPanel designs, trademarks or source assets.

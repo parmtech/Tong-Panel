@@ -192,6 +192,13 @@ func (s *Server) sessionLogout(w http.ResponseWriter, r *http.Request, _ rbac.Pr
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func jobReadSessionProof(r *http.Request) *auth.SessionReadProof {
+	if proof, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof); ok {
+		return &proof
+	}
+	return nil
+}
+
 func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
 	if s.Jobs == nil && s.SQLJobs == nil {
 		fail(w, 503, "jobs_unconfigured")
@@ -212,12 +219,16 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 			var items []jobs.Job
 			var next string
 			if s.SQLJobs != nil {
-				items, next, err = s.SQLJobs.ListPageFor(r.Context(), p.TenantID, p.UserID, after, limit)
+				items, next, err = s.SQLJobs.ListPageForSession(r.Context(), p.TenantID, p.UserID, after, limit, jobReadSessionProof(r))
 			} else {
 				items, next, err = s.Jobs.ListPage(r.Context(), p.TenantID, after, limit)
 			}
 			if errors.Is(err, jobs.ErrInvalidPage) {
 				fail(w, 400, "invalid_page")
+				return
+			}
+			if errors.Is(err, jobs.ErrSessionDenied) {
+				fail(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
 			if errors.Is(err, jobs.ErrNotFound) {
@@ -235,7 +246,11 @@ func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Pr
 			return
 		}
 		if s.SQLJobs != nil {
-			items, err := s.SQLJobs.ListForContext(r.Context(), p.TenantID, p.UserID)
+			items, err := s.SQLJobs.ListForSession(r.Context(), p.TenantID, p.UserID, jobReadSessionProof(r))
+			if errors.Is(err, jobs.ErrSessionDenied) {
+				fail(w, http.StatusUnauthorized, "unauthorized")
+				return
+			}
 			if errors.Is(err, jobs.ErrNotFound) {
 				fail(w, 403, "forbidden")
 				return
@@ -385,9 +400,13 @@ func (s *Server) jobDetail(w http.ResponseWriter, r *http.Request, p rbac.Princi
 		var j jobs.Job
 		var err error
 		if s.SQLJobs != nil {
-			j, err = s.SQLJobs.GetForContext(r.Context(), p.TenantID, p.UserID, id)
+			j, err = s.SQLJobs.GetForSession(r.Context(), p.TenantID, p.UserID, id, jobReadSessionProof(r))
 		} else {
 			j, err = s.Jobs.Get(p.TenantID, id)
+		}
+		if errors.Is(err, jobs.ErrSessionDenied) {
+			fail(w, http.StatusUnauthorized, "unauthorized")
+			return
 		}
 		if errors.Is(err, jobs.ErrNotFound) {
 			fail(w, 404, "not_found")

@@ -1,0 +1,3 @@
+# modernc libc source evidence
+
+The preserved Go module manifest pins `modernc.org/libc` v1.66.3. The locally inspected module zip had SHA-256 `6cd7f37dcff7d4249e8674b0bfdff88057fbd4e646a87b77121efd9d1536dc4f`; a separately retained tarball had SHA-256 `43983dfa6353419ecbb230b3fa35aadb093ef248110312d3594690701f78013c`. The source archives and downloaded module cache are not included in this repository; retrieve and verify the exact artifacts before reproduction. These hashes do not establish artifact provenance, notice applicability, licence compatibility or P0-09 approval. See the P0 review templates and obtain qualified review against a frozen distribution scope.

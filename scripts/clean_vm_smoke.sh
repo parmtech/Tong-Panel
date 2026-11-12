@@ -99,15 +99,8 @@ for _ in {1..60}; do
   sleep 5
 done
 [[ "$ready" == true ]] || { echo "Timed out waiting for clean VM SSH"; exit 1; }
-retry_guest_ssh() {
-  for attempt in {1..12}; do
-    if ssh "${ssh_opts[@]}" "$guest" "$@"; then return 0; fi
-    echo "SSH attempt $attempt interrupted while cloud-init may restart sshd; retrying" >&2
-    sleep 5
-  done
-  echo "SSH command did not recover after cloud-init startup" >&2
-  return 1
-}
+# shellcheck source=scripts/vm_startup_transport.sh
+source scripts/vm_startup_transport.sh
 retry_guest_scp() {
   for attempt in {1..12}; do
     if scp "${scp_opts[@]}" "$@"; then return 0; fi

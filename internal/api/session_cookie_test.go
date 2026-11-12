@@ -13,6 +13,7 @@ import (
 
 	"github.com/parmtech/tong-panel/internal/auth"
 	"github.com/parmtech/tong-panel/internal/database"
+	"github.com/parmtech/tong-panel/internal/jobs"
 	"github.com/parmtech/tong-panel/internal/rbac"
 )
 
@@ -24,6 +25,12 @@ func setupCookieAPI(t *testing.T) (*Server, *auth.SQLiteSessionStore, *sql.DB, s
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
+	// Match the daemon's shared pool: session read proofs are bound to the
+	// authoritative *sql.DB, not another handle to the same database file.
+	s.SQLJobs, err = jobs.NewSQLiteStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
 	store, err := auth.NewSQLiteSessionStore(db)
 	if err != nil {
 		t.Fatal(err)

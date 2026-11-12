@@ -112,7 +112,7 @@ func TestDomainProofAuditFailureRollsBackBeginAndComplete(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &instruction); err != nil {
 		t.Fatal(err)
 	}
-	lookup.set(instruction.Name, instruction.Value)
+	lookup.set(instruction.Name+".", instruction.Value)
 	if _, err := db.Exec(`CREATE TRIGGER fail_complete BEFORE INSERT ON audit_events WHEN NEW.action='site.domain_verified' BEGIN SELECT RAISE(ABORT,'fail'); END`); err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestDomainProofCookieCSRFAuthorization(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &instruction); err != nil {
 		t.Fatal(err)
 	}
-	lookup.set(instruction.Name, instruction.Value)
+	lookup.set(instruction.Name+".", instruction.Value)
 	body := `{"value":"` + instruction.Value + `"}`
 	if w := cookieCall(s.Handler(), http.MethodPost, path+"/complete", token, "", "https://panel.test", body); w.Code != 403 {
 		t.Fatalf("complete missing csrf %d", w.Code)

@@ -17,6 +17,8 @@ on:
       - 'scripts/verify_vm_image_checksum.sh'
       - 'scripts/test_verify_vm_image_checksum.sh'
       - 'scripts/clean_vm_smoke.sh'
+      - 'scripts/vm_startup_transport.sh'
+      - 'scripts/test_vm_startup_transport.sh'
       - 'scripts/probe_https_isolation.py'
       - 'scripts/test_probe_https_isolation.py'
       - 'scripts/build_deb.sh'
@@ -60,6 +62,8 @@ jobs:
           cache: false
       - name: Test bounded HTTPS isolation diagnostics
         run: python3 -m unittest discover -s scripts -p 'test_probe_https_isolation.py'
+      - name: Test guest SSH transport retries preserve command failures
+        run: bash scripts/test_vm_startup_transport.sh
       - name: Build unsigned developer preview for isolated VM smoke
         run: |
           mkdir -p "$RUNNER_TEMP/tong-p1-dev/bin"
