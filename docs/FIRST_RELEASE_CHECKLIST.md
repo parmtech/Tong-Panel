@@ -1,6 +1,6 @@
 # Tong Panel — first release checklist
 
-**Working proposal, 2026-11-12; not approved scope or release-ready certification.** This checklist proposes a limited first production release on a single supported Linux server. Owner/maintainers must decide its exact feature set, supported OS and whether the first publication is an alpha or stable 1.0. The current `ROADMAP.md` calls P2 an experimental hosting alpha and reserves stable 1.0 for P6 after broader work; this checklist does not silently change or waive those gates. Entries marked candidate are not selected or installed. No checkboxes below are acceptance claims.
+**Owner-directed first-release target, 2026-11-12; not a release-ready certification.** The owner wants all common hosting capabilities discussed below in the first version: Node.js and Python apps, DNS zone records, file management, domains, email/webmail, databases, SSL, backups, PHP settings, cron, FTP/SFTP/SSH and logs/resource usage. The supported OS, exact acceptance criteria and whether the first publication is an alpha or stable 1.0 still need decisions. `ROADMAP.md` calls P2 an experimental hosting alpha and reserves stable 1.0 for P6; this target does not waive those gates. Entries marked candidate are not selected or installed. No checkboxes below are acceptance claims.
 
 ## 1. Decide scope before building
 
@@ -21,15 +21,22 @@
 - [ ] **User interface:** original responsive interface, accessible keyboard/screen-reader flows, status and actionable errors, consistent roles and no controls that falsely imply unfinished capabilities. Current SSL snapshot UI is read-only, not an issuance feature.
 - [ ] **Service operations:** logs with secret redaction, health and disk/resource alerts, safe restart/recovery and audit visibility. Prometheus has only an opt-in development marker, not complete production monitoring; [Prometheus](https://github.com/prometheus/prometheus) or [Netdata](https://github.com/netdata/netdata) are candidates.
 - [ ] **Applications:** if WordPress is in first-release scope, pin package sources and verify install, upgrade, rollback and backup/restore in clean disposable VMs. No unverified marketplace execution.
+- [ ] **Node.js and Python apps:** runtime selection, isolated builds, dependency management, process supervision, routing, logs, health and rollback. Prove a representative deployment and isolation for each.
+- [ ] **DNS zone editor:** manage supported A/AAAA, CNAME, MX, TXT and other chosen records with validation, scoped authorization, recovery and honest status for externally managed DNS.
+- [ ] **Email and webmail:** mailbox, alias and forwarding management, browser access, routing, DNS configuration and delivery diagnostics; validate send/receive and port-25 limitations.
+- [ ] **PHP settings and cron:** per-site PHP versions/configuration and scoped scheduled jobs, with safe ownership, limits, logs and tests.
+- [ ] **FTP/SFTP/SSH:** define which protocols are enabled and how, prefer encrypted access, enforce tenant isolation, credentials, audit and safe defaults; test connection and revocation. Plain FTP must not be assumed secure.
 
-## 3. Optional candidates — not required unless owner includes them
+## 3. Candidate tools and additional scope
+
+DNS, email, file transfer and modern app capabilities above are part of the owner's first-release target. The following names are implementation candidates; choosing a particular tool is not yet approved.
 
 - [ ] **DNS:** separately operated [PowerDNS](https://github.com/PowerDNS/pdns) or BIND; validate zone permissions, DNSSEC and recovery.
 - [ ] **Email:** Postfix/Dovecot plus optional [Roundcube](https://github.com/roundcube/roundcubemail); validate send/receive, spam controls, DNS and port-25 limitations.
 - [ ] **File transfer:** [SFTPGo Community](https://github.com/drakkan/sftpgo) or another tool; review per-component terms, especially its restricted UI theme, and verify isolation. Use original Tong Panel UI.
 - [ ] **Malware and intrusion tools:** [ClamAV](https://github.com/Cisco-Talos/clamav), [Fail2ban](https://github.com/fail2ban/fail2ban), [Coraza](https://github.com/corazawaf/coraza) or [CrowdSec](https://github.com/crowdsecurity/crowdsec) only after false-positive, update, resource and recovery testing.
 - [ ] **Git and modern app deployment:** assess [Coolify](https://github.com/coollabsio/coolify) as a separate integration or reference; isolate builds, secrets, ports and rollback.
-- [ ] **Multi-node, marketplace, resellers, cPanel import and high availability:** separately scoped later work unless explicitly selected and tested for this release. Do not imply parity with cPanel.
+- [ ] **Multi-node, marketplace, resellers, cPanel import and high availability:** separately scoped unless explicitly selected and tested for this release. Do not imply parity with cPanel.
 
 ## 4. Release evidence — mandatory for the selected scope
 
