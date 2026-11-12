@@ -261,3 +261,7 @@ PLANNED = docs only. IN PROGRESS = active work, not proven. IMPLEMENTED = code e
 - Security and third-party licence impact:
 - Blockers / constraints:
 - Next ONE step for handoff:
+
+## 2026-11-12 — P0 review templates preservation draft
+
+Branch `audit/p0-resume-handoff-20261112` records the audit handoff and preserves eight redacted local review templates. Machine-local paths were omitted. The larger reconciliation draft and local README/UPDATES changes remain unpublished pending privacy and factual review; some template links may not resolve. These documents are working evidence only, not decisions or approval. Staged whitespace checks passed; no product, security or VM tests ran. Next: review the templates and source evidence, reconcile the unpublished work and obtain the required authorized decisions before advancing P0.
