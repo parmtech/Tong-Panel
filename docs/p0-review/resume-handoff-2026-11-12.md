@@ -10,7 +10,7 @@
 
 ## Unfinished work and evidence
 
-A separate local P0 checkout contains modified README and UPDATES files, a staged version of the P5 checklist, and nine untracked P0 reconciliation and review-template drafts. The checklist differs from PR #159 only by a trailing blank line. Redacted copies of eight local review templates are included in this branch; machine-local paths were omitted. Their historical assertions and cross-references need reviewer verification and they do not record approvals. The larger reconciliation draft remains local pending privacy review, so links to it may not resolve. The original files remain unchanged locally.
+A separate local P0 checkout contains modified README and UPDATES files, a staged version of the P5 checklist, and nine untracked P0 reconciliation and review-template drafts. The checklist differs from PR #159 only by a trailing blank line. Redacted copies of eight local review templates are included in this branch; machine-local paths were omitted. Their historical assertions and cross-references need reviewer verification and they do not record approvals. A redacted reconciliation draft is also included; 39 lines with conversation metadata and machine paths were omitted. The original files remain unchanged locally.
 
 Other local worktrees contain uncommitted MFA recovery, P3 model, P5 model and WordPress lab changes. Their bases, overlap with existing remote branches, tests, and public suitability still need individual review. They are not included in this branch. Do not reset or overwrite them.
 
@@ -32,7 +32,7 @@ This handoff is documentation only. No product, security, integration or VM test
 
 Original local worktrees were not changed by these preservation copies. Remaining P0, MFA and WordPress work still requires the review described above.
 
-The local README and UPDATES changes have not been copied to this branch and still require comparison and privacy review. The local P5 checklist is already represented by the base PR except for a trailing blank line.
+Redacted historical copies of the local README and UPDATES are included as `local-readme-snapshot-2026-11-12.md` and `local-updates-snapshot-2026-11-12.md`; private paths and conversation metadata were omitted. They are not canonical replacements and need factual review. The local P5 checklist is already represented by the base PR except for a trailing blank line.
 
 ## MFA recovery local comparison
 
@@ -45,7 +45,7 @@ Nine locally changed or untracked MFA code, migration, test, smoke and primitive
 - In the local restore worktree, the script and three new restore files matched the remote `feature/lab-wordpress-fresh-restore` blobs at the comparison. Its workflow additionally tracks `UPDATES.md`; the two added script paths were also found in the remote workflow. Reconcile that remaining workflow difference and the detached config/fix worktrees before declaring the WordPress inventory complete.
 
 - A local WordPress config test matches the current runtime, full-install and fresh-restore branch versions by Git blob hash. A separate detached VM-script repair was preserved on `audit/wp-fix-local-checkpoint-20261112` at `312c24911efbb495b4beb882e2e59d33cfb2312e`, based on `e6b880d`; its large deletion needs review and it is not a current implementation. Outer shell syntax passed, but no generated-guest or VM execution ran.
-- The staged local P3 scope backlog file matches PR #160's remote file by blob hash. The local P0 review drafts and README/UPDATES still require privacy review and reconciliation. Do not clean the machine until all remaining work is preserved and independently verified.
+- The staged local P3 scope backlog file matches PR #160's remote file by blob hash. The redacted P0 draft and local README/UPDATES snapshots require factual review and reconciliation; omitted private details remain local. Do not clean the machine until all remaining work is preserved and independently verified.
 
 ## Further P2 and coordination checkpoint
 
