@@ -10,7 +10,7 @@
 
 ## Unfinished work and evidence
 
-A separate local P0 checkout contains modified README and UPDATES files, a staged version of the P5 checklist, and nine untracked P0 reconciliation and review-template drafts. The checklist differs from PR #159 only by a trailing blank line. Redacted preservation copies of the nine local drafts are now included in this branch. Machine-local paths and selected private coordination details were omitted; the original files remain local. Pattern-based checks do not prove that every private detail was detected, and factual claims, links and redactions need reviewer verification. These are incomplete working documents, not approvals.
+A separate local P0 checkout contains modified README and UPDATES files, a staged version of the P5 checklist, and nine untracked P0 reconciliation and review-template drafts. The checklist differs from PR #159 only by a trailing blank line. The nine local drafts are not yet included in this branch. A redacted copy was prepared locally, but further privacy and factual review is required before public push. The original files remain local. These are incomplete working documents, not approvals.
 
 Other local worktrees contain uncommitted MFA recovery, P3 model, P5 model and WordPress lab changes. Their bases, overlap with existing remote branches, tests, and public suitability still need individual review. They are not included in this branch. Do not reset or overwrite them.
 
