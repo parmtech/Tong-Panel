@@ -102,6 +102,60 @@ test.beforeAll(async () => {
 
 test.afterAll(stopFixture);
 
+test('certificate snapshot uses real TLS session and stays read-only with truthful unavailable states', async ({ page }) => {
+    const requests = [];
+    page.on('request', request => {
+        if (new URL(request.url()).pathname.endsWith('/preflight/acme-http01')) requests.push(request);
+    });
+    await open(page, 'auditor');
+    await page.locator('#acme-preflight-id').fill('site-000');
+    await page.locator('#acme-preflight-submit').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#acme-preflight-status')).toHaveAttribute('data-state', 'available');
+    await expect(page.locator('#acme-preflight-domains')).toHaveText('site-000.example.test');
+    await expect(page.locator('#acme-preflight-status')).toContainText('Snapshot only');
+    const axe = await new AxeBuilder({ page }).include('[aria-labelledby="acme-preflight-title"]').withTags(['wcag2a', 'wcag2aa']).analyze();
+    expect(axe.violations.map(({ id }) => id)).toEqual([]);
+    await page.locator('#acme-preflight-id').fill('site-001');
+    await expect(page.locator('#acme-preflight-domains')).toBeHidden();
+    await page.locator('#acme-preflight-submit').click();
+    await expect(page.locator('#acme-preflight-status')).toContainText('Verify the site');
+    await page.context().clearCookies();
+    await page.locator('#acme-preflight-id').fill('site-000');
+    await page.locator('#acme-preflight-submit').click();
+    await expect(page.locator('#acme-preflight-status')).toContainText('secure browser session');
+    await expect(page.locator('#acme-preflight-domains')).toBeHidden();
+    expect(requests.length).toBe(3);
+    expect(requests.every(request => request.method() === 'GET' && !request.headers().authorization)).toBe(true);
+    expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0);
+});
+
+test('certificate snapshot clears and suppresses a held response after changing site', async ({ page }) => {
+    await open(page);
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    let started;
+    const ready = new Promise(resolve => { started = resolve; });
+    await page.route('**/api/v1/sites/site-000/preflight/acme-http01', async route => {
+        started();
+        await held;
+        try { await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+            site_id: 'site-000', domains: ['old.example.test'], challenge: 'http-01', snapshot_only: true, execution_enabled: false,
+        }) }); } catch {} // An aborted browser request may already be closed.
+    });
+    try {
+        await page.locator('#acme-preflight-id').fill('site-000');
+        await page.locator('#acme-preflight-submit').click();
+        await ready;
+        await page.locator('#acme-preflight-id').fill('site-001');
+        release();
+        await expect(page.locator('#acme-preflight-submit')).toBeEnabled();
+        await expect(page.locator('#acme-preflight-domains')).toBeHidden();
+        await expect(page.locator('#acme-preflight-domains')).toHaveText('');
+        await expect(page.locator('#acme-preflight-status')).toHaveText('No certificate domain snapshot loaded.');
+    } finally { release(); }
+});
+
 test('fixture cleanup handles failed spawn and a child already terminated by signal', async () => {
     const missing = spawn(join(tmpdir(), 'tong-ui-missing-' + randomUUID(), 'fixture'), [], {
         stdio: 'ignore', windowsHide: true,

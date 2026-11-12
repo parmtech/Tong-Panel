@@ -138,6 +138,7 @@ test('Refresh button announces a result, blocks duplicate clicks, then retries',
         .replace("import { loadPanelStatus } from './panel-status.mjs';", 'const loadPanelStatus = globalThis.testLoadPanelStatus;')
         .replace("import { loadNginxPreview } from './site-preview.mjs';", 'const loadNginxPreview = globalThis.testLoadNginxPreview;')
         .replace("import { loadSitesPage } from './sites-list.mjs';", 'const loadSitesPage = globalThis.testLoadSitesPage;')
+        .replace("import { mountACMEPreflight } from './acme-preflight.mjs';", 'const mountACMEPreflight = () => {};')
         .replace("import { downloadTenantFile, listTenantFiles } from './files-explorer.mjs';", 'const downloadTenantFile = globalThis.testDownloadTenantFile; const listTenantFiles = globalThis.testListTenantFiles;')
         .replace("import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';", 'const loadMyJobsPage = globalThis.testLoadMyJobsPage; const loadMyJob = globalThis.testLoadMyJob; const MyJobsError = globalThis.testMyJobsError;')
         .replace(/\nexport \{\};\s*$/, '\n');

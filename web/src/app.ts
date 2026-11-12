@@ -1,10 +1,12 @@
 import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
 import { loadSitesPage } from './sites-list.mjs';
+import { mountACMEPreflight } from './acme-preflight.mjs';
 import { downloadTenantFile, listTenantFiles, type FileEntry } from './files-explorer.mjs';
 import { loadMyJobsPage, loadMyJob, MyJobsError, type MyJob } from './my-jobs.mjs';
 
 export {};
+mountACMEPreflight();
 type Tile = { title: string; icon: string; subtitle: string; stage: string; searchTerms?: string[] };
 const tiles: Tile[] = [
  {title:'Websites',icon:'🌐',subtitle:'Sites & PHP',stage:'P2',searchTerms:['PHP version']},

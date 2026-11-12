@@ -1,4 +1,5 @@
 declare module '*.mjs' {
+    export function mountACMEPreflight(root?: Document): void;
     export interface PanelStatusResult {
         state: 'available' | 'unavailable' | 'unknown';
         message: string;

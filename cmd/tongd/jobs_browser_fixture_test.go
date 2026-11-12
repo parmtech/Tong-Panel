@@ -104,6 +104,9 @@ func TestJobsBrowserFixture(t *testing.T) {
 			t.Fatal("fixture site unavailable")
 		}
 	}
+	if _, err := db.Exec("UPDATE site_domains SET ownership_state='verified' WHERE tenant_id='tenant-a' AND site_id='site-000'"); err != nil {
+		t.Fatal("fixture verified site unavailable")
+	}
 	if err := catalog.Create(context.Background(), sites.SiteSpec{TenantID: "tenant-b", SiteID: "other-site", PrimaryDomain: "other.example.test", DocumentRoot: "sites/other-site/public"}); err != nil {
 		t.Fatal("fixture other site unavailable")
 	}

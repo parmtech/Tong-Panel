@@ -35,6 +35,10 @@ func publicHandler(core *api.Server) http.Handler {
 		uiStatic.ServeHTTP(w, r)
 	})
 	mux.Handle("/ui/", uiStatic)
+	mux.HandleFunc("/ui/acme-preflight.mjs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		uiStatic.ServeHTTP(w, r)
+	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
