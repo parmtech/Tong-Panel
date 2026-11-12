@@ -112,17 +112,10 @@ func (c *Catalog) CompleteDomainVerificationFor(ctx context.Context, tenant, sit
 	if !found {
 		return ErrDomainProofMismatch
 	}
+	observedAt := c.now().UTC()
 	return c.withAuthorizedSiteWrite(ctx, tenant, requester, proof, func(conn *sql.Conn) error {
-		result, err := conn.ExecContext(ctx, "UPDATE site_domains SET ownership_state='verified',verification_token_sha256=NULL,verification_expires_at=NULL WHERE domain=? AND tenant_id=? AND site_id=? AND ownership_state='pending' AND verification_token_sha256=? AND verification_expires_at>? AND verification_expires_at=?", domain, tenant, siteID, stored.String, c.now().Unix(), expiry.Int64)
-		if err != nil {
+		if err := c.completeDomainProof(ctx, conn, tenant, siteID, domain, stored.String, expiry.Int64, observedAt); err != nil {
 			return err
-		}
-		n, err := result.RowsAffected()
-		if err != nil {
-			return err
-		}
-		if n != 1 {
-			return ErrDomainVerificationExpired
 		}
 		return auditSiteMutation(ctx, conn, tenant, requester, siteID+"/"+domain, "site.domain_verified")
 	})

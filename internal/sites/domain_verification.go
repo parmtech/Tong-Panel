@@ -146,18 +146,23 @@ func (c *Catalog) CompleteDomainVerification(ctx context.Context, tenantID, site
 	if !found {
 		return ErrDomainProofMismatch
 	}
-	result, err := c.db.ExecContext(ctx,
-		"UPDATE site_domains SET ownership_state='verified', verification_token_sha256=NULL, verification_expires_at=NULL WHERE domain=? AND tenant_id=? AND site_id=? AND ownership_state='pending' AND verification_token_sha256=? AND verification_expires_at>? AND verification_expires_at=?",
-		domain, tenantID, siteID, storedDigest.String, c.now().Unix(), expires.Int64)
+	observedAt := c.now().UTC()
+	conn, err := c.db.Conn(ctx)
 	if err != nil {
+		return fmt.Errorf("open domain verification connection: %w", err)
+	}
+	defer conn.Close()
+	restore, err := beginSiteWrite(ctx, conn)
+	if err != nil {
+		return fmt.Errorf("begin domain verification update: %w", err)
+	}
+	defer restore()
+	defer func() { _, _ = conn.ExecContext(context.Background(), "ROLLBACK") }()
+	if err := c.completeDomainProof(ctx, conn, tenantID, siteID, domain, storedDigest.String, expires.Int64, observedAt); err != nil {
+		return err
+	}
+	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
 		return fmt.Errorf("commit domain verification: %w", err)
-	}
-	changed, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("read domain verification result: %w", err)
-	}
-	if changed != 1 {
-		return ErrDomainVerificationExpired
 	}
 	return nil
 }

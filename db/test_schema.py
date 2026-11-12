@@ -151,7 +151,34 @@ class SchemaTests(unittest.TestCase):
                     values,
                 )
 
-
+    def test_domain_evidence_requires_complete_verified_observation(self):
+        self.con.execute("INSERT INTO sites(tenant_id,site_id,document_root,created_at) VALUES('a','site-a','sites/site-a/public',1000)")
+        self.con.execute("INSERT INTO site_domains(domain,tenant_id,site_id,kind,ownership_state) VALUES('example.test','a','site-a','primary','verified')")
+        self.assertEqual(self.con.execute(
+            "SELECT ownership_observed_at,ownership_verified_at,ownership_verification_id FROM site_domains"
+        ).fetchone(), (None, None, None))
+        update = "UPDATE site_domains SET ownership_observed_at=?,ownership_verified_at=?,ownership_verification_id=? WHERE domain='example.test'"
+        receipt = "a" * 32
+        for values in [(None, 2000, receipt), (1000, None, receipt), (1000, 2000, None),
+                       (0, 2000, receipt), (2001, 2000, receipt), (1000.5, 2000, receipt),
+                       (1000, "tomorrow", receipt), (1000, 2000, "G" * 32),
+                       (1000, 2000, "short")]:
+            with self.subTest(values=values), self.assertRaises(sqlite3.IntegrityError):
+                self.con.execute(update, values)
+        self.con.execute(update, (1000, 2000, receipt))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("UPDATE site_domains SET ownership_state='pending'")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(
+                "INSERT INTO site_domains(domain,tenant_id,site_id,kind,ownership_state,ownership_observed_at,ownership_verified_at,ownership_verification_id) VALUES('duplicate.test','a','site-a','alias','verified',1000,2000,?)",
+                (receipt,),
+            )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(
+                "INSERT INTO site_domains(domain,tenant_id,site_id,kind,ownership_state,ownership_observed_at,ownership_verified_at,ownership_verification_id) VALUES('pending.test','a','site-a','alias','pending',1000,2000,?)",
+                ("b" * 32,),
+            )
+        self.con.execute("UPDATE site_domains SET ownership_state='pending',ownership_observed_at=NULL,ownership_verified_at=NULL,ownership_verification_id=NULL")
 
     def test_site_database_catalog_tenant_foreign_keys_and_safe_names(self):
         for tenant, site in (("a", "site-a"), ("b", "site-b")):

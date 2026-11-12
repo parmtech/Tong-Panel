@@ -45,6 +45,7 @@ func (a *localAccount) GetRegistration() *registration.Resource { return a.regis
 type observedProvider struct {
 	*Provider
 	presented, cleaned atomic.Int32
+	afterPresent       func()
 }
 
 func (p *observedProvider) Present(domain, token, keyAuth string) error {
@@ -52,7 +53,20 @@ func (p *observedProvider) Present(domain, token, keyAuth string) error {
 		return err
 	}
 	p.presented.Add(1)
+	if p.afterPresent != nil {
+		p.afterPresent()
+	}
 	return nil
+}
+
+type observedStatusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *observedStatusWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
 }
 func (p *observedProvider) CleanUp(domain, token, keyAuth string) error {
 	if err := p.Provider.CleanUp(domain, token, keyAuth); err != nil {
@@ -70,25 +84,42 @@ func TestPebbleHTTP01(t *testing.T) {
 	t.Setenv("PEBBLE_WFE_NONCEREJECT", "0")
 	t.Setenv("PEBBLE_AUTHZREUSE", "0")
 	logger := log.New(io.Discard, "", 0)
-	for _, failed := range []bool{false, true} {
-		t.Run(map[bool]string{false: "valid", true: "invalid-challenge"}[failed], func(t *testing.T) {
-			domain := "valid.acme.test"
-			if failed {
-				domain = "invalid.acme.test"
-			}
-			provider, err := New(domain, time.Minute)
+	for _, scenario := range []struct {
+		name, domain       string
+		force404, canceled bool
+	}{
+		{name: "valid", domain: "valid.acme.test"},
+		{name: "invalid-challenge", domain: "invalid.acme.test", force404: true},
+		{name: "canceled-attempt", domain: "canceled.acme.test", canceled: true},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			domain := scenario.domain
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			provider, err := NewForAttempt(ctx, domain, time.Minute)
 			if err != nil {
 				t.Fatal(err)
 			}
+			defer provider.Close()
 			observed := &observedProvider{Provider: provider}
-			var challengeRequests atomic.Int32
+			if scenario.canceled {
+				// End only the provider attempt, after its first successful Present.
+				// Lego continues the real local validation and must observe a 404;
+				// this is not cancellation of the whole client order or transport.
+				observed.afterPresent = cancel
+			}
+			var challengeRequests, rejectedRequests atomic.Int32
 			challengeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				challengeRequests.Add(1)
-				if failed {
-					http.NotFound(w, r)
-					return
+				status := &observedStatusWriter{ResponseWriter: w, status: http.StatusOK}
+				if scenario.force404 {
+					http.NotFound(status, r)
+				} else {
+					provider.ServeHTTP(status, r)
 				}
-				provider.ServeHTTP(w, r)
+				if status.status == http.StatusNotFound {
+					rejectedRequests.Add(1)
+				}
 			}))
 			defer challengeServer.Close()
 			httpPort := challengeServer.Listener.Addr().(*net.TCPAddr).Port
@@ -148,9 +179,12 @@ func TestPebbleHTTP01(t *testing.T) {
 				t.Fatal(err)
 			}
 			resource, err := client.Certificate.Obtain(certificate.ObtainRequest{Domains: []string{domain}, Bundle: true})
-			if failed {
+			if scenario.force404 || scenario.canceled {
 				if err == nil || resource != nil {
-					t.Fatal("invalid challenge unexpectedly issued a certificate")
+					t.Fatal("failed or canceled challenge unexpectedly issued a certificate")
+				}
+				if rejectedRequests.Load() == 0 {
+					t.Fatal("failed or canceled challenge did not produce a real HTTP 404")
 				}
 			} else {
 				if err != nil {
@@ -184,10 +218,14 @@ func TestPebbleHTTP01(t *testing.T) {
 				t.Fatal("presentation, actual validation or cleanup missing")
 			}
 			provider.mu.Lock()
-			remainingToken := provider.token
+			empty := provider.token == "" && provider.keyAuth == "" && provider.expires.IsZero()
+			closed := provider.closed && provider.stop == nil
 			provider.mu.Unlock()
-			if remainingToken != "" {
+			if !empty {
 				t.Fatal("challenge remained after order completion/failure")
+			}
+			if scenario.canceled && (!errors.Is(ctx.Err(), context.Canceled) || !closed) {
+				t.Fatal("canceled provider attempt did not close permanently")
 			}
 		})
 	}
