@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-11-13):** all 149 original draft PR heads are preserved in `integration/pr-reconciliation-20261113`, implementation `4aea031878ef39ad82319b0db402cec50ceee3c9`. Read the current checkpoint in UPDATES.md, `docs/PR_RECONCILIATION_2026-11-13.md` and `docs/RESUME_HANDOFF_2026-11-12.md`, then the integration draft for exact-head hosted results and superseded-PR disposition. P0/security and production release gates remain open.
+**Current checkpoint (2026-11-13):** consolidated review [#171](https://github.com/parmtech/Tong-Panel/pull/171) coordinates [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172). The P1 release blocker inventory at [docs/P1_GATE_BLOCKER_AUDIT.md](docs/P1_GATE_BLOCKER_AUDIT.md) is a *development-only blocked-state test*, never a security approval or installer authorization. See `UPDATES.md` and current handoff for exact-head checks and remaining decisions.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.

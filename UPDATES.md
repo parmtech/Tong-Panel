@@ -1,8 +1,17 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-13 02:04 AEDT (Sydney)
+**Updated:** 2026-11-13 (Australia/Sydney; P1 gate-audit checkpoint)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## CURRENT CHECKPOINT — explicit P1 release blockers tested (13 November 2026, Sydney)
+
+- **Task:** owner asked to continue all coordinated Tong Panel workstreams under [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172). This continuation updates the sole review [PR #171](https://github.com/parmtech/Tong-Panel/pull/171), branch `integration/pr-reconciliation-20261113`, on parent `2096a4e95eed98ef06bc268167c2250704ad02c4`. All 12 parent workflows eventually passed, including Ubuntu 24.04 and Debian 12 disposable guests; parent results do not verify new code.
+- **Safe implementation:** `scripts/p1_gate_audit.py` and `docs/P1_GATE_SNAPSHOT.json` explicitly account for nine security/release blockers with exact evidence-file and GitHub-issue bindings. The script rejects missing/duplicate/unknown gates, source-controlled approval or release claims, changed issue/evidence binding, missing/unsafe files, malformed/oversized JSON. Default output is `blocked` with exit 2, while `--expect-blocked` provides a green **development-only negative assertion**. It cannot certify production readiness. [Technical contract](docs/P1_GATE_BLOCKER_AUDIT.md).
+- **Executed local evidence:** six Python unittest groups passed, including multiple adversarial subcases; the CLI using a synthetic complete repository fixture returned 2 by default and 0 with `--expect-blocked`; Python compile checks passed. New-head hosted checks, including `.github/workflows/p1-gate-audit.yml`, require separate verification on the published commit. No production code paths, auth permissions, dependency versions, public CA, package signing, root privileges or live servers were changed.
+- **Blockers and next action:** ADR-001–009 owner decision and independent threat review, public authentication/MFA recovery, typed host agent authority, ACME custody, terminal T0, signed installer/restore, full two-tenant acceptance and accessibility remain **not approved**. Verify exact-head CI; if green, continue safe engineering work in small commits on this single review while real named decision-makers adjudicate [issue #1](https://github.com/parmtech/Tong-Panel/issues/1) and [issue #6](https://github.com/parmtech/Tong-Panel/issues/6). Never infer security signoff from a green blocker-inventory workflow.
+
+## Historical checkpoint — consolidated draft reconciliation
 
 ## CURRENT CHECKPOINT — all draft PRs reconciled for one review (13 November 2026)
 

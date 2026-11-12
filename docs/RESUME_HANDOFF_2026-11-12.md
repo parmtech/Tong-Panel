@@ -1,5 +1,14 @@
 # Tong Panel resume and integration handoff — 2026-11-12
 
+## Current continuation — explicit P1 release blocker audit (13 November 2026)
+
+The owner's single coordinated workstream is [#172](https://github.com/parmtech/Tong-Panel/issues/172), executed on the sole development [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `2096a4e95eed98ef06bc268167c2250704ad02c4` passed all 12 hosted workflows (including both clean Ubuntu/Debian VMs). New-head checks for this continuation are separate.
+
+Added a development-only release-blocker audit: [contract](P1_GATE_BLOCKER_AUDIT.md), [nine-gate snapshot](P1_GATE_SNAPSHOT.json), `scripts/p1_gate_audit.py`, adversarial unit tests and a dedicated PR workflow. The normal CLI exits 2 and says `blocked`; `--expect-blocked` exits 0 only to affirm blocker inventory remains explicit. It rejects source-controlled approval/release claims. **A passing CI job is not a release approval**, and the tool deliberately cannot change a gate to approved. All six negative-test groups and the synthetic CLI assertions passed locally; new-head GitHub workflows must be checked after publication. Production/API/host code is untouched.
+
+**Next single action:** verify the PR's new exact commit, including the P1 blocker-audit workflow, then continue a safe tested foundation slice or review approved ADR decisions if the owner and independent reviewer have actually recorded them. Until then, P0/security, public login, root agent, SSL custody, terminal T0, signed installer, two-tenant restore and accessibility remain blocked. Do not merge to main, deploy, or bypass real approval.
+
+
 ## Current continuation — complete draft PR reconciliation
 
 **Branch:** `integration/pr-reconciliation-20261113`. **Implementation:** [`4aea031878ef39ad82319b0db402cec50ceee3c9`](https://github.com/parmtech/Tong-Panel/commit/4aea031878ef39ad82319b0db402cec50ceee3c9). Read the [integration draft](https://github.com/parmtech/Tong-Panel/pulls?q=is%3Apr+head%3Aintegration%2Fpr-reconciliation-20261113) for the exact published review head, later hosted results and superseded-PR closure state. This section supersedes the older continuations below.
