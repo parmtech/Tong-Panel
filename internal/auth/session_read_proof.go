@@ -33,14 +33,32 @@ func (p SessionReadProof) Now() time.Time   { return p.store.now().UTC() }
 
 // RevokeObservedExpiry makes a timeout observed by a guarded read permanent.
 // A concurrent idle extension or expiry change must not be overwritten.
+// Writer acquisition remains bounded and honors the caller's cancellation.
 func (p SessionReadProof) RevokeObservedExpiry(ctx context.Context, expiry string, now time.Time, absolute bool) error {
 	if p.store == nil || p.store.db == nil {
 		return ErrInvalidSession
 	}
-	if absolute {
-		_, err := p.store.db.ExecContext(ctx, `UPDATE sessions SET revoked_at=? WHERE token_sha256=? AND revoked_at IS NULL AND expires_at=?`, now.UTC().Format(time.RFC3339Nano), p.digest[:], expiry)
+	conn, err := p.store.db.Conn(ctx)
+	if err != nil {
 		return err
 	}
-	_, err := p.store.db.ExecContext(ctx, `UPDATE sessions SET revoked_at=? WHERE token_sha256=? AND revoked_at IS NULL AND idle_deadline_unix<=?`, now.UTC().Format(time.RFC3339Nano), p.digest[:], now.Unix())
+	defer conn.Close()
+	restoreBusyTimeout, err := beginSessionWrite(ctx, conn)
+	if err != nil {
+		return err
+	}
+	defer restoreBusyTimeout()
+	defer func() { _, _ = conn.ExecContext(context.Background(), "ROLLBACK") }()
+	// Preserve the original observation and conditional predicates even when
+	// a competing request changes the stored deadline while the writer waits.
+	if absolute {
+		_, err = conn.ExecContext(ctx, `UPDATE sessions SET revoked_at=? WHERE token_sha256=? AND revoked_at IS NULL AND expires_at=?`, now.UTC().Format(time.RFC3339Nano), p.digest[:], expiry)
+	} else {
+		_, err = conn.ExecContext(ctx, `UPDATE sessions SET revoked_at=? WHERE token_sha256=? AND revoked_at IS NULL AND idle_deadline_unix<=?`, now.UTC().Format(time.RFC3339Nano), p.digest[:], now.Unix())
+	}
+	if err != nil {
+		return err
+	}
+	_, err = conn.ExecContext(ctx, "COMMIT")
 	return err
 }

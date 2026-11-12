@@ -341,6 +341,93 @@ func TestDomainEvidenceReadDenialsAndSessionClock(t *testing.T) {
 	}
 }
 
+func TestDomainEvidenceExpiredSessionReadCancelsDuringWriterWait(t *testing.T) {
+	for _, absolute := range []bool{true, false} {
+		t.Run(map[bool]string{true: "absolute", false: "idle"}[absolute], func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "evidence.db")
+			c := openCatalog(t, path)
+			c.now = func() time.Time { return time.Unix(2000, 0) }
+			if _, err := c.db.Exec("INSERT INTO identities(id,username) VALUES('user-a','alice'); INSERT INTO memberships(tenant_id,identity_id,role) VALUES('tenant-a','user-a','owner')"); err != nil {
+				t.Fatal(err)
+			}
+			if err := c.Create(context.Background(), SiteSpec{TenantID: "tenant-a", SiteID: "site-a", PrimaryDomain: "example.com", DocumentRoot: "sites/site-a/public"}); err != nil {
+				t.Fatal(err)
+			}
+			instruction := beginEvidenceProof(t, c, "example.com", false)
+			if err := completeEvidenceProof(c, context.Background(), "example.com", instruction, false, matchedEvidenceProof(instruction)); err != nil {
+				t.Fatal(err)
+			}
+			stored := readStoredDomainEvidence(t, c, "example.com")
+			sessions, err := auth.NewSQLiteSessionStore(c.db)
+			if err != nil {
+				t.Fatal(err)
+			}
+			token, _, _, err := sessions.Issue(rbac.Principal{TenantID: "tenant-a", UserID: "user-a", Role: rbac.Owner}, time.Hour)
+			if err != nil {
+				t.Fatal(err)
+			}
+			proof, ok := sessions.ReadProof(token)
+			if !ok {
+				t.Fatal("missing proof")
+			}
+			digest := proof.Digest()
+			if absolute {
+				_, err = c.db.Exec("UPDATE sessions SET expires_at='2000-01-01T00:00:00Z' WHERE token_sha256=?", digest[:])
+			} else {
+				_, err = c.db.Exec("UPDATE sessions SET idle_deadline_unix=2001 WHERE token_sha256=?", digest[:])
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			peer, err := database.Open(context.Background(), path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer peer.Close()
+			writer, err := peer.Conn(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer writer.Close()
+			if _, err := writer.ExecContext(context.Background(), "BEGIN IMMEDIATE"); err != nil {
+				t.Fatal(err)
+			}
+			defer writer.ExecContext(context.Background(), "ROLLBACK")
+			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			defer cancel()
+			started := time.Now()
+			view, err := c.DomainVerificationEvidenceFor(ctx, "tenant-a", "site-a", "user-a", &proof, time.Hour)
+			if !errors.Is(err, context.DeadlineExceeded) || !reflect.DeepEqual(view, DomainVerificationEvidence{}) {
+				t.Fatalf("canceled expired-session read: %v, want deadline with no evidence", err)
+			}
+			if elapsed := time.Since(started); elapsed > time.Second {
+				t.Fatalf("expired-session read cancellation took too long: %v", elapsed)
+			}
+			var revoked bool
+			if err := c.db.QueryRow("SELECT revoked_at IS NOT NULL FROM sessions WHERE token_sha256=?", digest[:]).Scan(&revoked); err != nil || revoked {
+				t.Fatalf("canceled read changed session: revoked=%t err=%v", revoked, err)
+			}
+			var busyTimeout int
+			if err := c.db.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout); err != nil || busyTimeout != 5000 {
+				t.Fatalf("busy_timeout=%d err=%v, want restored 5000ms", busyTimeout, err)
+			}
+			if _, err := writer.ExecContext(context.Background(), "ROLLBACK"); err != nil {
+				t.Fatal(err)
+			}
+			view, err = c.DomainVerificationEvidenceFor(context.Background(), "tenant-a", "site-a", "user-a", &proof, time.Hour)
+			if !errors.Is(err, ErrSiteSessionDenied) || !reflect.DeepEqual(view, DomainVerificationEvidence{}) {
+				t.Fatalf("retried expired-session read: %v, want session denial with no evidence", err)
+			}
+			if err := c.db.QueryRow("SELECT revoked_at IS NOT NULL FROM sessions WHERE token_sha256=?", digest[:]).Scan(&revoked); err != nil || !revoked {
+				t.Fatalf("retried read did not permanently revoke session: revoked=%t err=%v", revoked, err)
+			}
+			if readStoredDomainEvidence(t, c, "example.com") != stored {
+				t.Fatal("expired-session read changed domain evidence")
+			}
+		})
+	}
+}
+
 func TestDomainEvidenceCompletionRechecksSessionAfterDNS(t *testing.T) {
 	for _, mode := range []string{"revoked", "expired", "membership removed"} {
 		t.Run(mode, func(t *testing.T) {
