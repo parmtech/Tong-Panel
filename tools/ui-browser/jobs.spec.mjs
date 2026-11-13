@@ -1018,7 +1018,12 @@ test('home search handles literal text, empty results, clear, and keyboard acces
     const count = page.locator('#count');
 
     let foundSearchByTab = false;
-    for (let tab = 0; tab < 20; tab++) {
+    // Bound traversal by the actual document controls, including hidden and
+    // disabled ones as an upper bound; allow focus to pass through browser
+    // chrome when the document's tab order wraps.
+    const controls = await page.locator('a[href], button, input, select, textarea, [tabindex]').count();
+    expect(controls).toBeLessThan(512);
+    for (let tab = 0; tab < controls + 2; tab++) {
         await page.keyboard.press('Tab');
         if (await page.evaluate(() => document.activeElement?.id === 'search')) {
             foundSearchByTab = true;
