@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Inspect exact-source 08e3b1c hosted Linux Go, browser and clean VM results and prior 5a26e1d/379f252 VM results; investigate failures.",
+    "action": "Inspect 56a5c21 and 204bb22 exact-source CI, especially clean guest preflight and Linux real-handler browser test; investigate failures.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -138,9 +138,9 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "08e3b1cbb7bc88e12877a95006a277a9f9bb6221",
+    "sha": "204bb22914db85d039febb6087d5f3580cf0af4f",
     "hosted_ci": "pending_at_handoff",
-    "local": "42 Node tests and two Chrome loopback browser tests passed; Linux integration test crosscompiled only",
-    "limitations": "browser uses intercepted responses; no detection of unseen in-focus session swap; Linux CI pending"
+    "local": "43 Node tests and focused Windows Go API test passed; Chrome filtered/denial test passed with intercepted responses; Linux fixture crosscompiled",
+    "prior_failure": "5a26e1d both VM guests and 379f252 Ubuntu failed preflight assertion; 56a5c21 fixes confirmed tcp6 header mismatch, guest rerun pending"
   }
 }
