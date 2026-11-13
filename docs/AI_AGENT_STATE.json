@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Check live PR #171 and new docs-head CI, then write a safe synthetic non-root dpkg crash/interruption and state-reconciliation negative test, only on explicitly disposable CI hosts/guests; check fresh dpkg status, previous payload and private marker, and require explicit recovery/manual review for ambiguous states.",
+    "action": "Inspect exact-source 9e6b19a hosted CI and runner plus Ubuntu and Debian guest results; diagnose failures without weakening negative tests, then update handoff and tracker.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -136,5 +136,11 @@
     "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43343515245",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
+  },
+  "latest_source_checkpoint": {
+    "sha": "9e6b19a470b0b828fab89dd33077db010e5a4ea2",
+    "task": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
+    "hosted_ci": "pending_at_handoff",
+    "local": "Python compilation and shell syntax passed; Linux dpkg execution not run"
   }
 }

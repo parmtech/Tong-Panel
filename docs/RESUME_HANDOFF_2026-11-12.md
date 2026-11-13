@@ -1,3 +1,5 @@
+> **CURRENT CHECKPOINT (13 November 2026):** Synthetic interruption lab source commit `9e6b19a470b0b828fab89dd33077db010e5a4ea2` adds a bounded rootless fixture, fresh dpkg/payload/marker checks, explicit recovery and control, wired to disposable runner and both guests. Python compilation and CI shell syntax passed locally; actual Linux dpkg execution and exact-source hosted CI are **pending**, not a pass. Previous documentation head `2304b154d5a169ea59e05519a709ee302e815b65` passed 13/13 workflows. Next: inspect exact-source [Actions](https://github.com/parmtech/Tong-Panel/commit/9e6b19a470b0b828fab89dd33077db010e5a4ea2/checks), including runner and both guest results; investigate failures without weakening assertions. Production/security gates remain blocked.
+
 # Tong Panel resume and integration handoff — 2026-11-12
 
 ## NOW RESUME HERE — single A–Z AI handoff (13 November 2026)
