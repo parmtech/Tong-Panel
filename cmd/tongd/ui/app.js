@@ -2,7 +2,7 @@ import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
 import { loadSitesPage } from './sites-list.mjs';
 import { loadSiteDetails } from './site-details.mjs';
-import { loadSiteDatabases } from './site-databases.mjs';
+import { loadSiteDatabasePage } from './site-databases.mjs';
 import { mountACMEPreflight } from './acme-preflight.mjs';
 import { downloadTenantFile, listTenantFilesPage, previewTenantText, FilesExplorerError } from './files-explorer.mjs';
 import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';
@@ -112,6 +112,12 @@ const siteDetailsClose = document.querySelector('#site-details-close');
 const siteDatabasesLoad = document.querySelector('#site-databases-load');
 const siteDatabasesStatus = document.querySelector('#site-databases-status');
 const siteDatabasesList = document.querySelector('#site-databases-list');
+const siteDatabasePager = document.querySelector('#site-databases-pagination');
+const siteDatabasePrevious = document.querySelector('#site-databases-previous');
+const siteDatabaseNext = document.querySelector('#site-databases-next');
+const siteDatabasePageLabel = document.querySelector('#site-databases-page');
+let siteDatabaseCursors = [''], siteDatabaseNextAfter = '';
+const maxSiteDatabasePages = 100;
 let selectedSiteID = '';
 let siteDatabaseRequest = 0;
 let siteDatabaseController;
@@ -121,6 +127,10 @@ function clearSiteDatabases() {
     siteDatabaseController = undefined;
     selectedSiteID = '';
     siteDatabasesList?.replaceChildren();
+    siteDatabaseCursors = [''];
+    siteDatabaseNextAfter = '';
+    if (siteDatabasePager)
+        siteDatabasePager.hidden = true;
     if (siteDatabasesLoad)
         siteDatabasesLoad.disabled = true;
     if (siteDatabasesStatus)
@@ -201,7 +211,7 @@ async function showSiteDetails(id) {
             siteDetailsStatus.textContent = message;
     }
 }
-siteDatabasesLoad?.addEventListener('click', async () => {
+async function showSiteDatabasePage(cursors) {
     if (!selectedSiteID || !siteDatabasesStatus || !siteDatabasesList || !siteDatabasesLoad)
         return;
     const id = selectedSiteID;
@@ -211,17 +221,28 @@ siteDatabasesLoad?.addEventListener('click', async () => {
     siteDatabaseController = controller;
     siteDatabasesLoad.disabled = true;
     siteDatabasesList.replaceChildren();
+    if (siteDatabasePager)
+        siteDatabasePager.hidden = true;
     siteDatabasesStatus.textContent = 'Loading database metadata…';
     try {
-        const databases = await loadSiteDatabases(id, undefined, controller.signal);
+        const page = await loadSiteDatabasePage(id, cursors[cursors.length - 1], undefined, controller.signal);
+        const databases = page.databases;
         if (request !== siteDatabaseRequest || controller.signal.aborted || selectedSiteID !== id || document.hidden || !document.hasFocus())
             return;
+        siteDatabaseCursors = cursors;
+        siteDatabaseNextAfter = page.next_after;
+        if (siteDatabasePager && siteDatabasePrevious && siteDatabaseNext && siteDatabasePageLabel) {
+            siteDatabasePrevious.disabled = cursors.length <= 1;
+            siteDatabaseNext.disabled = !page.next_after || cursors.length >= maxSiteDatabasePages;
+            siteDatabasePageLabel.textContent = `Page ${cursors.length}`;
+            siteDatabasePager.hidden = cursors.length <= 1 && !page.next_after;
+        }
         for (const database of databases) {
             const row = document.createElement('li');
             row.textContent = `${database.id} · database ${database.name} · user ${database.username}`;
             siteDatabasesList.append(row);
         }
-        siteDatabasesStatus.textContent = databases.length ? `${databases.length} catalog entries; provisioning is not confirmed.` : 'No database metadata for this site.';
+        siteDatabasesStatus.textContent = databases.length ? `Page ${cursors.length}: ${databases.length} catalog entries; provisioning is not confirmed.${page.next_after && cursors.length >= maxSiteDatabasePages ? ' Page limit reached; reload to restart.' : ''}` : 'No database metadata on this page.';
     }
     catch (error) {
         if (request !== siteDatabaseRequest || controller.signal.aborted)
@@ -251,7 +272,12 @@ siteDatabasesLoad?.addEventListener('click', async () => {
         if (request === siteDatabaseRequest && selectedSiteID === id)
             siteDatabasesLoad.disabled = false;
     }
-});
+}
+siteDatabasesLoad?.addEventListener('click', () => void showSiteDatabasePage(['']));
+siteDatabasePrevious?.addEventListener('click', () => { if (siteDatabaseCursors.length > 1)
+    void showSiteDatabasePage(siteDatabaseCursors.slice(0, -1)); });
+siteDatabaseNext?.addEventListener('click', () => { if (siteDatabaseNextAfter && siteDatabaseCursors.length < maxSiteDatabasePages)
+    void showSiteDatabasePage([...siteDatabaseCursors, siteDatabaseNextAfter]); });
 const sitesLoad = document.querySelector('#sites-load');
 const sitesStatus = document.querySelector('#sites-status');
 const sitesList = document.querySelector('#sites-list');

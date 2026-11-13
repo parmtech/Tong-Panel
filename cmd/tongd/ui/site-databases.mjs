@@ -2,6 +2,13 @@ const idPattern=/^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$/;
 
 // This endpoint exposes catalog metadata only; no database is provisioned here.
 export async function loadSiteDatabases(siteID,fetcher=globalThis.fetch,signal) {
+    return loadDatabaseResult(siteID,'',fetcher,signal,false);
+}
+export async function loadSiteDatabasePage(siteID,after='',fetcher=globalThis.fetch,signal) {
+    if(typeof after!=='string'||(after&&!idPattern.test(after))) throw new Error('Invalid database page.');
+    return loadDatabaseResult(siteID,after,fetcher,signal,true);
+}
+async function loadDatabaseResult(siteID,after,fetcher,signal,paged) {
     if(typeof siteID!=='string'||!idPattern.test(siteID)) throw new Error('Invalid site selection.');
     const controller=new AbortController(); const cancel=()=>controller.abort();
     if(signal?.aborted) throw new Error('Database metadata could not be loaded.');
@@ -10,7 +17,7 @@ export async function loadSiteDatabases(siteID,fetcher=globalThis.fetch,signal) 
     const aborted=new Promise((_,reject)=>{onAbort=()=>reject(new Error('Database metadata could not be loaded.'));controller.signal.addEventListener('abort',onAbort,{once:true})});
     try {
         return await Promise.race([aborted,(async()=>{
-            const response=await fetcher(`/api/v1/sites/${encodeURIComponent(siteID)}/databases`,{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error',headers:{Accept:'application/json'},signal:controller.signal});
+            const response=await fetcher(`/api/v1/sites/${encodeURIComponent(siteID)}/databases${paged ? `?page=1&limit=50${after ? `&after=${encodeURIComponent(after)}` : ''}` : ''}`,{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error',headers:{Accept:'application/json'},signal:controller.signal});
             if(controller.signal.aborted){if(response.body)void response.body.cancel().catch(()=>{});throw new Error('Database metadata could not be loaded.');}
             body=response.body;
             if(response.status===401)throw new Error('A secure browser session is required to view sites.');
@@ -22,13 +29,16 @@ export async function loadSiteDatabases(siteID,fetcher=globalThis.fetch,signal) 
             while(true){const {value,done}=await reader.read();if(done)break;if(!(value instanceof Uint8Array)||value.byteLength>65536-size)throw new Error('Database metadata could not be loaded.');size+=value.byteLength;chunks.push(value);}
             const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
             const result=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));
-            if(!result||!Array.isArray(result.databases)||result.databases.length>200)throw new Error('Database metadata could not be loaded.');
-            const seen=new Set();let tenant='';
-            return result.databases.map(row=>{
+            if(!result||!Array.isArray(result.databases)||result.databases.length>(paged?50:200)||(paged&&(typeof result.next_after!=='string'||(result.next_after&&!idPattern.test(result.next_after)))))throw new Error('Database metadata could not be loaded.');
+            const seen=new Set();let tenant='', previous=after;
+            const databases=result.databases.map(row=>{
                 if(!row||row.SiteID!==siteID||typeof row.TenantID!=='string'||!row.TenantID||row.TenantID.length>128||(tenant&&tenant!==row.TenantID)||typeof row.DatabaseID!=='string'||!idPattern.test(row.DatabaseID)||seen.has(row.DatabaseID)||!/^tp_[a-z2-7]{26}$/.test(row.DatabaseName)||!/^tu_[a-z2-7]{26}$/.test(row.Username)||!Number.isSafeInteger(row.CreatedAt))throw new Error('Database metadata could not be loaded.');
-                tenant=row.TenantID;seen.add(row.DatabaseID);
+                if(paged && previous && row.DatabaseID<=previous)throw new Error('Database metadata could not be loaded.');
+                tenant=row.TenantID;seen.add(row.DatabaseID);previous=row.DatabaseID;
                 return {id:row.DatabaseID,name:row.DatabaseName,username:row.Username};
             });
+            if(paged && result.next_after && (databases.length!==50||result.next_after!==databases[databases.length-1].id)) throw new Error('Database metadata could not be loaded.');
+            return paged ? {databases,next_after:result.next_after} : databases;
         })()]);
     }catch(error){
         if(error instanceof Error&&['A secure browser session is required to view sites.','Your account cannot view sites.'].includes(error.message))throw error;

@@ -153,11 +153,12 @@ func decodeSiteJSON(body io.Reader, dst any) error {
 }
 
 func (s *Server) siteResource(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
-	if r.URL.RawQuery != "" {
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/sites/"), "/")
+	pagedDatabaseCollection := r.Method == http.MethodGet && len(parts) == 2 && parts[0] != "" && parts[1] == "databases"
+	if r.URL.RawQuery != "" && !pagedDatabaseCollection {
 		fail(w, http.StatusBadRequest, "invalid_site_request")
 		return
 	}
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/sites/"), "/")
 	if len(parts) == 3 && parts[0] != "" && parts[1] == "preflight" && parts[2] == "acme-http01" {
 		s.siteACMEHTTP01Preflight(w, r, p, parts[0])
 		return
@@ -199,7 +200,7 @@ func (s *Server) siteResource(w http.ResponseWriter, r *http.Request, p rbac.Pri
 }
 
 func (s *Server) siteDatabaseCollection(w http.ResponseWriter, r *http.Request, p rbac.Principal, siteID string) {
-	if r.URL.RawQuery != "" {
+	if r.URL.RawQuery != "" && r.Method != http.MethodGet {
 		fail(w, http.StatusBadRequest, "invalid_database_request")
 		return
 	}
@@ -211,6 +212,44 @@ func (s *Server) siteDatabaseCollection(w http.ResponseWriter, r *http.Request, 
 		}
 		if s.SiteCatalog == nil {
 			fail(w, http.StatusServiceUnavailable, "sites_unavailable")
+			return
+		}
+		if r.URL.RawQuery != "" {
+			values, err := url.ParseQuery(r.URL.RawQuery)
+			if err != nil || len(values["page"]) != 1 || values.Get("page") != "1" {
+				fail(w, http.StatusBadRequest, "invalid_page")
+				return
+			}
+			for key, entries := range values {
+				if (key != "page" && key != "limit" && key != "after") || len(entries) != 1 || entries[0] == "" {
+					fail(w, http.StatusBadRequest, "invalid_page")
+					return
+				}
+			}
+			limit := 50
+			if value := values.Get("limit"); value != "" {
+				for _, digit := range value {
+					if digit < '0' || digit > '9' {
+						fail(w, http.StatusBadRequest, "invalid_page")
+						return
+					}
+				}
+				limit, err = strconv.Atoi(value)
+				if err != nil || limit < 1 || limit > 50 {
+					fail(w, http.StatusBadRequest, "invalid_page")
+					return
+				}
+			}
+			records, next, err := s.SiteCatalog.ListDatabasePageFor(r.Context(), p.TenantID, siteID, p.UserID, values.Get("after"), limit, siteReadSessionProof(r))
+			if errors.Is(err, sites.ErrInvalidPage) {
+				fail(w, http.StatusBadRequest, "invalid_page")
+				return
+			}
+			if err != nil {
+				writeSiteError(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]any{"databases": records, "next_after": next})
 			return
 		}
 		records, err := s.SiteCatalog.ListDatabasesFor(r.Context(), p.TenantID, siteID, p.UserID, siteReadSessionProof(r))

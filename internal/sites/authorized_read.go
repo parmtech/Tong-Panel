@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -245,4 +246,61 @@ func (c *Catalog) ListDatabasesFor(ctx context.Context, tenantID, siteID, reques
 		return nil, ErrSiteNotFound
 	}
 	return records, nil
+}
+
+// ListDatabasePageFor returns a bounded, ID-ordered page from the same SQLite
+// snapshot as the current membership and optional session proof. The cursor is
+// an ordering boundary, not authority; pages are not a consistent snapshot.
+func (c *Catalog) ListDatabasePageFor(ctx context.Context, tenantID, siteID, requester, after string, limit int, proof *auth.SessionReadProof) ([]SiteDatabaseRecord, string, error) {
+	if limit < 1 || limit > 50 || (after != "" && !validID(after)) {
+		return nil, "", ErrInvalidPage
+	}
+	if !validID(tenantID) || !validID(siteID) {
+		return nil, "", ErrInvalidDatabaseSpec
+	}
+	detail := `SELECT s.site_id AS parent_site_id,d.tenant_id,d.site_id,d.database_id,d.database_name,d.username,d.created_at
+        FROM sites s LEFT JOIN site_databases d ON d.tenant_id=s.tenant_id AND d.site_id=s.site_id AND d.database_id>? COLLATE BINARY
+        WHERE s.tenant_id=? AND s.site_id=? ORDER BY d.database_id COLLATE BINARY LIMIT ?`
+	rows, authz, err := c.authorizedReadRows(ctx, tenantID, requester, proof, detail, after, tenantID, siteID, limit+1)
+	if err != nil {
+		return nil, "", err
+	}
+	defer rows.Close()
+	records := make([]SiteDatabaseRecord, 0, limit+1)
+	siteFound := false
+	for rows.Next() {
+		var expiry sql.NullString
+		var idle int64
+		var parent, tenant, site, id, name, username sql.NullString
+		var created sql.NullInt64
+		if err := rows.Scan(&expiry, &idle, &parent, &tenant, &site, &id, &name, &username, &created); err != nil {
+			return nil, "", fmt.Errorf("scan authorized database page: %w", err)
+		}
+		authz.observe(expiry, idle)
+		if parent.Valid {
+			siteFound = true
+		}
+		if id.Valid {
+			records = append(records, SiteDatabaseRecord{TenantID: tenant.String, SiteID: site.String, DatabaseID: id.String, DatabaseName: name.String, Username: username.String, CreatedAt: created.Int64})
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, "", fmt.Errorf("iterate authorized database page: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, "", fmt.Errorf("close authorized database page: %w", err)
+	}
+	if err := authz.finish(ctx); err != nil {
+		return nil, "", err
+	}
+	if !siteFound {
+		return nil, "", ErrSiteNotFound
+	}
+	sort.Slice(records, func(i, j int) bool { return records[i].DatabaseID < records[j].DatabaseID })
+	next := ""
+	if len(records) > limit {
+		records = records[:limit]
+		next = records[len(records)-1].DatabaseID
+	}
+	return records, next, nil
 }

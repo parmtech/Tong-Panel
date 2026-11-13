@@ -177,6 +177,7 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 		t.Fatal("preview omitted verified domain")
 	}
 	plain("list empty database catalog", "listSiteDatabases", "GET", sitePath+"/databases", "", 200)
+	plain("list empty database catalog page", "listSiteDatabases", "GET", sitePath+"/databases?page=1&limit=1", "", 200)
 	plain("create database metadata", "createSiteDatabase", "POST", sitePath+"/databases", `{"database_id":"contractdb"}`, 201)
 	plain("get database metadata", "getSiteDatabase", "GET", sitePath+"/databases/contractdb", "", 200)
 	cookieServer, _, _, token, csrf := setupCookieAPI(t)

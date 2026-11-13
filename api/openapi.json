@@ -4376,7 +4376,44 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "description": "Opt in to ID-ordered bounded pagination; omit all query parameters for legacy unpaged list."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 50
+            },
+            "description": "Page size; requires page=1."
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 63
+            },
+            "description": "Exclusive database ID cursor; requires page=1. Each page rechecks authorization and is not a snapshot."
+          }
+        ],
+        "x-query-policy": "Legacy requests have no query parameters. For pagination page=1 is required; duplicate, empty, unknown and malformed parameters are rejected."
       },
       "post": {
         "operationId": "createSiteDatabase",
@@ -5611,6 +5648,10 @@
             "items": {
               "$ref": "#/components/schemas/SiteDatabaseRecord"
             }
+          },
+          "next_after": {
+            "type": "string",
+            "description": "Exclusive last database ID when another page exists, or empty. Present only with page=1."
           }
         }
       },
