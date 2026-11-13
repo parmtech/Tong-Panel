@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Inspect 336d734 exact-source Linux/guest restore tests and earlier 1fe414b/ab6a5f9 results; diagnose failures.",
+    "action": "Inspect isolated branch 5d3e376 Go run 43419775736; resolve failures and review before integrating into PR 171; also inspect 336d734 guest results.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -142,5 +142,12 @@
     "hosted_ci": "pending_at_handoff",
     "local": "Linux Files tests crosscompiled and vet passed; specialist static review no concrete blocker",
     "limitations": "current authority, quota and publication fencing remain separate; actual Linux execution pending"
+  },
+  "pending_feature_branch": {
+    "branch": "codex/restore-outcomes-20261113",
+    "sha": "5d3e376730171d9c899aeb5c87124f00b464b4e3",
+    "go_run": 43419775736,
+    "status": "queued_at_handoff",
+    "scope": "three-state publication outcome and on-disk tenant tests; no quota authorization"
   }
 }
