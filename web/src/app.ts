@@ -320,6 +320,10 @@ jobDetailRetry?.addEventListener('click', () => { if(selectedJob) void selectJob
 
 const filesRefresh = document.querySelector<HTMLButtonElement>('#files-refresh');
 const filesNext = document.querySelector<HTMLButtonElement>('#files-next');
+const filesPrevious = document.querySelector<HTMLButtonElement>('#files-previous');
+const maxFilesPages = 100;
+let filesHistory: string[] = [''];
+let filesDisplayedPath: string | null = null;
 let filesNextAfter = '';
 let filesRequestID = 0;
 const filesStatus = document.querySelector<HTMLElement>('#files-status');
@@ -360,12 +364,7 @@ function renderFilesEntries(entries: FileEntry[]): void {
     if (!filesList)
         return;
     filesList.replaceChildren();
-    const sorted = [...entries].sort((a, b) => {
-        const aDirectory = a.kind === 'directory' ? 0 : 1;
-        const bDirectory = b.kind === 'directory' ? 0 : 1;
-        return aDirectory - bDirectory || a.name.localeCompare(b.name);
-    });
-    for (const entry of sorted) {
+    for (const entry of entries) {
         const item = document.createElement('li');
         item.className = 'file-entry';
         const name = document.createElement('span');
@@ -396,14 +395,14 @@ function renderFilesEntries(entries: FileEntry[]): void {
         }
         filesList.append(item);
     }
-    if (sorted.length === 0) {
+    if (entries.length === 0) {
         const empty = document.createElement('li');
         empty.className = 'file-entry';
-        empty.textContent = 'This folder is empty.';
+        empty.textContent = 'No items on this page.';
         filesList.append(empty);
     }
 }
-async function refreshFiles(after = '') {
+async function refreshFiles(history: string[] = ['']) {
     if (!filesRefresh || !filesStatus || !filesList)
         return;
     const requestID = ++filesRequestID;
@@ -411,23 +410,34 @@ async function refreshFiles(after = '') {
     filesRefresh.disabled = true;
     filesRefresh.setAttribute('aria-busy', 'true');
     if (filesNext) filesNext.disabled = true;
+    if (filesPrevious) filesPrevious.disabled = true;
     filesStatus.dataset.state = 'loading';
     filesStatus.textContent = 'Loading files…';
     try {
-        const page = await listTenantFilesPage(requestedPath, after);
+        const page = await listTenantFilesPage(requestedPath, history[history.length - 1]);
         if (requestID !== filesRequestID) return;
         const entries = page.entries;
+        filesHistory = history;
+        filesDisplayedPath = requestedPath;
         filesNextAfter = page.next_after;
-        if (filesNext) filesNext.disabled = !filesNextAfter;
+        if (filesNext) filesNext.disabled = !filesNextAfter || filesHistory.length >= maxFilesPages;
+        if (filesPrevious) filesPrevious.disabled = filesHistory.length <= 1;
         renderFilesBreadcrumbs();
         renderFilesEntries(entries);
         filesStatus.dataset.state = 'available';
-        filesStatus.textContent = `${entries.length} ${entries.length === 1 ? 'item' : 'items'} on this page. Folder changes may affect results; refresh to restart. Links are never followed.`;
+        filesStatus.textContent = `Page ${filesHistory.length}: ${entries.length} ${entries.length === 1 ? 'item' : 'items'}. Folder changes may affect results; refresh to restart. Links are never followed.${filesNextAfter && filesHistory.length >= maxFilesPages ? ' Page limit reached; refresh to restart.' : ''}`;
     }
     catch (error) {
         if (requestID !== filesRequestID) return;
         renderFilesBreadcrumbs();
-        filesList.replaceChildren();
+        if (filesDisplayedPath !== requestedPath) {
+            filesList.replaceChildren();
+            filesDisplayedPath = null;
+            filesHistory = [''];
+            filesNextAfter = '';
+        }
+        if (filesPrevious) filesPrevious.disabled = filesDisplayedPath === null || filesHistory.length <= 1;
+        if (filesNext) filesNext.disabled = filesDisplayedPath === null || !filesNextAfter || filesHistory.length >= maxFilesPages;
         filesStatus.dataset.state = 'unavailable';
         filesStatus.textContent = error instanceof Error ? error.message : 'Files could not be loaded. Try again.';
     }
@@ -437,7 +447,12 @@ async function refreshFiles(after = '') {
         filesRefresh.removeAttribute('aria-busy');
     }
 }
-filesNext?.addEventListener('click', () => { if (filesNextAfter) void refreshFiles(filesNextAfter); });
+filesNext?.addEventListener('click', () => {
+    if (filesNextAfter && filesHistory.length < maxFilesPages) void refreshFiles([...filesHistory, filesNextAfter]);
+});
+filesPrevious?.addEventListener('click', () => {
+    if (filesHistory.length > 1) void refreshFiles(filesHistory.slice(0, -1));
+});
 async function downloadFile(name: string, button: HTMLButtonElement): Promise<void> {
     button.disabled = true;
     try {

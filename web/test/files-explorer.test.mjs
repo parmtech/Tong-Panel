@@ -115,3 +115,36 @@ test('loads a single paged directory response and rejects a stalled cursor', asy
     assert.equal(page.next_after, 'new');
     await assert.rejects(listTenantFilesPage('', 'same', async () => jsonResponse({entries:[],next_after:'same'})), /unexpected file listing/);
 });
+
+ test('page navigation retains position on failure and resets on refresh', async () => {
+    const { runInNewContext } = await import('node:vm');
+    const app = await readFile(new URL('../../cmd/tongd/ui/app.js', import.meta.url), 'utf8');
+    const source = app.slice(app.indexOf("const filesRefresh ="), app.indexOf("async function downloadFile("));
+    class Element {
+        constructor() { this.dataset = {}; this.disabled = false; this.children = []; this.listeners = new Map(); this.attributes = new Map(); this.textContent = ''; }
+        addEventListener(type, fn) { this.listeners.set(type, fn); }
+        setAttribute(key, value) { this.attributes.set(key, value); }
+        removeAttribute(key) { this.attributes.delete(key); }
+        replaceChildren(...children) { this.children = children; }
+        append(...children) { this.children.push(...children); }
+        click() { if (!this.disabled) this.listeners.get('click')?.(); }
+    }
+    const ids = ['#files-refresh','#files-previous','#files-next','#files-status','#files-list','#files-breadcrumbs'];
+    const elements = new Map(ids.map(id => [id, new Element()]));
+    const calls = []; let fail = false;
+    const context = {document: {querySelector: id => elements.get(id), createElement: () => new Element()},
+        listTenantFilesPage: async (path, after) => {
+            calls.push({path,after});
+            if (fail) throw new Error('network failure');
+            return after === '' ? {entries:[{name:'a',kind:'file',size:1}],next_after:'a'} : {entries:[{name:'b',kind:'file',size:1}],next_after:''};
+        }, downloadFile: () => {}};
+    runInNewContext(source + "\nfilesRefresh.addEventListener('click', () => void refreshFiles());", context);
+    const flush = () => new Promise(resolve => setTimeout(resolve,0));
+    const refresh=elements.get('#files-refresh'), next=elements.get('#files-next'), previous=elements.get('#files-previous'), status=elements.get('#files-status');
+    refresh.click(); await flush(); assert.equal(next.disabled,false); assert.equal(previous.disabled,true); assert.match(status.textContent,/Page 1:/);
+    next.click(); await flush(); assert.equal(previous.disabled,false); assert.equal(next.disabled,true); assert.match(status.textContent,/Page 2:/);
+    fail=true; previous.click(); await flush(); assert.equal(previous.disabled,false); assert.match(status.textContent,/Files could not be loaded/);
+    fail=false; previous.click(); await flush(); assert.equal(previous.disabled,true); assert.match(status.textContent,/Page 1:/);
+    next.click(); await flush(); refresh.click(); await flush(); assert.equal(previous.disabled,true); assert.match(status.textContent,/Page 1:/);
+    assert.deepEqual(calls.map(c => c.after),['','a','','','a','']);
+});
