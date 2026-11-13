@@ -99,7 +99,7 @@ test('wires an accessible read-only explorer without upload, edit or delete cont
     assert.match(html, /id="files-explorer-title"/);
     assert.match(html, /id="files-refresh" type="button"/);
     assert.match(html, /id="files-status" class="files-status" role="status" aria-live="polite"/);
-    assert.match(app, /import \{ downloadTenantFile, listTenantFilesPage, previewTenantText \} from '\.\/files-explorer\.mjs'/);
+    assert.match(app, /import \{ downloadTenantFile, listTenantFilesPage, previewTenantText, FilesExplorerError \} from '\.\/files-explorer\.mjs'/);
     assert.match(app, /name\.textContent =/);
     assert.match(html, /Files are not loaded/);
     assert.match(app, /filesRefresh\?\.addEventListener\('click'/);
@@ -119,7 +119,7 @@ test('loads a single paged directory response and rejects a stalled cursor', asy
  test('page navigation retains position on failure and resets on refresh', async () => {
     const { runInNewContext } = await import('node:vm');
     const app = await readFile(new URL('../../cmd/tongd/ui/app.js', import.meta.url), 'utf8');
-    const source = app.slice(app.indexOf("const filesRefresh ="), app.indexOf("async function downloadFile("));
+    const source = app.slice(app.indexOf("const filesFilter ="), app.indexOf("async function downloadFile("));
     class Element {
         constructor() { this.dataset = {}; this.disabled = false; this.children = []; this.listeners = new Map(); this.attributes = new Map(); this.textContent = ''; }
         addEventListener(type, fn) { this.listeners.set(type, fn); }
@@ -129,12 +129,14 @@ test('loads a single paged directory response and rejects a stalled cursor', asy
         append(...children) { this.children.push(...children); }
         click() { if (!this.disabled) this.listeners.get('click')?.(); }
     }
-    const ids = ['#files-refresh','#files-previous','#files-next','#files-status','#files-list','#files-breadcrumbs'];
+    const ids = ['#files-filter','#files-prefix','#files-refresh','#files-previous','#files-next','#files-status','#files-list','#files-breadcrumbs'];
     const elements = new Map(ids.map(id => [id, new Element()]));
-    const calls = []; let fail = false;
+    const calls = []; let fail = false; let denied = false;
+    class Denied extends Error { constructor(){super('denied'); this.status=403;} }
     const context = {document: {querySelector: id => elements.get(id), createElement: () => new Element()},
-        clearFilePreview: () => {}, listTenantFilesPage: async (path, after) => {
-            calls.push({path,after});
+        FilesExplorerError: Denied, fetch: () => {}, clearFilePreview: () => {}, listTenantFilesPage: async (path, after, _fetch, _timeout, prefix) => {
+            calls.push({path,after,prefix});
+            if (denied) throw new Denied();
             if (fail) throw new Error('network failure');
             return after === '' ? {entries:[{name:'a',kind:'file',size:1}],next_after:'a'} : {entries:[{name:'b',kind:'file',size:1}],next_after:''};
         }, downloadFile: () => {}};
@@ -147,6 +149,10 @@ test('loads a single paged directory response and rejects a stalled cursor', asy
     fail=false; previous.click(); await flush(); assert.equal(previous.disabled,true); assert.match(status.textContent,/Page 1:/);
     next.click(); await flush(); refresh.click(); await flush(); assert.equal(previous.disabled,true); assert.match(status.textContent,/Page 1:/);
     assert.deepEqual(calls.map(c => c.after),['','a','','','a','']);
+    elements.get('#files-prefix').value='Ab'; elements.get('#files-filter').listeners.get('submit')({preventDefault(){}}); await flush();
+    assert.equal(calls.at(-1).prefix,'Ab'); assert.equal(calls.at(-1).after,''); assert.match(status.textContent,/Page 1:/);
+    assert.ok(elements.get('#files-list').children.length); denied=true; refresh.click(); await flush();
+    assert.equal(elements.get('#files-list').children.length,0); assert.equal(next.disabled,true); assert.equal(previous.disabled,true);
 });
 
 test('text preview streams with hard size, UTF-8 and binary checks', async () => {
@@ -166,7 +172,7 @@ test('text preview streams with hard size, UTF-8 and binary checks', async () =>
 test('preview renders inert text and ignores results after closing', async () => {
     const { runInNewContext } = await import('node:vm');
     const app = await readFile(new URL('../../cmd/tongd/ui/app.js', import.meta.url),'utf8');
-    const setup = app.slice(app.indexOf('const filesPreview ='),app.indexOf('const filesRefresh ='));
+    const setup = app.slice(app.indexOf('const filesPreview ='),app.indexOf('const filesFilter ='));
     const preview = app.slice(app.indexOf('async function showFilePreview('),app.indexOf('async function downloadFile('));
     const elements = new Map(['#files-preview','#files-preview-title','#files-preview-content','#files-preview-close'].map(id => [id,{hidden:true,textContent:'',addEventListener(){}}]));
     const document = {querySelector:id => elements.get(id), addEventListener(){}, hidden:false, hasFocus:()=>true};
@@ -181,7 +187,7 @@ test('preview renders inert text and ignores results after closing', async () =>
 test('stale file rows cannot act during folder navigation', async () => {
     const { runInNewContext } = await import('node:vm');
     const app = await readFile(new URL('../../cmd/tongd/ui/app.js', import.meta.url),'utf8');
-    const source = app.slice(app.indexOf('const filesRefresh ='),app.indexOf('async function showFilePreview('));
+    const source = app.slice(app.indexOf('const filesFilter ='),app.indexOf('async function showFilePreview('));
     class Element {
         constructor(){this.dataset={};this.disabled=false;this.children=[];this.listeners=new Map();this.attributes=new Map();}
         addEventListener(k,v){this.listeners.set(k,v)} setAttribute(k,v){this.attributes.set(k,v)} removeAttribute(k){this.attributes.delete(k)}
@@ -189,7 +195,7 @@ test('stale file rows cannot act during folder navigation', async () => {
     }
     const elements=new Map(['#files-refresh','#files-previous','#files-next','#files-status','#files-list','#files-breadcrumbs'].map(k=>[k,new Element()]));
     let resolveFolder; let previews=0,downloads=0; const calls=[];
-    const context={document:{querySelector:k=>elements.get(k),createElement:()=>new Element()},clearFilePreview(){},
+    const context={document:{querySelector:k=>elements.get(k),createElement:()=>new Element()},clearFilePreview(){}, FilesExplorerError: class extends Error {}, fetch: () => {},
         listTenantFilesPage:(path,after)=>{calls.push(path); if(path==='folder') return new Promise(r=>{resolveFolder=r}); return Promise.resolve({entries:[{name:'folder',kind:'directory',size:0},{name:'shared.txt',kind:'file',size:1}],next_after:''});},
         showFilePreview:()=>{previews++},downloadFile:()=>{downloads++}};
     runInNewContext(source+"\nfilesRefresh.addEventListener('click', () => void refreshFiles());",context);
@@ -211,4 +217,12 @@ test('in-flight download does not act after navigation', async () => {
     const api=runInNewContext("let filesRequestID=1; let filesPath=['old']; const filesStatus={dataset:{}};\n"+code+"\n({downloadFile,navigate:()=>{filesRequestID++;filesPath=['new'];}})",context);
     const promise=api.downloadFile('same.txt',{disabled:false},'old'); api.navigate(); resolve({name:'same.txt',blob:{}}); await promise;
     assert.deepEqual(requested,['old/same.txt']); assert.equal(created,0); assert.equal(clicked,0);
+});
+
+test('prefix filtering is encoded and limited before request', async () => {
+    const { listTenantFilesPage } = await import('../../cmd/tongd/ui/files-explorer.mjs');
+    let url; await listTenantFilesPage('dir','',async u => {url=u; return jsonResponse({entries:[],next_after:''})},undefined,'Ab é');
+    assert.equal(url,'/api/v1/files?path=dir&page=1&after=&prefix=Ab%20%C3%A9');
+    await assert.rejects(listTenantFilesPage('','',async () => {throw Error('should not fetch')},undefined,'bad/name'), /prefix is invalid/);
+    await assert.rejects(listTenantFilesPage('','',async () => {throw Error('should not fetch')},undefined,'é'.repeat(65)), /prefix is invalid/);
 });

@@ -2,7 +2,7 @@ import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
 import { loadSitesPage } from './sites-list.mjs';
 import { mountACMEPreflight } from './acme-preflight.mjs';
-import { downloadTenantFile, listTenantFilesPage, previewTenantText, type FileEntry } from './files-explorer.mjs';
+import { downloadTenantFile, listTenantFilesPage, previewTenantText, FilesExplorerError, type FileEntry } from './files-explorer.mjs';
 import { loadMyJobsPage, loadMyJob, MyJobsError, type MyJob } from './my-jobs.mjs';
 
 export {};
@@ -332,6 +332,10 @@ function clearFilePreview(): void {
 filesPreviewClose?.addEventListener('click', clearFilePreview);
 document.addEventListener('visibilitychange', () => { if (document.hidden) clearFilePreview(); });
 window.addEventListener('blur', clearFilePreview);
+const filesFilter = document.querySelector<HTMLFormElement>('#files-filter');
+const filesPrefixInput = document.querySelector<HTMLInputElement>('#files-prefix');
+let filesPrefix = '';
+let filesDisplayedPrefix: string | null = null;
 const filesRefresh = document.querySelector<HTMLButtonElement>('#files-refresh');
 const filesNext = document.querySelector<HTMLButtonElement>('#files-next');
 const filesPrevious = document.querySelector<HTMLButtonElement>('#files-previous');
@@ -369,6 +373,8 @@ function renderFilesBreadcrumbs() {
         button.setAttribute('aria-current', index === labels.length - 1 ? 'location' : 'false');
         button.addEventListener('click', () => {
             filesPath = filesPath.slice(0, index);
+            filesPrefix = '';
+            if (filesPrefixInput) filesPrefixInput.value = '';
             void refreshFiles();
         });
         filesBreadcrumbs.append(button);
@@ -398,6 +404,8 @@ function renderFilesEntries(entries: FileEntry[]): void {
             open.addEventListener('click', () => {
                 if (!rowActive()) return;
                 filesPath = [...filesPath, entry.name];
+                filesPrefix = '';
+                if (filesPrefixInput) filesPrefixInput.value = '';
                 void refreshFiles();
             });
             item.append(open);
@@ -432,9 +440,11 @@ async function refreshFiles(history: string[] = ['']) {
     clearFilePreview();
     const requestID = ++filesRequestID;
     const requestedPath = filesPath.join('/');
-    if (filesDisplayedPath !== requestedPath) {
+    const requestedPrefix = filesPrefix;
+    if (filesDisplayedPath !== requestedPath || filesDisplayedPrefix !== requestedPrefix) {
         filesList.replaceChildren();
         filesDisplayedPath = null;
+        filesDisplayedPrefix = null;
         filesNextAfter = '';
         filesHistory = [''];
         renderFilesBreadcrumbs();
@@ -446,11 +456,12 @@ async function refreshFiles(history: string[] = ['']) {
     filesStatus.dataset.state = 'loading';
     filesStatus.textContent = 'Loading files…';
     try {
-        const page = await listTenantFilesPage(requestedPath, history[history.length - 1]);
+        const page = await listTenantFilesPage(requestedPath, history[history.length - 1], fetch, undefined, requestedPrefix);
         if (requestID !== filesRequestID) return;
         const entries = page.entries;
         filesHistory = history;
         filesDisplayedPath = requestedPath;
+        filesDisplayedPrefix = requestedPrefix;
         filesNextAfter = page.next_after;
         if (filesNext) filesNext.disabled = !filesNextAfter || filesHistory.length >= maxFilesPages;
         if (filesPrevious) filesPrevious.disabled = filesHistory.length <= 1;
@@ -462,9 +473,10 @@ async function refreshFiles(history: string[] = ['']) {
     catch (error) {
         if (requestID !== filesRequestID) return;
         renderFilesBreadcrumbs();
-        if (filesDisplayedPath !== requestedPath) {
+        if (filesDisplayedPath !== requestedPath || filesDisplayedPrefix !== requestedPrefix || (error instanceof FilesExplorerError && (error.status === 401 || error.status === 403))) {
             filesList.replaceChildren();
             filesDisplayedPath = null;
+            filesDisplayedPrefix = null;
             filesHistory = [''];
             filesNextAfter = '';
         }
@@ -479,12 +491,30 @@ async function refreshFiles(history: string[] = ['']) {
         filesRefresh.removeAttribute('aria-busy');
     }
 }
+filesFilter?.addEventListener('submit', event => {
+    event.preventDefault();
+    filesPrefix = filesPrefixInput?.value ?? '';
+    void refreshFiles();
+});
 filesNext?.addEventListener('click', () => {
     if (filesNextAfter && filesHistory.length < maxFilesPages) void refreshFiles([...filesHistory, filesNextAfter]);
 });
 filesPrevious?.addEventListener('click', () => {
     if (filesHistory.length > 1) void refreshFiles(filesHistory.slice(0, -1));
 });
+function clearFilesOnDenial(error: unknown): void {
+    if (!(error instanceof FilesExplorerError) || (error.status !== 401 && error.status !== 403)) return;
+    clearFilePreview();
+    filesRequestID++;
+    if (filesRefresh) { filesRefresh.disabled = false; filesRefresh.removeAttribute('aria-busy'); }
+    filesList?.replaceChildren();
+    filesDisplayedPath = null;
+    filesDisplayedPrefix = null;
+    filesHistory = [''];
+    filesNextAfter = '';
+    if (filesPrevious) filesPrevious.disabled = true;
+    if (filesNext) filesNext.disabled = true;
+}
 async function showFilePreview(name: string, rowPath: string): Promise<void> {
     clearFilePreview();
     const requestID = filesPreviewRequestID;
@@ -499,6 +529,7 @@ async function showFilePreview(name: string, rowPath: string): Promise<void> {
     } catch (error) {
         if (requestID !== filesPreviewRequestID) return;
         clearFilePreview();
+        clearFilesOnDenial(error);
         if (filesStatus) { filesStatus.dataset.state = 'unavailable'; filesStatus.textContent = error instanceof Error ? error.message : 'Text preview unavailable.'; }
     }
 }
@@ -525,6 +556,7 @@ async function downloadFile(name: string, button: HTMLButtonElement, rowPath: st
     catch (error) {
         if (requestID !== filesRequestID || filesPath.join('/') !== rowPath) return;
         clearFilePreview();
+        clearFilesOnDenial(error);
         if (filesStatus) {
             filesStatus.dataset.state = 'unavailable';
             filesStatus.textContent = error instanceof Error ? error.message : 'The file could not be downloaded. Try again.';

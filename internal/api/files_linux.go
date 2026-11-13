@@ -51,6 +51,18 @@ func (f tenantFileRoots) ListPageForTenant(tenantID, relative, after string, lim
 	return result, next, nil
 }
 
+func (f tenantFileRoots) ListPagePrefixForTenant(tenantID, relative, after, prefix string, limit int) ([]TenantFileEntry, string, error) {
+	entries, next, err := f.roots.ListDirPagePrefixForTenant(tenantID, relative, after, prefix, limit)
+	if err != nil {
+		return nil, "", mapTenantFileError(err)
+	}
+	result := make([]TenantFileEntry, 0, len(entries))
+	for _, entry := range entries {
+		result = append(result, TenantFileEntry{Name: entry.Name, Kind: string(entry.Kind), Size: entry.Size})
+	}
+	return result, next, nil
+}
+
 func (f tenantFileRoots) ReadForTenant(tenantID, relative string, maxBytes int64) ([]byte, error) {
 	content, err := f.roots.ReadFileForTenant(tenantID, relative, maxBytes)
 	if err != nil {

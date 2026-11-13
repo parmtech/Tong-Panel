@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/parmtech/tong-panel/internal/rbac"
 )
@@ -48,6 +50,10 @@ type TenantFileService interface {
 // PagedTenantFileService is an optional bounded, name-ordered listing API.
 type PagedTenantFileService interface {
 	ListPageForTenant(tenantID, relative, after string, limit int) ([]TenantFileEntry, string, error)
+}
+
+type PrefixPagedTenantFileService interface {
+	ListPagePrefixForTenant(tenantID, relative, after, prefix string, limit int) ([]TenantFileEntry, string, error)
 }
 
 // ContextTenantFileService lets filesystem implementations stop before
@@ -143,15 +149,22 @@ func (s *Server) fileList(w http.ResponseWriter, r *http.Request, p rbac.Princip
 	}
 	paged := false
 	after := ""
+	prefix := ""
 	if page, ok := values["page"]; ok {
-		if len(page) != 1 || page[0] != "1" || len(values["after"]) > 1 {
+		if len(page) != 1 || page[0] != "1" || len(values["after"]) > 1 || len(values["prefix"]) > 1 {
 			fail(w, http.StatusBadRequest, "invalid_file_request")
 			return
 		}
 		paged = true
 		after = values.Get("after")
+		prefix = values.Get("prefix")
+		if len(prefix) > 128 || !utf8.ValidString(prefix) || strings.ContainsAny(prefix, "/\\") || strings.IndexFunc(prefix, func(c rune) bool { return c < 0x20 || c == 0x7f }) >= 0 {
+			fail(w, http.StatusBadRequest, "invalid_file_request")
+			return
+		}
 		values.Del("page")
 		values.Del("after")
+		values.Del("prefix")
 	}
 	request := r.Clone(r.Context())
 	request.URL.RawQuery = values.Encode()
@@ -161,6 +174,20 @@ func (s *Server) fileList(w http.ResponseWriter, r *http.Request, p rbac.Princip
 		return
 	}
 	if paged {
+		if prefix != "" {
+			service, ok := s.Files.(PrefixPagedTenantFileService)
+			if !ok {
+				fail(w, http.StatusServiceUnavailable, "files_unavailable")
+				return
+			}
+			entries, next, err := service.ListPagePrefixForTenant(p.TenantID, relative, after, prefix, limit)
+			if err != nil {
+				writeFilesError(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]any{"entries": entries, "next_after": next})
+			return
+		}
 		service, ok := s.Files.(PagedTenantFileService)
 		if !ok {
 			fail(w, http.StatusServiceUnavailable, "files_unavailable")

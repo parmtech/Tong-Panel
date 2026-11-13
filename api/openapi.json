@@ -1305,9 +1305,19 @@
               "maxLength": 255
             },
             "description": "Exclusive last name from next_after, accepted only with page=1. Each page is a fresh directory scan; changes may be missed or repeated."
+          },
+          {
+            "name": "prefix",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "Optional case-sensitive UTF-8 filename prefix (maximum 128 bytes) for the current folder; requires page=1. No slash, backslash or ASCII controls. The same prefix must be supplied for every page; filtering does not bypass the 10,000-name scan cap."
           }
         ],
-        "x-query-policy": "Only one path, limit, page and after allowed; after requires page=1. Unknown keys, duplicate values and malformed encoding are rejected.",
+        "x-query-policy": "Only one path, limit, page, after and prefix allowed; after and prefix require page=1. Unknown keys, duplicates and malformed encoding are rejected.",
         "responses": {
           "200": {
             "description": "Non-following entry metadata; no absolute server paths.",

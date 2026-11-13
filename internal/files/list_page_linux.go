@@ -21,6 +21,11 @@ const MaxPageScanEntries = 10000
 // clients must restart for a fresh view. It is not a consistent snapshot.
 // Directory names that cannot round-trip through JSON are rejected.
 func (r *Root) ListDirPage(relative, after string, limit int) ([]Entry, string, error) {
+	return r.ListDirPagePrefix(relative, after, "", limit)
+}
+
+// ListDirPagePrefix applies a case-sensitive name prefix to the bounded scan.
+func (r *Root) ListDirPagePrefix(relative, after, prefix string, limit int) ([]Entry, string, error) {
 	if r == nil {
 		return nil, "", ErrClosed
 	}
@@ -32,6 +37,14 @@ func (r *Root) ListDirPage(relative, after string, limit int) ([]Entry, string, 
 	}
 	if after != "" && !pageNameValid(after) {
 		return nil, "", ErrInvalidPath
+	}
+	if len(prefix) > 128 || !utf8.ValidString(prefix) || strings.ContainsAny(prefix, "/\\") {
+		return nil, "", ErrInvalidPath
+	}
+	for _, c := range prefix {
+		if c < 0x20 || c == 0x7f {
+			return nil, "", ErrInvalidPath
+		}
 	}
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -67,7 +80,7 @@ func (r *Root) ListDirPage(relative, after string, limit int) ([]Entry, string, 
 		if relative == "" && (strings.HasPrefix(name, writeStagePrefix) || strings.HasPrefix(name, archiveStagePrefix)) {
 			continue
 		}
-		if name > after {
+		if name > after && strings.HasPrefix(name, prefix) {
 			visible = append(visible, name)
 		}
 	}
@@ -118,6 +131,10 @@ func pageNameValid(name string) bool {
 }
 
 func (t *TenantRoots) ListDirPageForTenant(tenantID, relative, after string, limit int) ([]Entry, string, error) {
+	return t.ListDirPagePrefixForTenant(tenantID, relative, after, "", limit)
+}
+
+func (t *TenantRoots) ListDirPagePrefixForTenant(tenantID, relative, after, prefix string, limit int) ([]Entry, string, error) {
 	if t == nil || tenantID == "" {
 		return nil, "", ErrTenantDenied
 	}
@@ -125,5 +142,5 @@ func (t *TenantRoots) ListDirPageForTenant(tenantID, relative, after string, lim
 	if !ok {
 		return nil, "", ErrTenantDenied
 	}
-	return root.ListDirPage(relative, after, limit)
+	return root.ListDirPagePrefix(relative, after, prefix, limit)
 }

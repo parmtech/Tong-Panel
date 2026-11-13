@@ -140,7 +140,7 @@ test('Refresh button announces a result, blocks duplicate clicks, then retries',
         .replace("import { loadNginxPreview } from './site-preview.mjs';", 'const loadNginxPreview = globalThis.testLoadNginxPreview;')
         .replace("import { loadSitesPage } from './sites-list.mjs';", 'const loadSitesPage = globalThis.testLoadSitesPage;')
         .replace("import { mountACMEPreflight } from './acme-preflight.mjs';", 'const mountACMEPreflight = () => {};')
-        .replace("import { downloadTenantFile, listTenantFilesPage, previewTenantText } from './files-explorer.mjs';", 'const downloadTenantFile = globalThis.testDownloadTenantFile; const listTenantFilesPage = globalThis.testListTenantFilesPage; const previewTenantText = globalThis.testPreviewTenantText;')
+        .replace("import { downloadTenantFile, listTenantFilesPage, previewTenantText, FilesExplorerError } from './files-explorer.mjs';", 'const downloadTenantFile = globalThis.testDownloadTenantFile; const listTenantFilesPage = globalThis.testListTenantFilesPage; const previewTenantText = globalThis.testPreviewTenantText; const FilesExplorerError = class extends Error {};')
         .replace("import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';", 'const loadMyJobsPage = globalThis.testLoadMyJobsPage; const loadMyJob = globalThis.testLoadMyJob; const MyJobsError = globalThis.testMyJobsError;')
         .replace(/\nexport \{\};\s*$/, '\n');
     runInNewContext(source, {

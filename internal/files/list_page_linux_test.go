@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -97,6 +98,9 @@ func TestListDirPageBoundaryAndConcurrentChanges(t *testing.T) {
 	if _, _, err := root.ListDirPage("", "", 1); !errors.Is(err, ErrTooManyEntries) {
 		t.Fatalf("above cap: %v", err)
 	}
+	if _, _, err := root.ListDirPagePrefix("", "", "no-match", 1); !errors.Is(err, ErrTooManyEntries) {
+		t.Fatalf("prefix bypassed scan cap: %v", err)
+	}
 	if err := os.Remove(filepath.Join(dir, "extra")); err != nil {
 		t.Fatal(err)
 	}
@@ -131,5 +135,44 @@ func TestListDirPageRejectsNamesExplorerCannotRepresent(t *testing.T) {
 				t.Fatalf("unrepresentable cursor accepted: %v", err)
 			}
 		})
+	}
+}
+
+func TestListDirPagePrefixFiltersWithinBoundedTenantScan(t *testing.T) {
+	a, b := t.TempDir(), t.TempDir()
+	for _, name := range []string{"app-a", "app-b", "apple", "Beta", "other"} {
+		if err := os.WriteFile(filepath.Join(a, name), nil, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(b, "app-secret"), nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	ra, err := OpenRoot(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ra.Close()
+	rb, err := OpenRoot(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rb.Close()
+	roots, err := NewTenantRoots(map[string]*Root{"a": ra, "b": rb})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, next, err := roots.ListDirPagePrefixForTenant("a", "", "", "app", 2)
+	if err != nil || len(first) != 2 || first[0].Name != "app-a" || first[1].Name != "app-b" || next != "app-b" {
+		t.Fatalf("first: %#v %q %v", first, next, err)
+	}
+	last, next, err := roots.ListDirPagePrefixForTenant("a", "", next, "app", 2)
+	if err != nil || len(last) != 1 || last[0].Name != "apple" || next != "" {
+		t.Fatalf("last: %#v %q %v", last, next, err)
+	}
+	for _, bad := range []string{"a/b", "a\\b", "a\nb", strings.Repeat("x", 129), string([]byte{0xff})} {
+		if _, _, err := ra.ListDirPagePrefix("", "", bad, 2); !errors.Is(err, ErrInvalidPath) {
+			t.Errorf("prefix %q accepted: %v", bad, err)
+		}
 	}
 }

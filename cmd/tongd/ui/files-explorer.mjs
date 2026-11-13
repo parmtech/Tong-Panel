@@ -10,8 +10,9 @@ const responseMessages = new Map([
 ]);
 
 export class FilesExplorerError extends Error {
-    constructor(message) {
+    constructor(message, status = 0) {
         super(message);
+        this.status = status;
         this.name = 'FilesExplorerError';
     }
 }
@@ -52,15 +53,17 @@ export async function listTenantFiles(path = '', fetcher = fetch, timeoutOverrid
     return listFiles(path, null, fetcher, timeoutOverride);
 }
 
-export async function listTenantFilesPage(path = '', after = '', fetcher = fetch, timeoutOverride) {
+export async function listTenantFilesPage(path = '', after = '', fetcher = fetch, timeoutOverride, prefix = '') {
     if (typeof after !== 'string' || after.length > 255 || /[\/\\\u0000-\u001f\u007f]/u.test(after) || after === '.' || after === '..')
         throw new FilesExplorerError('The file page is invalid. Refresh the folder.');
-    return listFiles(path, after, fetcher, timeoutOverride);
+    if (typeof prefix !== 'string' || new TextEncoder().encode(prefix).length > 128 || /[\/\\\u0000-\u001f\u007f]/u.test(prefix))
+        throw new FilesExplorerError('The filename prefix is invalid.');
+    return listFiles(path, after, fetcher, timeoutOverride, prefix);
 }
 
-async function listFiles(path, after, fetcher, timeoutOverride) {
+async function listFiles(path, after, fetcher, timeoutOverride, prefix = '') {
     try {
-        const url = filesURL(path) + (after === null ? '' : `&page=1&after=${encodeURIComponent(after)}`);
+        const url = filesURL(path) + (after === null ? '' : `&page=1&after=${encodeURIComponent(after)}${prefix ? `&prefix=${encodeURIComponent(prefix)}` : ''}`);
         return await withTimeout(fetcher, url, {
             method: 'GET',
             credentials: 'same-origin',
@@ -68,7 +71,7 @@ async function listFiles(path, after, fetcher, timeoutOverride) {
             headers: { Accept: 'application/json' },
         }, async response => {
             if (!response.ok)
-                throw new FilesExplorerError(failureMessage(response.status));
+                throw new FilesExplorerError(failureMessage(response.status), response.status);
             let body;
             try {
                 body = await response.json();
@@ -118,7 +121,7 @@ export async function downloadTenantFile(path, fetcher = fetch, timeoutOverride)
             headers: { Accept: 'application/octet-stream' },
         }, async response => {
             if (!response.ok)
-                throw new FilesExplorerError(failureMessage(response.status));
+                throw new FilesExplorerError(failureMessage(response.status), response.status);
             if (response.headers?.get?.('Content-Type')?.toLowerCase() !== 'application/octet-stream')
                 throw new FilesExplorerError('The server returned an unexpected file format.');
             let bytes;
@@ -157,7 +160,7 @@ export async function previewTenantText(path, fetcher = fetch, timeoutOverride) 
             method: 'GET', credentials: 'same-origin', cache: 'no-store',
             headers: { Accept: 'application/octet-stream' },
         }, async response => {
-            if (!response.ok) throw new FilesExplorerError(failureMessage(response.status));
+            if (!response.ok) throw new FilesExplorerError(failureMessage(response.status), response.status);
             if (response.headers?.get?.('Content-Type')?.toLowerCase() !== 'application/octet-stream')
                 throw new FilesExplorerError('The server returned an unexpected file format.');
             const length = response.headers?.get?.('Content-Length');
