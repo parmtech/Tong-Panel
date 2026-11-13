@@ -126,6 +126,7 @@ retry_guest_scp scripts/test_backup_verify_cli.py "$guest:/home/ci/test_backup_v
 retry_guest_scp scripts/test_backup_export_site_cli.py "$guest:/home/ci/test_backup_export_site_cli.py"
 retry_guest_scp scripts/test_backup_restore_site_lab_cli.py "$guest:/home/ci/test_backup_restore_site_lab_cli.py"
 retry_guest_scp scripts/test_backup_verify_site_cli.py "$guest:/home/ci/test_backup_verify_site_cli.py"
+retry_guest_scp scripts/test_backup_inspect_restore_lab_cli.py "$guest:/home/ci/test_backup_inspect_restore_lab_cli.py"
 retry_guest_scp scripts/smoke_wordpress_backup_source.sh "$guest:/home/ci/smoke_wordpress_backup_source.sh"
 cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
@@ -151,6 +152,7 @@ python3 /home/ci/test_backup_verify_cli.py /home/ci/tong-p1-dev/bin/tongbackup
 python3 /home/ci/test_backup_export_site_cli.py /home/ci/tong-p1-dev/bin/tongbackup
 python3 /home/ci/test_backup_restore_site_lab_cli.py /home/ci/tong-p1-dev/bin/tongbackup
 python3 /home/ci/test_backup_verify_site_cli.py /home/ci/tong-p1-dev/bin/tongbackup
+python3 /home/ci/test_backup_inspect_restore_lab_cli.py /home/ci/tong-p1-dev/bin/tongbackup
 test -x tong-p1-dev/tests/files.test
 test -x tong-p1-dev/tests/api.test
 test -x tong-p1-dev/tests/sites.test
