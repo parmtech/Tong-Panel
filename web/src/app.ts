@@ -378,6 +378,8 @@ function renderFilesEntries(entries: FileEntry[]): void {
     if (!filesList)
         return;
     filesList.replaceChildren();
+    const rowPath = filesPath.join('/');
+    const rowActive = () => !filesRefresh?.disabled && filesPath.join('/') === rowPath && filesDisplayedPath === rowPath;
     for (const entry of entries) {
         const item = document.createElement('li');
         item.className = 'file-entry';
@@ -394,6 +396,7 @@ function renderFilesEntries(entries: FileEntry[]): void {
             open.textContent = 'Open folder';
             open.setAttribute('aria-label', `Open folder ${entry.name}`);
             open.addEventListener('click', () => {
+                if (!rowActive()) return;
                 filesPath = [...filesPath, entry.name];
                 void refreshFiles();
             });
@@ -404,14 +407,14 @@ function renderFilesEntries(entries: FileEntry[]): void {
             download.type = 'button';
             download.textContent = 'Download';
             download.setAttribute('aria-label', `Download ${entry.name}`);
-            download.addEventListener('click', () => void downloadFile(entry.name, download));
+            download.addEventListener('click', () => { if (rowActive()) void downloadFile(entry.name, download, rowPath); });
             item.append(download);
             const preview = document.createElement('button');
             preview.type = 'button';
             preview.textContent = 'Preview text';
             preview.setAttribute('aria-label', `Preview text ${entry.name}`);
             preview.disabled = entry.size > 256 * 1024;
-            preview.addEventListener('click', () => void showFilePreview(entry.name));
+            preview.addEventListener('click', () => { if (rowActive()) void showFilePreview(entry.name, rowPath); });
             item.append(preview);
         }
         filesList.append(item);
@@ -429,6 +432,13 @@ async function refreshFiles(history: string[] = ['']) {
     clearFilePreview();
     const requestID = ++filesRequestID;
     const requestedPath = filesPath.join('/');
+    if (filesDisplayedPath !== requestedPath) {
+        filesList.replaceChildren();
+        filesDisplayedPath = null;
+        filesNextAfter = '';
+        filesHistory = [''];
+        renderFilesBreadcrumbs();
+    }
     filesRefresh.disabled = true;
     filesRefresh.setAttribute('aria-busy', 'true');
     if (filesNext) filesNext.disabled = true;
@@ -475,12 +485,12 @@ filesNext?.addEventListener('click', () => {
 filesPrevious?.addEventListener('click', () => {
     if (filesHistory.length > 1) void refreshFiles(filesHistory.slice(0, -1));
 });
-async function showFilePreview(name: string): Promise<void> {
+async function showFilePreview(name: string, rowPath: string): Promise<void> {
     clearFilePreview();
     const requestID = filesPreviewRequestID;
     if (filesStatus) { filesStatus.dataset.state = 'loading'; filesStatus.textContent = 'Loading text preview…'; }
     try {
-        const text = await previewTenantText([...filesPath, name].join('/'));
+        const text = await previewTenantText(rowPath ? `${rowPath}/${name}` : name);
         if (requestID !== filesPreviewRequestID || document.hidden || !document.hasFocus()) return;
         if (filesPreviewTitle) filesPreviewTitle.textContent = `Text preview: ${name}`;
         if (filesPreviewContent) filesPreviewContent.textContent = text;
@@ -492,10 +502,12 @@ async function showFilePreview(name: string): Promise<void> {
         if (filesStatus) { filesStatus.dataset.state = 'unavailable'; filesStatus.textContent = error instanceof Error ? error.message : 'Text preview unavailable.'; }
     }
 }
-async function downloadFile(name: string, button: HTMLButtonElement): Promise<void> {
+async function downloadFile(name: string, button: HTMLButtonElement, rowPath: string): Promise<void> {
+    const requestID = filesRequestID;
     button.disabled = true;
     try {
-        const file = await downloadTenantFile([...filesPath, name].join('/'));
+        const file = await downloadTenantFile(rowPath ? `${rowPath}/${name}` : name);
+        if (requestID !== filesRequestID || filesPath.join('/') !== rowPath) return;
         const objectURL = URL.createObjectURL(file.blob);
         const link = document.createElement('a');
         link.href = objectURL;
@@ -511,6 +523,7 @@ async function downloadFile(name: string, button: HTMLButtonElement): Promise<vo
         }
     }
     catch (error) {
+        if (requestID !== filesRequestID || filesPath.join('/') !== rowPath) return;
         clearFilePreview();
         if (filesStatus) {
             filesStatus.dataset.state = 'unavailable';

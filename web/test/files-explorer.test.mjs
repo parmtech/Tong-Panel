@@ -172,8 +172,43 @@ test('preview renders inert text and ignores results after closing', async () =>
     const document = {querySelector:id => elements.get(id), addEventListener(){}, hidden:false, hasFocus:()=>true};
     let resolve; const context={document,window:{addEventListener(){}},filesPath:['site'],filesStatus:{textContent:'',dataset:{}},previewTenantText:()=>new Promise(r=>{resolve=r;})};
     const api=runInNewContext(setup+preview+'\n({showFilePreview,clearFilePreview})',context);
-    const first=api.showFilePreview('file'); resolve('<script>inert</script>'); await first;
+    const first=api.showFilePreview('file', 'site'); resolve('<script>inert</script>'); await first;
     assert.equal(elements.get('#files-preview-content').textContent,'<script>inert</script>'); assert.equal(elements.get('#files-preview').hidden,false);
-    const second=api.showFilePreview('file'); api.clearFilePreview(); resolve('stale secret'); await second;
+    const second=api.showFilePreview('file', 'site'); api.clearFilePreview(); resolve('stale secret'); await second;
     assert.equal(elements.get('#files-preview-content').textContent,''); assert.equal(elements.get('#files-preview').hidden,true);
+});
+
+test('stale file rows cannot act during folder navigation', async () => {
+    const { runInNewContext } = await import('node:vm');
+    const app = await readFile(new URL('../../cmd/tongd/ui/app.js', import.meta.url),'utf8');
+    const source = app.slice(app.indexOf('const filesRefresh ='),app.indexOf('async function showFilePreview('));
+    class Element {
+        constructor(){this.dataset={};this.disabled=false;this.children=[];this.listeners=new Map();this.attributes=new Map();}
+        addEventListener(k,v){this.listeners.set(k,v)} setAttribute(k,v){this.attributes.set(k,v)} removeAttribute(k){this.attributes.delete(k)}
+        replaceChildren(...c){this.children=c} append(...c){this.children.push(...c)} click(){if(!this.disabled)this.listeners.get('click')?.()}
+    }
+    const elements=new Map(['#files-refresh','#files-previous','#files-next','#files-status','#files-list','#files-breadcrumbs'].map(k=>[k,new Element()]));
+    let resolveFolder; let previews=0,downloads=0; const calls=[];
+    const context={document:{querySelector:k=>elements.get(k),createElement:()=>new Element()},clearFilePreview(){},
+        listTenantFilesPage:(path,after)=>{calls.push(path); if(path==='folder') return new Promise(r=>{resolveFolder=r}); return Promise.resolve({entries:[{name:'folder',kind:'directory',size:0},{name:'shared.txt',kind:'file',size:1}],next_after:''});},
+        showFilePreview:()=>{previews++},downloadFile:()=>{downloads++}};
+    runInNewContext(source+"\nfilesRefresh.addEventListener('click', () => void refreshFiles());",context);
+    const tick=()=>new Promise(r=>setTimeout(r,0)); elements.get('#files-refresh').click(); await tick();
+    const rows=elements.get('#files-list').children; const open=rows[0].children[2],download=rows[1].children[2],preview=rows[1].children[3];
+    open.click(); assert.equal(elements.get('#files-list').children.length,0);
+    download.click(); preview.click(); open.click(); assert.equal(downloads,0); assert.equal(previews,0); assert.deepEqual(calls,['','folder']);
+    resolveFolder({entries:[],next_after:''}); await tick();
+});
+
+test('in-flight download does not act after navigation', async () => {
+    const {runInNewContext}=await import('node:vm');
+    const app=await readFile(new URL('../../cmd/tongd/ui/app.js',import.meta.url),'utf8');
+    const code=app.slice(app.indexOf('async function downloadFile('),app.indexOf("filesRefresh?.addEventListener('click'"));
+    let resolve; let created=0, clicked=0; const requested=[];
+    const context={downloadTenantFile:path=>{requested.push(path);return new Promise(r=>{resolve=r})},
+        URL:{createObjectURL:()=>{created++;return 'blob:test'}},window:{setTimeout(){}},
+        document:{body:{append(){}},createElement:()=>({click(){clicked++},remove(){}})},clearFilePreview(){}};
+    const api=runInNewContext("let filesRequestID=1; let filesPath=['old']; const filesStatus={dataset:{}};\n"+code+"\n({downloadFile,navigate:()=>{filesRequestID++;filesPath=['new'];}})",context);
+    const promise=api.downloadFile('same.txt',{disabled:false},'old'); api.navigate(); resolve({name:'same.txt',blob:{}}); await promise;
+    assert.deepEqual(requested,['old/same.txt']); assert.equal(created,0); assert.equal(clicked,0);
 });
