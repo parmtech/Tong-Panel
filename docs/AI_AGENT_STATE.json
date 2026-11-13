@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Inspect ab6a5f9 exact-source Linux Go and guest CI, including encrypted restore and MariaDB verification drill; investigate failures.",
+    "action": "Inspect 336d734 exact-source Linux/guest restore tests and earlier 1fe414b/ab6a5f9 results; diagnose failures.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -138,9 +138,9 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "ab6a5f9ce2ac50998555c610e778485d66517bc8",
+    "sha": "336d734782cf03516aa13d16b0b54b82b8223b63",
     "hosted_ci": "pending_at_handoff",
     "local": "Linux Files tests crosscompiled and vet passed; specialist static review no concrete blocker",
-    "limitations": "caller must bind tenant/root/current authority and quota; post-publication durability may be uncertain; actual Linux execution pending"
+    "limitations": "current authority, quota and publication fencing remain separate; actual Linux execution pending"
   }
 }
