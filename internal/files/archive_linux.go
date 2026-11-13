@@ -6,11 +6,13 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -119,7 +121,9 @@ func ReadGzipTarBounded(src io.Reader, maxBytes int64) ([]byte, error) {
 // directory below the pinned root. It publishes the completed tree atomically
 // and never replaces an existing path. Only regular files and directories are
 // accepted; symlinks, hardlinks, devices, FIFOs, traversal and duplicate paths
-// fail closed. Files use mode 0600 and directories mode 0700.
+// fail closed. Files use mode 0600 and directories mode 0700. A returned
+// ErrPublishedDurabilityUnconfirmed means publication occurred and directory
+// durability could not be confirmed; callers must reconcile before retrying.
 func (r *Root) ExtractGzipTarNew(relative string, archive []byte, limits ArchiveLimits) error {
 	return r.extractGzipTarNew(relative, archive, limits, false)
 }
@@ -141,6 +145,19 @@ func (r *Root) ExtractVerifiedGzipTarNew(relative string, archive []byte, expect
 }
 
 func (r *Root) extractGzipTarNew(relative string, archive []byte, limits ArchiveLimits, verified bool) error {
+	return r.extractGzipTarNewContext(context.Background(), relative, archive, limits, verified, unix.Fsync)
+}
+
+func (r *Root) extractGzipTarNewContext(ctx context.Context, relative string, archive []byte, limits ArchiveLimits, verified bool, syncDir func(int) error) error {
+	if ctx == nil {
+		return ErrInvalidContext
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if syncDir == nil {
+		return ErrInvalidContext
+	}
 	if r == nil {
 		return ErrClosed
 	}
@@ -209,6 +226,9 @@ func (r *Root) extractGzipTarNew(relative string, archive []byte, limits Archive
 	if err := syncArchiveTree(stageFD); err != nil {
 		return err
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := unix.Renameat2(r.fd, stage, parent, base, unix.RENAME_NOREPLACE); err != nil {
 		if errors.Is(err, unix.EEXIST) {
 			return ErrAlreadyExists
@@ -216,18 +236,21 @@ func (r *Root) extractGzipTarNew(relative string, archive []byte, limits Archive
 		return err
 	}
 	published = true
-	if err := unix.Fsync(parent); err != nil {
-		return err
+	if err := syncDir(parent); err != nil {
+		return fmt.Errorf("%w: %w", ErrPublishedDurabilityUnconfirmed, err)
 	}
 	rootDir, err := unix.Openat2(r.fd, ".", &unix.OpenHow{
 		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
 		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrPublishedDurabilityUnconfirmed, err)
 	}
 	defer unix.Close(rootDir)
-	return unix.Fsync(rootDir)
+	if err := syncDir(rootDir); err != nil {
+		return fmt.Errorf("%w: %w", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	return nil
 }
 
 // ExtractGzipTarNewFrom reads a gzip tar stream under its compressed-byte
