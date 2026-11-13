@@ -23,7 +23,7 @@ func main() {
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: tongbackup encrypt|decrypt|rotate|verify|verify-site|export-site|restore-site-lab with the required flags")
+		return errors.New("usage: tongbackup encrypt|decrypt|rotate|verify|verify-site|export-site|restore-site-lab|inspect-restore-lab with the required flags")
 	}
 	operation := args[0]
 	if operation == "export-site" {
@@ -31,6 +31,9 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	}
 	if operation == "restore-site-lab" {
 		return runRestoreSiteLab(args[1:], stdin)
+	}
+	if operation == "inspect-restore-lab" {
+		return runInspectRestoreLab(args[1:], stdout)
 	}
 	if (operation == "verify" || operation == "verify-site") && !validVerifyFlags(args[1:]) {
 		return errors.New("verify and verify-site require exactly one tenant and key-file flag")
