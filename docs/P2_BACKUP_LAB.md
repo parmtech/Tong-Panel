@@ -59,3 +59,15 @@ offsite provider integration, retention/deletion workflow, application-driven
 database export, job/audit wiring, restore preview, user authorization, or
 multi-account complete restore. ADR-007 and threat-model owner/security review
 remain pending. Do not treat this lab or CLI as a production backup service.
+
+## Verify before restore
+
+To authenticate one encrypted artifact for its tenant without publishing or printing plaintext, run:
+
+```sh
+tongbackup verify --tenant tenant-a --key-file /run/private/backup.key < /srv/private-backups/tenant-a-2026-10-29.tpbk
+```
+
+The command reads the complete envelope, verifies the tenant-bound wrapping key, every chunk, final tag and end of stream, and exits successfully without producing an output file or success message. It uses the existing 64 GiB plaintext bound and Linux-only private key-file checks. A wrong key or tenant, tampering, truncation, trailing bytes, input failure or limit violation fails; no partial result is published. It requires exactly one `--tenant` and `--key-file`, and rejects `--output` and `--old-key-file`.
+
+Verification authenticates the bytes consumed in that invocation. It does not inspect SQL semantics, prove that keys are recoverable, perform a restore, establish service health, or guarantee that a changed/replaced artifact will later restore successfully. Keep restore input controlled and still perform a supervised restore drill. The release and security blockers above remain unchanged.

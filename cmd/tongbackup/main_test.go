@@ -135,3 +135,59 @@ func writeKeyFile(t *testing.T, dir, name string, key []byte, mode os.FileMode) 
 	}
 	return path
 }
+
+func TestVerifyCommandDoesNotPublishOrPrintPlaintext(t *testing.T) {
+	requireLinux(t)
+	dir := t.TempDir()
+	key := writeKeyFile(t, dir, "verify.key", bytes.Repeat([]byte{0x43}, 32), 0600)
+	var sealed bytes.Buffer
+	if err := backups.Encrypt(&sealed, strings.NewReader("sensitive restore fixture"), "tenant-a", bytes.Repeat([]byte{0x43}, 32), backups.Options{}); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	args := []string{"verify", "--tenant", "tenant-a", "--key-file", key}
+	if err := run(args, bytes.NewReader(sealed.Bytes()), &stdout, &stderr); err != nil {
+		t.Fatalf("valid verify: %v", err)
+	}
+	if stdout.Len() != 0 || stderr.Len() != 0 {
+		t.Fatal("verify emitted output")
+	}
+	if err := run([]string{"verify", "--tenant", "tenant-b", "--key-file", key}, bytes.NewReader(sealed.Bytes()), &stdout, &stderr); !errors.Is(err, backups.ErrInvalidBackup) {
+		t.Fatalf("wrong tenant: %v", err)
+	}
+	wrongKey := writeKeyFile(t, dir, "wrong.key", bytes.Repeat([]byte{0x44}, 32), 0600)
+	if err := run([]string{"verify", "--tenant", "tenant-a", "--key-file", wrongKey}, bytes.NewReader(sealed.Bytes()), &stdout, &stderr); !errors.Is(err, backups.ErrInvalidBackup) {
+		t.Fatalf("wrong key: %v", err)
+	}
+	tampered := bytes.Clone(sealed.Bytes())
+	tampered[len(tampered)-1] ^= 1
+	if err := run(args, bytes.NewReader(tampered), &stdout, &stderr); !errors.Is(err, backups.ErrInvalidBackup) {
+		t.Fatalf("tampered: %v", err)
+	}
+	if err := run(args, bytes.NewReader(sealed.Bytes()[:sealed.Len()-1]), &stdout, &stderr); !errors.Is(err, backups.ErrInvalidBackup) {
+		t.Fatalf("truncated: %v", err)
+	}
+	for _, extra := range [][]string{{"--output", filepath.Join(dir, "must-not-exist")}, {"--output="}, {"--old-key-file="}} {
+		command := append(append([]string{}, args...), extra...)
+		if err := run(command, bytes.NewReader(sealed.Bytes()), &stdout, &stderr); err == nil {
+			t.Fatalf("accepted %v", extra)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, "must-not-exist")); !os.IsNotExist(err) {
+		t.Fatalf("created output: %v", err)
+	}
+	if stdout.Len() != 0 || stderr.Len() != 0 {
+		t.Fatal("verify emitted plaintext or diagnostics")
+	}
+}
+
+func TestVerifyArgumentShapeIsStrictBeforeIO(t *testing.T) {
+	for _, args := range [][]string{{}, {"--tenant", "t"}, {"--tenant", "t", "--key-file", "k", "--tenant", "other"}, {"--tenant=t", "--key-file=k", "--output="}, {"--tenant=t", "--key-file=k", "extra"}, {"--tenant=", "--key-file=k"}} {
+		if err := run(append([]string{"verify"}, args...), nil, &bytes.Buffer{}, &bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), "exactly one") {
+			t.Fatalf("args %v: %v", args, err)
+		}
+	}
+	if !validVerifyFlags([]string{"--tenant=t", "-key-file=k"}) {
+		t.Fatal("valid explicit flags rejected")
+	}
+}

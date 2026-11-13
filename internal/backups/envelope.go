@@ -147,6 +147,13 @@ func Encrypt(dst io.Writer, src io.Reader, tenantID string, wrappingKey []byte, 
 	return writeFull(dst, finalTag)
 }
 
+// Verify authenticates an entire tenant-bound envelope without publishing or
+// returning plaintext. It does not validate application data or guarantee a
+// later restore of a different or modified stream will succeed.
+func Verify(src io.Reader, tenantID string, wrappingKey []byte, options Options) error {
+	return Decrypt(io.Discard, src, tenantID, wrappingKey, options)
+}
+
 // Decrypt authenticates and streams plaintext from an envelope. It verifies
 // tenant binding, every chunk, completeness, limits and the absence of trailing
 // data. On error, dst may contain a verified plaintext prefix; callers must

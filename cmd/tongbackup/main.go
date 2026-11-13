@@ -23,9 +23,12 @@ func main() {
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: tongbackup encrypt|decrypt|rotate --tenant ID --output PATH --key-file PATH [--old-key-file PATH]")
+		return errors.New("usage: tongbackup encrypt|decrypt|rotate|verify --tenant ID --key-file PATH [--output PATH] [--old-key-file PATH]")
 	}
 	operation := args[0]
+	if operation == "verify" && !validVerifyFlags(args[1:]) {
+		return errors.New("verify requires exactly one tenant and key-file flag")
+	}
 	flags := flag.NewFlagSet("tongbackup "+operation, flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	tenantID := flags.String("tenant", "", "tenant identifier to bind into the backup envelope")
@@ -33,9 +36,22 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	keyPath := flags.String("key-file", "", "externally managed 32-byte wrapping-key file")
 	oldKeyPath := flags.String("old-key-file", "", "old wrapping-key file used by rotate")
 	if err := flags.Parse(args[1:]); err != nil || len(flags.Args()) != 0 {
-		return errors.New("invalid arguments; run tongbackup encrypt|decrypt|rotate with --tenant, --output and key-file flags")
+		return errors.New("invalid arguments; run tongbackup encrypt|decrypt|rotate|verify with the required flags")
 	}
-	if strings.TrimSpace(*tenantID) == "" || *outputPath == "" || *keyPath == "" {
+	if operation == "verify" {
+		invalidFlag := false
+		flags.Visit(func(f *flag.Flag) {
+			if f.Name == "output" || f.Name == "old-key-file" {
+				invalidFlag = true
+			}
+		})
+		if invalidFlag {
+			return errors.New("output and old-key-file are not valid for verify")
+		}
+		if strings.TrimSpace(*tenantID) == "" || *keyPath == "" {
+			return errors.New("tenant and key-file are required")
+		}
+	} else if strings.TrimSpace(*tenantID) == "" || *outputPath == "" || *keyPath == "" {
 		return errors.New("tenant, output and key-file are required")
 	}
 	newKey, err := readWrappingKey(*keyPath)
@@ -45,6 +61,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	defer wipeKey(newKey)
 
 	switch operation {
+	case "verify":
+		return backups.Verify(stdin, *tenantID, newKey, backups.Options{})
 	case "encrypt":
 		if *oldKeyPath != "" {
 			return errors.New("old-key-file is only valid for rotate")
@@ -66,8 +84,38 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 		defer wipeKey(oldKey)
 		return backups.RotateWrappingKeyFile(*outputPath, stdin, *tenantID, oldKey, newKey, backups.Options{})
 	default:
-		return errors.New("operation must be encrypt, decrypt, or rotate")
+		return errors.New("operation must be encrypt, decrypt, rotate, or verify")
 	}
+}
+
+// Verify accepts only one tenant and one key file; reject duplicates and all
+// other flags before reading the key or backup stream.
+func validVerifyFlags(args []string) bool {
+	seen := map[string]bool{}
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if !strings.HasPrefix(arg, "-") {
+			return false
+		}
+		nameValue := strings.TrimPrefix(arg, "-")
+		nameValue = strings.TrimPrefix(nameValue, "-")
+		name, value, hasEquals := strings.Cut(nameValue, "=")
+		if (name != "tenant" && name != "key-file") || seen[name] {
+			return false
+		}
+		seen[name] = true
+		if !hasEquals {
+			i++
+			if i >= len(args) {
+				return false
+			}
+			value = args[i]
+		}
+		if value == "" {
+			return false
+		}
+	}
+	return seen["tenant"] && seen["key-file"]
 }
 
 func readWrappingKey(path string) ([]byte, error) {
