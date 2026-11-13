@@ -61,6 +61,51 @@ func TestReadOnlyListeningPortParsing(t *testing.T) {
 	}
 }
 
+func TestListeningParserKernelTCPHeaders(t *testing.T) {
+	// tcp4_seq_show and tcp6_seq_show use different remote-address labels.
+	// Keep the kernel spellings here rather than sharing a synthetic header.
+	for _, tc := range []struct {
+		name, header, address string
+	}{
+		{"tcp", "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n", "00000000"},
+		{"tcp6", "  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n", "00000000000000000000000000000000"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ports, err := ParseListeningTCP(tc.header)
+			if err != nil || len(ports) != 0 {
+				t.Fatalf("empty kernel table: ports=%v err=%v", ports, err)
+			}
+			row := func(port, state string) string {
+				return "0: " + tc.address + ":" + port + " " + tc.address + ":0000 " + state + " 0:0 00:0 0 0 0 0\n"
+			}
+			ports, err = ParseListeningTCP(tc.header + row("0050", "0A") + row("01BB", "0A") + row("24E3", "01"))
+			if err != nil || len(ports) != 2 || !ports[80] || !ports[443] {
+				t.Fatalf("kernel listeners: ports=%v err=%v", ports, err)
+			}
+			gate := EvaluateMutationGate(Snapshot{
+				OSRelease: ubuntu, GOOS: "linux", Arch: "amd64",
+				DiskKnown: true, DiskAvailableBytes: 1,
+				PortsKnown: true, TCPListening: ports,
+			}, MutationRequirements{MinimumDiskBytes: 1, RequiredTCPPorts: []uint16{80, 443}})
+			if gate.Allowed || strings.Join(gate.Blockers, ",") != "tcp_port_in_use:80,tcp_port_in_use:443" {
+				t.Fatalf("occupied web ports must block: %+v", gate)
+			}
+			if ports, err := ParseListeningTCP(tc.header + row("0050", "0A") + row("01BB", "ZZ")); err == nil || ports != nil {
+				t.Fatalf("corrupt table must remain unknown: ports=%v err=%v", ports, err)
+			}
+		})
+	}
+	for _, header := range []string{
+		"sl local_address unexpected_address st\n",
+		"sl local_address remote_address state\n",
+		"sl local_address remote_address\n",
+	} {
+		if ports, err := ParseListeningTCP(header); err == nil || ports != nil {
+			t.Fatalf("invalid header %q accepted: ports=%v err=%v", header, ports, err)
+		}
+	}
+}
+
 func TestListeningParserFailsClosedOnMalformedNonListeningRows(t *testing.T) {
 	const header = "sl local_address rem_address st\n"
 	for _, row := range []string{
@@ -82,7 +127,8 @@ func TestListeningParserFailsClosedOnMalformedNonListeningRows(t *testing.T) {
 	if ports, err := ParseListeningTCP(header + "0: 00000000:0050 00000000:0000 0A\n1: 00000000:01BB 00000000:0000 ZZ\n"); err == nil || ports != nil {
 		t.Fatalf("partial snapshot reported ports=%v err=%v", ports, err)
 	}
-	ports, err := ParseListeningTCP(header + "0: 00000000000000000000000000000000:01BB 00000000000000000000000000000000:0000 0A\n")
+	ipv6Header := strings.Replace(header, "rem_address", "remote_address", 1)
+	ports, err := ParseListeningTCP(ipv6Header + "0: 00000000000000000000000000000000:01BB 00000000000000000000000000000000:0000 0A\n")
 	if err != nil || !ports[443] {
 		t.Fatalf("valid IPv6 listener: ports=%v err=%v", ports, err)
 	}

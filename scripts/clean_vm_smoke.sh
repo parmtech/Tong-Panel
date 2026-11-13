@@ -526,7 +526,27 @@ else
   preflight_status=$?
 fi
 [[ "$preflight_status" == 3 ]]
-python3 -c 'import json; d=json.load(open("install-preflight.json")); assert d["gate"]["allowed"] is False; assert "tcp_port_in_use:80" in d["gate"]["blockers"]; assert "tcp_port_in_use:443" in d["gate"]["blockers"]; assert "not installation authorization" in d["notice"]; print("clean-guest install preflight correctly blocked occupied web ports without host mutation")'
+python3 - <<'PY_PREFLIGHT'
+import json
+
+with open("install-preflight.json", encoding="utf-8") as source:
+    report = json.load(source)
+gate = report["gate"]
+blockers = gate["blockers"]
+checks = {
+    "gate blocked": gate["allowed"] is False,
+    "port 80 blocker": "tcp_port_in_use:80" in blockers,
+    "port 443 blocker": "tcp_port_in_use:443" in blockers,
+    "authorization notice": "not installation authorization" in report["notice"],
+}
+# Fixed booleans only: avoid dumping host-derived report contents to CI logs.
+print("preflight checks: " + ", ".join(f"{name}={passed}" for name, passed in checks.items()))
+print("preflight ports_unknown=" + str("ports_unknown" in blockers))
+failed = [name for name, passed in checks.items() if not passed]
+if failed:
+    raise SystemExit("preflight missing required conditions: " + ", ".join(failed))
+print("clean-guest install preflight correctly blocked occupied web ports without host mutation")
+PY_PREFLIGHT
 bash ./tong-p1-dev/tests/mariadb-isolation.sh
 bash ./tong-p1-dev/tests/encrypted-backup-restore.sh
 sudo env TONG_DISPOSABLE_WORDPRESS_RESTORE=1 bash ./smoke_wordpress_backup_source.sh "$wp_db_a" tenant_a_ "$wp_admin_a"

@@ -71,7 +71,8 @@ func ParseListeningTCP(raw string) (map[uint16]bool, error) {
 	listening := make(map[uint16]bool)
 	lines := strings.Split(strings.TrimSpace(raw), "\n")
 	header := strings.Fields(lines[0])
-	if len(header) < 4 || header[0] != "sl" || header[1] != "local_address" || header[2] != "rem_address" || header[3] != "st" {
+	// Linux names this column rem_address in tcp and remote_address in tcp6.
+	if len(header) < 4 || header[0] != "sl" || header[1] != "local_address" || (header[2] != "rem_address" && header[2] != "remote_address") || header[3] != "st" {
 		return nil, errors.New("invalid proc tcp header")
 	}
 	hexOnly := func(s string) bool {
