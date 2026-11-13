@@ -21,11 +21,26 @@ import (
 // Cancellation is checked during reads and immediately before publication; a
 // blocked reader cannot be interrupted by this helper, and cancellation may race
 // the atomic rename. If ErrPublishedDurabilityUnconfirmed is returned the
-// destination exists but durability is uncertain: do not assume rollback or
-// release reservations without reconciliation. Other cleanup failures may
+// destination exists but durability is uncertain. ErrPublicationOutcomeUnknown
+// means an attempted rename may or may not have published; do not assume rollback
+// or release reservations without reconciliation. Other cleanup failures may
 // leave private staging debris. Caller must protect the source from replacement
 // and require current authority when integrating this primitive.
 func (r *Root) RestoreEncryptedGzipTarNew(ctx context.Context, relative string, src io.Reader, tenantID string, key []byte, limits ArchiveLimits) error {
+	_, err := r.RestoreEncryptedGzipTarNewWithResult(ctx, relative, src, tenantID, key, limits)
+	return err
+}
+
+// RestoreEncryptedGzipTarNewWithResult returns publication state and logical
+// regular-file bytes, including when post-rename durability is uncertain. It
+// neither reserves nor settles quota and does not report physical disk usage.
+func (r *Root) RestoreEncryptedGzipTarNewWithResult(ctx context.Context, relative string, src io.Reader, tenantID string, key []byte, limits ArchiveLimits) (ArchivePublishResult, error) {
+	var result ArchivePublishResult
+	err := r.restoreEncryptedGzipTarNewWithResult(ctx, relative, src, tenantID, key, limits, &result)
+	return result, err
+}
+
+func (r *Root) restoreEncryptedGzipTarNewWithResult(ctx context.Context, relative string, src io.Reader, tenantID string, key []byte, limits ArchiveLimits, result *ArchivePublishResult) error {
 	if ctx == nil {
 		return ErrInvalidContext
 	}
@@ -63,7 +78,7 @@ func (r *Root) RestoreEncryptedGzipTarNew(ctx context.Context, relative string, 
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	return r.extractGzipTarNewContext(ctx, relative, archive.Bytes(), normalized, false, unix.Fsync)
+	return r.extractGzipTarNewWithResult(ctx, relative, archive.Bytes(), normalized, false, unix.Fsync, unix.Renameat2, result)
 }
 
 type contextBackupReader struct {
