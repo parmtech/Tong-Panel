@@ -318,6 +318,44 @@ test('real site details follow tenant and session changes', async ({ page }) => 
     await expect(page.locator('#sites-list li')).toHaveCount(0);
 });
 
+test('real site prefix filtering pages and remains tenant scoped', async ({ page }) => {
+    const requests = [];
+    page.on('request', request => {
+        const url = new URL(request.url());
+        if (url.pathname === '/api/v1/sites') requests.push({ prefix: url.searchParams.get('prefix'), after: url.searchParams.get('after') });
+    });
+    await open(page, 'alice');
+    await loadSites(page);
+    await page.locator('#sites-prefix').fill('site-0');
+    await page.getByRole('button', { name: 'Filter sites' }).click();
+    await expect(page.locator('#sites-list li')).toHaveCount(50);
+    await expect(page.locator('#sites-list')).toContainText('site-000.example.test');
+    await page.locator('#sites-next').click();
+    await expect(page.locator('#sites-page')).toHaveText('Page 2');
+    await expect(page.locator('#sites-list li')).toHaveCount(11);
+    await expect(page.locator('#sites-list')).toContainText('site-060.example.test');
+    await page.locator('#sites-prefix').fill('site-05');
+    await page.getByRole('button', { name: 'Filter sites' }).click();
+    await expect(page.locator('#sites-list li')).toHaveCount(10);
+    await expect(page.locator('#sites-list')).toContainText('site-050.example.test');
+    await expect(page.locator('#sites-list')).not.toContainText('site-060.example.test');
+    expect(requests).toEqual([
+        { prefix: null, after: null }, { prefix: 'site-0', after: null },
+        { prefix: 'site-0', after: 'site-049' }, { prefix: 'site-05', after: null },
+    ]);
+    await page.context().clearCookies();
+    await page.context().addCookies([{ name: '__Host-tong_session', value: fixture.Tokens.carol, url: fixture.Primary, secure: true, httpOnly: true, sameSite: 'Strict' }]);
+    await page.locator('#sites-prefix').fill('other');
+    await page.getByRole('button', { name: 'Filter sites' }).click();
+    await expect(page.locator('#sites-list li')).toHaveCount(1);
+    await expect(page.locator('#sites-list')).toContainText('other.example.test');
+    await expect(page.locator('#sites-list')).not.toContainText('site-050.example.test');
+    await page.context().clearCookies();
+    await page.getByRole('button', { name: 'Filter sites' }).click();
+    await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'unavailable');
+    await expect(page.locator('#sites-list li')).toHaveCount(0);
+});
+
 test('site database catalog follows real tenant sessions and discards stale reads', async ({ page }) => {
     await open(page, 'alice');
     await loadSites(page);
