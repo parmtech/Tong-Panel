@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -143,5 +144,85 @@ func TestEncryptedRestoreCancellationDoesNotCreateStage(t *testing.T) {
 	}
 	if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
 		t.Fatalf("canceled read created stage: %#v %v", entries, err)
+	}
+}
+
+// observingBackupReader checks the private root while the encrypted stream is
+// still being consumed, including the final tag and EOF/trailing-byte probe.
+type observingBackupReader struct {
+	reader      *bytes.Reader
+	root        string
+	sawTerminal bool
+	sawEOF      bool
+	observedErr error
+}
+
+func (r *observingBackupReader) Read(p []byte) (int, error) {
+	n, err := r.reader.Read(p)
+	entries, readErr := os.ReadDir(r.root)
+	if readErr != nil {
+		r.observedErr = readErr
+	} else if len(entries) != 0 {
+		r.observedErr = errors.New("restore created a stage before input authentication completed")
+	}
+	if r.reader.Len() == 0 {
+		r.sawTerminal = true
+	}
+	if errors.Is(err, io.EOF) {
+		r.sawEOF = true
+	}
+	return n, err
+}
+
+func TestEncryptedRestoreMultiChunkAuthenticatesBeforeCreatingStage(t *testing.T) {
+	// Pseudorandom bytes keep gzip from collapsing the archive into one record.
+	payload := make([]byte, 3*backups.ChunkSize)
+	if _, err := rand.New(rand.NewSource(17)).Read(payload); err != nil {
+		t.Fatal(err)
+	}
+	archive := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "asset.bin", Typeflag: tar.TypeReg}, data: payload})
+	if len(archive) <= 2*backups.ChunkSize {
+		t.Fatalf("fixture compressed to %d bytes; expected multiple records", len(archive))
+	}
+	key := bytes.Repeat([]byte{0x31}, 32)
+	sealed := encryptedFixture(t, archive, "tenant-a", key)
+	badFinal := bytes.Clone(sealed)
+	badFinal[len(badFinal)-1] ^= 1
+	trailing := append(bytes.Clone(sealed), 0x42)
+	for _, tc := range []struct {
+		name    string
+		data    []byte
+		wantErr bool
+	}{
+		{"valid", sealed, false}, {"final-tag-tamper", badFinal, true}, {"trailing-byte", trailing, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root, dir := newTestRoot(t)
+			observed := &observingBackupReader{reader: bytes.NewReader(tc.data), root: dir}
+			err := root.RestoreEncryptedGzipTarNew(context.Background(), "restored", observed, "tenant-a", key, ArchiveLimits{})
+			if observed.observedErr != nil || !observed.sawTerminal {
+				t.Fatalf("authentication read observation: terminal=%t error=%v", observed.sawTerminal, observed.observedErr)
+			}
+			if tc.wantErr {
+				if !errors.Is(err, backups.ErrInvalidBackup) {
+					t.Fatalf("invalid input: %v", err)
+				}
+				entries, readErr := os.ReadDir(dir)
+				if readErr != nil || len(entries) != 0 {
+					t.Fatalf("invalid backup changed root: %v %v", entries, readErr)
+				}
+			} else {
+				if !observed.sawEOF {
+					t.Fatal("valid stream was not checked through EOF")
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, readErr := os.ReadFile(filepath.Join(dir, "restored", "asset.bin"))
+				if readErr != nil || !bytes.Equal(got, payload) {
+					t.Fatalf("valid restore mismatch: %v", readErr)
+				}
+			}
+		})
 	}
 }
