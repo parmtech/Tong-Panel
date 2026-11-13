@@ -1,0 +1,27 @@
+name: Isolated export CLI QA
+on:
+  push:
+    branches: ['codex/qa-export-cli-runtime-20261114']
+permissions:
+  contents: read
+jobs:
+  synthetic-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Run affected Linux tests
+        run: go test -race -count=1 ./cmd/tongbackup ./internal/files
+      - name: Build and exercise synthetic export process
+        run: |
+          test "$(id -u)" -ne 0
+          go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tongbackup" ./cmd/tongbackup
+          python3 scripts/test_backup_export_site_cli.py "$RUNNER_TEMP/tongbackup"
