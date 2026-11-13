@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"strings"
 
 	"golang.org/x/sys/unix"
 )
@@ -26,7 +27,9 @@ var (
 // MeasureUsage reports logical bytes in regular files beneath the pinned root.
 // Symlinks are skipped and never followed. The scan is bounded and serializes
 // against mutations performed through this Root; callers must also quiesce
-// external writers for a trustworthy reconciliation snapshot.
+// external writers for a trustworthy reconciliation snapshot. Any reserved root
+// archive stage makes usage unknown until its publication is reconciled; age,
+// ownership, permissions and an absent lock cannot prove it is safe to ignore.
 func (r *Root) MeasureUsage(maxEntries, maxDepth int) (int64, error) {
 	if r == nil {
 		return 0, ErrClosed
@@ -80,6 +83,9 @@ func scanUsageDirectory(dirFD int, depth int, root bool, state *usageScanState) 
 			return err
 		}
 		for _, name := range names {
+			if root && strings.HasPrefix(name, archiveStagePrefix) {
+				return ErrUsageSnapshotDirty
+			}
 			state.entries++
 			if state.entries > state.maxEntries {
 				return ErrUsageScanLimit
@@ -91,7 +97,7 @@ func scanUsageDirectory(dirFD int, depth int, root bool, state *usageScanState) 
 				}
 				return err
 			}
-			if root && (hasInternalStagePrefix(name)) {
+			if root && strings.HasPrefix(name, writeStagePrefix) {
 				if validInternalStageName(name) && before.Mode&unix.S_IFMT == unix.S_IFDIR &&
 					before.Uid == uint32(unix.Geteuid()) && before.Mode&0077 == 0 {
 					continue
