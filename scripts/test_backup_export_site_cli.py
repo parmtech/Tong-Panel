@@ -62,6 +62,17 @@ def main():
                 raise AssertionError("denied decrypt created an output")
         damaged = bytearray(sealed); damaged[len(damaged) // 2] ^= 1
         run(["verify", "--tenant", "tenant-a", "--key-file", str(key)], bytes(damaged), False)
+        for label, bad in (("damaged", bytes(damaged)), ("truncated", sealed[:-1])):
+            target = output / (label + ".tar.gz")
+            run(["decrypt", "--tenant", "tenant-a", "--key-file", str(key), "--output", str(target)], bad, False)
+            if target.exists() or any(p.name.startswith(".tong-backup-stage-") for p in output.iterdir()):
+                raise AssertionError("invalid decrypt published or left a plaintext stage")
+            if artifact.read_bytes() != sealed:
+                raise AssertionError("invalid decrypt changed the source artifact")
+        restored_again = output / "restored-again.tar.gz"
+        run(["decrypt", "--tenant", "tenant-a", "--key-file", str(key), "--output", str(restored_again)], sealed)
+        if restored_again.read_bytes() != archive.read_bytes():
+            raise AssertionError("valid decrypt after denial differed")
         run(args[:-1], success=False)  # missing explicit quiescence acknowledgement
         run(args, success=False)  # existing artifact must never be replaced
         if artifact.read_bytes() != sealed:
@@ -84,7 +95,7 @@ def main():
         run([*args[:-3], "--output", str(link_output), "--source-quiesced"], success=False)
         if link_output.exists():
             raise AssertionError("export accepted a source symlink")
-        if sorted(p.name for p in output.iterdir()) != ["restored.tar.gz", "site.tpbk"]:
+        if sorted(p.name for p in output.iterdir()) != ["restored-again.tar.gz", "restored.tar.gz", "site.tpbk"]:
             raise AssertionError("unexpected output or staging file remains")
     print("synthetic export-site CLI round trip and negative cases passed")
 
