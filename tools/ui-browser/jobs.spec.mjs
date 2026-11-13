@@ -547,6 +547,9 @@ test('Files text preview stays inert, bounded, and clears on navigation', async 
     await page.getByRole('button', { name: 'Preview text denied.txt' }).click();
     await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
     await expect(page.locator('#files-preview')).toBeHidden();
+    await expect(page.locator('#files-list .file-entry')).toHaveCount(0);
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
     await page.getByRole('button', { name: 'Preview text slow.txt' }).click();
     await started;
     await page.locator('#files-refresh').click();
