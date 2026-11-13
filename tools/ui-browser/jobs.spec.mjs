@@ -456,6 +456,60 @@ test('real Files handler pages and previews stay scoped to the authenticated ten
     await expect(page.locator('#files-list')).not.toContainText('b-only.txt');
 });
 
+test('Files prefix filter resets cursors and authorization failures clear rows', async ({ page }) => {
+    // These controlled responses exercise browser interactions only.
+    const requests = [];
+    let listStatus = 200;
+    let contentStatus = 200;
+    await page.route('**/api/v1/files?**', route => {
+        const url = new URL(route.request().url());
+        const prefix = url.searchParams.get('prefix');
+        const after = url.searchParams.get('after');
+        requests.push({ prefix, after, page: url.searchParams.get('page') });
+        if (listStatus !== 200) return route.fulfill({ status: listStatus, body: '' });
+        const entry = name => ({ name, kind: 'file', size: 3 });
+        const body = prefix === 'a' ? after ? { entries: [entry('a-two')], next_after: '' } : { entries: [entry('a-one')], next_after: 'a-one' }
+            : prefix === 'b' ? { entries: [entry('b-one')], next_after: '' }
+                : { entries: [entry('all-one')], next_after: '' };
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+    });
+    await page.route('**/api/v1/files/content?**', route => route.fulfill({ status: contentStatus, contentType: 'application/octet-stream', body: 'abc' }));
+    await open(page);
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-list')).toContainText('all-one');
+    await page.locator('#files-prefix').fill('a');
+    await page.getByRole('button', { name: 'Filter files' }).click();
+    await expect(page.locator('#files-list')).toContainText('a-one');
+    await page.locator('#files-next').click();
+    await expect(page.locator('#files-list')).toContainText('a-two');
+    await page.locator('#files-prefix').fill('b');
+    await page.getByRole('button', { name: 'Filter files' }).click();
+    await expect(page.locator('#files-list')).toContainText('b-one');
+    await expect(page.locator('#files-previous')).toBeDisabled();
+    expect(requests).toEqual([
+        { prefix: null, after: '', page: '1' }, { prefix: 'a', after: '', page: '1' },
+        { prefix: 'a', after: 'a-one', page: '1' }, { prefix: 'b', after: '', page: '1' },
+    ]);
+    await page.getByRole('button', { name: 'Preview text b-one' }).click();
+    await expect(page.locator('#files-preview-content')).toHaveText('abc');
+    listStatus = 401;
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
+    await expect(page.locator('#files-list .file-entry')).toHaveCount(0);
+    await expect(page.locator('#files-preview')).toBeHidden();
+    await expect(page.locator('#files-next')).toBeDisabled();
+    await expect(page.locator('#files-previous')).toBeDisabled();
+    listStatus = 200;
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-list')).toContainText('b-one');
+    contentStatus = 403;
+    await page.getByRole('button', { name: 'Preview text b-one' }).click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
+    await expect(page.locator('#files-list .file-entry')).toHaveCount(0);
+    await expect(page.locator('#files-preview')).toBeHidden();
+    await expect(page.locator('#files-next')).toBeDisabled();
+});
+
 test('Files text preview stays inert, bounded, and clears on navigation', async ({ page }) => {
     // Files responses are controlled here; the Linux handler is not exercised.
     let releaseSlow, markSlow, markFinished;
