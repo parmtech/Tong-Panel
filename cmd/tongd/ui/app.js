@@ -2,7 +2,7 @@ import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
 import { loadSitesPage } from './sites-list.mjs';
 import { mountACMEPreflight } from './acme-preflight.mjs';
-import { downloadTenantFile, listTenantFilesPage } from './files-explorer.mjs';
+import { downloadTenantFile, listTenantFilesPage, previewTenantText } from './files-explorer.mjs';
 import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';
 mountACMEPreflight();
 const tiles = [
@@ -475,6 +475,24 @@ jobsNext?.addEventListener('click', () => { if (jobsNextAfter)
     void showJobsPage([...jobsCursors, jobsNextAfter], true); });
 jobDetailRetry?.addEventListener('click', () => { if (selectedJob)
     void selectJob(selectedJob, true); });
+const filesPreview = document.querySelector('#files-preview');
+const filesPreviewTitle = document.querySelector('#files-preview-title');
+const filesPreviewContent = document.querySelector('#files-preview-content');
+const filesPreviewClose = document.querySelector('#files-preview-close');
+let filesPreviewRequestID = 0;
+function clearFilePreview() {
+    filesPreviewRequestID++;
+    if (filesPreview)
+        filesPreview.hidden = true;
+    if (filesPreviewContent)
+        filesPreviewContent.textContent = '';
+    if (filesPreviewTitle)
+        filesPreviewTitle.textContent = 'Text preview';
+}
+filesPreviewClose?.addEventListener('click', clearFilePreview);
+document.addEventListener('visibilitychange', () => { if (document.hidden)
+    clearFilePreview(); });
+window.addEventListener('blur', clearFilePreview);
 const filesRefresh = document.querySelector('#files-refresh');
 const filesNext = document.querySelector('#files-next');
 const filesPrevious = document.querySelector('#files-previous');
@@ -549,6 +567,13 @@ function renderFilesEntries(entries) {
             download.setAttribute('aria-label', `Download ${entry.name}`);
             download.addEventListener('click', () => void downloadFile(entry.name, download));
             item.append(download);
+            const preview = document.createElement('button');
+            preview.type = 'button';
+            preview.textContent = 'Preview text';
+            preview.setAttribute('aria-label', `Preview text ${entry.name}`);
+            preview.disabled = entry.size > 256 * 1024;
+            preview.addEventListener('click', () => void showFilePreview(entry.name));
+            item.append(preview);
         }
         filesList.append(item);
     }
@@ -562,6 +587,7 @@ function renderFilesEntries(entries) {
 async function refreshFiles(history = ['']) {
     if (!filesRefresh || !filesStatus || !filesList)
         return;
+    clearFilePreview();
     const requestID = ++filesRequestID;
     const requestedPath = filesPath.join('/');
     filesRefresh.disabled = true;
@@ -621,6 +647,38 @@ filesPrevious?.addEventListener('click', () => {
     if (filesHistory.length > 1)
         void refreshFiles(filesHistory.slice(0, -1));
 });
+async function showFilePreview(name) {
+    clearFilePreview();
+    const requestID = filesPreviewRequestID;
+    if (filesStatus) {
+        filesStatus.dataset.state = 'loading';
+        filesStatus.textContent = 'Loading text preview…';
+    }
+    try {
+        const text = await previewTenantText([...filesPath, name].join('/'));
+        if (requestID !== filesPreviewRequestID || document.hidden || !document.hasFocus())
+            return;
+        if (filesPreviewTitle)
+            filesPreviewTitle.textContent = `Text preview: ${name}`;
+        if (filesPreviewContent)
+            filesPreviewContent.textContent = text;
+        if (filesPreview)
+            filesPreview.hidden = false;
+        if (filesStatus) {
+            filesStatus.dataset.state = 'available';
+            filesStatus.textContent = 'Text preview loaded.';
+        }
+    }
+    catch (error) {
+        if (requestID !== filesPreviewRequestID)
+            return;
+        clearFilePreview();
+        if (filesStatus) {
+            filesStatus.dataset.state = 'unavailable';
+            filesStatus.textContent = error instanceof Error ? error.message : 'Text preview unavailable.';
+        }
+    }
+}
 async function downloadFile(name, button) {
     button.disabled = true;
     try {
@@ -640,6 +698,7 @@ async function downloadFile(name, button) {
         }
     }
     catch (error) {
+        clearFilePreview();
         if (filesStatus) {
             filesStatus.dataset.state = 'unavailable';
             filesStatus.textContent = error instanceof Error ? error.message : 'The file could not be downloaded. Try again.';

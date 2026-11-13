@@ -16,6 +16,7 @@ declare module '*.mjs' {
     export interface FileEntry { name: string; kind: 'file' | 'directory' | 'symlink' | 'other'; size: number; }
     export function listTenantFiles(path: string, fetcher?: typeof fetch): Promise<FileEntry[]>;
     export function listTenantFilesPage(path: string, after?: string, fetcher?: typeof fetch): Promise<{entries: FileEntry[]; next_after: string}>;
+    export function previewTenantText(path: string, fetcher?: typeof fetch): Promise<string>;
     export function downloadTenantFile(path: string, fetcher?: typeof fetch): Promise<{ name: string; blob: Blob }>;
     export interface MyJob {
         id: string;

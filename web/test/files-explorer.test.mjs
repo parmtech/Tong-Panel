@@ -99,7 +99,7 @@ test('wires an accessible read-only explorer without upload, edit or delete cont
     assert.match(html, /id="files-explorer-title"/);
     assert.match(html, /id="files-refresh" type="button"/);
     assert.match(html, /id="files-status" class="files-status" role="status" aria-live="polite"/);
-    assert.match(app, /import \{ downloadTenantFile, listTenantFilesPage \} from '\.\/files-explorer\.mjs'/);
+    assert.match(app, /import \{ downloadTenantFile, listTenantFilesPage, previewTenantText \} from '\.\/files-explorer\.mjs'/);
     assert.match(app, /name\.textContent =/);
     assert.match(html, /Files are not loaded/);
     assert.match(app, /filesRefresh\?\.addEventListener\('click'/);
@@ -133,7 +133,7 @@ test('loads a single paged directory response and rejects a stalled cursor', asy
     const elements = new Map(ids.map(id => [id, new Element()]));
     const calls = []; let fail = false;
     const context = {document: {querySelector: id => elements.get(id), createElement: () => new Element()},
-        listTenantFilesPage: async (path, after) => {
+        clearFilePreview: () => {}, listTenantFilesPage: async (path, after) => {
             calls.push({path,after});
             if (fail) throw new Error('network failure');
             return after === '' ? {entries:[{name:'a',kind:'file',size:1}],next_after:'a'} : {entries:[{name:'b',kind:'file',size:1}],next_after:''};
@@ -147,4 +147,33 @@ test('loads a single paged directory response and rejects a stalled cursor', asy
     fail=false; previous.click(); await flush(); assert.equal(previous.disabled,true); assert.match(status.textContent,/Page 1:/);
     next.click(); await flush(); refresh.click(); await flush(); assert.equal(previous.disabled,true); assert.match(status.textContent,/Page 1:/);
     assert.deepEqual(calls.map(c => c.after),['','a','','','a','']);
+});
+
+test('text preview streams with hard size, UTF-8 and binary checks', async () => {
+    const { previewTenantText } = await import('../../cmd/tongd/ui/files-explorer.mjs');
+    const make = (chunks, length = null) => ({ok:true,status:200,headers:new Headers({...{'Content-Type':'application/octet-stream'}, ...(length===null ? {} : {'Content-Length':length})}), body: new ReadableStream({start(controller){ for(const chunk of chunks) controller.enqueue(chunk); controller.close(); }})});
+    let url;
+    const text = await previewTenantText('a/file', async u => {url=u; return make([new TextEncoder().encode('<script>safe text</script>')]);});
+    assert.equal(url, '/api/v1/files/content?path=a%2Ffile'); assert.equal(text,'<script>safe text</script>');
+    await assert.rejects(previewTenantText('a',async () => make([], '262145')), /too large/);
+    await assert.rejects(previewTenantText('a',async () => make([new Uint8Array(262145)])), /too large/);
+    await assert.rejects(previewTenantText('a',async () => make([new Uint8Array(262144),new Uint8Array(1)],'1')), /too large/);
+    await assert.rejects(previewTenantText('a',async () => make([new Uint8Array([0xff])])), /UTF-8/);
+    await assert.rejects(previewTenantText('a',async () => make([new Uint8Array([0])])), /UTF-8/);
+    await assert.rejects(previewTenantText('a',async () => ({ok:false,status:403})), /cannot access/);
+});
+
+test('preview renders inert text and ignores results after closing', async () => {
+    const { runInNewContext } = await import('node:vm');
+    const app = await readFile(new URL('../../cmd/tongd/ui/app.js', import.meta.url),'utf8');
+    const setup = app.slice(app.indexOf('const filesPreview ='),app.indexOf('const filesRefresh ='));
+    const preview = app.slice(app.indexOf('async function showFilePreview('),app.indexOf('async function downloadFile('));
+    const elements = new Map(['#files-preview','#files-preview-title','#files-preview-content','#files-preview-close'].map(id => [id,{hidden:true,textContent:'',addEventListener(){}}]));
+    const document = {querySelector:id => elements.get(id), addEventListener(){}, hidden:false, hasFocus:()=>true};
+    let resolve; const context={document,window:{addEventListener(){}},filesPath:['site'],filesStatus:{textContent:'',dataset:{}},previewTenantText:()=>new Promise(r=>{resolve=r;})};
+    const api=runInNewContext(setup+preview+'\n({showFilePreview,clearFilePreview})',context);
+    const first=api.showFilePreview('file'); resolve('<script>inert</script>'); await first;
+    assert.equal(elements.get('#files-preview-content').textContent,'<script>inert</script>'); assert.equal(elements.get('#files-preview').hidden,false);
+    const second=api.showFilePreview('file'); api.clearFilePreview(); resolve('stale secret'); await second;
+    assert.equal(elements.get('#files-preview-content').textContent,''); assert.equal(elements.get('#files-preview').hidden,true);
 });

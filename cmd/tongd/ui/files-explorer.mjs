@@ -146,3 +146,53 @@ export async function downloadTenantFile(path, fetcher = fetch, timeoutOverride)
         throw new FilesExplorerError('The file could not be reached. Check your connection and try again.');
     }
 }
+
+// Text preview uses bounded streaming; never buffer an unbounded response.
+export async function previewTenantText(path, fetcher = fetch, timeoutOverride) {
+    const safePath = validateFilesPath(path);
+    if (!safePath) throw new FilesExplorerError('Choose a file to preview.');
+    const maxBytes = 256 * 1024;
+    try {
+        return await withTimeout(fetcher, filesURL(safePath, true), {
+            method: 'GET', credentials: 'same-origin', cache: 'no-store',
+            headers: { Accept: 'application/octet-stream' },
+        }, async response => {
+            if (!response.ok) throw new FilesExplorerError(failureMessage(response.status));
+            if (response.headers?.get?.('Content-Type')?.toLowerCase() !== 'application/octet-stream')
+                throw new FilesExplorerError('The server returned an unexpected file format.');
+            const length = response.headers?.get?.('Content-Length');
+            if (length !== null && length !== undefined && (!/^\d+$/u.test(length) || Number(length) > maxBytes)) {
+                if (response.body?.cancel) void response.body.cancel().catch(() => {});
+                throw new FilesExplorerError('This file is too large to preview.');
+            }
+            if (!response.body?.getReader) throw new FilesExplorerError('Text preview is unavailable in this browser.');
+            const reader = response.body.getReader();
+            const chunks = []; let total = 0;
+            try {
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) break;
+                    if (!(value instanceof Uint8Array) || value.byteLength > maxBytes - total)
+                        throw new FilesExplorerError('This file is too large to preview.');
+                    total += value.byteLength;
+                    chunks.push(value);
+                }
+            } catch (error) {
+                void reader.cancel().catch(() => {});
+                throw error;
+            } finally { reader.releaseLock(); }
+            const bytes = new Uint8Array(total); let offset = 0;
+            for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+            let text;
+            try { text = new TextDecoder('utf-8', {fatal:true}).decode(bytes); }
+            catch { throw new FilesExplorerError('Only UTF-8 text files can be previewed.'); }
+            if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(text))
+                throw new FilesExplorerError('Only UTF-8 text files can be previewed.');
+            return text;
+        }, timeoutOverride);
+    } catch (error) {
+        if (error instanceof FilesExplorerError) throw error;
+        if (error?.name === 'AbortError') throw new FilesExplorerError('The file request timed out. Try again.');
+        throw new FilesExplorerError('Files could not be reached. Check your connection and try again.');
+    }
+}

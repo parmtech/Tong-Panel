@@ -125,6 +125,7 @@ test('Refresh button announces a result, blocks duplicate clicks, then retries',
         querySelector: (selector) => elements.get(selector) ?? null,
         createElement: () => new FakeElement(),
         documentElement: { dataset: {} },
+        addEventListener: () => {},
     };
     const pending = [];
     const calls = [];
@@ -139,11 +140,12 @@ test('Refresh button announces a result, blocks duplicate clicks, then retries',
         .replace("import { loadNginxPreview } from './site-preview.mjs';", 'const loadNginxPreview = globalThis.testLoadNginxPreview;')
         .replace("import { loadSitesPage } from './sites-list.mjs';", 'const loadSitesPage = globalThis.testLoadSitesPage;')
         .replace("import { mountACMEPreflight } from './acme-preflight.mjs';", 'const mountACMEPreflight = () => {};')
-        .replace("import { downloadTenantFile, listTenantFilesPage } from './files-explorer.mjs';", 'const downloadTenantFile = globalThis.testDownloadTenantFile; const listTenantFilesPage = globalThis.testListTenantFilesPage;')
+        .replace("import { downloadTenantFile, listTenantFilesPage, previewTenantText } from './files-explorer.mjs';", 'const downloadTenantFile = globalThis.testDownloadTenantFile; const listTenantFilesPage = globalThis.testListTenantFilesPage; const previewTenantText = globalThis.testPreviewTenantText;')
         .replace("import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';", 'const loadMyJobsPage = globalThis.testLoadMyJobsPage; const loadMyJob = globalThis.testLoadMyJob; const MyJobsError = globalThis.testMyJobsError;')
         .replace(/\nexport \{\};\s*$/, '\n');
     runInNewContext(source, {
         document,
+        window: { addEventListener: () => {} },
         testLoadPanelStatus: () => loadPanelStatus(fetcher),
         testLoadMyJobsPage: async () => ({ jobs: [], next_after: '' }),
         testLoadMyJob: async () => ({}),
