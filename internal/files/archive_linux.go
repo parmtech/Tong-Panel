@@ -328,6 +328,12 @@ func (r *Root) ExtractGzipTarNewFrom(relative string, src io.Reader, limits Arch
 }
 
 func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits, logicalBytes *int64) error {
+	return parseGzipTar(stageFD, archive, limits, logicalBytes, false)
+}
+
+// parseGzipTar uses one validation path for extraction and no-write inspection.
+// Validation-only mode consumes file bytes but never calls filesystem writers.
+func parseGzipTar(stageFD int, archive []byte, limits ArchiveLimits, logicalBytes *int64, validateOnly bool) error {
 	source := bytes.NewReader(archive)
 	gz, err := gzip.NewReader(source)
 	if err != nil {
@@ -373,7 +379,7 @@ func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits, logicalBy
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := ensureArchiveDirs(stageFD, name, directories, files, &nodes, limits.Entries); err != nil {
+			if err := ensureArchiveDirs(stageFD, name, directories, files, &nodes, limits.Entries, validateOnly); err != nil {
 				return err
 			}
 		case tar.TypeReg, tar.TypeRegA:
@@ -382,38 +388,48 @@ func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits, logicalBy
 			}
 			parent := path.Dir(name)
 			if parent != "." {
-				if err := ensureArchiveDirs(stageFD, parent, directories, files, &nodes, limits.Entries); err != nil {
+				if err := ensureArchiveDirs(stageFD, parent, directories, files, &nodes, limits.Entries, validateOnly); err != nil {
 					return err
 				}
 			}
 			if _, exists := directories[name]; exists {
 				return ErrInvalidArchive
 			}
-			fd, err := unix.Openat2(stageFD, name, &unix.OpenHow{
-				Flags:   uint64(unix.O_WRONLY | unix.O_CREAT | unix.O_EXCL | unix.O_CLOEXEC | unix.O_NOFOLLOW | unix.O_NONBLOCK | unix.O_NOCTTY),
-				Mode:    0600,
-				Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
-			})
-			if err != nil {
-				return ErrInvalidArchive
-			}
-			f := os.NewFile(uintptr(fd), name)
-			written, copyErr := io.CopyN(f, tr, header.Size)
-			if copyErr == nil && written != header.Size {
-				copyErr = io.ErrUnexpectedEOF
-			}
-			if copyErr == nil {
-				copyErr = f.Sync()
-			}
-			closeErr := f.Close()
-			if copyErr != nil {
-				if bounded.N == 0 {
-					return ErrArchiveLimit
+			if validateOnly {
+				written, copyErr := io.CopyN(io.Discard, tr, header.Size)
+				if copyErr != nil || written != header.Size {
+					if bounded.N == 0 {
+						return ErrArchiveLimit
+					}
+					return ErrInvalidArchive
 				}
-				return ErrInvalidArchive
-			}
-			if closeErr != nil {
-				return closeErr
+			} else {
+				fd, err := unix.Openat2(stageFD, name, &unix.OpenHow{
+					Flags:   uint64(unix.O_WRONLY | unix.O_CREAT | unix.O_EXCL | unix.O_CLOEXEC | unix.O_NOFOLLOW | unix.O_NONBLOCK | unix.O_NOCTTY),
+					Mode:    0600,
+					Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+				})
+				if err != nil {
+					return ErrInvalidArchive
+				}
+				f := os.NewFile(uintptr(fd), name)
+				written, copyErr := io.CopyN(f, tr, header.Size)
+				if copyErr == nil && written != header.Size {
+					copyErr = io.ErrUnexpectedEOF
+				}
+				if copyErr == nil {
+					copyErr = f.Sync()
+				}
+				closeErr := f.Close()
+				if copyErr != nil {
+					if bounded.N == 0 {
+						return ErrArchiveLimit
+					}
+					return ErrInvalidArchive
+				}
+				if closeErr != nil {
+					return closeErr
+				}
 			}
 			nodes++
 			if nodes > limits.Entries {
@@ -470,7 +486,7 @@ func cleanArchivePath(name string, directory bool) (string, error) {
 	return name, nil
 }
 
-func ensureArchiveDirs(stageFD int, name string, directories, files map[string]struct{}, nodes *int, maxNodes int) error {
+func ensureArchiveDirs(stageFD int, name string, directories, files map[string]struct{}, nodes *int, maxNodes int, validateOnly bool) error {
 	current := ""
 	for _, part := range strings.Split(name, "/") {
 		if current == "" {
@@ -484,13 +500,15 @@ func ensureArchiveDirs(stageFD int, name string, directories, files map[string]s
 		if _, exists := directories[current]; exists {
 			continue
 		}
-		if err := unix.Mkdirat(stageFD, current, 0700); err != nil {
-			if !errors.Is(err, unix.EEXIST) {
-				return ErrInvalidArchive
-			}
-			var stat unix.Stat_t
-			if err := unix.Fstatat(stageFD, current, &stat, unix.AT_SYMLINK_NOFOLLOW); err != nil || stat.Mode&unix.S_IFMT != unix.S_IFDIR {
-				return ErrInvalidArchive
+		if !validateOnly {
+			if err := unix.Mkdirat(stageFD, current, 0700); err != nil {
+				if !errors.Is(err, unix.EEXIST) {
+					return ErrInvalidArchive
+				}
+				var stat unix.Stat_t
+				if err := unix.Fstatat(stageFD, current, &stat, unix.AT_SYMLINK_NOFOLLOW); err != nil || stat.Mode&unix.S_IFMT != unix.S_IFDIR {
+					return ErrInvalidArchive
+				}
 			}
 		}
 		*nodes++

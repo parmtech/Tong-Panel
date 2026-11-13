@@ -23,7 +23,7 @@ func main() {
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: tongbackup encrypt|decrypt|rotate|verify|export-site|restore-site-lab with the required flags")
+		return errors.New("usage: tongbackup encrypt|decrypt|rotate|verify|verify-site|export-site|restore-site-lab with the required flags")
 	}
 	operation := args[0]
 	if operation == "export-site" {
@@ -32,8 +32,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	if operation == "restore-site-lab" {
 		return runRestoreSiteLab(args[1:], stdin)
 	}
-	if operation == "verify" && !validVerifyFlags(args[1:]) {
-		return errors.New("verify requires exactly one tenant and key-file flag")
+	if (operation == "verify" || operation == "verify-site") && !validVerifyFlags(args[1:]) {
+		return errors.New("verify and verify-site require exactly one tenant and key-file flag")
 	}
 	flags := flag.NewFlagSet("tongbackup "+operation, flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
@@ -42,9 +42,9 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	keyPath := flags.String("key-file", "", "externally managed 32-byte wrapping-key file")
 	oldKeyPath := flags.String("old-key-file", "", "old wrapping-key file used by rotate")
 	if err := flags.Parse(args[1:]); err != nil || len(flags.Args()) != 0 {
-		return errors.New("invalid arguments; run tongbackup encrypt|decrypt|rotate|verify with the required flags")
+		return errors.New("invalid arguments; provide the required flags for the selected operation")
 	}
-	if operation == "verify" {
+	if operation == "verify" || operation == "verify-site" {
 		invalidFlag := false
 		flags.Visit(func(f *flag.Flag) {
 			if f.Name == "output" || f.Name == "old-key-file" {
@@ -52,7 +52,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 			}
 		})
 		if invalidFlag {
-			return errors.New("output and old-key-file are not valid for verify")
+			return errors.New("output and old-key-file are not valid for verification")
 		}
 		if strings.TrimSpace(*tenantID) == "" || *keyPath == "" {
 			return errors.New("tenant and key-file are required")
@@ -67,6 +67,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	defer wipeKey(newKey)
 
 	switch operation {
+	case "verify-site":
+		return verifySiteArchive(stdin, *tenantID, newKey)
 	case "verify":
 		return backups.Verify(stdin, *tenantID, newKey, backups.Options{})
 	case "encrypt":
@@ -90,7 +92,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 		defer wipeKey(oldKey)
 		return backups.RotateWrappingKeyFile(*outputPath, stdin, *tenantID, oldKey, newKey, backups.Options{})
 	default:
-		return errors.New("operation must be encrypt, decrypt, rotate, or verify")
+		return errors.New("operation must be encrypt, decrypt, rotate, verify, verify-site, export-site, or restore-site-lab")
 	}
 }
 
