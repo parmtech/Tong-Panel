@@ -75,9 +75,12 @@ func ParseListeningTCP(raw string) (map[uint16]bool, error) {
 	}
 	for _, line := range lines[1:] {
 		parts := strings.Fields(line)
-		if len(parts) < 4 {
+		if len(parts) == 0 {
 			continue
-		} // kernel race; ignore incomplete record
+		}
+		if len(parts) < 4 {
+			return nil, errors.New("incomplete proc tcp record")
+		}
 		if parts[3] != "0A" {
 			continue
 		} // TCP_LISTEN only

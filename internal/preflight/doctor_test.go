@@ -31,6 +31,23 @@ func TestParseAvailableMemory(t *testing.T) {
 	}
 }
 
+func TestListeningPortParsingRejectsIncompleteRecords(t *testing.T) {
+	const header = "  sl  local_address rem_address st\n"
+	for _, row := range []string{
+		"0:",
+		"0: 00000000:0050",
+		"0: 00000000:0050 00000000:0000",
+	} {
+		if ports, err := ParseListeningTCP(header + row + "\n"); err == nil || ports != nil {
+			t.Fatalf("incomplete record %q reported ports=%v err=%v", row, ports, err)
+		}
+	}
+	ports, err := ParseListeningTCP(header + "0: 00000000:0050 00000000:0000 0A 0:0\n\n")
+	if err != nil || !ports[80] {
+		t.Fatalf("valid listening row: ports=%v err=%v", ports, err)
+	}
+}
+
 func TestReadOnlyListeningPortParsing(t *testing.T) {
 	lines := "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt uid timeout inode\n" +
 		"   0: 00000000:0050 00000000:0000 0A 0:0 00:0 0 0 0 0\n" +

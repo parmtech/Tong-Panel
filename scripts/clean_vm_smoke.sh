@@ -119,6 +119,7 @@ retry_guest_scp scripts/smoke_p1.py "$guest:/home/ci/smoke_p1.py"
 retry_guest_scp scripts/p2_package_install_vm.sh "$guest:/home/ci/p2_package_install_vm.sh"
 retry_guest_scp scripts/probe_https_isolation.py "$guest:/home/ci/probe_https_isolation.py"
 
+retry_guest_scp scripts/run_dpkg_labs.py "$guest:/home/ci/run_dpkg_labs.py"
 retry_guest_scp scripts/test_dpkg_failure_recovery_lab.py "$guest:/home/ci/test_dpkg_failure_recovery_lab.py"
 retry_guest_scp scripts/test_dpkg_crash_recovery_lab.py "$guest:/home/ci/test_dpkg_crash_recovery_lab.py"
 retry_guest_scp scripts/smoke_wordpress_backup_source.sh "$guest:/home/ci/smoke_wordpress_backup_source.sh"
@@ -135,8 +136,8 @@ printf 'Clean guest: %s (%s), uid=%s\n' "$PRETTY_NAME" "$VERSION_ID" "$(id -u)"
 cd /home/ci
 # This test runs unprivileged with a private dpkg database/root and inert hooks.
 # It never uses the guest's real apt/dpkg database or installs Tong Panel.
-TONG_DISPOSABLE_DPKG_LAB=1 python3 /home/ci/test_dpkg_failure_recovery_lab.py -v
-TONG_DISPOSABLE_DPKG_LAB=1 python3 -m unittest discover -s /home/ci -p 'test_dpkg_crash_recovery_lab.py' -v
+TONG_DISPOSABLE_DPKG_LAB=1 python3 /home/ci/run_dpkg_labs.py failure
+TONG_DISPOSABLE_DPKG_LAB=1 python3 /home/ci/run_dpkg_labs.py crash
 sha256sum -c SHA256SUMS
 tar -xzf tong-p1-UNSIGNED-dev-linux-amd64.tar.gz
 test -x tong-p1-dev/bin/tongd
