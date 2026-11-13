@@ -1,6 +1,7 @@
 import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
 import { loadSitesPage } from './sites-list.mjs';
+import { loadSiteDetails } from './site-details.mjs';
 import { mountACMEPreflight } from './acme-preflight.mjs';
 import { downloadTenantFile, listTenantFilesPage, previewTenantText, FilesExplorerError, type FileEntry } from './files-explorer.mjs';
 import { loadMyJobsPage, loadMyJob, MyJobsError, type MyJob } from './my-jobs.mjs';
@@ -77,6 +78,54 @@ async function refreshStatus():Promise<void>{
 }
 refreshStatusButton?.addEventListener('click',()=>void refreshStatus());
 void refreshStatus();
+const siteDetails = document.querySelector<HTMLElement>('#site-details');
+const siteDetailsTitle = document.querySelector<HTMLElement>('#site-details-title');
+const siteDetailsStatus = document.querySelector<HTMLElement>('#site-details-status');
+const siteDetailsFields = document.querySelector<HTMLElement>('#site-details-fields');
+const siteDetailsDomains = document.querySelector<HTMLElement>('#site-details-domains');
+const siteDetailsClose = document.querySelector<HTMLButtonElement>('#site-details-close');
+let siteDetailsRequest = 0;
+let siteDetailsController: AbortController | undefined;
+function clearSiteDetails(): void {
+ ++siteDetailsRequest; siteDetailsController?.abort(); siteDetailsController = undefined;
+ if (siteDetails) siteDetails.hidden = true;
+ siteDetailsFields?.replaceChildren(); siteDetailsDomains?.replaceChildren();
+ if (siteDetailsStatus) siteDetailsStatus.textContent = '';
+ if (siteDetailsTitle) siteDetailsTitle.textContent = 'Site details';
+}
+siteDetailsClose?.addEventListener('click', clearSiteDetails);
+document.addEventListener('visibilitychange', () => { if (document.hidden) clearSiteDetails(); });
+window.addEventListener('blur', clearSiteDetails);
+async function showSiteDetails(id: string): Promise<void> {
+ clearSiteDetails();
+ const request = siteDetailsRequest;
+ const controller = new AbortController(); siteDetailsController = controller;
+ if (siteDetails) siteDetails.hidden = false;
+ if (siteDetailsStatus) siteDetailsStatus.textContent = 'Loading site details…';
+ try {
+  const record = await loadSiteDetails(id, undefined, controller.signal);
+  if (request !== siteDetailsRequest || controller.signal.aborted || document.hidden || !document.hasFocus()) return;
+  if (siteDetailsTitle) siteDetailsTitle.textContent = `Site details: ${record.siteID}`;
+  if (siteDetailsFields) {
+   const term = document.createElement('dt'); term.textContent = 'Document root (tenant-relative)';
+   const value = document.createElement('dd'); value.textContent = record.documentRoot;
+   siteDetailsFields.replaceChildren(term, value);
+  }
+  if (siteDetailsDomains) for (const domain of record.domains) {
+   const item = document.createElement('li'); item.textContent = `${domain.name} · ${domain.kind} · ${domain.state}`; siteDetailsDomains.append(item);
+  }
+  if (siteDetailsStatus) siteDetailsStatus.textContent = 'Catalog metadata only; verification status does not confirm current DNS control or provisioned hosting.';
+  siteDetailsTitle?.focus();
+ } catch (error) {
+  if (request !== siteDetailsRequest || controller.signal.aborted) return;
+  const message = error instanceof Error ? error.message : 'Site details could not be loaded.';
+  if (message === 'A secure browser session is required to view sites.' || message === 'Your account cannot view sites.') {
+   ++sitesRequest; sitesController?.abort(); sitesList?.replaceChildren(); if (sitesPager) sitesPager.hidden = true;
+   ++sitePreviewRequest; if (sitePreviewOutput) { sitePreviewOutput.hidden = true; sitePreviewOutput.textContent = ''; }
+  }
+  if (siteDetailsStatus) siteDetailsStatus.textContent = message;
+ }
+}
 const sitesLoad = document.querySelector<HTMLButtonElement>('#sites-load');
 const sitesStatus = document.querySelector<HTMLElement>('#sites-status');
 const sitesList = document.querySelector<HTMLUListElement>('#sites-list');
@@ -88,6 +137,7 @@ let sitesCursors = [''], sitesNextAfter = '', sitesRequest = 0;
 let sitesController: AbortController | undefined;
 async function showSites(cursors: string[], moveFocus = false): Promise<void> {
  if (!sitesStatus || !sitesList || !sitesLoad) return;
+ clearSiteDetails();
  const request = ++sitesRequest; sitesController?.abort(); sitesController = new AbortController();
  const controller = sitesController;
  sitesList.replaceChildren(); sitesList.setAttribute('aria-busy', 'true');
@@ -109,7 +159,10 @@ async function showSites(cursors: string[], moveFocus = false): Promise<void> {
     if (sitePreviewStatus) { sitePreviewStatus.dataset.state = ''; sitePreviewStatus.textContent = 'No preview loaded.'; }
     if (sitePreviewID) { sitePreviewID.value = site.site_id; sitePreviewID.focus(); }
    });
-   row.append(label, button); sitesList.append(row);
+   const details = document.createElement('button'); details.type = 'button'; details.textContent = 'View details';
+   details.setAttribute('aria-label', `View details for ${site.site_id}`);
+   details.addEventListener('click', () => { if (request === sitesRequest && !controller.signal.aborted) void showSiteDetails(site.site_id); });
+   row.append(label, details, button); sitesList.append(row);
   }
   sitesStatus.dataset.state = page.sites.length ? 'available' : 'empty';
   sitesStatus.textContent = page.sites.length ? `Page ${cursors.length}: ${page.sites.length} catalog sites. Domain status does not confirm hosting is provisioned.` : 'No sites found in this workspace.';

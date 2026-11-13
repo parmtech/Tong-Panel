@@ -1,6 +1,7 @@
 import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
 import { loadSitesPage } from './sites-list.mjs';
+import { loadSiteDetails } from './site-details.mjs';
 import { mountACMEPreflight } from './acme-preflight.mjs';
 import { downloadTenantFile, listTenantFilesPage, previewTenantText, FilesExplorerError } from './files-explorer.mjs';
 import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';
@@ -101,6 +102,83 @@ async function refreshStatus() {
 }
 refreshStatusButton?.addEventListener('click', () => void refreshStatus());
 void refreshStatus();
+const siteDetails = document.querySelector('#site-details');
+const siteDetailsTitle = document.querySelector('#site-details-title');
+const siteDetailsStatus = document.querySelector('#site-details-status');
+const siteDetailsFields = document.querySelector('#site-details-fields');
+const siteDetailsDomains = document.querySelector('#site-details-domains');
+const siteDetailsClose = document.querySelector('#site-details-close');
+let siteDetailsRequest = 0;
+let siteDetailsController;
+function clearSiteDetails() {
+    ++siteDetailsRequest;
+    siteDetailsController?.abort();
+    siteDetailsController = undefined;
+    if (siteDetails)
+        siteDetails.hidden = true;
+    siteDetailsFields?.replaceChildren();
+    siteDetailsDomains?.replaceChildren();
+    if (siteDetailsStatus)
+        siteDetailsStatus.textContent = '';
+    if (siteDetailsTitle)
+        siteDetailsTitle.textContent = 'Site details';
+}
+siteDetailsClose?.addEventListener('click', clearSiteDetails);
+document.addEventListener('visibilitychange', () => { if (document.hidden)
+    clearSiteDetails(); });
+window.addEventListener('blur', clearSiteDetails);
+async function showSiteDetails(id) {
+    clearSiteDetails();
+    const request = siteDetailsRequest;
+    const controller = new AbortController();
+    siteDetailsController = controller;
+    if (siteDetails)
+        siteDetails.hidden = false;
+    if (siteDetailsStatus)
+        siteDetailsStatus.textContent = 'Loading site details…';
+    try {
+        const record = await loadSiteDetails(id, undefined, controller.signal);
+        if (request !== siteDetailsRequest || controller.signal.aborted || document.hidden || !document.hasFocus())
+            return;
+        if (siteDetailsTitle)
+            siteDetailsTitle.textContent = `Site details: ${record.siteID}`;
+        if (siteDetailsFields) {
+            const term = document.createElement('dt');
+            term.textContent = 'Document root (tenant-relative)';
+            const value = document.createElement('dd');
+            value.textContent = record.documentRoot;
+            siteDetailsFields.replaceChildren(term, value);
+        }
+        if (siteDetailsDomains)
+            for (const domain of record.domains) {
+                const item = document.createElement('li');
+                item.textContent = `${domain.name} · ${domain.kind} · ${domain.state}`;
+                siteDetailsDomains.append(item);
+            }
+        if (siteDetailsStatus)
+            siteDetailsStatus.textContent = 'Catalog metadata only; verification status does not confirm current DNS control or provisioned hosting.';
+        siteDetailsTitle?.focus();
+    }
+    catch (error) {
+        if (request !== siteDetailsRequest || controller.signal.aborted)
+            return;
+        const message = error instanceof Error ? error.message : 'Site details could not be loaded.';
+        if (message === 'A secure browser session is required to view sites.' || message === 'Your account cannot view sites.') {
+            ++sitesRequest;
+            sitesController?.abort();
+            sitesList?.replaceChildren();
+            if (sitesPager)
+                sitesPager.hidden = true;
+            ++sitePreviewRequest;
+            if (sitePreviewOutput) {
+                sitePreviewOutput.hidden = true;
+                sitePreviewOutput.textContent = '';
+            }
+        }
+        if (siteDetailsStatus)
+            siteDetailsStatus.textContent = message;
+    }
+}
 const sitesLoad = document.querySelector('#sites-load');
 const sitesStatus = document.querySelector('#sites-status');
 const sitesList = document.querySelector('#sites-list');
@@ -113,6 +191,7 @@ let sitesController;
 async function showSites(cursors, moveFocus = false) {
     if (!sitesStatus || !sitesList || !sitesLoad)
         return;
+    clearSiteDetails();
     const request = ++sitesRequest;
     sitesController?.abort();
     sitesController = new AbortController();
@@ -155,7 +234,13 @@ async function showSites(cursors, moveFocus = false) {
                     sitePreviewID.focus();
                 }
             });
-            row.append(label, button);
+            const details = document.createElement('button');
+            details.type = 'button';
+            details.textContent = 'View details';
+            details.setAttribute('aria-label', `View details for ${site.site_id}`);
+            details.addEventListener('click', () => { if (request === sitesRequest && !controller.signal.aborted)
+                void showSiteDetails(site.site_id); });
+            row.append(label, details, button);
             sitesList.append(row);
         }
         sitesStatus.dataset.state = page.sites.length ? 'available' : 'empty';

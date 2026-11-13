@@ -138,6 +138,7 @@ test('Refresh button announces a result, blocks duplicate clicks, then retries',
     const source = (await readFile(new URL('../../cmd/tongd/ui/app.js', import.meta.url), 'utf8'))
         .replace("import { loadPanelStatus } from './panel-status.mjs';", 'const loadPanelStatus = globalThis.testLoadPanelStatus;')
         .replace("import { loadNginxPreview } from './site-preview.mjs';", 'const loadNginxPreview = globalThis.testLoadNginxPreview;')
+        .replace("import { loadSiteDetails } from './site-details.mjs';", 'const loadSiteDetails = globalThis.testLoadSiteDetails;')
         .replace("import { loadSitesPage } from './sites-list.mjs';", 'const loadSitesPage = globalThis.testLoadSitesPage;')
         .replace("import { mountACMEPreflight } from './acme-preflight.mjs';", 'const mountACMEPreflight = () => {};')
         .replace("import { downloadTenantFile, listTenantFilesPage, previewTenantText, FilesExplorerError } from './files-explorer.mjs';", 'const downloadTenantFile = globalThis.testDownloadTenantFile; const listTenantFilesPage = globalThis.testListTenantFilesPage; const previewTenantText = globalThis.testPreviewTenantText; const FilesExplorerError = class extends Error {};')
