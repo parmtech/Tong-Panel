@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Inspect isolated branch 5d3e376 Go run 43419775736; resolve failures and review before integrating into PR 171; also inspect 336d734 guest results.",
+    "action": "Inspect 9fdab99 Go run 43421591119, review and integrate only if successful; inspect a10dc04 exact-source and 336d734 guest CI.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -138,16 +138,15 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "336d734782cf03516aa13d16b0b54b82b8223b63",
+    "sha": "a10dc04d9b58fc6cbd2ef8b32519a64340827ccf",
     "hosted_ci": "pending_at_handoff",
-    "local": "Linux Files tests crosscompiled and vet passed; specialist static review no concrete blocker",
-    "limitations": "current authority, quota and publication fencing remain separate; actual Linux execution pending"
+    "evidence": "identical isolated 9f49a48 Linux Go checks passed; source quiescence and caller authority/quota/key custody required"
   },
   "pending_feature_branch": {
     "branch": "codex/restore-outcomes-20261113",
-    "sha": "5d3e376730171d9c899aeb5c87124f00b464b4e3",
-    "go_run": 43419775736,
-    "status": "queued_at_handoff",
-    "scope": "three-state publication outcome and on-disk tenant tests; no quota authorization"
+    "sha": "9fdab99ff9949c72de01179396b7f5938933d9d7",
+    "go_run": 43421591119,
+    "status": "in_progress_at_handoff",
+    "scope": "unknown rename preservation, cleanup exclusion and fail-closed quota usage; no quota settlement"
   }
 }
