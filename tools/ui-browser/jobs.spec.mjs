@@ -318,6 +318,56 @@ test('real site details follow tenant and session changes', async ({ page }) => 
     await expect(page.locator('#sites-list li')).toHaveCount(0);
 });
 
+test('site database catalog follows real tenant sessions and discards stale reads', async ({ page }) => {
+    await open(page, 'alice');
+    await loadSites(page);
+    const select = async name => {
+        await page.getByRole('button', { name: `View details for ${name}` }).click();
+        await expect(page.locator('#site-details-title')).toHaveText(`Site details: ${name}`);
+        await expect(page.locator('#site-databases-load')).toBeEnabled();
+    };
+    await select('site-000');
+    await page.locator('#site-databases-load').click();
+    await expect(page.locator('#site-databases-list')).toContainText('db-a');
+    await expect(page.locator('#site-databases-list')).not.toContainText('db-b');
+    await expect(page.locator('#site-databases-status')).toContainText('provisioning is not confirmed');
+    let markHeld, releaseHeld, markFinished;
+    const held = new Promise(resolve => { markHeld = resolve; });
+    const release = new Promise(resolve => { releaseHeld = resolve; });
+    const finished = new Promise(resolve => { markFinished = resolve; });
+    await page.route('**/api/v1/sites/site-000/databases', async route => {
+        markHeld(); await release;
+        try { await route.continue(); } catch { /* aborted request */ }
+        markFinished();
+    });
+    await page.locator('#site-databases-load').click();
+    await held;
+    await page.locator('#site-details-close').click();
+    releaseHeld(); await finished;
+    await expect(page.locator('#site-details')).toBeHidden();
+    await expect(page.locator('#site-databases-list')).toBeEmpty();
+    await page.unroute('**/api/v1/sites/site-000/databases');
+    await page.context().clearCookies();
+    await page.context().addCookies([{ name: '__Host-tong_session', value: fixture.Tokens.bob, url: fixture.Primary, secure: true, httpOnly: true, sameSite: 'Strict' }]);
+    await loadSites(page); await select('site-000');
+    await page.locator('#site-databases-load').click();
+    await expect(page.locator('#site-databases-list')).toContainText('db-a');
+    await page.context().clearCookies();
+    await page.context().addCookies([{ name: '__Host-tong_session', value: fixture.Tokens.carol, url: fixture.Primary, secure: true, httpOnly: true, sameSite: 'Strict' }]);
+    await loadSites(page); await select('other-site');
+    await page.locator('#site-databases-load').click();
+    await expect(page.locator('#site-databases-list')).toContainText('db-b');
+    await expect(page.locator('#site-databases-list')).not.toContainText('db-a');
+    const cross = await page.evaluate(async () => (await fetch('/api/v1/sites/site-000/databases', { credentials: 'same-origin' })).status);
+    expect(cross).toBe(404);
+    await page.context().clearCookies();
+    await page.locator('#site-databases-load').click();
+    await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'unavailable');
+    await expect(page.locator('#sites-list li')).toHaveCount(0);
+    await expect(page.locator('#site-details')).toBeHidden();
+    await expect(page.locator('#site-databases-list')).toBeEmpty();
+});
+
 test('site catalog empty and absent authentication states do not expose stale sites', async ({ page }) => {
     await open(page, 'siteempty');
     await loadSites(page);

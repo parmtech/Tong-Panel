@@ -110,6 +110,15 @@ func TestJobsBrowserFixture(t *testing.T) {
 	if err := catalog.Create(context.Background(), sites.SiteSpec{TenantID: "tenant-b", SiteID: "other-site", PrimaryDomain: "other.example.test", DocumentRoot: "sites/other-site/public"}); err != nil {
 		t.Fatal("fixture other site unavailable")
 	}
+	// Declarative catalog rows only: no external database or user is created.
+	for _, spec := range []sites.SiteDatabaseSpec{
+		{TenantID: "tenant-a", SiteID: "site-000", DatabaseID: "db-a"},
+		{TenantID: "tenant-b", SiteID: "other-site", DatabaseID: "db-b"},
+	} {
+		if err := catalog.CreateDatabase(context.Background(), spec); err != nil {
+			t.Fatal("fixture database metadata unavailable")
+		}
+	}
 	sessions, err := auth.NewSQLiteSessionStore(db)
 	if err != nil {
 		t.Fatal("fixture sessions unavailable")
