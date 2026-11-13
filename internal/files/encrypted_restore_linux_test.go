@@ -226,3 +226,54 @@ func TestEncryptedRestoreMultiChunkAuthenticatesBeforeCreatingStage(t *testing.T
 		})
 	}
 }
+
+type observedRestoreReader struct {
+	data  *bytes.Reader
+	reads int
+}
+
+func (r *observedRestoreReader) Read(p []byte) (int, error) { r.reads++; return r.data.Read(p) }
+
+func TestTenantEncryptedRestoreBindsRegisteredRootAndEnvelope(t *testing.T) {
+	rootA, dirA := newTestRoot(t)
+	rootB, dirB := newTestRoot(t)
+	roots, err := NewTenantRoots(map[string]*Root{"tenant-a": rootA, "tenant-b": rootB})
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := bytes.Repeat([]byte{0x24}, 32)
+	archive := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("tenant-a private site")})
+	sealed := encryptedFixture(t, archive, "tenant-a", key)
+	source := &observedRestoreReader{data: bytes.NewReader(sealed)}
+	if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), "missing", "site", source, key, ArchiveLimits{}); !errors.Is(err, ErrTenantDenied) || source.reads != 0 {
+		t.Fatalf("unknown tenant consumed input or accepted: reads=%d err=%v", source.reads, err)
+	}
+	if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), "tenant-b", "site", bytes.NewReader(sealed), key, ArchiveLimits{}); !errors.Is(err, backups.ErrInvalidBackup) {
+		t.Fatalf("cross-tenant backup accepted: %v", err)
+	}
+	for _, dir := range []string{dirA, dirB} {
+		entries, err := os.ReadDir(dir)
+		if err != nil || len(entries) != 0 {
+			t.Fatalf("failed operation changed root: %v %v", entries, err)
+		}
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	source = &observedRestoreReader{data: bytes.NewReader(sealed)}
+	if err := roots.RestoreEncryptedGzipTarNewForTenant(ctx, "tenant-a", "site", source, key, ArchiveLimits{}); !errors.Is(err, context.Canceled) || source.reads != 0 {
+		t.Fatalf("canceled operation consumed input: reads=%d err=%v", source.reads, err)
+	}
+	if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), "tenant-a", "site", bytes.NewReader(sealed), key, ArchiveLimits{}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(dirA, "site", "index.html"))
+	if err != nil || string(got) != "tenant-a private site" {
+		t.Fatalf("tenant A restore: %q %v", got, err)
+	}
+	if entries, err := os.ReadDir(dirB); err != nil || len(entries) != 0 {
+		t.Fatalf("tenant B changed: %v %v", entries, err)
+	}
+	if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), "tenant-a", "site", bytes.NewReader(sealed), key, ArchiveLimits{}); !errors.Is(err, ErrAlreadyExists) {
+		t.Fatalf("overwrote destination: %v", err)
+	}
+}

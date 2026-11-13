@@ -181,6 +181,21 @@ func (t *TenantRoots) ExtractGzipTarNewFromForTenant(tenantID, relative string, 
 	return root.ExtractGzipTarNewFrom(relative, src, limits)
 }
 
+// RestoreEncryptedGzipTarNewForTenant selects the registered pinned root and
+// authenticates the envelope with the same server-supplied tenant identifier.
+// This binds root selection to the encrypted tenant but is not authorization;
+// callers must establish current authority and quota before using it.
+func (t *TenantRoots) RestoreEncryptedGzipTarNewForTenant(ctx context.Context, tenantID, relative string, src io.Reader, key []byte, limits ArchiveLimits) error {
+	if t == nil || tenantID == "" {
+		return ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ErrTenantDenied
+	}
+	return root.RestoreEncryptedGzipTarNew(ctx, relative, src, tenantID, key, limits)
+}
+
 // CleanupStaleStagesForTenant cleans only internal staging directories beneath
 // the root selected by tenantID.
 func (t *TenantRoots) CleanupStaleStagesForTenant(tenantID string, olderThan time.Duration) (int, error) {
