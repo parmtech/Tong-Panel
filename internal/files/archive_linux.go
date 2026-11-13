@@ -596,10 +596,11 @@ func removeArchiveTree(dirFD int) error {
 
 const archiveStagePrefix = ".tong-archive-stage-"
 
-// CleanupStaleStages removes abandoned internal write and archive staging
-// directories older than olderThan. It skips recent, aliased, wrongly-owned,
-// permissive, and actively locked stages. Require a one-hour minimum age to
-// avoid cleanup of a recently interrupted operation.
+// CleanupStaleStages removes eligible abandoned internal write stages older
+// than olderThan. Archive stages are retained regardless of age: without a
+// durable publication journal an unlocked stage may represent an unresolved
+// rename outcome. This helper is not restore reconciliation. It skips recent,
+// aliased, wrongly-owned, permissive, and actively locked write stages.
 func (r *Root) CleanupStaleStages(olderThan time.Duration) (int, error) {
 	if r == nil {
 		return 0, ErrClosed
@@ -646,7 +647,7 @@ func (r *Root) CleanupStaleStages(olderThan time.Duration) (int, error) {
 	cutoff := time.Now().Add(-olderThan)
 	removed := 0
 	for _, name := range names {
-		if !validInternalStageName(name) {
+		if !validInternalStageName(name) || strings.HasPrefix(name, archiveStagePrefix) {
 			continue
 		}
 		var before unix.Stat_t
@@ -718,8 +719,8 @@ func (r *Root) CleanupStaleStages(olderThan time.Duration) (int, error) {
 	return removed, nil
 }
 
-// CleanupStaleArchiveStages is retained for callers of the earlier prototype;
-// it now also cleans abandoned create-only write stages.
+// CleanupStaleArchiveStages is a compatibility alias. It cleans eligible write
+// stages only; archive stages require explicit reconciliation and are retained.
 func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
 	return r.CleanupStaleStages(olderThan)
 }

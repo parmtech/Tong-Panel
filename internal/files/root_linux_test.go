@@ -1504,7 +1504,7 @@ func TestTenantRootsScopeArchiveExtraction(t *testing.T) {
 	}
 }
 
-func TestCleanupStaleArchiveStagesRemovesOnlyOldOwnedStages(t *testing.T) {
+func TestCleanupStaleArchiveStagesRetainsArchiveStages(t *testing.T) {
 	r, root := newTestRoot(t)
 	oldName := ".tong-archive-stage-0123456789abcdef0123456789abcdef"
 	recentName := ".tong-archive-stage-1123456789abcdef0123456789abcdef"
@@ -1531,11 +1531,11 @@ func TestCleanupStaleArchiveStagesRemovesOnlyOldOwnedStages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if removed != 1 {
-		t.Fatalf("removed stages = %d, want 1", removed)
+	if removed != 0 {
+		t.Fatalf("removed stages = %d, want 0", removed)
 	}
-	if _, err := os.Lstat(filepath.Join(root, oldName)); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("old stage still exists: %v", err)
+	if data, err := os.ReadFile(filepath.Join(root, oldName, "partial")); err != nil || string(data) != "partial" {
+		t.Fatalf("old archive stage changed: %q %v", data, err)
 	}
 	for _, name := range []string{recentName, unrelatedName, linkName} {
 		if _, err := os.Lstat(filepath.Join(root, name)); err != nil {
@@ -1551,7 +1551,7 @@ func TestCleanupStaleArchiveStagesRemovesOnlyOldOwnedStages(t *testing.T) {
 	}
 }
 
-func TestCleanupStaleArchiveStagesSkipsActiveLockThenRemovesOrphan(t *testing.T) {
+func TestCleanupStaleArchiveStagesRetainsUnlockedArchiveStage(t *testing.T) {
 	r, root := newTestRoot(t)
 	name := ".tong-archive-stage-4123456789abcdef0123456789abcdef"
 	stagePath := filepath.Join(root, name)
@@ -1592,11 +1592,11 @@ func TestCleanupStaleArchiveStagesSkipsActiveLockThenRemovesOrphan(t *testing.T)
 		t.Fatal(err)
 	}
 	removed, err = r.CleanupStaleArchiveStages(time.Hour)
-	if err != nil || removed != 1 {
-		t.Fatalf("orphan cleanup = %d, %v", removed, err)
+	if err != nil || removed != 0 {
+		t.Fatalf("archive cleanup = %d, %v", removed, err)
 	}
-	if _, err := os.Lstat(stagePath); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("orphan stage still exists: %v", err)
+	if _, err := os.Lstat(stagePath); err != nil {
+		t.Fatalf("unlocked archive stage removed: %v", err)
 	}
 }
 
