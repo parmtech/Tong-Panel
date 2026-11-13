@@ -1,5 +1,14 @@
 # Tong Panel resume and integration handoff — 2026-11-12
 
+## Current continuation — hosted dpkg warning correction and disposable-only guard (13 November 2026)
+
+Sole [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171) on [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172), parent `a35df71ce50634a09041f5a5c3bc50298f2d5a53`. The first new [clean VM workflow #43340739617](https://github.com/parmtech/Tong-Panel/actions/runs/43340739617) **failed** both runner jobs before booting guests. Inspect actual logs; do not hide this result behind parent success.
+
+Three of the four new rootless `dpkg` failure tests passed. The fourth observed actual dpkg old-`prerm` fallback but asserted one outdated English warning phrase. The hosted runner says `trying prerm maintainer script from the new ...`; the local dpkg says `trying script from the new ...`. The corrected test accepts those **two precise patterns**, still checks successful v2 install, exact payload and unchanged synthetic customer state. Hosted logs also revealed external `needrestart` hooks could be called even with a private dpkg administrative/root directory; an explicit `TONG_DISPOSABLE_DPKG_LAB=1` guard is now required in addition to the existing non-root guard, and it is set only on disposable Ubuntu runner/guest invocations. Never execute the test on real customer/production hosts or against untrusted package hooks.
+
+Locally, all four cases passed under the unprivileged account `nobody` with opt-in; without it all four fail as intended. [Detailed contract and hosted findings](P1_DPKG_FAILURE_RECOVERY_LAB.md). **Next action:** verify this precise new commit's runner/Ubuntu/Debian guest test and all CI outcomes, then return to independent signed installer/ADR-008 decisions. These tests are still synthetic; no actual signed release, host-agent privileges, power-loss journal, root installation or P1/P2 security approval exists.
+
+
 ## Current continuation — rootless dpkg failure/recovery QA (13 November 2026)
 
 The owner's single [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) remains coordinated on sole [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `a1feb1585dc284a86f75647de38d3c13a3f3e519` finished **13/13 GitHub workflows successfully**, including both disposable clean VMs. Its success does not verify the new QA script.

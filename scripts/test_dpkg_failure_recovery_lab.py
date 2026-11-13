@@ -1,8 +1,8 @@
 """Unprivileged dpkg failure/recovery lab with an isolated package database.
 
-Only constructed, inert fixture packages are installed, and only inside a
-TemporaryDirectory root. This does not run a Tong Panel installer, sign a
-package or establish production recovery correctness.
+Only constructed, inert fixture packages are installed inside a private
+TemporaryDirectory root. System-level dpkg hooks may still run: use this only
+on disposable CI runners/guests, never on a real server.
 """
 
 import os
@@ -22,6 +22,8 @@ PACKAGE = "tong-dpkg-failure-fixture"
 class DpkgFailureRecoveryLab(unittest.TestCase):
     def setUp(self):
         self.assertNotEqual(os.geteuid(), 0, "the dpkg fixture must run without root privileges")
+        self.assertEqual(os.environ.get("TONG_DISPOSABLE_DPKG_LAB"), "1",
+                         "explicit disposable-lab opt-in is required")
         self.directory = tempfile.TemporaryDirectory(prefix="tong-dpkg-recovery-")
         self.addCleanup(self.directory.cleanup)
         self.sandbox = Path(self.directory.name)
@@ -122,7 +124,7 @@ class DpkgFailureRecoveryLab(unittest.TestCase):
         initial = self.build_fixture("1", None, bad_prerm=True)
         self.install(initial)
         result = self.install(self.v2)
-        self.assertIn("trying script from the new package instead", result.stderr)
+        self.assertRegex(result.stderr, r"dpkg: trying (?:prerm maintainer )?script from the new ")
         self.assertEqual(self.installed(), "install ok installed|2")
         self.assert_payload_version("2")
         self.assert_customer_state()

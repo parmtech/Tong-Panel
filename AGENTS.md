@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-11-13):** single [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) / [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) now include a [rootless dpkg upgrade-failure lab](docs/P1_DPKG_FAILURE_RECOVERY_LAB.md) testing failed preinst/postinst, manual recovery, corrupt packages and old-prerm fallback on inert synthetic fixtures. Parent passed 13/13 GitHub workflows; **new head must be verified separately**. No signed installer, privileged host change, phase approval or production release. Read UPDATES.md and current handoff first.
+**Current checkpoint (2026-11-13):** single [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) / [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) includes a [rootless dpkg fault/recovery lab](docs/P1_DPKG_FAILURE_RECOVERY_LAB.md). First hosted run #43340739617 **failed** on version-specific fallback warning text before VM boot; latest correction checks both precise spellings and requires explicit `TONG_DISPOSABLE_DPKG_LAB=1` plus non-root/disposable execution due host-configured dpkg hooks. Verify new-head CI; no signed installer, production host action, ADR/security approval or release. Read UPDATES.md and current handoff first.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.

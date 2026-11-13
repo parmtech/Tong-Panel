@@ -1,8 +1,18 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-13 (Australia/Sydney; rootless dpkg failure/recovery lab)
+**Updated:** 2026-11-13 (Australia/Sydney; dpkg CI discrepancy and disposable-only correction)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## CURRENT CHECKPOINT — rootless dpkg test hosted discrepancy corrected (13 November 2026)
+
+- **Task/branch:** continue the owner's [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) on sole [PR #171](https://github.com/parmtech/Tong-Panel/pull/171); parent head `a35df71ce50634a09041f5a5c3bc50298f2d5a53`. The new [clean-VM run #43340739617](https://github.com/parmtech/Tong-Panel/actions/runs/43340739617) **failed in both Ubuntu runner jobs** at the newly added rootless `dpkg` regression, before the guests booted. Treat this as an actual failed CI result; it cannot be relabelled green by prior passing checks.
+- **Exact finding:** the fallback `dpkg` behavior *did* occur, but the test expected only the local warning `trying script from the new package instead`. Hosted dpkg reports `trying prerm maintainer script from the new [name] package instead`. Both jobs passed the other three fault cases. Logs also showed a system-configured `needrestart` hook attempting `/run` access even with isolated `--admindir` and `--instdir`, denied by the unprivileged runner.
+- **Corrected focused test:** the `old-prerm` assertion now recognizes both narrowly specified dpkg fallback spellings **while retaining installed-version/payload and private-state assertions**. `setUp` now requires non-root execution **and** `TONG_DISPOSABLE_DPKG_LAB=1`; the workflow passes the opt-in only on a disposable runner and both disposable Ubuntu/Debian guest invocations. Running without explicit opt-in fails instead of silently executing host-configured dpkg hooks. The documentation explicitly warns that private dpkg metadata does not sandbox global pre/post-invoke hooks and never permits running this on real servers or with untrusted hooks.
+- **Local evidence:** all four cases passed under Unix account `nobody` with the opt-in; all four rejected execution without it, as intended. Python syntax and exact source checks passed. The published correction must receive its **own** exact-head GitHub validation; no unsupported 13/13 claim is made.
+- **Next single action:** push focused correction, inspect the clean-VM run's unprivileged runner step and guest results, and record actual new-head CI in PR #171/#172. Do not weaken the logged state and data assertions, change `main`, execute real Tong Panel packages, or treat this as security/installer approval. ADR-007/008/009, production signing, live host, independent audit and release remain blocked.
+
+## Historical checkpoint — unprivileged dpkg failure and explicit recovery lab
 
 ## CURRENT CHECKPOINT — unprivileged dpkg failure and explicit recovery lab (13 November 2026)
 

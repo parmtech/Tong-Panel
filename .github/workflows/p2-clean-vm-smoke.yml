@@ -69,6 +69,8 @@ jobs:
         run: bash scripts/test_vm_startup_transport.sh
       - name: Verify isolated dpkg failure and explicit recovery semantics
         run: python3 -m unittest discover -s scripts -p 'test_dpkg_failure_recovery_lab.py' -v
+        env:
+          TONG_DISPOSABLE_DPKG_LAB: '1'
       - name: Build unsigned developer preview for isolated VM smoke
         run: |
           mkdir -p "$RUNNER_TEMP/tong-p1-dev/bin"

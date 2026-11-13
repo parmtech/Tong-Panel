@@ -134,7 +134,7 @@ printf 'Clean guest: %s (%s), uid=%s\n' "$PRETTY_NAME" "$VERSION_ID" "$(id -u)"
 cd /home/ci
 # This test runs unprivileged with a private dpkg database/root and inert hooks.
 # It never uses the guest's real apt/dpkg database or installs Tong Panel.
-python3 /home/ci/test_dpkg_failure_recovery_lab.py -v
+TONG_DISPOSABLE_DPKG_LAB=1 python3 /home/ci/test_dpkg_failure_recovery_lab.py -v
 sha256sum -c SHA256SUMS
 tar -xzf tong-p1-UNSIGNED-dev-linux-amd64.tar.gz
 test -x tong-p1-dev/bin/tongd
