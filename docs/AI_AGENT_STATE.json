@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Inspect 0cce062 exact-source Linux Go/browser/VM CI, investigate failures and record evidence.",
+    "action": "Inspect 1fe414b exact-source runner/guest backup CLI and browser CI; investigate failures and record evidence.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -138,9 +138,9 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "0cce0625345341f8a8e32e21b4d98a23809d2138",
+    "sha": "1fe414b35c01092198bac9ddd6e670702055228f",
     "hosted_ci": "pending_at_handoff",
-    "local": "deterministic SQLite regression; specialist 300 cancellation repeats and full database/sites tests passed; coordinator 20 repeats passed",
-    "previous_ci": "56a5c21 13/13 successful including both clean guests"
+    "local": "Windows Go backup/CLI tests and vet; Python syntax passed. Linux process tests pending",
+    "prior_failure": "0cce062 browser fixed-20 Tab failure; corrected 099d3e6, hosted verification pending"
   }
 }
