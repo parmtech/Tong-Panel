@@ -1,5 +1,14 @@
 # Tong Panel resume and integration handoff — 2026-11-12
 
+## Current continuation — Debian guest dpkg helper PATH (13 November 2026)
+
+The owner requested ongoing Tong Panel integration under [#172](https://github.com/parmtech/Tong-Panel/issues/172) and sole [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `07e9f4c9cd5c68653817ebe448ac3f381d5becc5` passed 12 non-VM workflows; [VM run #43341489570](https://github.com/parmtech/Tong-Panel/actions/runs/43341489570) **failed Debian 12** at its new rootless synthetic dpkg test, despite that test passing on the Ubuntu runner. It must not be relabelled green.
+
+The **guest error was missing standard dpkg helpers**, not failed recovery assertions: non-root `ci` lacked `/usr/sbin` in its command PATH, so dpkg found neither `ldconfig` nor `start-stop-daemon`. The focused fix passes the deterministic child PATH `/usr/sbin:/sbin:/usr/bin:/bin` to subprocesses and adds a fifth regression intentionally removing sbin from the Python test's ambient PATH while verifying an inert synthetic v1 installation and data preservation. All original negative cases, nonroot guard and `TONG_DISPOSABLE_DPKG_LAB=1` opt-in are retained. Local PATH lookup confirmed both tools resolve with the fixed path. New full five-test and guest verification **must be obtained from the new published head**.
+
+**Next:** check the exact published commit's clean-VM workflow and logs for the runner + two guests, fix any real failure without weakening package-state assertions. No real installer, signed release, private signing key, host-agent action or P0/ADR/security approval is supplied by this fix. See [the dpkg QA document](P1_DPKG_FAILURE_RECOVERY_LAB.md), [P1 gates](P1_SECURITY_ACCEPTANCE_2026-11-13.md) and [PR #171](https://github.com/parmtech/Tong-Panel/pull/171).
+
+
 ## Current continuation — hosted dpkg warning correction and disposable-only guard (13 November 2026)
 
 Sole [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171) on [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172), parent `a35df71ce50634a09041f5a5c3bc50298f2d5a53`. The first new [clean VM workflow #43340739617](https://github.com/parmtech/Tong-Panel/actions/runs/43340739617) **failed** both runner jobs before booting guests. Inspect actual logs; do not hide this result behind parent success.

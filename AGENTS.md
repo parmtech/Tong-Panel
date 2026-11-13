@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-11-13):** single [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) / [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) includes a [rootless dpkg fault/recovery lab](docs/P1_DPKG_FAILURE_RECOVERY_LAB.md). First hosted run #43340739617 **failed** on version-specific fallback warning text before VM boot; latest correction checks both precise spellings and requires explicit `TONG_DISPOSABLE_DPKG_LAB=1` plus non-root/disposable execution due host-configured dpkg hooks. Verify new-head CI; no signed installer, production host action, ADR/security approval or release. Read UPDATES.md and current handoff first.
+**Current checkpoint (2026-11-13):** single [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) / [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172): new rootless dpkg failure lab [failed inside Debian 12 guest](https://github.com/parmtech/Tong-Panel/actions/runs/43341489570) because non-root `PATH` lacked standard sbin helpers, despite 12 non-VM workflows passing. The focused fix sets deterministic subprocess PATH, adds a fifth guest-PATH regression, and requires new-head CI proof. Use only explicitly disposable hosts; P0/security/signed-installer gates remain blocked. Read UPDATES.md and handoff first.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.

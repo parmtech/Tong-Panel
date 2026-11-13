@@ -1,8 +1,19 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-13 (Australia/Sydney; dpkg CI discrepancy and disposable-only correction)
+**Updated:** 2026-11-13 (Australia/Sydney; rootless dpkg guest PATH fix)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## CURRENT CHECKPOINT — non-root guest dpkg PATH regression fix (13 November 2026)
+
+- **Task/repo:** continuation of [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) on one [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `07e9f4c9cd5c68653817ebe448ac3f381d5becc5` passed all **12 non-VM workflows**, including actual Ubuntu-runner execution of the four dpkg fault tests. The [clean-VM run #43341489570](https://github.com/parmtech/Tong-Panel/actions/runs/43341489570) is a **failure on Debian 12**, despite all four tests passing on the hosted Ubuntu runner. Ubuntu guest had not completed at last inspection; do not claim 13/13.
+- **Exact Debian failure:** while running the same synthetic/rootless fixture as guest user `ci` inside the clean Debian 12 image, the `dpkg` subprocess failed **before installing v1**: `'ldconfig' not found in PATH`, `'start-stop-daemon' not found in PATH`. These helpers exist under standard `/usr/sbin`; the non-root guest's inherited `PATH` omitted the sbin directories. The error is from environment setup, not a package rollback-state assertion. The original helper-warnings correction and disposable-only opt-in remain in place.
+- **Focused fix:** `scripts/test_dpkg_failure_recovery_lab.py` now provides a fixed, explicit child-command `PATH=/usr/sbin:/sbin:/usr/bin:/bin` plus `LC_ALL=C` on every subprocess. This avoids trusting the running account's path while allowing standard dpkg dependencies in both Debian and Ubuntu clean guests. Added a fifth regression that deliberately strips sbin from the Python process environment, runs a synthetic v1 installation, and still checks installed version, payload bytes and the unrelated private state marker. Existing four failure/recovery cases and strict expected half-configured status remain unchanged.
+- **Evidence:** Debian VM guest logs were inspected at [job 131610624536](https://github.com/parmtech/Tong-Panel/actions/runs/43341489570/job/131610624536). A local PATH probe with `PATH=/usr/bin:/bin` confirmed `ldconfig` and `start-stop-daemon` missing, while the proposed explicit `PATH` resolves both and executes `dpkg --version`. **No full new five-case suite or new-head VM success is claimed yet**; verify new exact commit in GitHub Actions.
+- **Safety boundaries:** rootless and `TONG_DISPOSABLE_DPKG_LAB=1` checks remain enforced; all dpkg fixture operations still target an independent temporary admin/install root and inert locally generated packages. Host-configured dpkg hooks may still execute with the non-root UID, so run **only in disposable CI runners/guests**, not customer or production servers; no actual Tong Panel package is installed in this test.
+- **Next single action:** push/check the new exact head, confirm the **runner and both Ubuntu/Debian guest dpkg steps** and full VM results, then record actual outcomes in #171/#172. Keep ADR-007/008/009, signed release provenance, real service/installer recovery and P0 independent security approval blocked.
+
+## Historical checkpoint — rootless dpkg test hosted discrepancy corrected
 
 ## CURRENT CHECKPOINT — rootless dpkg test hosted discrepancy corrected (13 November 2026)
 

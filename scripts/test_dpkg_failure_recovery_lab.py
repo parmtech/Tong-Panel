@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 PACKAGE = "tong-dpkg-failure-fixture"
@@ -65,7 +66,10 @@ class DpkgFailureRecoveryLab(unittest.TestCase):
     def run_command(self, arguments, expected):
         result = subprocess.run(arguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                 text=True, timeout=30, check=False,
-                                env={**os.environ, "LC_ALL": "C"})
+                                env={**os.environ, "LC_ALL": "C",
+                                     # dpkg requires these standard host tools even when
+                                     # an unprivileged guest PATH omits sbin directories.
+                                     "PATH": "/usr/sbin:/sbin:/usr/bin:/bin"})
         if expected == 0:
             self.assertEqual(result.returncode, 0, (arguments, result.stdout, result.stderr))
         else:
@@ -91,6 +95,15 @@ class DpkgFailureRecoveryLab(unittest.TestCase):
 
     def assert_payload_version(self, version):
         self.assertEqual((self.instdir / f"usr/share/{PACKAGE}/release.txt").read_text(encoding="ascii"), version + "\n")
+
+    def test_guest_path_without_sbin_still_uses_required_dpkg_helpers(self):
+        # Reproduce clean-guest ci account PATH without sbin directories.
+        # Each dpkg child gets a known system-tool PATH; no real host install.
+        with patch.dict(os.environ, {"PATH": "/usr/bin:/bin"}):
+            self.install(self.v1)
+            self.assertEqual(self.installed(), "install ok installed|1")
+            self.assert_payload_version("1")
+            self.assert_customer_state()
 
     def test_failing_preinst_leaves_previous_version_installed(self):
         self.install(self.v1)
