@@ -1,5 +1,14 @@
 # Tong Panel resume and integration handoff — 2026-11-12
 
+## Current continuation — rootless dpkg failure/recovery QA (13 November 2026)
+
+The owner's single [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) remains coordinated on sole [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `a1feb1585dc284a86f75647de38d3c13a3f3e519` finished **13/13 GitHub workflows successfully**, including both disposable clean VMs. Its success does not verify the new QA script.
+
+The [unprivileged dpkg failure lab](P1_DPKG_FAILURE_RECOVERY_LAB.md) uses only constructed inert fixture `.deb` versions, an independent temporary dpkg package database/root/log and non-root script hooks to test interrupted upgrade behavior without installing real Tong Panel or touching host package state. Four local tests passed as Unix `nobody`: failed new preinst preserves installed old version; failed postinst leaves the new file unpacked but package precisely half-configured, followed by **explicit** old-version recovery; corrupt archive denies; old prerm failure may fall back to the new package's prerm and succeed. The latter hazard was reproduced in actual dpkg and contradicts a tempting but incorrect fail-closed assumption. Tests check a separate synthetic customer marker remains intact. The VM workflow now runs the same suite both on the unprivileged Ubuntu runner and inside each guest as `ci`, before its existing package and restore acceptance.
+
+**Next single action:** check exact published new head and its clean VM workflow including the new Ubuntu runner and guest test steps, resolve real failures, and record evidence in #171/#172. No production signed package, actual host install, power-loss recovery, key custody or P1/P2 security approval has been obtained. Owner/security ADR-007/008/009 and independent release gates remain pending.
+
+
 ## Current continuation — signed-upgrade interruption and rollback advice (13 November 2026)
 
 The owner asked to continue Tong Panel in one workstream: [master #172](https://github.com/parmtech/Tong-Panel/issues/172), single draft [#171](https://github.com/parmtech/Tong-Panel/pull/171), parent `b9956c881ac0e4ff3c5a1e032a6f640eea4f5f64`. All twelve parent non-VM workflows passed, including Go 1.27.4 offline signed-release model tests; the longer disposable VM run was still in progress when last checked. Do not count parent results as verification of this continuation.

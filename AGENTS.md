@@ -2,7 +2,7 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-11-13):** sole draft [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) and [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) now include a [test-only signed-upgrade recovery model](prototypes/p1-release-manifest-model/README.md). It gives *advice only* after fresh trust/health/fencing checks; no real signer, journal, installer or host writes. Read UPDATES.md and the resume handoff, verify exact-head hosted workflows and preserve P0/security/release gates.
+**Current checkpoint (2026-11-13):** single [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) / [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) now include a [rootless dpkg upgrade-failure lab](docs/P1_DPKG_FAILURE_RECOVERY_LAB.md) testing failed preinst/postinst, manual recovery, corrupt packages and old-prerm fallback on inert synthetic fixtures. Parent passed 13/13 GitHub workflows; **new head must be verified separately**. No signed installer, privileged host change, phase approval or production release. Read UPDATES.md and current handoff first.
 
 ## Mandatory read order for every agent
 1. UPDATES.md — current checkpoint, verified completed work and next action.

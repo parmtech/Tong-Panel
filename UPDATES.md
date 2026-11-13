@@ -1,8 +1,19 @@
 # Tong Panel — Live Project Status and Work Journal
-**Updated:** 2026-11-13 (Australia/Sydney; signed-upgrade recovery model checkpoint)
+**Updated:** 2026-11-13 (Australia/Sydney; rootless dpkg failure/recovery lab)
 **Project:** ParmTech Tong Panel (https://github.com/parmtech/Tong-Panel)  
 **Maintained by:** any authorized contributor/agent who commits changes.  
 **Rule:** This file is a **manual committed source of truth**, not an automatic background process. Every meaningful work session should update checkpoint and log.
+
+## CURRENT CHECKPOINT — unprivileged dpkg failure and explicit recovery lab (13 November 2026)
+
+- **Task/branch:** continued all-workstream [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) on sole [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171); parent exact SHA `a1feb1585dc284a86f75647de38d3c13a3f3e519`. This parent finished **all 13 GitHub workflows successfully**, including the signed-upgrade recovery model and both Ubuntu 24.04/Debian 12 clean VM jobs. New source requires its own exact-head verification.
+- **Real dpkg safety gap:** older tests validated safe package structure and simple install/upgrade, but never asserted what dpkg *actually* does when a new `preinst` or `postinst` hook fails. A failing old `prerm` can be retried using the new package's hook and allow the upgrade to succeed, so dpkg exit success is not sufficient evidence of correct old-service teardown or new-service health.
+- **Safe tests added:** `scripts/test_dpkg_failure_recovery_lab.py` builds only a tiny inert, synthetic `tong-dpkg-failure-fixture` with hooks consisting of `exit 0` or injected `exit 73`. Its test process **must not be root** and all dpkg administrative state, installation paths, logs and synthetic customer marker live in a disposable private temporary directory. Four tests demonstrate preinst abort retaining old payload, postinst failure leaving precisely `install ok half-configured|2` until an explicitly requested downgrade, corrupt package denial before unpack, and old-prerm failure falling back to the new hook. Each verifies state preservation. Never use this rootless-script mechanism for untrusted packages.
+- **CI wiring:** the existing [P2 clean VM workflow](.github/workflows/p2-clean-vm-smoke.yml) now invokes the four nonroot cases on its GitHub Ubuntu runner and transfers the same script to be run as `ci` inside **each** clean Ubuntu and Debian guest, before the usual VM smoke/restore checks. [Scope and exact commands](docs/P1_DPKG_FAILURE_RECOVERY_LAB.md). Original service/package lifecycle checks remain intact.
+- **Executed local evidence:** the final four-case suite passed under Unix `nobody` in a separate temp-root/admindir, including explicit half-configured-state check and forced C locale. A deliberately incorrect assumption that an old-prerm failure necessarily aborts was disproved by real dpkg and replaced with a test of fallback behavior. Python syntax was checked. New-hosted run results must be checked before claiming them.
+- **Limits/next:** this is not a full Tong Panel installer, real package signing, live host mutation, power-loss test, actual service fencing, or verified production restore. Verify the new exact head's Ubuntu runner + both guest results; fix any actual CI failure; keep ADR-007/008/009, owner/security signoff, provenance and supported installer/recovery gates blocked.
+
+## Historical checkpoint — offline signed-upgrade interruption and rollback model
 
 ## CURRENT CHECKPOINT — offline signed-upgrade interruption and rollback model (13 November 2026)
 
