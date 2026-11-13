@@ -111,3 +111,25 @@ func TestListDirPageBoundaryAndConcurrentChanges(t *testing.T) {
 		t.Fatalf("fresh scan after mutation: %#v %v", entries, err)
 	}
 }
+
+func TestListDirPageRejectsNamesExplorerCannotRepresent(t *testing.T) {
+	for _, name := range []string{"back\\slash", "line\nbreak", "delete\x7f", string([]byte{'x', 0xff})} {
+		t.Run(fmt.Sprintf("%x", name), func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, name), nil, 0600); err != nil {
+				t.Fatal(err)
+			}
+			root, err := OpenRoot(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer root.Close()
+			if _, _, err := root.ListDirPage("", "", 10); !errors.Is(err, ErrInvalidPath) {
+				t.Fatalf("unrepresentable name accepted: %v", err)
+			}
+			if _, _, err := root.ListDirPage("", name, 10); !errors.Is(err, ErrInvalidPath) {
+				t.Fatalf("unrepresentable cursor accepted: %v", err)
+			}
+		})
+	}
+}

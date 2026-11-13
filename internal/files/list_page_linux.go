@@ -30,7 +30,7 @@ func (r *Root) ListDirPage(relative, after string, limit int) ([]Entry, string, 
 	if limit < 1 || limit > MaxListEntries {
 		return nil, "", ErrInvalidLimit
 	}
-	if after != "" && (!utf8.ValidString(after) || len(after) > 255 || strings.ContainsAny(after, "/\x00") || after == "." || after == "..") {
+	if after != "" && !pageNameValid(after) {
 		return nil, "", ErrInvalidPath
 	}
 	r.mu.RLock()
@@ -61,7 +61,7 @@ func (r *Root) ListDirPage(relative, after string, limit int) ([]Entry, string, 
 	}
 	visible := names[:0]
 	for _, name := range names {
-		if !utf8.ValidString(name) {
+		if !pageNameValid(name) {
 			return nil, "", ErrInvalidPath
 		}
 		if relative == "" && (strings.HasPrefix(name, writeStagePrefix) || strings.HasPrefix(name, archiveStagePrefix)) {
@@ -101,6 +101,20 @@ func (r *Root) ListDirPage(relative, after string, limit int) ([]Entry, string, 
 		entries = append(entries, entry)
 	}
 	return entries, next, nil
+}
+
+// pageNameValid matches the explorer's single-component path constraints so
+// every returned name and continuation can be represented and traversed.
+func pageNameValid(name string) bool {
+	if name == "" || name == "." || name == ".." || len(name) > 255 || !utf8.ValidString(name) || strings.ContainsAny(name, "/\\") {
+		return false
+	}
+	for _, c := range name {
+		if c < 0x20 || c == 0x7f {
+			return false
+		}
+	}
+	return true
 }
 
 func (t *TenantRoots) ListDirPageForTenant(tenantID, relative, after string, limit int) ([]Entry, string, error) {
