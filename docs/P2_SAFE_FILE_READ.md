@@ -17,6 +17,12 @@
 - `Close` is synchronized with short descriptor acquisition for operations. New calls after close fail; an in-flight `WriteNewFrom` retains a duplicate pinned descriptor and can complete without making close wait on a slow reader.
 - The package is not wired to HTTP, the privileged agent, site identities, quotas, or ACLs. It must not be represented as cross-tenant file access control.
 
+## Quota reconciliation boundary
+
+`MeasureUsage` and its tenant wrapper reject every root name with the reserved archive-stage prefix with `ErrUsageSnapshotDirty`, including private, empty, locked, malformed or symlink entries. An archive stage may contain unresolved publication evidence; ignoring it or merely counting its files cannot establish that reservations may be cleared. Quota configuration/recovery must leave accounting unchanged on this error. Existing write-stage treatment remains separate and unchanged.
+
+This deliberately favors denial over an understated trusted usage snapshot. A local writer able to create a reserved name can block reconciliation; callers must protect the reserved root namespace and use supervised recovery rather than automatically deleting evidence. Same-Root mutation exclusion does not cover separate processes or external writers. All writers must remain quiesced and participate in the maintenance barrier throughout the scan and quota commit; a lock or age check on a stage cannot replace that coordination. No durable publication reconciler or production approval is provided.
+
 ## Tests
 
 Linux tests cover parent traversal, absolute/non-normalized paths, symlink and root-symlink rejection, directory/FIFO inputs, byte limits, bounded archive-stream reads, close behavior, tenant-root selection for reads/listings/writes/removal/extraction, unknown-tenant denial, duplicate-root rejection, atomic create-only writes, concurrent single-winner creation, and concurrent reads/writes while an attacker repeatedly swaps paths for symlinks to an outside secret. Successful operations must never expose or change outside-root fixture data; kernel errors are expected to fail closed.
