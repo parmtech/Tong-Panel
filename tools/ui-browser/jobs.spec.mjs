@@ -295,6 +295,29 @@ test('site details use actual catalog and discard stale or unauthorized response
     }
 });
 
+test('real site details follow tenant and session changes', async ({ page }) => {
+    await open(page, 'alice');
+    await loadSites(page);
+    await page.getByRole('button', { name: 'View details for site-000' }).click();
+    await expect(page.locator('#site-details-fields')).toContainText('sites/site-000/public');
+    await page.context().clearCookies();
+    await page.context().addCookies([{ name: '__Host-tong_session', value: fixture.Tokens.carol, url: fixture.Primary, secure: true, httpOnly: true, sameSite: 'Strict' }]);
+    await loadSites(page);
+    await expect(page.locator('#site-details')).toBeHidden();
+    await expect(page.locator('#sites-list')).toContainText('other.example.test');
+    await expect(page.locator('#sites-list')).not.toContainText('site-000.example.test');
+    await page.getByRole('button', { name: 'View details for other-site' }).click();
+    await expect(page.locator('#site-details-title')).toHaveText('Site details: other-site');
+    await expect(page.locator('#site-details-fields')).toContainText('sites/other-site/public');
+    const crossTenantStatus = await page.evaluate(async () => (await fetch('/api/v1/sites/site-000', { credentials: 'same-origin' })).status);
+    expect(crossTenantStatus).toBe(404);
+    await page.context().clearCookies();
+    await page.getByRole('button', { name: 'View details for other-site' }).click();
+    await expect(page.locator('#site-details-status')).toContainText('session');
+    await expect(page.locator('#site-details-fields')).toBeEmpty();
+    await expect(page.locator('#sites-list li')).toHaveCount(0);
+});
+
 test('site catalog empty and absent authentication states do not expose stale sites', async ({ page }) => {
     await open(page, 'siteempty');
     await loadSites(page);
