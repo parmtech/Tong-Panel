@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -114,6 +115,62 @@ func TestStagedFilesRefuseOverwriteAndLeaveExistingContents(t *testing.T) {
 	}
 	if string(got) != "preserve me" {
 		t.Fatalf("existing destination changed to %q", got)
+	}
+	assertNoStagedFiles(t, dir)
+}
+
+func TestStagedFilesRefuseSymlinkDestination(t *testing.T) {
+	dir := t.TempDir()
+	plain := []byte("tenant-a restore data")
+	sealed := encryptBytes(t, "tenant-a", plain, Options{})
+	newKey := bytes.Repeat([]byte{0x75}, 32)
+	target := filepath.Join(dir, "unrelated-tenant-data")
+	if err := os.WriteFile(target, []byte("preserve unrelated data"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	destination := filepath.Join(dir, "destination")
+	if err := os.Symlink(target, destination); err != nil {
+		if runtime.GOOS == "windows" {
+			t.Skipf("creating symlinks is unavailable on this Windows host: %v", err)
+		}
+		t.Fatalf("create destination symlink: %v", err)
+	}
+	for _, tc := range []struct {
+		name string
+		run  func() error
+	}{
+		{"encrypt", func() error {
+			return EncryptFile(destination, bytes.NewReader(plain), "tenant-a", testWrappingKey, Options{})
+		}},
+		{"decrypt", func() error {
+			return DecryptFile(destination, bytes.NewReader(sealed), "tenant-a", testWrappingKey, Options{})
+		}},
+		{"rotate", func() error {
+			return RotateWrappingKeyFile(destination, bytes.NewReader(sealed), "tenant-a", testWrappingKey, newKey, Options{})
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := tc.run(); !os.IsExist(err) {
+				t.Fatalf("symlink destination error = %v, want existing destination denial", err)
+			}
+			info, err := os.Lstat(destination)
+			if err != nil || info.Mode()&os.ModeSymlink == 0 {
+				t.Fatalf("destination symlink changed: info=%v error=%v", info, err)
+			}
+			got, err := os.ReadFile(target)
+			if err != nil || string(got) != "preserve unrelated data" {
+				t.Fatalf("unrelated target changed: %q, error %v", got, err)
+			}
+			assertNoStagedFiles(t, dir)
+		})
+	}
+	control := filepath.Join(dir, "valid-restore")
+	if err := DecryptFile(control, bytes.NewReader(sealed), "tenant-a", testWrappingKey, Options{}); err != nil {
+		t.Fatalf("valid restore failed: %v", err)
+	}
+	got, err := os.ReadFile(control)
+	if err != nil || !bytes.Equal(got, plain) {
+		t.Fatalf("valid restore differs from input, error %v", err)
 	}
 	assertNoStagedFiles(t, dir)
 }
