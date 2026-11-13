@@ -1,0 +1,7 @@
+# Files listing pagination (development API)
+
+The existing `GET /api/v1/files` behavior remains unchanged: the directory must fit the requested `limit`, or the endpoint returns 413. Clients can opt in to pagination with `page=1` and a `limit` from 1 to 1000. The response adds `next_after`; an empty string means no further page. To continue, send that value as the `after` query parameter with the same path and `page=1`. URL-encode it as a query value; it is a filename, not a filesystem path or authorization credential. Authentication, `files:read` authorization and server-selected tenant roots still apply to every request.
+
+Each page re-reads and sorts the directory by filename bytes. It is not a snapshot: changes between requests may cause entries to be missed or repeated; restart the listing for a fresh view. A concurrent deletion may produce a short or empty page with a nonempty continuation. Clients must follow `next_after`, rather than treating a short page as the end. Symlinks are listed without being followed.
+
+Each request scans at most 10,000 directory names, including internal staging names. Larger directories fail with 413 rather than yielding incomplete results. A name that cannot be represented as UTF-8 fails the request rather than issuing a lossy cursor. Enumeration is bounded but still incurs a full scan for each page; this is not a scalable indexed directory or a consistent snapshot. Existing daemon/backend enablement and production/security gates are unchanged.

@@ -2,7 +2,7 @@ import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
 import { loadSitesPage } from './sites-list.mjs';
 import { mountACMEPreflight } from './acme-preflight.mjs';
-import { downloadTenantFile, listTenantFiles } from './files-explorer.mjs';
+import { downloadTenantFile, listTenantFilesPage } from './files-explorer.mjs';
 import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';
 mountACMEPreflight();
 const tiles = [
@@ -476,6 +476,9 @@ jobsNext?.addEventListener('click', () => { if (jobsNextAfter)
 jobDetailRetry?.addEventListener('click', () => { if (selectedJob)
     void selectJob(selectedJob, true); });
 const filesRefresh = document.querySelector('#files-refresh');
+const filesNext = document.querySelector('#files-next');
+let filesNextAfter = '';
+let filesRequestID = 0;
 const filesStatus = document.querySelector('#files-status');
 const filesList = document.querySelector('#files-list');
 const filesBreadcrumbs = document.querySelector('#files-breadcrumbs');
@@ -557,31 +560,47 @@ function renderFilesEntries(entries) {
         filesList.append(empty);
     }
 }
-async function refreshFiles() {
+async function refreshFiles(after = '') {
     if (!filesRefresh || !filesStatus || !filesList)
         return;
+    const requestID = ++filesRequestID;
+    const requestedPath = filesPath.join('/');
     filesRefresh.disabled = true;
     filesRefresh.setAttribute('aria-busy', 'true');
+    if (filesNext)
+        filesNext.disabled = true;
     filesStatus.dataset.state = 'loading';
     filesStatus.textContent = 'Loading files…';
     try {
-        const entries = await listTenantFiles(filesPath.join('/'));
+        const page = await listTenantFilesPage(requestedPath, after);
+        if (requestID !== filesRequestID)
+            return;
+        const entries = page.entries;
+        filesNextAfter = page.next_after;
+        if (filesNext)
+            filesNext.disabled = !filesNextAfter;
         renderFilesBreadcrumbs();
         renderFilesEntries(entries);
         filesStatus.dataset.state = 'available';
-        filesStatus.textContent = `${entries.length} ${entries.length === 1 ? 'item' : 'items'} loaded. Links are never followed.`;
+        filesStatus.textContent = `${entries.length} ${entries.length === 1 ? 'item' : 'items'} on this page. Folder changes may affect results; refresh to restart. Links are never followed.`;
     }
     catch (error) {
+        if (requestID !== filesRequestID)
+            return;
         renderFilesBreadcrumbs();
         filesList.replaceChildren();
         filesStatus.dataset.state = 'unavailable';
         filesStatus.textContent = error instanceof Error ? error.message : 'Files could not be loaded. Try again.';
     }
     finally {
+        if (requestID !== filesRequestID)
+            return;
         filesRefresh.disabled = false;
         filesRefresh.removeAttribute('aria-busy');
     }
 }
+filesNext?.addEventListener('click', () => { if (filesNextAfter)
+    void refreshFiles(filesNextAfter); });
 async function downloadFile(name, button) {
     button.disabled = true;
     try {

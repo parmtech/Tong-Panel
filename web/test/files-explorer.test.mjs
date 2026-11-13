@@ -99,10 +99,19 @@ test('wires an accessible read-only explorer without upload, edit or delete cont
     assert.match(html, /id="files-explorer-title"/);
     assert.match(html, /id="files-refresh" type="button"/);
     assert.match(html, /id="files-status" class="files-status" role="status" aria-live="polite"/);
-    assert.match(app, /import \{ downloadTenantFile, listTenantFiles \} from '\.\/files-explorer\.mjs'/);
+    assert.match(app, /import \{ downloadTenantFile, listTenantFilesPage \} from '\.\/files-explorer\.mjs'/);
     assert.match(app, /name\.textContent =/);
     assert.match(html, /Files are not loaded/);
     assert.match(app, /filesRefresh\?\.addEventListener\('click'/);
     assert.match(css, /\.files-list\{/);
     assert.doesNotMatch(html, /type="file"|>Upload<|>Delete<|>Edit</);
+});
+
+test('loads a single paged directory response and rejects a stalled cursor', async () => {
+    const { listTenantFilesPage } = await import('../../cmd/tongd/ui/files-explorer.mjs');
+    let request;
+    const page = await listTenantFilesPage('site', 'old name', async url => { request=url; return jsonResponse({entries:[{name:'new',kind:'file',size:1}],next_after:'new'}); });
+    assert.equal(request, '/api/v1/files?path=site&page=1&after=old%20name');
+    assert.equal(page.next_after, 'new');
+    await assert.rejects(listTenantFilesPage('', 'same', async () => jsonResponse({entries:[],next_after:'same'})), /unexpected file listing/);
 });

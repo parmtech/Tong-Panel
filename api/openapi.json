@@ -1283,9 +1283,31 @@
           },
           {
             "$ref": "#/components/parameters/FileLimit"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "description": "Opt in to bounded name-ordered pagination; omit for legacy all-or-error behavior."
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "description": "Exclusive last name from next_after, accepted only with page=1. Each page is a fresh directory scan; changes may be missed or repeated."
           }
         ],
-        "x-query-policy": "Only one path and one limit allowed; unknown keys, duplicate values and malformed query encoding are rejected.",
+        "x-query-policy": "Only one path, limit, page and after allowed; after requires page=1. Unknown keys, duplicate values and malformed encoding are rejected.",
         "responses": {
           "200": {
             "description": "Non-following entry metadata; no absolute server paths.",
@@ -5317,6 +5339,10 @@
             "items": {
               "$ref": "#/components/schemas/FileEntry"
             }
+          },
+          "next_after": {
+            "type": "string",
+            "description": "Exclusive continuation name; empty at end. Present only when page=1. A fresh scan may observe concurrent changes."
           }
         }
       },
@@ -5420,7 +5446,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 254,
-            "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1\u00e2\u20ac\u201c63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+            "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1â€“63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
           },
           "aliases": {
             "type": "array",
@@ -5428,7 +5454,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 254,
-              "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1\u00e2\u20ac\u201c63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+              "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1â€“63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
             },
             "maxItems": 32,
             "nullable": true,
@@ -5447,7 +5473,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 254,
-            "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1\u00e2\u20ac\u201c63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+            "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1â€“63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
           }
         }
       },
@@ -5713,7 +5739,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 254,
-          "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1\u00e2\u20ac\u201c63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
+          "description": "ASCII DNS name with at least two labels, no IP literal or Unicode; each label is 1â€“63 ASCII letters/digits/hyphens with no edge hyphen. A final dot and uppercase input are accepted and normalized."
         }
       },
       "IdempotencyKey": {
@@ -5725,7 +5751,7 @@
           "minLength": 8,
           "maxLength": 128
         },
-        "description": "8\u00e2\u20ac\u201c128 bytes in the implementation; use ASCII. Tenant-scoped. In SQLite mode it is also bound to the requester and kind. Identical retries return the same job (202); different work/requester conflicts (409)."
+        "description": "8â€“128 bytes in the implementation; use ASCII. Tenant-scoped. In SQLite mode it is also bound to the requester and kind. Identical retries return the same job (202); different work/requester conflicts (409)."
       },
       "Origin": {
         "name": "Origin",
@@ -5766,7 +5792,7 @@
           "maximum": 1000,
           "default": 200
         },
-        "description": "Directory entry ceiling, not pagination. A directory exceeding this ceiling fails with 413 rather than returning a truncated page."
+        "description": "Legacy listing: entry ceiling; 413 if exceeded. With page=1: maximum entries returned per page; scans at most 10000 directory names and fails rather than truncating."
       }
     },
     "headers": {
@@ -5812,7 +5838,7 @@
       "DevBearer": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Development-only opaque static bearer token. Exact Bearer prefix; token check accepts 32\u00e2\u20ac\u201c4096 bytes. This is not password login, OAuth or a production credential service."
+        "description": "Development-only opaque static bearer token. Exact Bearer prefix; token check accepts 32â€“4096 bytes. This is not password login, OAuth or a production credential service."
       },
       "BrowserSession": {
         "type": "apiKey",

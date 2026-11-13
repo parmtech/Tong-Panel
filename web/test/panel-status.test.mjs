@@ -139,7 +139,7 @@ test('Refresh button announces a result, blocks duplicate clicks, then retries',
         .replace("import { loadNginxPreview } from './site-preview.mjs';", 'const loadNginxPreview = globalThis.testLoadNginxPreview;')
         .replace("import { loadSitesPage } from './sites-list.mjs';", 'const loadSitesPage = globalThis.testLoadSitesPage;')
         .replace("import { mountACMEPreflight } from './acme-preflight.mjs';", 'const mountACMEPreflight = () => {};')
-        .replace("import { downloadTenantFile, listTenantFiles } from './files-explorer.mjs';", 'const downloadTenantFile = globalThis.testDownloadTenantFile; const listTenantFiles = globalThis.testListTenantFiles;')
+        .replace("import { downloadTenantFile, listTenantFilesPage } from './files-explorer.mjs';", 'const downloadTenantFile = globalThis.testDownloadTenantFile; const listTenantFilesPage = globalThis.testListTenantFilesPage;')
         .replace("import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';", 'const loadMyJobsPage = globalThis.testLoadMyJobsPage; const loadMyJob = globalThis.testLoadMyJob; const MyJobsError = globalThis.testMyJobsError;')
         .replace(/\nexport \{\};\s*$/, '\n');
     runInNewContext(source, {
@@ -150,7 +150,7 @@ test('Refresh button announces a result, blocks duplicate clicks, then retries',
         testMyJobsError: class extends Error {},
         testLoadNginxPreview: async () => '',
         testDownloadTenantFile: async () => ({}),
-        testListTenantFiles: async () => [],
+        testListTenantFilesPage: async () => ({ entries: [], next_after: '' }),
     });
 
     const status = elements.get('#status');

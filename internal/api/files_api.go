@@ -45,6 +45,11 @@ type TenantFileService interface {
 	RemoveForTenant(tenantID, relative string) (int64, error)
 }
 
+// PagedTenantFileService is an optional bounded, name-ordered listing API.
+type PagedTenantFileService interface {
+	ListPageForTenant(tenantID, relative, after string, limit int) ([]TenantFileEntry, string, error)
+}
+
 // ContextTenantFileService lets filesystem implementations stop before
 // publishing or unlinking data when the request is canceled.
 type ContextTenantFileService interface {
@@ -131,9 +136,42 @@ func (s *Server) fileList(w http.ResponseWriter, r *http.Request, p rbac.Princip
 		fail(w, http.StatusServiceUnavailable, "files_unavailable")
 		return
 	}
-	relative, limit, err := parseTenantFileQuery(r, true, false)
+	values, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
 		fail(w, http.StatusBadRequest, "invalid_file_request")
+		return
+	}
+	paged := false
+	after := ""
+	if page, ok := values["page"]; ok {
+		if len(page) != 1 || page[0] != "1" || len(values["after"]) > 1 {
+			fail(w, http.StatusBadRequest, "invalid_file_request")
+			return
+		}
+		paged = true
+		after = values.Get("after")
+		values.Del("page")
+		values.Del("after")
+	}
+	request := r.Clone(r.Context())
+	request.URL.RawQuery = values.Encode()
+	relative, limit, err := parseTenantFileQuery(request, true, false)
+	if err != nil {
+		fail(w, http.StatusBadRequest, "invalid_file_request")
+		return
+	}
+	if paged {
+		service, ok := s.Files.(PagedTenantFileService)
+		if !ok {
+			fail(w, http.StatusServiceUnavailable, "files_unavailable")
+			return
+		}
+		entries, next, err := service.ListPageForTenant(p.TenantID, relative, after, limit)
+		if err != nil {
+			writeFilesError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"entries": entries, "next_after": next})
 		return
 	}
 	entries, err := s.Files.ListForTenant(p.TenantID, relative, limit)

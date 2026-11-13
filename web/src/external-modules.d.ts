@@ -15,6 +15,7 @@ declare module '*.mjs' {
     export function loadSitesPage(after?: string, fetcher?: typeof fetch, signal?: AbortSignal): Promise<{sites: SiteSummary[]; next_after: string}>;
     export interface FileEntry { name: string; kind: 'file' | 'directory' | 'symlink' | 'other'; size: number; }
     export function listTenantFiles(path: string, fetcher?: typeof fetch): Promise<FileEntry[]>;
+    export function listTenantFilesPage(path: string, after?: string, fetcher?: typeof fetch): Promise<{entries: FileEntry[]; next_after: string}>;
     export function downloadTenantFile(path: string, fetcher?: typeof fetch): Promise<{ name: string; blob: Blob }>;
     export interface MyJob {
         id: string;

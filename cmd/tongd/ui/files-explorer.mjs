@@ -49,8 +49,19 @@ function failureMessage(status) {
 }
 
 export async function listTenantFiles(path = '', fetcher = fetch, timeoutOverride) {
+    return listFiles(path, null, fetcher, timeoutOverride);
+}
+
+export async function listTenantFilesPage(path = '', after = '', fetcher = fetch, timeoutOverride) {
+    if (typeof after !== 'string' || after.length > 255 || /[\/\\\u0000-\u001f\u007f]/u.test(after) || after === '.' || after === '..')
+        throw new FilesExplorerError('The file page is invalid. Refresh the folder.');
+    return listFiles(path, after, fetcher, timeoutOverride);
+}
+
+async function listFiles(path, after, fetcher, timeoutOverride) {
     try {
-        return await withTimeout(fetcher, filesURL(path), {
+        const url = filesURL(path) + (after === null ? '' : `&page=1&after=${encodeURIComponent(after)}`);
+        return await withTimeout(fetcher, url, {
             method: 'GET',
             credentials: 'same-origin',
             cache: 'no-store',
@@ -80,7 +91,10 @@ export async function listTenantFiles(path = '', fetcher = fetch, timeoutOverrid
                 }
                 return { name: entry.name, kind: entry.kind, size: entry.size };
             });
-            return entries;
+            if (after === null) return entries;
+            if (typeof body.next_after !== 'string' || body.next_after.length > 255 || /[\/\\\u0000-\u001f\u007f]/u.test(body.next_after) || body.next_after === '.' || body.next_after === '..' || (body.next_after && body.next_after === after))
+                throw new FilesExplorerError('The server returned an unexpected file listing.');
+            return { entries, next_after: body.next_after };
         }, timeoutOverride);
     }
     catch (error) {
