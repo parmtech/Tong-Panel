@@ -35,6 +35,7 @@ on:
       - 'scripts/test_backup_verify_cli.py'
       - 'scripts/test_backup_export_site_cli.py'
       - 'scripts/test_backup_restore_site_lab_cli.py'
+      - 'scripts/test_backup_verify_site_cli.py'
       - 'scripts/smoke_wordpress_backup_source.sh'
       - 'scripts/smoke_wordpress_restore_target.sh'
       - 'scripts/smoke_nginx_config_rollback.sh'
@@ -106,6 +107,8 @@ jobs:
         run: python3 scripts/test_backup_export_site_cli.py "$RUNNER_TEMP/tong-p1-dev/bin/tongbackup"
       - name: Exercise disposable site restore CLI
         run: python3 scripts/test_backup_restore_site_lab_cli.py "$RUNNER_TEMP/tong-p1-dev/bin/tongbackup"
+      - name: Exercise synthetic verify-site CLI
+        run: python3 scripts/test_backup_verify_site_cli.py "$RUNNER_TEMP/tong-p1-dev/bin/tongbackup"
       - name: Verify image checker rejects tampered and malformed input
         run: bash scripts/test_verify_vm_image_checksum.sh
       - name: Build and validate unsigned developer package fixtures
