@@ -4,6 +4,10 @@
 
 **Owner direction on costs and source:** Build panel functionality without mandatory paid software or paid-only components; integrated third-party components should be free and open source. Use suitable open-source components or original open-source Tong Panel implementation as needed. Softaculous is not selected. Verify the exact license, notices, versions, security and compatibility before integrating any component; a free/community edition does not imply its paid features are included, and suitability is not yet proven for every feature. Server hosting, domain registration, optional external providers and other infrastructure can still cost money independently of the panel.
 
+## Live development context / agent resume
+
+This checklist is a **desired scope and acceptance target**, not a completion certificate. Code/tests/research are consolidated in [development PR #171](https://github.com/parmtech/Tong-Panel/pull/171), and workstreams are tracked in [#172](https://github.com/parmtech/Tong-Panel/issues/172). For exactly what exists, current checks, rejected assumptions and one next task, read [AI_AGENT_START_HERE.md](AI_AGENT_START_HERE.md) and [AI_AGENT_STATE.json](AI_AGENT_STATE.json); always refresh live GitHub. No item is checked off by a passing model/CI fixture unless its end-to-end exit evidence and independent release/security approval exist.
+
 ## 1. Decide scope before building
 
 - [ ] Owner approves target users, release name, supported OS/version/architecture, system requirements, support policy and exactly which features are in/out.

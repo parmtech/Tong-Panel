@@ -4,7 +4,17 @@
 **Publisher:** [ParmTech](https://parmtech.au)  
 **Project:** [Tong Panel](https://github.com/parmtech/Tong-Panel)  
 **License:** [GNU AGPL-3.0](LICENSE) for original Tong Panel code  
-**Current status:** Development prototypes and review proposals are consolidated on `integration/pr-reconciliation-20261113`. P0/security and production release gates remain open. Read the [current handoff](docs/RESUME_HANDOFF_2026-11-12.md).
+**Current status:** Consolidated P0–P5 development code, QA and review material lives on `integration/pr-reconciliation-20261113` in draft PR #171. The default `main` remains documentation-only; no production install, P1 exit, security approval or signed release. **New AI agents: start at [the A–Z resume guide](docs/AI_AGENT_START_HERE.md).**
+
+## Start here — current development and AI handoff
+
+- **[START HERE: complete AI agent resume guide](docs/AI_AGENT_START_HERE.md)** — exact current work, code map, CI evidence, previous failures, security restrictions, and **one next action**.
+- **[Machine-readable handoff state](docs/AI_AGENT_STATE.json)** — static snapshot for agents; always refresh GitHub before believing a stored run status.
+- **[AGENTS.md](AGENTS.md)** — required work style, read order, security boundaries and journal format.
+- **[Most recent journal](UPDATES.md)** and **[chronological resume handoff](docs/RESUME_HANDOFF_2026-11-12.md)** — detailed evidence and source links.
+- **[PR #171](https://github.com/parmtech/Tong-Panel/pull/171)** (sole draft) and **[master issue #172](https://github.com/parmtech/Tong-Panel/issues/172)** — development and cross-workstream coordination.
+
+At the verified **pre-handoff executable-source** commit `83fe8931`, **13/13 GitHub workflows passed** ([full VM run #43343515245](https://github.com/parmtech/Tong-Panel/actions/runs/43343515245)), including both **Ubuntu 24.04 and Debian 12 full guest jobs**. The next safe engineering task is an isolated non-root synthetic dpkg crash/interruption test after refreshing live docs-head CI; this handoff commit changes branch SHA but not production capability. Green release-blocker CI does **not** approve release.
 
 ## What we are building
 A capable but easy-to-use hosting dashboard for self-managed supported Linux VPS and dedicated servers. Our design combines conventional hosting tools (web domains, PHP, mail, DNS, database, SSL, backups, resellers) with modern app deployment (Node.js, Python, Git-based apps, isolated containers), without copying proprietary cPanel designs or software.

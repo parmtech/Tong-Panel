@@ -2,9 +2,10 @@
 **Repository:** https://github.com/parmtech/Tong-Panel  
 **Publisher:** ParmTech — https://parmtech.au  
 **License:** GNU AGPL-3.0 for original code  
-**Current checkpoint (2026-11-13):** single [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) / [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172): new rootless dpkg failure lab [failed inside Debian 12 guest](https://github.com/parmtech/Tong-Panel/actions/runs/43341489570) because non-root `PATH` lacked standard sbin helpers, despite 12 non-VM workflows passing. The focused fix sets deterministic subprocess PATH, adds a fifth guest-PATH regression, and requires new-head CI proof. Use only explicitly disposable hosts; P0/security/signed-installer gates remain blocked. Read UPDATES.md and handoff first.
+**Current checkpoint (2026-11-13):** **READ [docs/AI_AGENT_START_HERE.md](docs/AI_AGENT_START_HERE.md) FIRST** and [AI_AGENT_STATE.json](docs/AI_AGENT_STATE.json). Sole [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171) / [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172). Verified executable-source SHA `83fe8931` completed **13/13 workflows successfully**, including both full Ubuntu/Debian guests [run #43343515245](https://github.com/parmtech/Tong-Panel/actions/runs/43343515245). **Next:** check documentation-commit HEAD/CI, then implement a disposable-only, rootless synthetic dpkg crash/interruption and state-reconciliation negative test. P0/ADR/security/signed-installer, main merge and live-host changes remain blocked.
 
 ## Mandatory read order for every agent
+**0. [docs/AI_AGENT_START_HERE.md](docs/AI_AGENT_START_HERE.md)** — canonical A–Z continuation and ONE exact next task; [machine-readable state](docs/AI_AGENT_STATE.json). Check live GitHub HEAD; dated snapshot is not a monitor.
 1. UPDATES.md — current checkpoint, verified completed work and next action.
 2. docs/ROADMAP.md — phase gates and scope.
 3. docs/BLUEPRINT.md — product vision and feature requirements.
@@ -76,7 +77,11 @@ Never invent test outcomes or completion percentages. The journal needs explicit
 - All production-sensitive functions need rollback/dry-run, idempotency and verified audit trails.
 
 ## How to hand off
+If the next action changes, update the A–Z [START HERE](docs/AI_AGENT_START_HERE.md), [AI_AGENT_STATE.json](docs/AI_AGENT_STATE.json), top of [UPDATES.md](UPDATES.md), top of [chronological handoff](docs/RESUME_HANDOFF_2026-11-12.md), and PR #171/#172 with exact evidence. Keep older log entries for audit. Do not self-reference the SHA of an as-yet-uncreated commit.
+
 Edit UPDATES.md CURRENT CHECKPOINT and append a journal entry; link exact commit/PR, list next action, tests and blockers. Push and verify. New agent repeats read order above.
 
 ## Immediate next task
+**Exact next task:** [P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB](docs/AI_AGENT_START_HERE.md#5-exact-next-resume-point--task-p1-synthetic-install-crash-recovery-lab). The old dpkg PATH fix on `83fe8931` is **verified 13/13**, with both guests successful. Refresh the live HEAD/CI after this docs commit before adding a new non-root/disposable-only crash test. All broader standing safety instructions below still apply.
+
 Read [PR reconciliation](docs/PR_RECONCILIATION_2026-11-13.md), [P1 exit gate report](docs/P1_EXIT_GATE_REPORT_2026-10-27.md) and UPDATES.md; verify the latest integration head, hosted checks and actual PR states. Keep one current integration review rather than reopening superseded drafts or creating overlapping continuations. Resolve draft P0 ADR/security acceptance, production authentication, signed package/installer and disposable OS VM recovery evidence before declaring P1 complete. Avoid additional overlapping draft PRs unless they close a specific unmet gate and have tests. Never claim that a running localhost preview is a shippable hosting panel.

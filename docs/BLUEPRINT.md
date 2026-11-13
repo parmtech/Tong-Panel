@@ -2,8 +2,12 @@
 **Project:** Tong Panel (TongPanel) | **Publisher:** ParmTech (https://parmtech.au)  
 **Project type:** Free/open-source Linux hosting control panel and cPanel/WHM alternative  
 **License:** GNU AGPL-3.0 for original Tong Panel code; all third-party dependencies retain their own licences.  
-**Status:** PRODUCT PLANNING — no deployable Tong Panel exists yet  
-**Updated:** 2026-10-26 | **Blueprint revision:** 0.1
+**Status:** PRODUCT BLUEPRINT + UNMERGED DEV PROTOTYPES — no production-ready or supported deployable Tong Panel exists. For the actual code/CI state read [AI agent A–Z handoff](AI_AGENT_START_HERE.md).  
+**Original blueprint:** 2026-10-26 | **Current engineering status linked:** 2026-11-13 | **Blueprint revision:** 0.1 (targets preserved)
+
+## Implementation reality and next agent entrypoint (13 November 2026)
+
+The **product scope below is the target**, not a completed-feature list. As of the verified development snapshot, the original source, tests, design work and 149 historic draft heads are consolidated in [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171); [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) coordinates the P0–P6 workstreams. A [fully indexed A–Z AI handoff](AI_AGENT_START_HERE.md) describes actual source directories, historical checks, security decisions and the exact next action; its [JSON snapshot](AI_AGENT_STATE.json) is machine-readable. The branch has unsigned developer-only packages and isolated Go/VM/ACME/backup/migration models, **not** a supported hosting panel. No ADR/security signoff, public login, root host mutation, production signing/installer or supported release is approved. Keep vision separate from verified implementation.
 
 ## 1. Mission and non-negotiables
 

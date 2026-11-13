@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "generated_date": "2026-11-13",
+  "timezone": "Australia/Sydney",
+  "snapshot_kind": "not_live_monitor",
+  "repo": "parmtech/Tong-Panel",
+  "license": "AGPL-3.0",
+  "working_branch": "integration/pr-reconciliation-20261113",
+  "source_head_before_handoff_commit": "83fe8931e8674a849e6fef35ecd86446cf36405f",
+  "source_tree_sha": "fb2f0a220031ff86432c733aab3d61cdedee6767",
+  "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+  "main_docs_only": true,
+  "pr": 171,
+  "pr_state_at_snapshot": "open_draft_unmerged",
+  "master_issue": 172,
+  "tracked_files_at_snapshot": 458,
+  "prior_prs": {
+    "closed_unmerged": 149,
+    "all_observed_checks_successful": 129,
+    "failed": 5,
+    "cancelled": 1,
+    "no_head_workflows": 14
+  },
+  "source_head_ci": {
+    "total": 13,
+    "success": 13,
+    "completed_failure": 0,
+    "pending": [],
+    "vm_run": 43343515245,
+    "runner_five_case_dpkg_tests": "passed_both_matrix_jobs",
+    "ubuntu_guest": "completed_success",
+    "debian_guest": "completed_success",
+    "historical_failed_runs": [
+      43340739617,
+      43341489570
+    ],
+    "vm_run_conclusion": "success",
+    "ubuntu_job_id": 131617230433,
+    "debian_job_id": 131617230810,
+    "workflow_runs": {
+      "SQLite schema checks": {
+        "run_id": 43343515154,
+        "conclusion": "success"
+      },
+      "UI checks": {
+        "run_id": 43343515543,
+        "conclusion": "success"
+      },
+      "P1 gate blocker inventory": {
+        "run_id": 43343515101,
+        "conclusion": "success"
+      },
+      "Offline model and fixture checks": {
+        "run_id": 43343515610,
+        "conclusion": "success"
+      },
+      "P1 developer smoke (non-destructive)": {
+        "run_id": 43343515099,
+        "conclusion": "success"
+      },
+      "Go vulnerability checks": {
+        "run_id": 43343515093,
+        "conclusion": "success"
+      },
+      "Current API contract checks": {
+        "run_id": 43343515256,
+        "conclusion": "success"
+      },
+      "P1 unsigned developer package lab": {
+        "run_id": 43343515279,
+        "conclusion": "success"
+      },
+      "Go static security analysis": {
+        "run_id": 43343515482,
+        "conclusion": "success"
+      },
+      "Jobs browser checks": {
+        "run_id": 43343515237,
+        "conclusion": "success"
+      },
+      "Isolated Go prototype checks": {
+        "run_id": 43343515231,
+        "conclusion": "success"
+      },
+      "Go checks": {
+        "run_id": 43343515225,
+        "conclusion": "success"
+      },
+      "P2 clean disposable VM smoke": {
+        "run_id": 43343515245,
+        "conclusion": "success"
+      }
+    }
+  },
+  "next": {
+    "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
+    "priority": 1,
+    "action": "Check live PR #171 and new docs-head CI, then write a safe synthetic non-root dpkg crash/interruption and state-reconciliation negative test, only on explicitly disposable CI hosts/guests; check fresh dpkg status, previous payload and private marker, and require explicit recovery/manual review for ambiguous states.",
+    "required_evidence": [
+      "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
+      "explicit disposable-only opt-in and non-root guard",
+      "inert fixture and only owned test subprocess killed",
+      "negative interrupted state not mistaken for successful install",
+      "new exact-head CI plus runner/guest outcomes documented",
+      "no root/customer install, signer or approval claim"
+    ]
+  },
+  "approvals": {
+    "p0_adrs_001_009": false,
+    "independent_security_review": false,
+    "production_auth": false,
+    "privileged_host_operations": false,
+    "public_ca_key_custody": false,
+    "terminal_t0": false,
+    "signed_installer": false,
+    "two_tenant_restore": false,
+    "accessibility_release": false
+  },
+  "no_live_server_mutation": true,
+  "no_main_merge": true,
+  "no_public_release": true,
+  "canonical_files": [
+    "AGENTS.md",
+    "docs/AI_AGENT_START_HERE.md",
+    "docs/AI_AGENT_STATE.json",
+    "UPDATES.md",
+    "docs/RESUME_HANDOFF_2026-11-12.md",
+    "docs/PR_RECONCILIATION_2026-11-13.md",
+    "docs/BLUEPRINT.md",
+    "docs/ROADMAP.md",
+    "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md"
+  ],
+  "urls": {
+    "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
+    "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43343515245",
+    "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
+    "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
+  }
+}
