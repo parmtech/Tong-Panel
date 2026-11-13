@@ -427,6 +427,53 @@ test('existing file explorer remains wired when the fixture has no file backend'
     await expect(page.locator('#files-status')).toHaveText('File access is not enabled on this server yet.');
 });
 
+test('Files text preview stays inert, bounded, and clears on navigation', async ({ page }) => {
+    // Files responses are controlled here; the Linux handler is not exercised.
+    let releaseSlow, markSlow, markFinished;
+    const held = new Promise(resolve => { releaseSlow = resolve; });
+    const started = new Promise(resolve => { markSlow = resolve; });
+    const finished = new Promise(resolve => { markFinished = resolve; });
+    await page.route('**/api/v1/files?**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        entries: ['plain.txt', 'markup.txt', 'slow.txt', 'denied.txt', 'large.txt', 'oversized.txt'].map(name => ({ name, kind: 'file', size: name === 'large.txt' ? 262145 : 10 })),
+        next_after: '',
+    }) }));
+    await page.route('**/api/v1/files/content?**', async route => {
+        const name = new URL(route.request().url()).searchParams.get('path');
+        if (name === 'slow.txt') { markSlow(); await held; }
+        if (name === 'denied.txt') return route.fulfill({ status: 403, body: '' });
+        const body = name === 'markup.txt' ? '<img src=x onerror="window.previewInjected=true">' : name === 'slow.txt' ? 'stale secret' : name === 'oversized.txt' ? 'x'.repeat(262145) : 'ordinary text';
+        try { await route.fulfill({ status: 200, contentType: 'application/octet-stream', body }); } catch { /* request may have closed */ }
+        if (name === 'slow.txt') markFinished();
+    });
+    await open(page);
+    await page.locator('#files-refresh').click();
+    await expect(page.getByRole('button', { name: 'Preview text plain.txt' })).toBeVisible();
+    await page.getByRole('button', { name: 'Preview text plain.txt' }).click();
+    await expect(page.locator('#files-preview-content')).toHaveText('ordinary text');
+    await page.locator('#files-preview-close').click();
+    await expect(page.locator('#files-preview')).toBeHidden();
+    await expect(page.locator('#files-preview-content')).toBeEmpty();
+    await page.getByRole('button', { name: 'Preview text markup.txt' }).click();
+    await expect(page.locator('#files-preview-content')).toHaveText('<img src=x onerror="window.previewInjected=true">');
+    await expect(page.locator('#files-preview-content img')).toHaveCount(0);
+    expect(await page.evaluate(() => window.previewInjected)).toBeUndefined();
+    await expect(page.getByRole('button', { name: 'Preview text large.txt' })).toBeDisabled();
+    await page.getByRole('button', { name: 'Preview text oversized.txt' }).click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
+    await expect(page.locator('#files-preview')).toBeHidden();
+    await page.getByRole('button', { name: 'Preview text denied.txt' }).click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
+    await expect(page.locator('#files-preview')).toBeHidden();
+    await page.getByRole('button', { name: 'Preview text slow.txt' }).click();
+    await started;
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+    releaseSlow();
+    await finished;
+    await expect(page.locator('#files-preview')).toBeHidden();
+    await expect(page.locator('#files-preview-content')).toBeEmpty();
+});
+
 test('Files page navigation and folder resets use the expected cursors', async ({ page }) => {
     // The Files endpoint is intercepted here: this checks browser behavior,
     // while Linux backend and tenant isolation are tested separately.
