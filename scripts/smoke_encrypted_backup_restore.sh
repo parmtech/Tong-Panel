@@ -32,6 +32,8 @@ GRANT ALL PRIVILEGES ON \`$db_source\`.* TO '$db_user'@'localhost';
 GRANT ALL PRIVILEGES ON \`$db_restore\`.* TO '$db_user'@'localhost';
 CREATE TABLE \`$db_source\`.restore_marker (value VARCHAR(80) NOT NULL);
 INSERT INTO \`$db_source\`.restore_marker VALUES ('$marker');
+CREATE TABLE \`$db_restore\`.restore_guard (value VARCHAR(80) NOT NULL);
+INSERT INTO \`$db_restore\`.restore_guard VALUES ('untouched-before-restore');
 SQL
 
 umask 077
@@ -54,6 +56,30 @@ if grep -aFq "$marker" "$artifact"; then
   exit 1
 fi
 
+# Verify the actual encrypted dump before the existing restore. This is a
+# separate read of the artifact, not an atomic verification/restore promise.
+before_verify="$(sha256sum "$artifact" | cut -d ' ' -f 1)"
+/home/ci/tong-p1-dev/bin/tongbackup verify --tenant tenant-a --key-file "$work/wrapping.key" < "$artifact" > "$work/verify.out" 2> "$work/verify.err"
+[[ ! -s "$work/verify.out" && ! -s "$work/verify.err" ]]
+[[ "$(sha256sum "$artifact" | cut -d ' ' -f 1)" == "$before_verify" ]]
+python3 - "$artifact" "$work/tampered.tpbk" <<'PY_TAMPER'
+from pathlib import Path
+import sys
+data = bytearray(Path(sys.argv[1]).read_bytes())
+if not data:
+    raise SystemExit("empty synthetic backup")
+data[-1] ^= 1
+Path(sys.argv[2]).write_bytes(data)
+PY_TAMPER
+if /home/ci/tong-p1-dev/bin/tongbackup verify --tenant tenant-a --key-file "$work/wrapping.key" < "$work/tampered.tpbk" > "$work/verify-bad.out" 2> "$work/verify-bad.err"; then
+  echo "tampered backup unexpectedly verified" >&2
+  exit 1
+fi
+[[ ! -s "$work/verify-bad.out" ]]
+[[ "$(sha256sum "$artifact" | cut -d ' ' -f 1)" == "$before_verify" ]]
+guard="$(mariadb --defaults-extra-file="$work/tenant.cnf" --batch --skip-column-names "$db_restore" -e 'SELECT value FROM restore_guard')"
+[[ "$guard" == 'untouched-before-restore' ]]
+
 if /home/ci/tong-p1-dev/bin/tongbackup decrypt --tenant tenant-b --key-file "$work/wrapping.key" --output "$work/wrong-tenant.sql" < "$artifact" >/dev/null 2>&1; then
   echo "backup decrypted under the wrong tenant" >&2
   exit 1
@@ -69,5 +95,7 @@ fi
 mariadb --defaults-extra-file="$work/tenant.cnf" "$db_restore" < "$work/restore.sql"
 restored="$(mariadb --defaults-extra-file="$work/tenant.cnf" --batch --skip-column-names "$db_restore" -e 'SELECT value FROM restore_marker')"
 [[ "$restored" == "$marker" ]]
+guard="$(mariadb --defaults-extra-file="$work/tenant.cnf" --batch --skip-column-names "$db_restore" -e 'SELECT value FROM restore_guard')"
+[[ "$guard" == 'untouched-before-restore' ]]
 install -m 0600 "$work/wrapping.key" "$key_copy"
 printf '%s\n' 'PASS: encrypted tenant dump hides plaintext; wrong tenant/key are denied; authenticated restore recovers the source marker'
