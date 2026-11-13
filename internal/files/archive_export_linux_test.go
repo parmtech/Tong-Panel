@@ -65,7 +65,7 @@ type shortExportWriter struct{}
 func (shortExportWriter) Write([]byte) (int, error) { return 0, nil }
 func TestEncryptedSiteExportRejectsUnsafeInputsAndLimits(t *testing.T) {
 	key := bytes.Repeat([]byte{8}, 32)
-	for _, kind := range []string{"symlink", "hardlink", "fifo", "reserved-stage"} {
+	for _, kind := range []string{"symlink", "hardlink", "fifo", "reserved-stage", "ciphertext-stage"} {
 		t.Run(kind, func(t *testing.T) {
 			root, dir := newTestRoot(t)
 			site := filepath.Join(dir, "site")
@@ -91,6 +91,10 @@ func TestEncryptedSiteExportRejectsUnsafeInputsAndLimits(t *testing.T) {
 				}
 			case "reserved-stage":
 				if err := os.Mkdir(filepath.Join(site, ".tong-archive-stage-secret"), 0700); err != nil {
+					t.Fatal(err)
+				}
+			case "ciphertext-stage":
+				if err := os.WriteFile(filepath.Join(site, ".tong-ciphertext-stage-secret"), nil, 0600); err != nil {
 					t.Fatal(err)
 				}
 			}

@@ -60,7 +60,7 @@ func (r *Root) ExportEncryptedGzipTar(ctx context.Context, relative string, dst 
 		}
 	}
 	for _, component := range strings.Split(relative, "/") {
-		if hasInternalStagePrefix(component) {
+		if hasInternalStagePrefix(component) || strings.HasPrefix(component, ".tong-ciphertext-stage-") {
 			return ErrInvalidPath
 		}
 	}
@@ -205,7 +205,7 @@ func (s *exportArchiveState) addDirectory(fd int, prefix string, depth int) erro
 		if err := s.ctx.Err(); err != nil {
 			return err
 		}
-		if !utf8.ValidString(name) || strings.ContainsAny(name, "\\\x00") || name == "." || name == ".." || hasInternalStagePrefix(name) {
+		if !utf8.ValidString(name) || strings.ContainsAny(name, "\\\x00") || name == "." || name == ".." || hasInternalStagePrefix(name) || strings.HasPrefix(name, ".tong-ciphertext-stage-") {
 			return ErrInvalidArchive
 		}
 		full := path.Join(prefix, name)
