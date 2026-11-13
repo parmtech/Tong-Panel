@@ -122,6 +122,7 @@ retry_guest_scp scripts/probe_https_isolation.py "$guest:/home/ci/probe_https_is
 retry_guest_scp scripts/run_dpkg_labs.py "$guest:/home/ci/run_dpkg_labs.py"
 retry_guest_scp scripts/test_dpkg_failure_recovery_lab.py "$guest:/home/ci/test_dpkg_failure_recovery_lab.py"
 retry_guest_scp scripts/test_dpkg_crash_recovery_lab.py "$guest:/home/ci/test_dpkg_crash_recovery_lab.py"
+retry_guest_scp scripts/test_backup_verify_cli.py "$guest:/home/ci/test_backup_verify_cli.py"
 retry_guest_scp scripts/smoke_wordpress_backup_source.sh "$guest:/home/ci/smoke_wordpress_backup_source.sh"
 cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
@@ -143,6 +144,7 @@ tar -xzf tong-p1-UNSIGNED-dev-linux-amd64.tar.gz
 test -x tong-p1-dev/bin/tongd
 test -x tong-p1-dev/bin/tongctl
 test -x tong-p1-dev/bin/tongbackup
+python3 /home/ci/test_backup_verify_cli.py /home/ci/tong-p1-dev/bin/tongbackup
 test -x tong-p1-dev/tests/files.test
 test -x tong-p1-dev/tests/api.test
 test -x tong-p1-dev/tests/sites.test

@@ -32,6 +32,7 @@ on:
       - 'scripts/p2_package_install_vm.sh'
       - 'scripts/smoke_mariadb_isolation.sh'
       - 'scripts/smoke_encrypted_backup_restore.sh'
+      - 'scripts/test_backup_verify_cli.py'
       - 'scripts/smoke_wordpress_backup_source.sh'
       - 'scripts/smoke_wordpress_restore_target.sh'
       - 'scripts/smoke_nginx_config_rollback.sh'
@@ -97,6 +98,8 @@ jobs:
           printf '%s\n' 'TONG PANEL — UNSIGNED DEVELOPER PREVIEW ONLY' 'DO NOT RUN ON A PRODUCTION SERVER OR EXPOSE TO THE INTERNET.' 'There is no production login, root host-agent action or verified installer.' 'The source is on unmerged development branches; do not use with customers.' 'This is NOT a supported distro package or signed release.' > "$RUNNER_TEMP/tong-p1-dev/DO_NOT_INSTALL.txt"
           tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" tong-p1-dev
           (cd "$RUNNER_TEMP" && sha256sum tong-p1-UNSIGNED-dev-linux-amd64.tar.gz > SHA256SUMS)
+      - name: Exercise synthetic backup verify CLI
+        run: python3 scripts/test_backup_verify_cli.py "$RUNNER_TEMP/tong-p1-dev/bin/tongbackup"
       - name: Verify image checker rejects tampered and malformed input
         run: bash scripts/test_verify_vm_image_checksum.sh
       - name: Build and validate unsigned developer package fixtures
