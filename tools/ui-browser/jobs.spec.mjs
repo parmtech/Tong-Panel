@@ -230,6 +230,71 @@ test('real site catalog pages stay tenant scoped and selection fills preview', a
     await expect(page.locator('#sites-list')).not.toContainText('site-000.example.test');
 });
 
+test('site details use actual catalog and discard stale or unauthorized responses', async ({ page }) => {
+    await open(page, 'alice');
+    await loadSites(page);
+    await page.getByRole('button', { name: 'View details for site-000' }).click();
+    await expect(page.locator('#site-details-title')).toHaveText('Site details: site-000');
+    await expect(page.locator('#site-details-fields')).toContainText('sites/site-000/public');
+    await expect(page.locator('#site-details-domains')).toContainText('site-000.example.test');
+    await expect(page.locator('#site-details-status')).toContainText('does not confirm');
+    await page.locator('#site-details-close').click();
+    await expect(page.locator('#site-details')).toBeHidden();
+    await expect(page.locator('#site-details-fields')).toBeEmpty();
+
+    // Hold one real-handler request, then switch to another site; any late
+    // response must not overwrite the newly selected site.
+    let markHeld, releaseHeld, markFinished;
+    const held = new Promise(resolve => { markHeld = resolve; });
+    const release = new Promise(resolve => { releaseHeld = resolve; });
+    const finished = new Promise(resolve => { markFinished = resolve; });
+    await page.route('**/api/v1/sites/site-000', async route => {
+        markHeld();
+        await release;
+        try { await route.continue(); } catch { /* aborted request */ }
+        markFinished();
+    });
+    await page.getByRole('button', { name: 'View details for site-000' }).click();
+    await held;
+    await page.getByRole('button', { name: 'View details for site-001' }).click();
+    await expect(page.locator('#site-details-title')).toHaveText('Site details: site-001');
+    releaseHeld();
+    await finished;
+    await expect(page.locator('#site-details-title')).toHaveText('Site details: site-001');
+    await page.unroute('**/api/v1/sites/site-000');
+
+    let markRefreshHeld, releaseRefreshHeld, markRefreshFinished;
+    const refreshHeld = new Promise(resolve => { markRefreshHeld = resolve; });
+    const refreshRelease = new Promise(resolve => { releaseRefreshHeld = resolve; });
+    const refreshFinished = new Promise(resolve => { markRefreshFinished = resolve; });
+    await page.route('**/api/v1/sites/site-000', async route => {
+        markRefreshHeld();
+        await refreshRelease;
+        try { await route.continue(); } catch { /* aborted request */ }
+        markRefreshFinished();
+    });
+    await page.getByRole('button', { name: 'View details for site-000' }).click();
+    await refreshHeld;
+    await loadSites(page);
+    releaseRefreshHeld();
+    await refreshFinished;
+    await expect(page.locator('#site-details')).toBeHidden();
+    await expect(page.locator('#site-details-fields')).toBeEmpty();
+    await page.unroute('**/api/v1/sites/site-000');
+
+    // Only denial responses are intercepted; catalog and successful detail
+    // requests above used the actual handler and SQLite session.
+    for (const status of [401, 403]) {
+        await page.route('**/api/v1/sites/site-000', route => route.fulfill({ status, body: '' }));
+        await page.getByRole('button', { name: 'View details for site-000' }).click();
+        await expect(page.locator('#site-details-status')).toContainText(status === 401 ? 'session' : 'cannot view');
+        await expect(page.locator('#site-details-fields')).toBeEmpty();
+        await expect(page.locator('#sites-list li')).toHaveCount(0);
+        await page.unroute('**/api/v1/sites/site-000');
+        if (status === 401) await loadSites(page);
+    }
+});
+
 test('site catalog empty and absent authentication states do not expose stale sites', async ({ page }) => {
     await open(page, 'siteempty');
     await loadSites(page);
