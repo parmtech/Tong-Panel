@@ -1,9 +1,11 @@
 """Synthetic non-root Linux export-to-restore process test under /tmp only."""
 import os
+import io
 from pathlib import Path
 import random
 import subprocess
 import sys
+import tarfile
 import tempfile
 
 
@@ -84,6 +86,33 @@ def main():
         run(args(nonempty), sealed, success=False)
         if sorted(p.name for p in nonempty.iterdir()) != ["sentinel"] or (nonempty / "sentinel").read_bytes() != b"unchanged":
             raise AssertionError("nonempty root changed")
+
+        # These archives authenticate successfully but contain unsafe entries.
+        # The actual CLI must reject them without publishing or modifying a
+        # sibling; no assumption is made about failed-stage cleanup.
+        sibling = root / "outside-sentinel"
+        sibling.write_bytes(b"untouched")
+        for kind in ("traversal", "symlink"):
+            raw = io.BytesIO()
+            with tarfile.open(fileobj=raw, mode="w:gz") as tar:
+                if kind == "traversal":
+                    payload = b"unexpected"
+                    entry = tarfile.TarInfo("../escape")
+                    entry.size = len(payload)
+                    tar.addfile(entry, io.BytesIO(payload))
+                else:
+                    entry = tarfile.TarInfo("link")
+                    entry.type = tarfile.SYMTYPE
+                    entry.linkname = "../outside-sentinel"
+                    tar.addfile(entry)
+            bad_artifact = output / (kind + ".tpbk")
+            run(["encrypt", "--tenant", "tenant-a", "--key-file", str(key), "--output", str(bad_artifact)], raw.getvalue())
+            directory = lab(kind)
+            run(args(directory), bad_artifact.read_bytes(), success=False)
+            if not directory.is_dir() or (directory / "restored").exists():
+                raise AssertionError("unsafe archive published a destination or removed its lab root")
+            if (root / "escape").exists() or (directory / "escape").exists() or sibling.read_bytes() != b"untouched":
+                raise AssertionError("unsafe archive modified an outside path")
 
         target = lab("valid")
         run(args(target), sealed)
