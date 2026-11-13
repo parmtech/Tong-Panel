@@ -474,6 +474,40 @@ test('Files text preview stays inert, bounded, and clears on navigation', async 
     await expect(page.locator('#files-preview-content')).toBeEmpty();
 });
 
+test('Files folder transition rejects stale row actions', async ({ page }) => {
+    // Controlled responses test browser behavior, not the filesystem backend.
+    let markFolder, releaseFolder;
+    const folderStarted = new Promise(resolve => { markFolder = resolve; });
+    const folderHeld = new Promise(resolve => { releaseFolder = resolve; });
+    const contentRequests = [];
+    await page.route('**/api/v1/files?**', async route => {
+        const path = new URL(route.request().url()).searchParams.get('path');
+        if (path === 'folder') { markFolder(); await folderHeld; }
+        const entries = path === 'folder' ? [{ name: 'new.txt', kind: 'file', size: 1 }] : [
+            { name: 'folder', kind: 'directory', size: 0 },
+            { name: 'old.txt', kind: 'file', size: 1 },
+        ];
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries, next_after: '' }) });
+    });
+    await page.route('**/api/v1/files/content?**', route => {
+        contentRequests.push(new URL(route.request().url()).searchParams.get('path'));
+        return route.fulfill({ status: 200, contentType: 'application/octet-stream', body: 'unexpected' });
+    });
+    await open(page);
+    await page.locator('#files-refresh').click();
+    await expect(page.getByRole('button', { name: 'Preview text old.txt' })).toBeVisible();
+    await page.evaluate(() => { window.staleFileButton = document.querySelector('[aria-label="Preview text old.txt"]'); });
+    await page.getByRole('button', { name: 'Open folder folder' }).click();
+    await folderStarted;
+    await expect(page.locator('#files-list')).not.toContainText('old.txt');
+    await page.evaluate(() => window.staleFileButton.click());
+    expect(contentRequests).toEqual([]);
+    releaseFolder();
+    await expect(page.locator('#files-list')).toContainText('new.txt');
+    await expect(page.locator('#files-preview')).toBeHidden();
+    expect(contentRequests).toEqual([]);
+});
+
 test('Files page navigation and folder resets use the expected cursors', async ({ page }) => {
     // The Files endpoint is intercepted here: this checks browser behavior,
     // while Linux backend and tenant isolation are tested separately.
