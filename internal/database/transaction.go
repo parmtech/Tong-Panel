@@ -22,11 +22,21 @@ func BeginImmediate(ctx context.Context, conn *sql.Conn, maxWait time.Duration) 
 	if ctx == nil || conn == nil || maxWait < 0 {
 		return nil, errors.New("invalid SQLite writer reservation arguments")
 	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	var busyTimeout int
-	if err := conn.QueryRowContext(ctx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
+	// This connection-local integer read does not wait for a database lock.
+	// Let its rows close before observing cancellation: modernc SQLite v1.38.2
+	// can lose a prepared statement when its QueryContext is interrupted after
+	// creating rows, keeping the database file open even after pool closure.
+	if err := conn.QueryRowContext(context.WithoutCancel(ctx), "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	var restoreOnce sync.Once
