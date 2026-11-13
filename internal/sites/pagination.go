@@ -53,7 +53,11 @@ func (c *Catalog) ListPage(ctx context.Context, tenantID, after string, limit in
 // ListPageFor checks current membership in the same SQLite statement and
 // snapshot as the returned site rows. It does not revalidate a session token.
 func (c *Catalog) ListPageFor(ctx context.Context, tenantID, requester, after string, limit int) ([]SiteSummary, string, error) {
-	if limit < 1 || limit > 50 || (after != "" && !validID(after)) {
+	return c.ListPagePrefixFor(ctx, tenantID, requester, after, "", limit)
+}
+
+func (c *Catalog) ListPagePrefixFor(ctx context.Context, tenantID, requester, after, prefix string, limit int) ([]SiteSummary, string, error) {
+	if limit < 1 || limit > 50 || (after != "" && !validID(after)) || !validSitePrefix(prefix) {
 		return nil, "", ErrInvalidPage
 	}
 	validPrincipalID := func(id string) bool {
@@ -70,11 +74,11 @@ func (c *Catalog) ListPageFor(ctx context.Context, tenantID, requester, after st
 	), page AS (
 		SELECT s.site_id,d.domain,d.ownership_state FROM sites s LEFT JOIN site_domains d
 		ON d.tenant_id=s.tenant_id AND d.site_id=s.site_id AND d.kind='primary'
-		WHERE s.tenant_id=? AND s.site_id>? COLLATE BINARY
+		WHERE s.tenant_id=? AND s.site_id>? COLLATE BINARY AND substr(s.site_id,1,length(?)) = ? COLLATE BINARY
 		ORDER BY s.site_id COLLATE BINARY LIMIT ?
 	)
 	SELECT page.site_id,page.domain,page.ownership_state FROM authorized
-	LEFT JOIN page ON 1=1 ORDER BY page.site_id COLLATE BINARY`, tenantID, requester, tenantID, after, limit+1)
+	LEFT JOIN page ON 1=1 ORDER BY page.site_id COLLATE BINARY`, tenantID, requester, tenantID, after, prefix, prefix, limit+1)
 	if err != nil {
 		return nil, "", fmt.Errorf("read authorized site page: %w", err)
 	}
@@ -84,7 +88,11 @@ func (c *Catalog) ListPageFor(ctx context.Context, tenantID, requester, after st
 // ListPageForSession verifies session and membership in the same database
 // snapshot as the page. It must use the session store's authoritative pool.
 func (c *Catalog) ListPageForSession(ctx context.Context, tenantID, requester, after string, limit int, proof auth.SessionReadProof) ([]SiteSummary, string, error) {
-	if limit < 1 || limit > 50 || (after != "" && !validID(after)) {
+	return c.ListPagePrefixForSession(ctx, tenantID, requester, after, "", limit, proof)
+}
+
+func (c *Catalog) ListPagePrefixForSession(ctx context.Context, tenantID, requester, after, prefix string, limit int, proof auth.SessionReadProof) ([]SiteSummary, string, error) {
+	if limit < 1 || limit > 50 || (after != "" && !validID(after)) || !validSitePrefix(prefix) {
 		return nil, "", ErrInvalidPage
 	}
 	validID := func(id string) bool {
@@ -104,11 +112,11 @@ func (c *Catalog) ListPageForSession(ctx context.Context, tenantID, requester, a
 	), page AS (
 		SELECT s.site_id,d.domain,d.ownership_state FROM sites s LEFT JOIN site_domains d
 		ON d.tenant_id=s.tenant_id AND d.site_id=s.site_id AND d.kind='primary'
-		WHERE s.tenant_id=? AND s.site_id>? COLLATE BINARY
+		WHERE s.tenant_id=? AND s.site_id>? COLLATE BINARY AND substr(s.site_id,1,length(?)) = ? COLLATE BINARY
 		ORDER BY s.site_id COLLATE BINARY LIMIT ?
 	)
 	SELECT authorized.expires_at,authorized.idle_deadline_unix,page.site_id,page.domain,page.ownership_state
-	FROM authorized LEFT JOIN page ON 1=1 ORDER BY page.site_id COLLATE BINARY`, digest[:], tenantID, requester, tenantID, after, limit+1)
+	FROM authorized LEFT JOIN page ON 1=1 ORDER BY page.site_id COLLATE BINARY`, digest[:], tenantID, requester, tenantID, after, prefix, prefix, limit+1)
 	if err != nil {
 		return nil, "", fmt.Errorf("read session site page: %w", err)
 	}
@@ -200,4 +208,17 @@ func scanSitePage(rows *sql.Rows, limit int, requireAuthorization bool) ([]SiteS
 		next = items[len(items)-1].SiteID
 	}
 	return items, next, nil
+}
+
+// validSitePrefix accepts literal ASCII ID fragments, never SQL wildcards.
+func validSitePrefix(prefix string) bool {
+	if len(prefix) > 63 {
+		return false
+	}
+	for _, ch := range prefix {
+		if (ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z') && (ch < '0' || ch > '9') && ch != '-' && ch != '_' {
+			return false
+		}
+	}
+	return true
 }

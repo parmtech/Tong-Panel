@@ -1,8 +1,8 @@
 const siteID = /^[A-Za-z0-9_-]{1,63}$/;
 
 // The cursor is only an ordering boundary. Authorization is server-side.
-export async function loadSitesPage(after = '', fetcher = globalThis.fetch, signal) {
-    if (typeof after !== 'string' || (after && !siteID.test(after))) throw new Error('Sites could not be loaded.');
+export async function loadSitesPage(after = '', fetcher = globalThis.fetch, signal, prefix = '') {
+    if (typeof after !== 'string' || (after && !siteID.test(after)) || typeof prefix !== 'string' || (prefix && !/^[A-Za-z0-9_-]{1,63}$/.test(prefix))) throw new Error('Sites could not be loaded.');
     const controller = new AbortController();
     const cancel = () => controller.abort();
     if (signal?.aborted) throw new Error('Sites could not be loaded. Try again.');
@@ -15,7 +15,7 @@ export async function loadSitesPage(after = '', fetcher = globalThis.fetch, sign
     });
     try {
         return await Promise.race([aborted, (async () => {
-        const response = await fetcher(`/api/v1/sites?limit=50${after ? `&after=${encodeURIComponent(after)}` : ''}`, {
+        const response = await fetcher(`/api/v1/sites?limit=50${after ? `&after=${encodeURIComponent(after)}` : ''}${prefix ? `&prefix=${encodeURIComponent(prefix)}` : ''}`, {
             method: 'GET', credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' }, signal: controller.signal, redirect: 'error',
         });
         if (controller.signal.aborted) { if (response.body) void response.body.cancel().catch(() => {}); throw new Error('Sites could not be loaded.'); }
@@ -40,7 +40,7 @@ export async function loadSitesPage(after = '', fetcher = globalThis.fetch, sign
         if (!data || !Array.isArray(data.sites) || data.sites.length > 50 || typeof data.next_after !== 'string' || (data.next_after && !siteID.test(data.next_after))) throw new Error('Sites could not be loaded.');
         let previous = after;
         const sites = data.sites.map(site => {
-            if (!site || typeof site.site_id !== 'string' || !siteID.test(site.site_id) || (previous && site.site_id <= previous)
+            if (!site || typeof site.site_id !== 'string' || !siteID.test(site.site_id) || !site.site_id.startsWith(prefix) || (previous && site.site_id <= previous)
                 || typeof site.primary_domain !== 'string' || site.primary_domain.length > 253 || !/^[a-z0-9.-]+$/.test(site.primary_domain)
                 || !['pending', 'verified'].includes(site.ownership_state)) throw new Error('Sites could not be loaded.');
             previous = site.site_id;

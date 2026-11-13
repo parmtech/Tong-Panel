@@ -79,6 +79,7 @@ func TestSiteListPagesScopeAndValidation(t *testing.T) {
 	}
 	for _, tc := range []struct{ token, query, want, next string }{
 		{secret, "?limit=1", "alpha", "alpha"},
+		{secret, "?prefix=al", "alpha", ""},
 		{sqlAuditorToken, "?limit=1&after=alpha", "bravo", ""},
 		{sqlOtherToken, "?after=alpha", "foreign", ""},
 	} {
@@ -91,7 +92,7 @@ func TestSiteListPagesScopeAndValidation(t *testing.T) {
 	if r.Code != 200 || !strings.Contains(r.Body.String(), `"sites":[]`) {
 		t.Fatalf("foreign boundary: %d %s", r.Code, r.Body.String())
 	}
-	for _, query := range []string{"?limit=0", "?limit=51", "?limit=1&limit=2", "?limit=+1", "?after=", "?after=../x", "?tenant=tenant-b", "?limit=%ZZ", "?after=a&unknown=x"} {
+	for _, query := range []string{"?limit=0", "?limit=51", "?limit=1&limit=2", "?limit=+1", "?after=", "?after=../x", "?tenant=tenant-b", "?limit=%ZZ", "?after=a&unknown=x", "?prefix=", "?prefix=%25", "?prefix=a&prefix=b", "?prefix=" + strings.Repeat("a", 64)} {
 		r := call(h, http.MethodGet, "/api/v1/sites"+query, secret, "", "")
 		if r.Code != 400 || !strings.Contains(r.Body.String(), "invalid_page") {
 			t.Errorf("%s: %d %s", query, r.Code, r.Body.String())

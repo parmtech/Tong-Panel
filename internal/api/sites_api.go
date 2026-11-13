@@ -94,7 +94,7 @@ func (s *Server) siteList(w http.ResponseWriter, r *http.Request, p rbac.Princip
 		return
 	}
 	for key, entries := range values {
-		if (key != "limit" && key != "after") || len(entries) != 1 || entries[0] == "" {
+		if (key != "limit" && key != "after" && key != "prefix") || len(entries) != 1 || entries[0] == "" {
 			fail(w, http.StatusBadRequest, "invalid_page")
 			return
 		}
@@ -114,12 +114,13 @@ func (s *Server) siteList(w http.ResponseWriter, r *http.Request, p rbac.Princip
 		}
 	}
 	after := values.Get("after")
+	prefix := values.Get("prefix")
 	var items []sites.SiteSummary
 	var next string
 	if proof, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof); ok {
-		items, next, err = s.SiteCatalog.ListPageForSession(r.Context(), p.TenantID, p.UserID, after, limit, proof)
+		items, next, err = s.SiteCatalog.ListPagePrefixForSession(r.Context(), p.TenantID, p.UserID, after, prefix, limit, proof)
 	} else {
-		items, next, err = s.SiteCatalog.ListPageFor(r.Context(), p.TenantID, p.UserID, after, limit)
+		items, next, err = s.SiteCatalog.ListPagePrefixFor(r.Context(), p.TenantID, p.UserID, after, prefix, limit)
 	}
 	if errors.Is(err, sites.ErrInvalidPage) {
 		fail(w, http.StatusBadRequest, "invalid_page")

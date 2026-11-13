@@ -182,6 +182,9 @@ async function showSiteDatabasePage(cursors: string[]): Promise<void> {
 siteDatabasesLoad?.addEventListener('click', () => void showSiteDatabasePage(['']));
 siteDatabasePrevious?.addEventListener('click', () => { if (siteDatabaseCursors.length > 1) void showSiteDatabasePage(siteDatabaseCursors.slice(0,-1)); });
 siteDatabaseNext?.addEventListener('click', () => { if (siteDatabaseNextAfter && siteDatabaseCursors.length < maxSiteDatabasePages) void showSiteDatabasePage([...siteDatabaseCursors,siteDatabaseNextAfter]); });
+const sitesFilter = document.querySelector<HTMLFormElement>('#sites-filter');
+const sitesPrefixInput = document.querySelector<HTMLInputElement>('#sites-prefix');
+let sitesPrefix = '';
 const sitesLoad = document.querySelector<HTMLButtonElement>('#sites-load');
 const sitesStatus = document.querySelector<HTMLElement>('#sites-status');
 const sitesList = document.querySelector<HTMLUListElement>('#sites-list');
@@ -194,6 +197,7 @@ let sitesController: AbortController | undefined;
 async function showSites(cursors: string[], moveFocus = false): Promise<void> {
  if (!sitesStatus || !sitesList || !sitesLoad) return;
  clearSiteDetails();
+ const requestedPrefix = sitesPrefix;
  const request = ++sitesRequest; sitesController?.abort(); sitesController = new AbortController();
  const controller = sitesController;
  sitesList.replaceChildren(); sitesList.setAttribute('aria-busy', 'true');
@@ -201,7 +205,7 @@ async function showSites(cursors: string[], moveFocus = false): Promise<void> {
  sitesStatus.textContent = 'Loading sites…'; sitesStatus.dataset.state = 'loading';
  if (moveFocus) sitesStatus.focus();
  try {
-  const page = await loadSitesPage(cursors[cursors.length - 1], undefined, controller.signal);
+  const page = await loadSitesPage(cursors[cursors.length - 1], undefined, controller.signal, requestedPrefix);
   if (request !== sitesRequest || controller.signal.aborted) return;
   sitesCursors = cursors; sitesNextAfter = page.next_after;
   for (const site of page.sites) {
@@ -221,7 +225,7 @@ async function showSites(cursors: string[], moveFocus = false): Promise<void> {
    row.append(label, details, button); sitesList.append(row);
   }
   sitesStatus.dataset.state = page.sites.length ? 'available' : 'empty';
-  sitesStatus.textContent = page.sites.length ? `Page ${cursors.length}: ${page.sites.length} catalog sites. Domain status does not confirm hosting is provisioned.` : 'No sites found in this workspace.';
+  sitesStatus.textContent = page.sites.length ? `Page ${cursors.length}: ${page.sites.length} catalog sites. Domain status does not confirm hosting is provisioned.` : (requestedPrefix ? 'No sites match this site ID prefix.' : 'No sites found in this workspace.');
   if (sitesPager && sitesPrevious && sitesNext && sitesPageLabel) {
    sitesPrevious.disabled = cursors.length === 1; sitesNext.disabled = !page.next_after;
    sitesPageLabel.textContent = `Page ${cursors.length}`; sitesPager.hidden = cursors.length === 1 && !page.next_after;
@@ -232,6 +236,11 @@ async function showSites(cursors: string[], moveFocus = false): Promise<void> {
   sitesStatus.textContent = error instanceof Error ? error.message : 'Sites could not be loaded. Try again.';
  } finally { if (request === sitesRequest) sitesList.removeAttribute('aria-busy'); }
 }
+sitesFilter?.addEventListener('submit', event => {
+ event.preventDefault(); sitesPrefix = sitesPrefixInput?.value ?? '';
+ ++sitePreviewRequest; if (sitePreviewOutput) { sitePreviewOutput.hidden = true; sitePreviewOutput.textContent = ''; }
+ void showSites(['']);
+});
 sitesLoad?.addEventListener('click', () => void showSites(['']));
 sitesPrevious?.addEventListener('click', () => { if (sitesCursors.length > 1) void showSites(sitesCursors.slice(0, -1), true); });
 sitesNext?.addEventListener('click', () => { if (sitesNextAfter) void showSites([...sitesCursors, sitesNextAfter], true); });

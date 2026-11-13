@@ -149,6 +149,7 @@ func TestCurrentOpenAPIContractScenarios(t *testing.T) {
 	plain("delete rooted file", "deleteFile", "DELETE", filePath, "", 204)
 	plain("create catalog site", "createSite", "POST", "/api/v1/sites", `{"site_id":"contract-site","primary_domain":"contract.example.test","aliases":[]}`, 201)
 	plain("list catalog sites", "listSites", "GET", "/api/v1/sites?limit=1", "", 200)
+	plain("filter catalog sites", "listSites", "GET", "/api/v1/sites?limit=1&prefix=contract", "", 200)
 	run(h, "invalid site page", "listSites", "GET", "/api/v1/sites?limit=51", secret, "", "", 400, "invalid_page", nil)
 	sitePath := "/api/v1/sites/contract-site"
 	run(h, "pending primary cannot prepare ACME", "preflightSiteACMEHTTP01", "GET", sitePath+"/preflight/acme-http01", secret, "", "", 409, "site_not_ready", nil)

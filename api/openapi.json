@@ -2584,7 +2584,7 @@
         ],
         "x-tong-rbac-action": "sites:read",
         "x-tong-backend-gate": "SiteCatalog.",
-        "x-query-policy": "Only optional limit and after; unknown, duplicate, empty and malformed parameters are rejected.",
+        "x-query-policy": "Only one limit, after and prefix are accepted; duplicate, empty, unknown or malformed parameters are rejected.",
         "responses": {
           "200": {
             "description": "Bounded tenant site summary page.",
@@ -2757,6 +2757,18 @@
               "maxLength": 63,
               "pattern": "^[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?$"
             }
+          },
+          {
+            "name": "prefix",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "description": "Optional literal case-sensitive site ID prefix. Reuse the same prefix for every page; pages are not a snapshot."
           }
         ]
       }

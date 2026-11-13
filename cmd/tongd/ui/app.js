@@ -278,6 +278,9 @@ siteDatabasePrevious?.addEventListener('click', () => { if (siteDatabaseCursors.
     void showSiteDatabasePage(siteDatabaseCursors.slice(0, -1)); });
 siteDatabaseNext?.addEventListener('click', () => { if (siteDatabaseNextAfter && siteDatabaseCursors.length < maxSiteDatabasePages)
     void showSiteDatabasePage([...siteDatabaseCursors, siteDatabaseNextAfter]); });
+const sitesFilter = document.querySelector('#sites-filter');
+const sitesPrefixInput = document.querySelector('#sites-prefix');
+let sitesPrefix = '';
 const sitesLoad = document.querySelector('#sites-load');
 const sitesStatus = document.querySelector('#sites-status');
 const sitesList = document.querySelector('#sites-list');
@@ -291,6 +294,7 @@ async function showSites(cursors, moveFocus = false) {
     if (!sitesStatus || !sitesList || !sitesLoad)
         return;
     clearSiteDetails();
+    const requestedPrefix = sitesPrefix;
     const request = ++sitesRequest;
     sitesController?.abort();
     sitesController = new AbortController();
@@ -304,7 +308,7 @@ async function showSites(cursors, moveFocus = false) {
     if (moveFocus)
         sitesStatus.focus();
     try {
-        const page = await loadSitesPage(cursors[cursors.length - 1], undefined, controller.signal);
+        const page = await loadSitesPage(cursors[cursors.length - 1], undefined, controller.signal, requestedPrefix);
         if (request !== sitesRequest || controller.signal.aborted)
             return;
         sitesCursors = cursors;
@@ -343,7 +347,7 @@ async function showSites(cursors, moveFocus = false) {
             sitesList.append(row);
         }
         sitesStatus.dataset.state = page.sites.length ? 'available' : 'empty';
-        sitesStatus.textContent = page.sites.length ? `Page ${cursors.length}: ${page.sites.length} catalog sites. Domain status does not confirm hosting is provisioned.` : 'No sites found in this workspace.';
+        sitesStatus.textContent = page.sites.length ? `Page ${cursors.length}: ${page.sites.length} catalog sites. Domain status does not confirm hosting is provisioned.` : (requestedPrefix ? 'No sites match this site ID prefix.' : 'No sites found in this workspace.');
         if (sitesPager && sitesPrevious && sitesNext && sitesPageLabel) {
             sitesPrevious.disabled = cursors.length === 1;
             sitesNext.disabled = !page.next_after;
@@ -364,6 +368,16 @@ async function showSites(cursors, moveFocus = false) {
             sitesList.removeAttribute('aria-busy');
     }
 }
+sitesFilter?.addEventListener('submit', event => {
+    event.preventDefault();
+    sitesPrefix = sitesPrefixInput?.value ?? '';
+    ++sitePreviewRequest;
+    if (sitePreviewOutput) {
+        sitePreviewOutput.hidden = true;
+        sitePreviewOutput.textContent = '';
+    }
+    void showSites(['']);
+});
 sitesLoad?.addEventListener('click', () => void showSites(['']));
 sitesPrevious?.addEventListener('click', () => { if (sitesCursors.length > 1)
     void showSites(sitesCursors.slice(0, -1), true); });

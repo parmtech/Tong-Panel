@@ -40,3 +40,12 @@ test('cancellation settles even when a fetcher does not honor the signal', async
     controller.abort();
     await assert.rejects(result);
 });
+
+test('site prefix is literal and constrained on every page',async()=>{
+    let requested;
+    const page=await loadSitesPage('',async path=>{requested=path;return response({sites:[{site_id:'app_01',primary_domain:'app.example.test',ownership_state:'pending'}],next_after:''})},undefined,'app_');
+    assert.equal(requested,'/api/v1/sites?limit=50&prefix=app_');assert.equal(page.sites[0].site_id,'app_01');
+    await assert.rejects(loadSitesPage('',async()=>response({sites:[{site_id:'appX01',primary_domain:'app.example.test',ownership_state:'pending'}],next_after:''}),undefined,'app_'));
+    await assert.rejects(loadSitesPage('',()=>assert.fail('unsafe prefix'),undefined,'app%'));
+    await assert.rejects(loadSitesPage('',()=>assert.fail('oversized prefix'),undefined,'x'.repeat(64)));
+});
