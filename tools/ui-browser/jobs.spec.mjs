@@ -427,6 +427,61 @@ test('existing file explorer remains wired when the fixture has no file backend'
     await expect(page.locator('#files-status')).toHaveText('File access is not enabled on this server yet.');
 });
 
+test('Files page navigation and folder resets use the expected cursors', async ({ page }) => {
+    // The Files endpoint is intercepted here: this checks browser behavior,
+    // while Linux backend and tenant isolation are tested separately.
+    const requests = [];
+    let failNext = false;
+    await page.route('**/api/v1/files?**', async route => {
+        const url = new URL(route.request().url());
+        const path = url.searchParams.get('path');
+        const after = url.searchParams.get('after');
+        requests.push({ path, after, page: url.searchParams.get('page') });
+        if (failNext && path === '' && after === 'b-folder') {
+            failNext = false;
+            return route.fulfill({ status: 503, body: '' });
+        }
+        const entry = (name, kind) => ({ name, kind, size: 0 });
+        const body = path === 'b-folder'
+            ? { entries: [entry('inside.txt', 'file')], next_after: '' }
+            : after === 'b-folder'
+                ? { entries: [entry('c.txt', 'file')], next_after: '' }
+                : { entries: [entry('a.txt', 'file'), entry('b-folder', 'directory')], next_after: 'b-folder' };
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+    });
+    await open(page);
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-status')).toContainText('Page 1:');
+    await expect(page.locator('#files-list .file-entry-name')).toHaveText(['a.txt', '📁 b-folder']);
+    await expect(page.locator('#files-previous')).toBeDisabled();
+    await expect(page.locator('#files-next')).toBeEnabled();
+    await page.locator('#files-next').click();
+    await expect(page.locator('#files-status')).toContainText('Page 2:');
+    await expect(page.locator('#files-list .file-entry-name')).toHaveText(['c.txt']);
+    await expect(page.locator('#files-next')).toBeDisabled();
+    await page.locator('#files-previous').click();
+    await expect(page.locator('#files-list .file-entry-name')).toHaveText(['a.txt', '📁 b-folder']);
+    await expect(page.locator('#files-status')).toContainText('Page 1:');
+    failNext = true;
+    await page.locator('#files-next').click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
+    await expect(page.locator('#files-list .file-entry-name')).toHaveText(['a.txt', '📁 b-folder']);
+    await expect(page.locator('#files-next')).toBeEnabled();
+    await page.getByRole('button', { name: 'Open folder b-folder' }).click();
+    await expect(page.locator('#files-list .file-entry-name')).toHaveText(['inside.txt']);
+    await expect(page.locator('#files-previous')).toBeDisabled();
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-status')).toContainText('Page 1:');
+    expect(requests).toEqual([
+        { path: '', after: '', page: '1' },
+        { path: '', after: 'b-folder', page: '1' },
+        { path: '', after: '', page: '1' },
+        { path: '', after: 'b-folder', page: '1' },
+        { path: 'b-folder', after: '', page: '1' },
+        { path: 'b-folder', after: '', page: '1' },
+    ]);
+});
+
 test('large actual job history navigates bounded pages and returns to the first page', async ({ page }) => {
     await open(page, 'bulk');
     const legacyBytes = await page.evaluate(async () => {
