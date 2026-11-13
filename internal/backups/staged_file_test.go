@@ -55,6 +55,49 @@ func TestDecryptFileDoesNotPublishUnauthenticatedPlaintext(t *testing.T) {
 	assertNoStagedFiles(t, dir)
 }
 
+func TestDecryptFileRejectsWrongTenantAndKeyWithoutPublishing(t *testing.T) {
+	dir := t.TempDir()
+	plain := bytes.Repeat([]byte("tenant-a private data,"), 5000)
+	sealed := encryptBytes(t, "tenant-a", plain, Options{})
+	marker := filepath.Join(dir, "tenant-b-marker")
+	if err := os.WriteFile(marker, []byte("tenant-b unchanged"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	wrongKey := append([]byte(nil), testWrappingKey...)
+	wrongKey[0] ^= 1
+	for _, tc := range []struct {
+		name, tenant string
+		key          []byte
+	}{
+		{"wrong tenant", "tenant-b", testWrappingKey},
+		{"wrong key", "tenant-a", wrongKey},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			destination := filepath.Join(dir, "denied.sql")
+			if err := DecryptFile(destination, bytes.NewReader(sealed), tc.tenant, tc.key, Options{}); err == nil {
+				t.Fatal("DecryptFile() accepted incorrect tenant or key")
+			}
+			if _, err := os.Lstat(destination); !os.IsNotExist(err) {
+				t.Fatalf("failed restore destination exists (Lstat error = %v)", err)
+			}
+			got, err := os.ReadFile(marker)
+			if err != nil || string(got) != "tenant-b unchanged" {
+				t.Fatalf("unrelated tenant marker changed: %q, error %v", got, err)
+			}
+			assertNoStagedFiles(t, dir)
+		})
+	}
+	destination := filepath.Join(dir, "tenant-a.sql")
+	if err := DecryptFile(destination, bytes.NewReader(sealed), "tenant-a", testWrappingKey, Options{}); err != nil {
+		t.Fatalf("valid restore failed: %v", err)
+	}
+	got, err := os.ReadFile(destination)
+	if err != nil || !bytes.Equal(got, plain) {
+		t.Fatalf("valid restore differs from source, error %v", err)
+	}
+	assertNoStagedFiles(t, dir)
+}
+
 func TestStagedFilesRefuseOverwriteAndLeaveExistingContents(t *testing.T) {
 	dir := t.TempDir()
 	destination := filepath.Join(dir, "existing.backup")

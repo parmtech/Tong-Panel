@@ -61,6 +61,33 @@ func TestReadOnlyListeningPortParsing(t *testing.T) {
 	}
 }
 
+func TestListeningParserFailsClosedOnMalformedNonListeningRows(t *testing.T) {
+	const header = "sl local_address rem_address st\n"
+	for _, row := range []string{
+		"0: 00000000:0050 00000000:0000 ZZ",
+		"0: 00000000:0050 00000000:0000 00",
+		"0: 00000000:0050 00000000:0000 0D",
+		"0: 00000000:0050 00000000:0000 1",
+		"0: 00000000:0050 00000000:0000 +A",
+		"0: invalid:0050 00000000:0000 01",
+		"0: 0000000Z:0050 00000000:0000 01",
+		"0: 00000000:50 00000000:0000 01",
+		"0: 00000000:GGGG 00000000:0000 01",
+		"0: 00000000:+050 00000000:0000 01",
+	} {
+		if ports, err := ParseListeningTCP(header + row); err == nil || ports != nil {
+			t.Errorf("malformed row %q reported ports=%v err=%v", row, ports, err)
+		}
+	}
+	if ports, err := ParseListeningTCP(header + "0: 00000000:0050 00000000:0000 0A\n1: 00000000:01BB 00000000:0000 ZZ\n"); err == nil || ports != nil {
+		t.Fatalf("partial snapshot reported ports=%v err=%v", ports, err)
+	}
+	ports, err := ParseListeningTCP(header + "0: 00000000000000000000000000000000:01BB 00000000000000000000000000000000:0000 0A\n")
+	if err != nil || !ports[443] {
+		t.Fatalf("valid IPv6 listener: ports=%v err=%v", ports, err)
+	}
+}
+
 func TestEvaluationMatrixAndUnknownReadings(t *testing.T) {
 	base := Snapshot{OSRelease: ubuntu, GOOS: "linux", Arch: "amd64", MemAvailableKB: 2 * 1024 * 1024,
 		MemoryKnown: true, DiskAvailableBytes: 15 * 1024 * 1024 * 1024, DiskKnown: true,

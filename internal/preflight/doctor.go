@@ -70,8 +70,17 @@ func ParseMemAvailableKB(raw string) (uint64, error) {
 func ParseListeningTCP(raw string) (map[uint16]bool, error) {
 	listening := make(map[uint16]bool)
 	lines := strings.Split(strings.TrimSpace(raw), "\n")
-	if len(lines) == 0 || !strings.Contains(lines[0], "local_address") {
+	header := strings.Fields(lines[0])
+	if len(header) < 4 || header[0] != "sl" || header[1] != "local_address" || header[2] != "rem_address" || header[3] != "st" {
 		return nil, errors.New("invalid proc tcp header")
+	}
+	hexOnly := func(s string) bool {
+		for _, digit := range s {
+			if !strings.ContainsRune("0123456789abcdefABCDEF", digit) {
+				return false
+			}
+		}
+		return true
 	}
 	for _, line := range lines[1:] {
 		parts := strings.Fields(line)
@@ -81,18 +90,23 @@ func ParseListeningTCP(raw string) (map[uint16]bool, error) {
 		if len(parts) < 4 {
 			return nil, errors.New("incomplete proc tcp record")
 		}
-		if parts[3] != "0A" {
-			continue
-		} // TCP_LISTEN only
-		_, portHex, ok := strings.Cut(parts[1], ":")
-		if !ok {
-			return nil, errors.New("invalid listening socket")
+		// Validate every state before filtering: a corrupt state must not be
+		// mistaken for evidence that no listener exists.
+		state, err := strconv.ParseUint(parts[3], 16, 8)
+		if len(parts[3]) != 2 || !hexOnly(parts[3]) || err != nil || state < 1 || state > 12 {
+			return nil, errors.New("invalid proc tcp state")
+		}
+		address, portHex, ok := strings.Cut(parts[1], ":")
+		if !ok || (len(address) != 8 && len(address) != 32) || len(portHex) != 4 || !hexOnly(address) || !hexOnly(portHex) {
+			return nil, errors.New("invalid local socket")
 		}
 		p, err := strconv.ParseUint(portHex, 16, 16)
 		if err != nil {
-			return nil, fmt.Errorf("invalid listening port: %w", err)
+			return nil, fmt.Errorf("invalid local port: %w", err)
 		}
-		listening[uint16(p)] = true
+		if state == 10 { // TCP_LISTEN
+			listening[uint16(p)] = true
+		}
 	}
 	return listening, nil
 }
