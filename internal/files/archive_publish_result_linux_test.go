@@ -11,10 +11,39 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/parmtech/tong-panel/internal/backups"
 	"golang.org/x/sys/unix"
 )
+
+func TestUnknownPublicationStageSurvivesStaleCleanup(t *testing.T) {
+	root, dir := newTestRoot(t)
+	archive := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "asset", Typeflag: tar.TypeReg}, data: []byte("preserve for reconciliation")})
+	var result ArchivePublishResult
+	err := root.extractGzipTarNewWithResult(context.Background(), "site", archive, ArchiveLimits{}, false, unix.Fsync,
+		func(int, string, int, string, uint) error { return unix.EIO }, &result)
+	if !errors.Is(err, ErrPublicationOutcomeUnknown) || result.State != ArchivePublicationUnknown {
+		t.Fatalf("expected unresolved publication: %+v %v", result, err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) != 1 || !strings.HasPrefix(entries[0].Name(), archiveStagePrefix) {
+		t.Fatalf("expected one retained stage: %v %v", entries, err)
+	}
+	stage := filepath.Join(dir, entries[0].Name())
+	old := time.Now().Add(-2 * time.Hour)
+	if err := os.Chtimes(stage, old, old); err != nil {
+		t.Fatal(err)
+	}
+	removed, err := root.CleanupStaleStages(time.Hour)
+	if err != nil || removed != 0 {
+		t.Fatalf("cleanup = %d, %v", removed, err)
+	}
+	data, err := os.ReadFile(filepath.Join(stage, "asset"))
+	if err != nil || string(data) != "preserve for reconciliation" {
+		t.Fatalf("unresolved stage payload changed: %q %v", data, err)
+	}
+}
 
 func TestRestoreResultReportsOnlyPublishedLogicalFileBytes(t *testing.T) {
 	root, dir := newTestRoot(t)

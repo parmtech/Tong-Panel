@@ -204,7 +204,7 @@ func (t *TenantRoots) RestoreEncryptedGzipTarNewForTenantWithResult(ctx context.
 	return root.RestoreEncryptedGzipTarNewWithResult(ctx, relative, src, tenantID, key, limits)
 }
 
-// CleanupStaleStagesForTenant cleans only internal staging directories beneath
+// CleanupStaleStagesForTenant cleans eligible write stages beneath
 // the root selected by tenantID.
 func (t *TenantRoots) CleanupStaleStagesForTenant(tenantID string, olderThan time.Duration) (int, error) {
 	if t == nil || tenantID == "" {
@@ -217,8 +217,8 @@ func (t *TenantRoots) CleanupStaleStagesForTenant(tenantID string, olderThan tim
 	return root.CleanupStaleStages(olderThan)
 }
 
-// CleanupStaleArchiveStagesForTenant is retained for callers of the earlier
-// prototype and now includes create-only write stages as well.
+// CleanupStaleArchiveStagesForTenant is a compatibility alias for eligible
+// write-stage cleanup. Archive stages are retained pending reconciliation.
 func (t *TenantRoots) CleanupStaleArchiveStagesForTenant(tenantID string, olderThan time.Duration) (int, error) {
 	return t.CleanupStaleStagesForTenant(tenantID, olderThan)
 }
