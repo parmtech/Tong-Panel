@@ -136,10 +136,11 @@ func TestJobsBrowserFixture(t *testing.T) {
 	defer unconfigured.Close()
 	noJobs := httptest.NewTLSServer(publicHandler(&api.Server{Sessions: sessions}))
 	defer noJobs.Close()
+	filesURL := setupFilesBrowserFixture(t, sessions)
 	if err := json.NewEncoder(os.Stdout).Encode(struct {
-		Primary, Unconfigured, NoJobs string
-		Tokens, IDs                   map[string]string
-	}{primary.URL, unconfigured.URL, noJobs.URL, tokens, ids}); err != nil {
+		Primary, Unconfigured, NoJobs, Files string
+		Tokens, IDs                          map[string]string
+	}{primary.URL, unconfigured.URL, noJobs.URL, filesURL, tokens, ids}); err != nil {
 		t.Fatal("fixture handshake failed")
 	}
 	// Closing stdin requests clean teardown. The browser harness also enforces

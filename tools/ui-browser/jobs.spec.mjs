@@ -90,7 +90,7 @@ test.beforeAll(async () => {
             child.once('error', failed);
             child.once('exit', exited);
         });
-        for (const key of ['Primary', 'Unconfigured', 'NoJobs']) {
+        for (const key of ['Primary', 'Unconfigured', 'NoJobs', ...(fixture.Files ? ['Files'] : [])]) {
             const url = new URL(fixture[key]);
             if (url.protocol !== 'https:' || url.hostname !== '127.0.0.1') throw new Error('Browser fixture must stay on TLS loopback');
         }
@@ -184,7 +184,7 @@ test('fixture cleanup handles failed spawn and a child already terminated by sig
 async function open(page, identity = 'alice', base = fixture.Primary) {
     await page.context().route('**/*', route => {
         const origin = new URL(route.request().url()).origin;
-        if ([fixture.Primary, fixture.Unconfigured, fixture.NoJobs].includes(origin)) return route.continue();
+        if ([fixture.Primary, fixture.Unconfigured, fixture.NoJobs, fixture.Files].includes(origin)) return route.continue();
         return route.abort('blockedbyclient');
     });
     if (identity) await page.context().addCookies([{
@@ -425,6 +425,35 @@ test('existing file explorer remains wired when the fixture has no file backend'
     await page.locator('#files-refresh').click();
     await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
     await expect(page.locator('#files-status')).toHaveText('File access is not enabled on this server yet.');
+});
+
+test('real Files handler pages and previews stay scoped to the authenticated tenant', async ({ page }) => {
+    test.skip(process.platform !== 'linux', 'real pinned tenant roots are Linux-only');
+    expect(fixture.Files).toBeTruthy();
+    await open(page, 'alice', fixture.Files);
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+    await expect(page.locator('#files-list .file-entry')).toHaveCount(200);
+    await expect(page.locator('#files-list')).toContainText('a-000.txt');
+    await expect(page.locator('#files-list')).not.toContainText('b-only.txt');
+    await page.getByRole('button', { name: 'Preview text a-000.txt' }).click();
+    await expect(page.locator('#files-preview-content')).toHaveText('tenant A preview');
+    await page.locator('#files-next').click();
+    await expect(page.locator('#files-list .file-entry')).toHaveCount(1);
+    await expect(page.locator('#files-list')).toContainText('a-200.txt');
+    await expect(page.locator('#files-preview')).toBeHidden();
+    await page.context().clearCookies();
+    await page.context().addCookies([{ name: '__Host-tong_session', value: fixture.Tokens.carol, url: fixture.Files, secure: true, httpOnly: true, sameSite: 'Strict' }]);
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-list')).toContainText('b-only.txt');
+    await expect(page.locator('#files-list')).not.toContainText('a-200.txt');
+    await page.getByRole('button', { name: 'Preview text b-only.txt' }).click();
+    await expect(page.locator('#files-preview-content')).toHaveText('tenant B preview');
+    await page.context().clearCookies();
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
+    await expect(page.locator('#files-preview')).toBeHidden();
+    await expect(page.locator('#files-list')).not.toContainText('b-only.txt');
 });
 
 test('Files text preview stays inert, bounded, and clears on navigation', async ({ page }) => {
