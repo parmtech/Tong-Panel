@@ -107,14 +107,18 @@ def main():
                     tar.addfile(entry)
             bad_artifact = output / (kind + ".tpbk")
             run(["encrypt", "--tenant", "tenant-a", "--key-file", str(key), "--output", str(bad_artifact)], raw.getvalue())
+            bad_envelope = bad_artifact.read_bytes()
+            run(["verify", "--tenant", "tenant-a", "--key-file", str(key)], bad_envelope)
+            run(["verify-site", "--tenant", "tenant-a", "--key-file", str(key)], bad_envelope, success=False)
             directory = lab(kind)
-            run(args(directory), bad_artifact.read_bytes(), success=False)
+            run(args(directory), bad_envelope, success=False)
             if not directory.is_dir() or (directory / "restored").exists():
                 raise AssertionError("unsafe archive published a destination or removed its lab root")
             if (root / "escape").exists() or (directory / "escape").exists() or sibling.read_bytes() != b"untouched":
                 raise AssertionError("unsafe archive modified an outside path")
 
         target = lab("valid")
+        run(["verify-site", "--tenant", "tenant-a", "--key-file", str(key)], sealed)
         run(args(target), sealed)
         restored = target / "restored"
         if (restored / "index.html").read_bytes() != marker or (restored / "nested" / "data.bin").read_bytes() != data:
