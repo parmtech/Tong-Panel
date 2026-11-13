@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Inspect 9fdab99 Go run 43421591119, review and integrate only if successful; inspect a10dc04 exact-source and 336d734 guest CI.",
+    "action": "Inspect e244276 exact-source CI and review development-only export-site CLI before integration; retain production/security gates.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -138,15 +138,9 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "a10dc04d9b58fc6cbd2ef8b32519a64340827ccf",
+    "sha": "e244276eb13ef5e5f126451b2e59e5cecfb5ac08",
     "hosted_ci": "pending_at_handoff",
-    "evidence": "identical isolated 9f49a48 Linux Go checks passed; source quiescence and caller authority/quota/key custody required"
-  },
-  "pending_feature_branch": {
-    "branch": "codex/restore-outcomes-20261113",
-    "sha": "9fdab99ff9949c72de01179396b7f5938933d9d7",
-    "go_run": 43421591119,
-    "status": "in_progress_at_handoff",
-    "scope": "unknown rename preservation, cleanup exclusion and fail-closed quota usage; no quota settlement"
+    "evidence": "isolated 9fdab99 Linux Go race/fuzz/vet passed; both 336d734 clean guests passed",
+    "limitations": "no durable reconciliation or current authority/quota integration; archive stages retained"
   }
 }
