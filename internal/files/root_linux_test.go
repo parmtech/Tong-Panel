@@ -1877,11 +1877,15 @@ func TestTenantRootsConcurrentSameSiteExtractionRemainsIsolated(t *testing.T) {
 	close(results)
 
 	winners := map[string]int{"tenant-a": 0, "tenant-b": 0}
+	unknown := map[string]int{"tenant-a": 0, "tenant-b": 0}
 	for result := range results {
 		switch {
 		case result.err == nil:
 			winners[result.tenant]++
 		case errors.Is(result.err, ErrAlreadyExists):
+			if errors.Is(result.err, ErrPublicationOutcomeUnknown) {
+				unknown[result.tenant]++
+			}
 		default:
 			t.Errorf("%s extraction error = %v, want one success or ErrAlreadyExists", result.tenant, result.err)
 		}
@@ -1904,6 +1908,27 @@ func TestTenantRootsConcurrentSameSiteExtractionRemainsIsolated(t *testing.T) {
 			t.Errorf("%s site content = %q, %v; want %q", tc.tenant, got, err, tc.want)
 		}
 	}
-	assertNoStagingDirectories(t, rootAPath)
-	assertNoStagingDirectories(t, rootBPath)
+	for _, tc := range []struct{ tenant, root, want string }{
+		{"tenant-a", rootAPath, "site-a"}, {"tenant-b", rootBPath, "site-b"},
+	} {
+		assertPrivateRetainedArchiveStages(t, tc.root)
+		entries, err := os.ReadDir(tc.root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		retained := 0
+		for _, entry := range entries {
+			if !strings.HasPrefix(entry.Name(), archiveStagePrefix) {
+				continue
+			}
+			retained++
+			data, err := os.ReadFile(filepath.Join(tc.root, entry.Name(), "index.html"))
+			if err != nil || string(data) != tc.want {
+				t.Errorf("%s retained stage content = %q, %v; want %q", tc.tenant, data, err, tc.want)
+			}
+		}
+		if retained != unknown[tc.tenant] {
+			t.Errorf("%s retained stages = %d, unknown outcomes = %d", tc.tenant, retained, unknown[tc.tenant])
+		}
+	}
 }
