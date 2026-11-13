@@ -24,6 +24,7 @@ on:
       - 'scripts/build_deb.sh'
       - 'scripts/test_deb_package.sh'
       - 'scripts/test_dpkg_failure_recovery_lab.py'
+      - 'scripts/test_dpkg_crash_recovery_lab.py'
       - 'scripts/verify_dev_deb.py'
       - 'scripts/test_verify_dev_deb.py'
       - 'scripts/p2_package_install_vm.sh'
@@ -69,6 +70,10 @@ jobs:
         run: bash scripts/test_vm_startup_transport.sh
       - name: Verify isolated dpkg failure and explicit recovery semantics
         run: python3 -m unittest discover -s scripts -p 'test_dpkg_failure_recovery_lab.py' -v
+        env:
+          TONG_DISPOSABLE_DPKG_LAB: '1'
+      - name: Verify isolated dpkg interruption and recovery semantics
+        run: python3 -m unittest discover -s scripts -p 'test_dpkg_crash_recovery_lab.py' -v
         env:
           TONG_DISPOSABLE_DPKG_LAB: '1'
       - name: Build unsigned developer preview for isolated VM smoke
