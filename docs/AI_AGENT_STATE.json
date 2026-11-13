@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Inspect 5a26e1d exact-source hosted CI and Linux tests, verify Files pagination in browser, investigate failures and record evidence.",
+    "action": "Inspect exact-source 379f252 and previous 5a26e1d hosted CI, including Linux Go, browser and clean guest results; investigate failures and record evidence.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -138,9 +138,9 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "5a26e1d4cd6c52acad00a82811c554ff34cb8197",
+    "sha": "379f252e067c1c865ea1ebfded02ebf8d68f4c2e",
     "hosted_ci": "pending_at_handoff",
-    "local": "Windows Go API tests, 37 Node tests, TypeScript build passed; Linux test binaries crosscompiled but not executed",
-    "limitations": "10,000 name scan cap, unsupported names fail, no consistent snapshot; browser verification pending"
+    "local": "Windows Go API test and 38 Node tests passed; Chrome loopback browser test passed with intercepted Files responses",
+    "limitations": "Linux backend CI pending; 10,000 name cap and non-snapshot semantics"
   }
 }
