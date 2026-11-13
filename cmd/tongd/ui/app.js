@@ -2,6 +2,7 @@ import { loadPanelStatus } from './panel-status.mjs';
 import { loadNginxPreview } from './site-preview.mjs';
 import { loadSitesPage } from './sites-list.mjs';
 import { loadSiteDetails } from './site-details.mjs';
+import { loadSiteDatabases } from './site-databases.mjs';
 import { mountACMEPreflight } from './acme-preflight.mjs';
 import { downloadTenantFile, listTenantFilesPage, previewTenantText, FilesExplorerError } from './files-explorer.mjs';
 import { loadMyJobsPage, loadMyJob, MyJobsError } from './my-jobs.mjs';
@@ -108,9 +109,27 @@ const siteDetailsStatus = document.querySelector('#site-details-status');
 const siteDetailsFields = document.querySelector('#site-details-fields');
 const siteDetailsDomains = document.querySelector('#site-details-domains');
 const siteDetailsClose = document.querySelector('#site-details-close');
+const siteDatabasesLoad = document.querySelector('#site-databases-load');
+const siteDatabasesStatus = document.querySelector('#site-databases-status');
+const siteDatabasesList = document.querySelector('#site-databases-list');
+let selectedSiteID = '';
+let siteDatabaseRequest = 0;
+let siteDatabaseController;
+function clearSiteDatabases() {
+    ++siteDatabaseRequest;
+    siteDatabaseController?.abort();
+    siteDatabaseController = undefined;
+    selectedSiteID = '';
+    siteDatabasesList?.replaceChildren();
+    if (siteDatabasesLoad)
+        siteDatabasesLoad.disabled = true;
+    if (siteDatabasesStatus)
+        siteDatabasesStatus.textContent = 'Database metadata not loaded.';
+}
 let siteDetailsRequest = 0;
 let siteDetailsController;
 function clearSiteDetails() {
+    clearSiteDatabases();
     ++siteDetailsRequest;
     siteDetailsController?.abort();
     siteDetailsController = undefined;
@@ -155,6 +174,9 @@ async function showSiteDetails(id) {
                 item.textContent = `${domain.name} · ${domain.kind} · ${domain.state}`;
                 siteDetailsDomains.append(item);
             }
+        selectedSiteID = record.siteID;
+        if (siteDatabasesLoad)
+            siteDatabasesLoad.disabled = false;
         if (siteDetailsStatus)
             siteDetailsStatus.textContent = 'Catalog metadata only; verification status does not confirm current DNS control or provisioned hosting.';
         siteDetailsTitle?.focus();
@@ -179,6 +201,57 @@ async function showSiteDetails(id) {
             siteDetailsStatus.textContent = message;
     }
 }
+siteDatabasesLoad?.addEventListener('click', async () => {
+    if (!selectedSiteID || !siteDatabasesStatus || !siteDatabasesList || !siteDatabasesLoad)
+        return;
+    const id = selectedSiteID;
+    const request = ++siteDatabaseRequest;
+    siteDatabaseController?.abort();
+    const controller = new AbortController();
+    siteDatabaseController = controller;
+    siteDatabasesLoad.disabled = true;
+    siteDatabasesList.replaceChildren();
+    siteDatabasesStatus.textContent = 'Loading database metadata…';
+    try {
+        const databases = await loadSiteDatabases(id, undefined, controller.signal);
+        if (request !== siteDatabaseRequest || controller.signal.aborted || selectedSiteID !== id || document.hidden || !document.hasFocus())
+            return;
+        for (const database of databases) {
+            const row = document.createElement('li');
+            row.textContent = `${database.id} · database ${database.name} · user ${database.username}`;
+            siteDatabasesList.append(row);
+        }
+        siteDatabasesStatus.textContent = databases.length ? `${databases.length} catalog entries; provisioning is not confirmed.` : 'No database metadata for this site.';
+    }
+    catch (error) {
+        if (request !== siteDatabaseRequest || controller.signal.aborted)
+            return;
+        const message = error instanceof Error ? error.message : 'Database metadata could not be loaded.';
+        if (message === 'A secure browser session is required to view sites.' || message === 'Your account cannot view sites.') {
+            clearSiteDetails();
+            ++sitesRequest;
+            sitesController?.abort();
+            sitesList?.replaceChildren();
+            if (sitesPager)
+                sitesPager.hidden = true;
+            ++sitePreviewRequest;
+            if (sitePreviewOutput) {
+                sitePreviewOutput.hidden = true;
+                sitePreviewOutput.textContent = '';
+            }
+            if (sitesStatus) {
+                sitesStatus.dataset.state = 'unavailable';
+                sitesStatus.textContent = message;
+            }
+            return;
+        }
+        siteDatabasesStatus.textContent = message;
+    }
+    finally {
+        if (request === siteDatabaseRequest && selectedSiteID === id)
+            siteDatabasesLoad.disabled = false;
+    }
+});
 const sitesLoad = document.querySelector('#sites-load');
 const sitesStatus = document.querySelector('#sites-status');
 const sitesList = document.querySelector('#sites-list');

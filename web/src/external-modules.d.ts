@@ -11,6 +11,8 @@ declare module '*.mjs' {
         timeoutMs?: number,
     ): Promise<PanelStatusResult>;
     export function loadNginxPreview(siteID: string, fetcher?: typeof fetch): Promise<string>;
+    export interface SiteDatabase { id:string; name:string; username:string; }
+    export function loadSiteDatabases(siteID:string, fetcher?:typeof fetch, signal?:AbortSignal): Promise<SiteDatabase[]>;
     export interface SiteDetails { siteID: string; documentRoot: string; domains: {name:string;kind:string;state:string}[]; }
     export function loadSiteDetails(siteID: string, fetcher?: typeof fetch, signal?: AbortSignal): Promise<SiteDetails>;
     export interface SiteSummary { site_id: string; primary_domain: string; ownership_state: string; }
