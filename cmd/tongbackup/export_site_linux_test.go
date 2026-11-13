@@ -106,9 +106,15 @@ func TestExportSiteArgumentsAndSourceOutputIsolation(t *testing.T) {
 
 func TestPrivateCiphertextPublicationOutcomes(t *testing.T) {
 	dir := t.TempDir()
+	// testing.TempDir's leaf is created with 0777 subject to umask, so make
+	// the fixture satisfy the same private-directory contract as production.
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
 	producer := func(w io.Writer) error { _, err := w.Write([]byte("ciphertext")); return err }
-	if err := publishPrivateCiphertext(dir, "clean", func(w io.Writer) error { _, _ = w.Write([]byte("partial ciphertext")); return errors.New("failed") }, unix.Linkat, unix.Fsync); err == nil {
-		t.Fatal("producer failure accepted")
+	producerErr := errors.New("injected producer failure")
+	if err := publishPrivateCiphertext(dir, "clean", func(w io.Writer) error { _, _ = w.Write([]byte("partial ciphertext")); return producerErr }, unix.Linkat, unix.Fsync); !errors.Is(err, producerErr) {
+		t.Fatalf("producer failure = %v, want injected error", err)
 	}
 	if entries, err := os.ReadDir(dir); err != nil || len(entries) != 0 {
 		t.Fatalf("failed producer left stage: %v %v", entries, err)
