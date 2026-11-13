@@ -67,14 +67,14 @@ func TestTenantEncryptedRestoreOnDiskIntegration(t *testing.T) {
 	if err := os.WriteFile(corruptPath, corrupt, 0600); err != nil {
 		t.Fatal(err)
 	}
-	invoke := func(tenant, destination, source string, wrappingKey []byte) error {
+	invoke := func(tenant, destination, source string, wrappingKey []byte) (ArchivePublishResult, error) {
 		t.Helper()
 		f, err := os.Open(source)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer f.Close()
-		return roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), tenant, destination, f, wrappingKey, ArchiveLimits{})
+		return roots.RestoreEncryptedGzipTarNewForTenantWithResult(context.Background(), tenant, destination, f, wrappingKey, ArchiveLimits{})
 	}
 	assertPristine := func() {
 		t.Helper()
@@ -102,14 +102,16 @@ func TestTenantEncryptedRestoreOnDiskIntegration(t *testing.T) {
 	}{
 		{"tenant-b", pathA, key}, {"tenant-a", pathA, bytes.Repeat([]byte{0x42}, 32)}, {"tenant-a", corruptPath, key},
 	} {
-		if err := invoke(tc.tenant, "site", tc.path, tc.key); !errors.Is(err, backups.ErrInvalidBackup) {
-			t.Fatalf("denied restore: %v", err)
+		result, err := invoke(tc.tenant, "site", tc.path, tc.key)
+		if !errors.Is(err, backups.ErrInvalidBackup) || result.State != ArchiveNotPublished || result.LogicalBytes != 0 {
+			t.Fatalf("denied restore: result=%+v err=%v", result, err)
 		}
 		assertPristine()
 	}
 	for _, tc := range []struct{ tenant, path, dir string }{{"tenant-a", pathA, dirA}, {"tenant-b", pathB, dirB}} {
-		if err := invoke(tc.tenant, "site", tc.path, key); err != nil {
-			t.Fatal(err)
+		result, err := invoke(tc.tenant, "site", tc.path, key)
+		if err != nil || result.State != ArchivePublished || result.LogicalBytes != int64(len(data)) {
+			t.Fatalf("restore outcome: result=%+v err=%v", result, err)
 		}
 		got, err := os.ReadFile(filepath.Join(tc.dir, "site", "content.bin"))
 		if err != nil || !bytes.Equal(got, data) {
