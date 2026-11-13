@@ -186,14 +186,22 @@ func (t *TenantRoots) ExtractGzipTarNewFromForTenant(tenantID, relative string, 
 // This binds root selection to the encrypted tenant but is not authorization;
 // callers must establish current authority and quota before using it.
 func (t *TenantRoots) RestoreEncryptedGzipTarNewForTenant(ctx context.Context, tenantID, relative string, src io.Reader, key []byte, limits ArchiveLimits) error {
+	_, err := t.RestoreEncryptedGzipTarNewForTenantWithResult(ctx, tenantID, relative, src, key, limits)
+	return err
+}
+
+// RestoreEncryptedGzipTarNewForTenantWithResult reports the destination rename
+// and logical regular-file bytes for the same tenant-bound root and envelope.
+// The result does not establish authority, settle quota, or rule out debris.
+func (t *TenantRoots) RestoreEncryptedGzipTarNewForTenantWithResult(ctx context.Context, tenantID, relative string, src io.Reader, key []byte, limits ArchiveLimits) (ArchivePublishResult, error) {
 	if t == nil || tenantID == "" {
-		return ErrTenantDenied
+		return ArchivePublishResult{}, ErrTenantDenied
 	}
 	root, ok := t.roots[tenantID]
 	if !ok {
-		return ErrTenantDenied
+		return ArchivePublishResult{}, ErrTenantDenied
 	}
-	return root.RestoreEncryptedGzipTarNew(ctx, relative, src, tenantID, key, limits)
+	return root.RestoreEncryptedGzipTarNewWithResult(ctx, relative, src, tenantID, key, limits)
 }
 
 // CleanupStaleStagesForTenant cleans only internal staging directories beneath

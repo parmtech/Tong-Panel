@@ -599,6 +599,36 @@ func assertNoStagingDirectories(t *testing.T, root string) {
 	}
 }
 
+func assertPrivateRetainedArchiveStages(t *testing.T, root string) {
+	t.Helper()
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), writeStagePrefix) {
+			t.Errorf("unexpected write staging directory: %q", entry.Name())
+			continue
+		}
+		if !strings.HasPrefix(entry.Name(), archiveStagePrefix) {
+			continue
+		}
+		if !validInternalStageName(entry.Name()) {
+			t.Errorf("invalid retained stage name: %q", entry.Name())
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil || !info.IsDir() || info.Mode().Perm() != 0700 {
+			t.Errorf("unsafe retained stage %q: %v %v", entry.Name(), info, err)
+			continue
+		}
+		var st unix.Stat_t
+		if err := unix.Lstat(filepath.Join(root, entry.Name()), &st); err != nil || st.Uid != uint32(unix.Geteuid()) {
+			t.Errorf("retained stage owner: %v", err)
+		}
+	}
+}
+
 func TestWriteNewSymlinkSwapNeverChangesOutsideFile(t *testing.T) {
 	r, root := newTestRoot(t)
 	outside := t.TempDir()
@@ -1208,7 +1238,7 @@ func TestExtractGzipTarNewConcurrentSameTargetHasSingleWinner(t *testing.T) {
 	if len(entries) != 1 || (entries[0].Name() != "tenant-a.txt" && entries[0].Name() != "tenant-b.txt") {
 		t.Fatalf("published target entries = %#v, want exactly one complete winner tree", entries)
 	}
-	assertNoStagingDirectories(t, root)
+	assertPrivateRetainedArchiveStages(t, root)
 }
 
 func TestExtractGzipTarNewEnforcesCompressedFileAndEntryLimits(t *testing.T) {
@@ -1391,7 +1421,7 @@ func TestExtractGzipTarNewSymlinkSwapNeverChangesOutsideTarget(t *testing.T) {
 	if data, err := os.ReadFile(outsideFile); err != nil || string(data) != "outside secret" {
 		t.Fatalf("outside target changed = %q, %v", data, err)
 	}
-	assertNoStagingDirectories(t, root)
+	assertPrivateRetainedArchiveStages(t, root)
 }
 
 func TestExtractGzipTarNewConcurrentPublicationHasOneWinner(t *testing.T) {
@@ -1423,7 +1453,7 @@ func TestExtractGzipTarNewConcurrentPublicationHasOneWinner(t *testing.T) {
 	if err != nil || string(data) != "winner" {
 		t.Fatalf("published archive content = %q, %v", data, err)
 	}
-	assertNoStagingDirectories(t, root)
+	assertPrivateRetainedArchiveStages(t, root)
 }
 
 func TestTenantRootsScopeArchiveExtraction(t *testing.T) {

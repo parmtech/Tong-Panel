@@ -36,8 +36,9 @@ const (
 )
 
 var (
-	ErrInvalidArchive = errors.New("invalid or unsupported archive entry")
-	ErrArchiveLimit   = errors.New("archive exceeds configured limit")
+	ErrInvalidArchive            = errors.New("invalid or unsupported archive entry")
+	ErrArchiveLimit              = errors.New("archive exceeds configured limit")
+	ErrPublicationOutcomeUnknown = errors.New("archive publication outcome unknown")
 )
 
 // ArchiveLimits may lower the hard bounds for a caller. Zero fields select the
@@ -123,7 +124,8 @@ func ReadGzipTarBounded(src io.Reader, maxBytes int64) ([]byte, error) {
 // accepted; symlinks, hardlinks, devices, FIFOs, traversal and duplicate paths
 // fail closed. Files use mode 0600 and directories mode 0700. A returned
 // ErrPublishedDurabilityUnconfirmed means publication occurred and directory
-// durability could not be confirmed; callers must reconcile before retrying.
+// durability could not be confirmed. ErrPublicationOutcomeUnknown means the
+// rename was attempted but its effect is unknown. Both require reconciliation.
 func (r *Root) ExtractGzipTarNew(relative string, archive []byte, limits ArchiveLimits) error {
 	return r.extractGzipTarNew(relative, archive, limits, false)
 }
@@ -149,13 +151,40 @@ func (r *Root) extractGzipTarNew(relative string, archive []byte, limits Archive
 }
 
 func (r *Root) extractGzipTarNewContext(ctx context.Context, relative string, archive []byte, limits ArchiveLimits, verified bool, syncDir func(int) error) error {
+	var ignored ArchivePublishResult
+	return r.extractGzipTarNewWithResult(ctx, relative, archive, limits, verified, syncDir, unix.Renameat2, &ignored)
+}
+
+type ArchivePublicationState uint8
+
+const (
+	ArchiveNotPublished ArchivePublicationState = iota
+	ArchivePublished
+	ArchivePublicationUnknown
+)
+
+// ArchivePublishResult reports observed publication in a returned call; process
+// crashes require separate reconciliation. LogicalBytes counts only regular
+// file contents of the validated candidate for Published or Unknown. Neither
+// NotPublished nor an error proves staging cleanup succeeded, establishes disk
+// usage, or makes a quota reservation safe to release.
+type ArchivePublishResult struct {
+	State        ArchivePublicationState
+	LogicalBytes int64
+}
+
+func (r *Root) extractGzipTarNewWithResult(ctx context.Context, relative string, archive []byte, limits ArchiveLimits, verified bool, syncDir func(int) error, rename func(int, string, int, string, uint) error, result *ArchivePublishResult) error {
+	if result == nil {
+		return ErrInvalidContext
+	}
+	*result = ArchivePublishResult{}
 	if ctx == nil {
 		return ErrInvalidContext
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if syncDir == nil {
+	if syncDir == nil || rename == nil {
 		return ErrInvalidContext
 	}
 	if r == nil {
@@ -220,7 +249,8 @@ func (r *Root) extractGzipTarNewContext(ctx context.Context, relative string, ar
 		_ = unix.Close(stageFD)
 	}()
 
-	if err := extractTarInto(stageFD, archive, limits); err != nil {
+	var logicalBytes int64
+	if err := extractTarInto(stageFD, archive, limits, &logicalBytes); err != nil {
 		return err
 	}
 	if err := syncArchiveTree(stageFD); err != nil {
@@ -229,13 +259,30 @@ func (r *Root) extractGzipTarNewContext(ctx context.Context, relative string, ar
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if err := unix.Renameat2(r.fd, stage, parent, base, unix.RENAME_NOREPLACE); err != nil {
-		if errors.Is(err, unix.EEXIST) {
-			return ErrAlreadyExists
-		}
+	// A known existing target can be rejected before attempting rename. This
+	// is an optimization only: RENAME_NOREPLACE remains the authoritative
+	// no-overwrite check for a target created after this observation.
+	var existing unix.Stat_t
+	if err := unix.Fstatat(parent, base, &existing, unix.AT_SYMLINK_NOFOLLOW); err == nil {
+		return ErrAlreadyExists
+	} else if !errors.Is(err, unix.ENOENT) {
 		return err
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := rename(r.fd, stage, parent, base, unix.RENAME_NOREPLACE); err != nil {
+		// A filesystem error can leave rename outcome ambiguous. The stage FD
+		// may now refer to the published destination; never erase it here.
+		published = true
+		*result = ArchivePublishResult{State: ArchivePublicationUnknown, LogicalBytes: logicalBytes}
+		if errors.Is(err, unix.EEXIST) {
+			return fmt.Errorf("%w: %w: %w", ErrPublicationOutcomeUnknown, ErrAlreadyExists, err)
+		}
+		return fmt.Errorf("%w: %w", ErrPublicationOutcomeUnknown, err)
+	}
 	published = true
+	*result = ArchivePublishResult{State: ArchivePublished, LogicalBytes: logicalBytes}
 	if err := syncDir(parent); err != nil {
 		return fmt.Errorf("%w: %w", ErrPublishedDurabilityUnconfirmed, err)
 	}
@@ -280,7 +327,7 @@ func (r *Root) ExtractGzipTarNewFrom(relative string, src io.Reader, limits Arch
 	return r.ExtractGzipTarNew(relative, archive, limits)
 }
 
-func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits) error {
+func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits, logicalBytes *int64) error {
 	source := bytes.NewReader(archive)
 	gz, err := gzip.NewReader(source)
 	if err != nil {
@@ -389,6 +436,7 @@ func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits) error {
 	if tail.nonZero || source.Len() != 0 {
 		return ErrInvalidArchive
 	}
+	*logicalBytes = totalBytes
 	return nil
 }
 
