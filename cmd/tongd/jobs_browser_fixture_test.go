@@ -119,6 +119,14 @@ func TestJobsBrowserFixture(t *testing.T) {
 			t.Fatal("fixture database metadata unavailable")
 		}
 	}
+	// Additional metadata rows allow browser pagination without creating any
+	// MariaDB database or user. The existing db-a row remains the first entry.
+	for i := 0; i < 55; i++ {
+		spec := sites.SiteDatabaseSpec{TenantID: "tenant-a", SiteID: "site-000", DatabaseID: fmt.Sprintf("db-p%03d", i)}
+		if err := catalog.CreateDatabase(context.Background(), spec); err != nil {
+			t.Fatal("fixture database page unavailable")
+		}
+	}
 	sessions, err := auth.NewSQLiteSessionStore(db)
 	if err != nil {
 		t.Fatal("fixture sessions unavailable")

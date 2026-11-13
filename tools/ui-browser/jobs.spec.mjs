@@ -335,7 +335,7 @@ test('site database catalog follows real tenant sessions and discards stale read
     const held = new Promise(resolve => { markHeld = resolve; });
     const release = new Promise(resolve => { releaseHeld = resolve; });
     const finished = new Promise(resolve => { markFinished = resolve; });
-    await page.route('**/api/v1/sites/site-000/databases', async route => {
+    await page.route('**/api/v1/sites/site-000/databases?**', async route => {
         markHeld(); await release;
         try { await route.continue(); } catch { /* aborted request */ }
         markFinished();
@@ -346,7 +346,7 @@ test('site database catalog follows real tenant sessions and discards stale read
     releaseHeld(); await finished;
     await expect(page.locator('#site-details')).toBeHidden();
     await expect(page.locator('#site-databases-list')).toBeEmpty();
-    await page.unroute('**/api/v1/sites/site-000/databases');
+    await page.unroute('**/api/v1/sites/site-000/databases?**');
     await page.context().clearCookies();
     await page.context().addCookies([{ name: '__Host-tong_session', value: fixture.Tokens.bob, url: fixture.Primary, secure: true, httpOnly: true, sameSite: 'Strict' }]);
     await loadSites(page); await select('site-000');
@@ -366,6 +366,51 @@ test('site database catalog follows real tenant sessions and discards stale read
     await expect(page.locator('#sites-list li')).toHaveCount(0);
     await expect(page.locator('#site-details')).toBeHidden();
     await expect(page.locator('#site-databases-list')).toBeEmpty();
+});
+
+test('real site database pages remain tenant scoped across sessions', async ({ page }) => {
+    const requests = [];
+    page.on('request', request => {
+        const url = new URL(request.url());
+        if (url.pathname === '/api/v1/sites/site-000/databases') requests.push({ page: url.searchParams.get('page'), limit: url.searchParams.get('limit'), after: url.searchParams.get('after') });
+    });
+    await open(page, 'alice');
+    await loadSites(page);
+    await page.getByRole('button', { name: 'View details for site-000' }).click();
+    await expect(page.locator('#site-databases-load')).toBeEnabled();
+    await page.locator('#site-databases-load').click();
+    await expect(page.locator('#site-databases-list li')).toHaveCount(50);
+    await expect(page.locator('#site-databases-list')).toContainText('db-a');
+    await expect(page.locator('#site-databases-list')).not.toContainText('db-b');
+    await expect(page.locator('#site-databases-previous')).toBeDisabled();
+    const first = await page.locator('#site-databases-list li').allTextContents();
+    await page.locator('#site-databases-next').click();
+    await expect(page.locator('#site-databases-page')).toHaveText('Page 2');
+    await expect(page.locator('#site-databases-list li')).toHaveCount(6);
+    await expect(page.locator('#site-databases-list')).toContainText('db-p054');
+    await expect(page.locator('#site-databases-next')).toBeDisabled();
+    await page.locator('#site-databases-previous').click();
+    await expect(page.locator('#site-databases-page')).toHaveText('Page 1');
+    expect(await page.locator('#site-databases-list li').allTextContents()).toEqual(first);
+    expect(requests).toEqual([
+        { page: '1', limit: '50', after: null },
+        { page: '1', limit: '50', after: 'db-p048' },
+        { page: '1', limit: '50', after: null },
+    ]);
+    await page.context().clearCookies();
+    await page.context().addCookies([{ name: '__Host-tong_session', value: fixture.Tokens.carol, url: fixture.Primary, secure: true, httpOnly: true, sameSite: 'Strict' }]);
+    await loadSites(page);
+    await page.getByRole('button', { name: 'View details for other-site' }).click();
+    await expect(page.locator('#site-databases-load')).toBeEnabled();
+    await page.locator('#site-databases-load').click();
+    await expect(page.locator('#site-databases-list li')).toHaveCount(1);
+    await expect(page.locator('#site-databases-list')).toContainText('db-b');
+    await expect(page.locator('#site-databases-list')).not.toContainText('db-a');
+    await page.context().clearCookies();
+    await page.locator('#site-databases-load').click();
+    await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'unavailable');
+    await expect(page.locator('#site-databases-list')).toBeEmpty();
+    await expect(page.locator('#site-details')).toBeHidden();
 });
 
 test('site catalog empty and absent authentication states do not expose stale sites', async ({ page }) => {
