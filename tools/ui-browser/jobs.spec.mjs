@@ -219,7 +219,7 @@ test('real site catalog pages stay tenant scoped and selection fills preview', a
     await expect(page.locator('#sites-list')).toContainText('site-060.example.test');
     await page.locator('#sites-previous').click();
     await expect(page.locator('#sites-page')).toHaveText('Page 1');
-    await page.locator('#sites-list button').first().click();
+    await page.getByRole('button', { name: 'Use site-000 for preview' }).click();
     await expect(page.locator('#site-preview-id')).toHaveValue('site-000');
     await expect(page.locator('#site-preview-id')).toBeFocused();
     await page.context().clearCookies();
