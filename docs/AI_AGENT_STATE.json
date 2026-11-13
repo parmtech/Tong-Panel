@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Inspect be82f06 exact-source Linux/browser CI and 56a5c21 clean-VM results; diagnose failures and record evidence.",
+    "action": "Inspect c44cb0f exact-source Linux Go/browser CI and 56a5c21 Ubuntu guest; investigate failures and Windows cleanup lock.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -138,9 +138,9 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "be82f06a6f71e0a1fd6eef24e614daed8ecdca36",
+    "sha": "c44cb0f3bed8c73c389a655684bf137c7cc4c473",
     "hosted_ci": "pending_at_handoff",
-    "local": "49 Node tests, Windows fixture compile, and focused Chrome real-handler site/database tenant tests passed",
-    "limitations": "catalog metadata only; no database provisioned; hosted CI pending"
+    "local": "50 Node, focused Go pagination and three Chrome real-handler tests passed; coordinator full Windows sites run failed temp SQLite cleanup lock",
+    "previous_ci": "56a5c21 Debian guest passed occupied-port checks; Ubuntu running; be82f06 browser failure selector corrected"
   }
 }
