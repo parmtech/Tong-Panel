@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Inspect exact-source d62cdd5 hosted CI, including runner and both guest lab results; investigate failures and record evidence.",
+    "action": "Inspect exact-source 508750b and d62cdd5 hosted CI, including clean-VM guest lab results; investigate failures and record evidence.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -138,9 +138,9 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "d62cdd54745467880b6bac6719315b64acb3ec3c",
+    "sha": "508750bcc52dd5390c53909d67def71410234bb4",
     "hosted_ci": "pending_at_handoff",
-    "previous_source": "9e6b19a470b0b828fab89dd33077db010e5a4ea2: 13/13 passed, both runner and guest lab tests executed",
-    "local": "Four Python guard tests and Windows Go preflight tests passed"
+    "local": "Windows Go 1.27.3 preflight and backups tests passed; backup vet and focused repeat tests passed",
+    "previous_source": "d62cdd5: 12/13 passed; clean VM in progress at checkpoint"
   }
 }
