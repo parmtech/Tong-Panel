@@ -2,8 +2,12 @@
 **Project:** Tong Panel (TongPanel) | **Publisher:** ParmTech (https://parmtech.au)  
 **Project type:** Free/open-source Linux hosting control panel and cPanel/WHM alternative  
 **License:** GNU AGPL-3.0 for original Tong Panel code; all third-party dependencies retain their own licences.  
-**Status:** PRODUCT PLANNING — no deployable Tong Panel exists yet  
-**Updated:** 2026-10-26 | **Blueprint revision:** 0.1
+**Status:** PRODUCT BLUEPRINT + UNMERGED DEV PROTOTYPES — no production-ready or supported deployable Tong Panel exists. For the actual code/CI state read [AI agent A–Z handoff](AI_AGENT_START_HERE.md).  
+**Original blueprint:** 2026-10-26 | **Current engineering status linked:** 2026-11-13 | **Blueprint revision:** 0.1 (targets preserved)
+
+## Implementation reality and next agent entrypoint (13 November 2026)
+
+The **product scope below is the target**, not a completed-feature list. As of the verified development snapshot, the original source, tests, design work and 149 historic draft heads are consolidated in [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171); [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) coordinates the P0–P6 workstreams. A [fully indexed A–Z AI handoff](AI_AGENT_START_HERE.md) describes actual source directories, historical checks, security decisions and the exact next action; its [JSON snapshot](AI_AGENT_STATE.json) is machine-readable. The branch has unsigned developer-only packages and isolated Go/VM/ACME/backup/migration models, **not** a supported hosting panel. No ADR/security signoff, public login, root host mutation, production signing/installer or supported release is approved. Keep vision separate from verified implementation.
 
 ## 1. Mission and non-negotiables
 
@@ -19,6 +23,7 @@ Design priorities in order: **safety of customer data and server**, correct work
 - Single-server first, multi-server orchestration later via secure workers/agents.
 - Optional services remain optional: mail, authoritative DNS and Docker must not be required to host a basic website.
 - No hidden subscriptions/paid-feature gates for first-party core functionality. Third-party DNS, cloud storage, VPS, registrar, CA, mail relays etc. can charge fees.
+- First-release direction: integrated third-party software for panel features should be free and open source, with no mandatory paid or paid-only components. Use suitable open-source components and original open-source Tong Panel implementation as needed, subject to license, compatibility and security review. Do not claim a suitable component exists until evaluated. Softaculous is not selected. Infrastructure and optional external providers may charge independently.
 
 ## 2. Audiences and experience
 
@@ -37,6 +42,7 @@ Design priorities in order: **safety of customer data and server**, correct work
 - Nginx-first supported profile with PHP-FPM; optional Apache interoperability adapter in subsequent phases. Do not install conflicting active web-stack configurations.
 - PHP version selector per app/site; per-site process pool, resource isolation, extension management, safe php.ini policies, logs and cron.
 - SSH/SFTP access, tightly scoped file permissions, quotas; no unrestricted web-root ownership by panel service.
+- Opt-in browser terminal for authorized accounts in their own isolated environment, with session revocation, bounded resources and audit. It is a planned first-release feature; no unrestricted root shell or cross-tenant access. See the [terminal implementation proposal](P1_BROWSER_TERMINAL_PROPOSAL.md) for unresolved scope and acceptance tests.
 
 ### Application development/deployment
 - PHP (WordPress, Laravel, 84PAD, etc.), HTML/static, Node.js (Express, Next.js build/runtime), Python (Django, Flask, FastAPI), Ruby, Go binary and generic container/Compose profiles.
@@ -91,6 +97,26 @@ Design priorities in order: **safety of customer data and server**, correct work
 **Gate 6 Stable 1.0:** independent security audit, migration drills, restore drills, cross-distro matrices, load tests, accessibility and user docs.
 
 A phase is not complete just because UI renders. It needs backend tests, safe permissions, integration and rollback tests, manual acceptance, docs and changelog evidence.
+
+### Phase-by-phase integration plan and checkpoint (2026-11-13)
+
+The following follows the Gate 0–6 numbering above and `ROADMAP.md`. `FEATURE_MATRIX.md` now follows the same P0–P6 phases and records the legacy-label crosswalk for historical notes. Upstream components are candidates, not approved production selections; retain their licenses/notices and review exact versions, dependencies, security, tenant boundaries, rollback and maintenance before release.
+
+| Gate | Planned use and current state | Next acceptance work |
+|---|---|---|
+| 0 — Planning | Complete owner decisions, architecture, threat model and provenance. The [research report](OPEN_SOURCE_RESEARCH_REPORT_2026-11-12.md) maps possible upstream components; decisions remain open. | Record actual owner/security decisions, component review and phase gates. Draft prototypes do not approve a design. |
+| 1 — Foundation | An opt-in Prometheus Go client integration exposes only a local development marker; see [development metrics](P1_DEVELOPMENT_METRICS.md). Guarded-read session-expiry writes now honor request cancellation during SQLite contention. Authentication, jobs and agent boundaries remain broader foundation work. | Define real metrics, credential and proxy policy, tenant isolation, secure transport and tests before production monitoring; retain current authority checks and fail-closed expiry behavior. |
+| 2 — Hosting MVP | Evaluate [lego](https://github.com/go-acme/lego) for SSL/ACME, Nginx for web serving, and [restic](https://github.com/restic/restic) or another reviewed tool for backup. A local challenge test, authorized read-only preflight, recorded domain-proof evidence and cancellation of a prototype challenge attempt exist; certificate issuance is not wired into the panel. The restic fixture restore passed, but its tested binary has unresolved scanner findings and is not approved. | Resolve the explicit decisions in the [certificate operation and key-custody contract](P1_CERTIFICATE_OPERATION_CONTRACT.md), then implement reviewed permissions, custody, renewal and rollback with local-CA evidence. Resolve backup tool findings and test tenant isolation, failure recovery and full restore before use. |
+| 3 — Modern apps | Evaluate [Coolify](https://github.com/coollabsio/coolify) workflows or a separately operated integration for Git/app deployment; Node/Python and optional isolated containers remain planned. | Review credentials, build isolation, resource limits, deployment/rollback and compatible integration boundaries; do not assume its control plane is already integrated. |
+| 4 — Full hosting | Evaluate PowerDNS/BIND for optional DNS, Postfix/Dovecot for optional mail, PostgreSQL, enhanced backups, reseller controls and supervised migration. | Test scoped service adapters, mail delivery/DNS failure cases, recovery, tenant separation and migration reconciliation. |
+| 5 — Scale | Plan node enrollment, placement, revocation, marketplace permissions and cross-server operations. | Prove partial failure, credential revocation, placement and recovery in disposable environments. |
+| 6 — Stable release | Complete independent security review, signed releases, SBOM, support matrix, accessibility and recovery evidence. Optional [Coraza](https://github.com/corazawaf/coraza) or [CrowdSec](https://github.com/crowdsecurity/crowdsec) hardening requires its own evaluation. | Triage scanner findings, run supported-OS and restore drills, complete security review and document residual limitations. |
+
+The [complete PR reconciliation](PR_RECONCILIATION_2026-11-13.md) preserves the original 149 draft heads in one development review, including the separate P0/P2/P3/P4/P5 models and packets. SQL job reads now recheck current cookie-session authority in their data snapshot; isolated model checks remain separate from product acceptance. Consolidation does not advance a phase or select a policy.
+
+The detailed current paths, test evidence and step-by-step resume instructions are in [the resume handoff](RESUME_HANDOFF_2026-11-12.md); precise component provenance and blockers are in the individual prototype READMEs linked there. The separate [ACME lab](../tools/acme-prototype/LOCAL_E2E.md#interrupted-order-response-and-reconciliation) now tests recovery of the same order after a lost finalize response, while keys remain in RAM. That is protocol evidence for uncertain outcomes, not durable recovery or panel issuance. This is a draft plan, not evidence that the listed services are installed or phases completed.
+
+For the owner-directed first-release feature target and the evidence required before launch, see [the first release checklist](FIRST_RELEASE_CHECKLIST.md). The feature selection is recorded; supported platforms, exact acceptance criteria and the alpha/stable release designation remain open. This target does not replace the roadmap's stable 1.0 gates.
 
 ## 5. Proposed user journeys (acceptance)
 

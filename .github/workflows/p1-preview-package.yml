@@ -1,0 +1,130 @@
+name: P1 unsigned developer package lab
+on:
+  push:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'cmd/tongd/ui/**'
+      - 'scripts/smoke_p1.py'
+      - 'scripts/smoke_development_bind.py'
+      - 'scripts/smoke_bootstrap_owner.py'
+      - 'scripts/smoke_support_bundle.py'
+      - 'scripts/smoke_noop_worker.py'
+      - 'scripts/test_smoke_noop_worker.py'
+      - 'scripts/verify_binary_sbom.py'
+      - 'scripts/test_verify_binary_sbom.py'
+      - '.github/workflows/p1-preview-package.yml'
+  pull_request:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'cmd/tongd/ui/**'
+      - 'scripts/smoke_p1.py'
+      - 'scripts/smoke_development_bind.py'
+      - 'scripts/smoke_bootstrap_owner.py'
+      - 'scripts/smoke_support_bundle.py'
+      - 'scripts/smoke_noop_worker.py'
+      - 'scripts/test_smoke_noop_worker.py'
+      - 'scripts/verify_binary_sbom.py'
+      - 'scripts/test_verify_binary_sbom.py'
+      - '.github/workflows/p1-preview-package.yml'
+permissions:
+  contents: read
+jobs:
+  unsigned-dev-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Test binary SBOM verification contracts
+        run: python3 -m unittest discover -s scripts -p 'test_verify_binary_sbom.py'
+      - name: Install pinned binary SBOM generator
+        run: GOTOOLCHAIN=local GOBIN="$RUNNER_TEMP/tong-sbom-tools" go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.12.0
+      - name: Build intentionally nonproduction Linux amd64 binaries
+        run: |
+          mkdir -p "$RUNNER_TEMP/tong-p1-dev/bin"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/bin/tongd" ./cmd/tongd
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/bin/tongctl" ./cmd/tongctl
+          cp LICENSE "$RUNNER_TEMP/tong-p1-dev/LICENSE"
+          printf '%s\n' \
+            'TONG PANEL — UNSIGNED DEVELOPER PREVIEW ONLY' \
+            'DO NOT RUN ON A PRODUCTION SERVER OR EXPOSE TO THE INTERNET.' \
+            'There is no production login, root host-agent action or verified installer.' \
+            'The source is on unmerged development branches; do not use with customers.' \
+            'This is NOT a supported distro package or signed release.' \
+            > "$RUNNER_TEMP/tong-p1-dev/DO_NOT_INSTALL.txt"
+      - name: Require the patched toolchain in developer binaries
+        run: |
+          python3 - <<'PY_BUILD'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "tong-p1-dev" / "bin"
+          for name in ("tongd", "tongctl"):
+              result = subprocess.run(["go", "version", "-m", "-json", str(root / name)],
+                                      check=True, capture_output=True, text=True, timeout=30)
+              build = json.loads(result.stdout)
+              if build.get("GoVersion") != "go1.27.4":
+                  raise SystemExit(f"{name}: expected go1.27.4, found {build.get('GoVersion')!r}")
+              print(f"{name}: verified go1.27.4 build metadata")
+          PY_BUILD
+      - name: Generate and verify SBOMs for the exact developer binaries
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: '0'
+        run: |
+          mkdir -p "$RUNNER_TEMP/tong-p1-dev/sbom"
+          "$RUNNER_TEMP/tong-sbom-tools/cyclonedx-gomod" bin -json -std -output-version 1.6 -output "$RUNNER_TEMP/tong-p1-dev/sbom/tongd.cdx.json" "$RUNNER_TEMP/tong-p1-dev/bin/tongd"
+          "$RUNNER_TEMP/tong-sbom-tools/cyclonedx-gomod" bin -json -std -output-version 1.6 -output "$RUNNER_TEMP/tong-p1-dev/sbom/tongctl.cdx.json" "$RUNNER_TEMP/tong-p1-dev/bin/tongctl"
+          python3 scripts/verify_binary_sbom.py "$RUNNER_TEMP/tong-p1-dev/bin/tongd" "$RUNNER_TEMP/tong-p1-dev/sbom/tongd.cdx.json" github.com/parmtech/tong-panel/cmd/tongd
+          python3 scripts/verify_binary_sbom.py "$RUNNER_TEMP/tong-p1-dev/bin/tongctl" "$RUNNER_TEMP/tong-p1-dev/sbom/tongctl.cdx.json" github.com/parmtech/tong-panel/cmd/tongctl
+      - name: Archive unsigned developer binaries and SBOMs
+        run: |
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" tong-p1-dev
+          (cd "$RUNNER_TEMP" && sha256sum tong-p1-UNSIGNED-dev-linux-amd64.tar.gz > SHA256SUMS)
+      - name: Verify archive extraction and checksum
+        run: |
+          (cd "$RUNNER_TEMP" && sha256sum -c SHA256SUMS)
+          mkdir -p "$RUNNER_TEMP/extracted"
+          tar -xzf "$RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" -C "$RUNNER_TEMP/extracted"
+          test -x "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd"
+          test -x "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl"
+          grep -q 'UNSIGNED DEVELOPER PREVIEW ONLY' "$RUNNER_TEMP/extracted/tong-p1-dev/DO_NOT_INSTALL.txt"
+          python3 scripts/verify_binary_sbom.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd" "$RUNNER_TEMP/extracted/tong-p1-dev/sbom/tongd.cdx.json" github.com/parmtech/tong-panel/cmd/tongd
+          python3 scripts/verify_binary_sbom.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl" "$RUNNER_TEMP/extracted/tong-p1-dev/sbom/tongctl.cdx.json" github.com/parmtech/tong-panel/cmd/tongctl
+      - name: Run non-destructive smoke using binary extracted from archive
+        run: python3 scripts/smoke_p1.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd"
+      - name: Verify extracted daemon configurable loopback listener
+        run: python3 scripts/smoke_development_bind.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd"
+      - name: Verify extracted daemon opt-in no-op worker and restart
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_smoke_noop_worker.py'
+          python3 scripts/smoke_noop_worker.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongd"
+      - name: Verify extracted CLI creates one audited owner without default credentials
+        run: python3 scripts/smoke_bootstrap_owner.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl"
+      - name: Verify extracted CLI exports only allowlisted support facts
+        run: python3 scripts/smoke_support_bundle.py "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl"
+      - name: Verify extracted doctor remains read only
+        run: |
+          "$RUNNER_TEMP/extracted/tong-p1-dev/bin/tongctl" doctor > "$RUNNER_TEMP/extracted-doctor.json"
+          python3 -c 'import json,os; p=os.path.join(os.environ["RUNNER_TEMP"],"extracted-doctor.json"); d=json.load(open(p)); assert len(d["checks"])==4; assert "Development-only" in d["Warnings"][0]; print("doctor diagnostics parsed; no supported OS claim")'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tong-p1-UNSIGNED-developer-preview-linux-amd64
+          path: |
+            ${{ runner.temp }}/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz
+            ${{ runner.temp }}/SHA256SUMS
+          retention-days: 7

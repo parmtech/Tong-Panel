@@ -1,0 +1,10 @@
+# Open-source integration candidates — 2026-11-12
+
+Research candidates, not approved dependencies or completed integrations. Tong Panel's upstream review checklist and architecture decision process apply before importing code or enabling privileged operations.
+
+| Candidate | Potential fit | Upstream evidence | Initial license | Status and next steps |
+| --- | --- | --- | --- | --- |
+| [go-acme/lego](https://github.com/go-acme/lego) | P1 ACME certificate issuance and renewal | Go client and library; repository reports MIT. Reference v4.28.1 tag resolves to `b704b26e6c49a540cbb5dd51c2f3a9d70053c86c`; not selected as a deployment pin. | MIT, subject to exact-version and dependency notice verification | Compare CLI service boundary vs linked library; assess credential handling, challenge isolation, renewals, rollback, security advisories, maintenance, dependency licenses and SBOM. Test against a local ACME test server and never expose live account keys in logs. No integration or production certification yet. |
+| [corazawaf/coraza](https://github.com/corazawaf/coraza) | Possible future WAF for hosted sites | Go ModSecurity-compatible WAF library; repository reports Apache-2.0. Observed main `8538b97cc1d7b0cc03384704f1b5cfb035e4c83c` is not a reviewed release pin. | Apache-2.0, subject to exact-version and ruleset/dependency notice verification | Establish actual product need and traffic placement first. Evaluate independent service vs embedded integration, rule licensing, false positives, resource limits, security advisories and maintenance. No WAF is installed or enabled. |
+
+Initial repository license labels are not a legal or security approval. Before implementation, record exact release, full provenance, transitive licenses, vulnerability review, packaging, tests, rollback, and independent review per `UPSTREAM_RESEARCH.md`. Do not copy proprietary cPanel assets or assume a project's commercial components are open source. Existing Phase Zero owner and security gates remain open.

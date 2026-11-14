@@ -1,0 +1,58 @@
+name: P1 developer smoke (non-destructive)
+on:
+  push:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'scripts/smoke_p1.py'
+      - 'scripts/smoke_development_bind.py'
+      - 'scripts/smoke_bootstrap_owner.py'
+      - 'scripts/smoke_support_bundle.py'
+      - 'scripts/smoke_noop_worker.py'
+      - 'scripts/test_smoke_noop_worker.py'
+      - '.github/workflows/p1-smoke.yml'
+  pull_request:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'scripts/smoke_p1.py'
+      - 'scripts/smoke_development_bind.py'
+      - 'scripts/smoke_bootstrap_owner.py'
+      - 'scripts/smoke_support_bundle.py'
+      - 'scripts/smoke_noop_worker.py'
+      - 'scripts/test_smoke_noop_worker.py'
+      - '.github/workflows/p1-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  daemon-dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Compile real daemon
+        run: go build -trimpath -o "$RUNNER_TEMP/tongd" ./cmd/tongd
+      - name: Build local bootstrap CLI
+        run: go build -trimpath -o "$RUNNER_TEMP/tongctl" ./cmd/tongctl
+      - name: Verify single-use local first-owner bootstrap with real binary
+        run: python3 scripts/smoke_bootstrap_owner.py "$RUNNER_TEMP/tongctl"
+      - name: Verify read-only structured support export with real binary
+        run: python3 scripts/smoke_support_bundle.py "$RUNNER_TEMP/tongctl"
+      - name: Safe localhost API and SQLite process dry run
+        run: python3 scripts/smoke_p1.py "$RUNNER_TEMP/tongd"
+      - name: Configurable loopback listener with real binary
+        run: python3 scripts/smoke_development_bind.py "$RUNNER_TEMP/tongd"
+      - name: Opt-in no-op worker lifecycle and restart smoke
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_smoke_noop_worker.py'
+          python3 scripts/smoke_noop_worker.py "$RUNNER_TEMP/tongd"
+      - name: Read-only doctor smoke on CI runner
+        run: |
+          go run ./cmd/tongctl doctor > "$RUNNER_TEMP/tong-doctor.json"
+          python3 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/tong-doctor.json")); assert len(d["checks"])==4; assert any("certified" in x.lower() for x in d["Warnings"]); print("doctor read-only JSON validated; distro is NOT certified")'

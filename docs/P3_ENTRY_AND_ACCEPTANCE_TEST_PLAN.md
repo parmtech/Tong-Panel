@@ -1,0 +1,434 @@
+# P3 Entry Gates and Acceptance Test Plan
+
+**Status:** design and test specification only. P3 implementation is gated.
+**Basis:** `docs/ROADMAP.md`, `docs/PHASE_INDEX.md`, `docs/phases/P1-CORE-FOUNDATION.md`, `docs/phases/P2-HOSTING-ALPHA.md`, `docs/phases/P3-APP-PLATFORM.md`, `docs/BLUEPRINT.md`, `docs/THREAT_MODEL.md`, `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, and `docs/TEST_STRATEGY.md`.
+**Rule:** a draft PR, passing unit test, or unsigned developer VM smoke is not phase acceptance. Record evidence at the exact tested commit and do not enable a gated capability before its prerequisites pass.
+
+## Current gate decision
+
+**P3 entry: NOT PROVEN.** The Phase Index requires P1 before P2 and P2 before P3. The P3 plan specifically depends on secure site routing, authentication and quotas, backup, and deploy jobs. The current `main` checkpoint is `0aad68e`; it records P1 as incomplete. The current P2 plan says planned/not implemented. GitHub's open P2 drafts provide useful component and test evidence, but their limits still leave installer/service lifecycle, complete Files ACL/UI and quota wiring, full backup/restore operations, and overall P2 acceptance incomplete. Draft #84 reports a narrow MariaDB fresh-VM restore drill; it does not provide an offsite retention service or complete application/settings restore. Several drafts also say owner ADR/threat-model review is still pending. They remain drafts and are not merged foundation on `main`.
+
+This specification is safe to review and refine without privileged operations. P3 implementation remains blocked until the entry evidence below is independently assembled and reviewed. No P3 feature, endpoint, runtime, build, installer, or host mutation is authorized by this document.
+
+## Evidence protocol
+
+For each gate, record the source commit SHA, PR and merge state, exact workflow/run URL and conclusion, test command, OS/architecture, disposable environment identity, expected and actual results, reviewer, and unresolved exclusions. Link artifacts/logs with secrets redacted. Distinguish code present, check authored, check executed, check passed, and gate accepted. A claim in a PR body is a lead to verify, not independent evidence by itself.
+
+### P1 prerequisite matrix
+
+All rows must be proven before P2 can be treated as a usable dependency for P3.
+
+| Gate | Required evidence for P3 entry | Current evidence / status |
+|---|---|---|
+| P0 architecture and threats | Maintainer decisions recorded for applicable ADRs; threat register reviewed with owners, mitigations, issues, and acceptance tests | `main` ADR register labels decisions draft/not approved; threat model is unreviewed. **Open.** |
+| Identity and tenant authorization | Production-intended auth/session/MFA/recovery contract; request, job, and agent authorization negative matrix, including suspended users/tenants and stale memberships | `main` says no real hosting product; historical checkpoints describe internal prototypes and unfinished external login/recovery. Open drafts do not supersede that checkpoint. **Open.** |
+| Durable jobs and privilege boundary | Crash/restart/concurrency/idempotency/cancellation evidence; typed agent capabilities, fencing, audit and adversarial no-shell/path tests; independent security review | Existing prototypes and unit/hosted checks are not evidence of accepted privileged host operations; current `main` reports those gates open. **Open.** |
+| Installer, supported host and recovery | Signed/provenance-checked package, exact supported OS matrix, clean install/upgrade/revert, failed-preflight no-mutation, backup-before-migration, recovery drill | P1 PR #143 exact head `482017005f9872c1fe7f2969ebfb477ea7de30dd`: eight successful exact-head checks, including Debian 12 and Ubuntu 24.04 clean-VM smoke (run #42781985275). PR #149's prior exact head `8764d0fef218a36a4cc9411e5481656d014cdf0c` had eight successful checks, including both guests (run #42787324539). Connected diagnostics now show PR #149 has advanced to `4dab4c60cc86186935e9a7d987b9fe1ca97a1f23`: six checks succeeded (test, contract, daemon dry-run, unsigned archive, browser, govulncheck); Ubuntu 24.04 and Debian 12 clean-VM jobs in run #42790473632 are **in progress**. PR #149 remains open/draft and unsigned developer-preview scope. These checks do not establish signed installer, full lifecycle, rollback, restore or OS certification, and do not constitute P1 gate acceptance. Current `main` still marks P1 IN PROGRESS. Gate **Open**. |
+| UI and operator usability | Responsive keyboard/a11y review and real role-based end-to-end workflows; no dead controls | Not established by the retrieved checkpoint. **Open.** |
+| Dependency/supply-chain review | Pinned dependency inventory, vulnerability/licence findings and disposition, SBOM/signature plan, secrets redaction | Not established as a completed P1 exit gate. **Open.** |
+
+### P2 prerequisite matrix
+
+Every P2 acceptance scenario in `docs/phases/P2-HOSTING-ALPHA.md` remains required. P3 may not assume P2 contract behavior from isolated prototype packages.
+
+| P2 contract | Required proof before P3 consumes it | Current GitHub signal (open draft; not gate acceptance) |
+|---|---|---|
+| Tenant/site identity and routing | Two-tenant API, job, file, database and route isolation; verified domain/TLS route with teardown; authorization repeated at job/agent boundary | Current P2 plan requires two-tenant lifecycle tests; latest `main` lacks accepted P2. **Open.** |
+| Site lifecycle and safe host changes | Idempotent create/update/remove, staged config validation, reload failure rollback, port conflict and unsupported-host fail-before-mutation | Draft #80 reports isolated Nginx staging/validation/reload rollback tests on clean Ubuntu/Debian guests, but says the daemon does not apply host config. P2 plan requires integrated lifecycle end-to-end. Narrow evidence; gate **Open**. |
+| Files, ACL and quotas | Authenticated list/read/write/delete/upload and archive flows; object/tenant ACL, race and quota enforcement; crash reconciliation and safe cleanup | PR #51 is read-only and unconfigured; #52 upload depends on it; #53 quota remains opt-in/unwired and requires trusted reconciliation. All are drafts. **Open.** |
+| Backup and restore | Encrypted offsite backup, retention, destroy disposable source VM, clean target restore and data/settings verification; interrupted/partial restore recovery | Draft #84 reports passing Ubuntu 24.04/Debian 12 fresh-VM encrypted MariaDB dump/restore and wrong-tenant/key denial. PR #91 exact head `01ae2237b8bdb4240fb79ca45842f9e6d4f549a1` also has a completed-success clean-VM run #42633862164 on Ubuntu 24.04 and Debian 12; the PR text still calls those jobs pending, so its narrative needs reconciliation. These are narrow unsigned-preview lab results; the PR limits exclude production key custody, offsite retention/provider, schedules and complete managed service restore. Full P2 backup gate remains **Open**. |
+| Authentication/MFA/recovery | Publicly usable protected workflow and abuse/recovery tests; no credential or tenant crossover; auditable secret redaction | Main P1 checkpoint and open P2 draft limits do not establish this. **Open.** |
+| Installer/OS support | Exact supported OS/architecture, signed artifact validation and clean install/upgrade/rollback in disposable VMs | PR #45 calls guest smoke unsigned developer preview and excludes installer/certification. **Open.** |
+| P2 operator acceptance | Complete documented alpha gate, visible limitations, reproducible evidence and maintainer/security review | Not recorded as accepted. **Open.** |
+
+Connected GitHub diagnostics confirm successful exact-head guest checks for both WordPress tenant runtime draft #89 (`51e12abb99d919e5e8cb10a69e868dc65c4ed9a`, run #42631444449) and fresh restore draft #91 (`01ae2237b8bdb4240fb79ca45842f9e6d4f549a1`, run #42633862164), on Ubuntu 24.04 and Debian 12. PR #91 diagnostics also report successful exact-head daemon dry-run, test, and unsigned developer archive checks. These are useful but narrow component/lab signals: both PRs remain open drafts, use unsigned preview artifacts, and do not prove the complete P2 integrated lifecycle, signed install/upgrade/rollback, offsite service, or phase acceptance. The mismatch between stale PR narrative and successful checks should be reconciled before citing detailed guest assertions as accepted evidence.
+
+## Cross-phase contracts P3 must consume
+
+These are contract requirements to validate and settle against the accepted P1/P2 implementation before P3 coding. They do not assert that the interfaces already exist.
+
+| Producer contract | P3 consumer | Required compatibility and failure behavior |
+|---|---|---|
+| Authenticated principal, tenant membership, role/permission decision, session and CSRF/origin policy (P1) | App/repository/runtime/secret/deployment APIs and queued deploy jobs | Derive tenant and actor from verified server context; reauthorize when a worker executes; reject stale/revoked membership; never trust caller-supplied tenant IDs. |
+| Durable typed job lifecycle, idempotency, cancellation, audit, retry and recovery (P1) | Fetch, build, stage, health-check, switch-route, rollback, and cleanup jobs | Every transition is durable and attributable; retries cannot publish twice; cancellation and process restart reconcile or fail closed; privileged effects stay within typed agent capabilities. |
+| Site, domain, verified TLS route, health and reverse-proxy lifecycle (P2) | Attach Node/Python runtime to a customer hostname and switch active release | Use stable site/tenant ownership and centrally reserved ports; preserve routing/TLS ownership checks; stage and health-check before traffic switch; revert on apply/reload failure. |
+| File ownership, ACL, quota accounting and safe staging (P2) | Source checkout, build workspace, release artifacts and app data | Keep build/release paths separate from customer data; account all bounded storage including concurrent builds/artifacts; prevent path/symlink escape; retain reservations through uncertain publication until reconciled. |
+| Secret reference, encryption/key custody, rotation and redaction (P1/P2) | Git credentials, build-time variables, runtime environment and app secret rotation | Pass only scoped references to the intended process; define whether build-time and runtime secrets differ; deny reads from other apps; redact logs/process diagnostics; define backup and restore semantics before use. |
+| Backup/restore and retention (P2) | App release history, app data, environment configuration and rollback | Specify which artifacts/configuration are included, secret/key dependencies, point-in-time consistency, retention and restore ordering. P3 rollback is not a substitute for backup; data deletion/removal must remain explicit and recoverable. |
+| Approved runtime/build supply-chain policy (P1/P3) | Node/Python toolchains, dependencies, optional container images and declarative recipes | Pin immutable sources and digests; define signature/provenance trust roots and revocation; produce dependency/licence inventory; fail closed on unknown or changed artifacts. |
+
+For each row, publish a versioned schema or typed contract, ownership rule, error/state model, security review, and compatibility tests before the first integration consumes it. If P2 exposes no stable contract, record the blocker and keep P3 work at design/test-fixture level.
+
+## P3 design decisions requiring review
+
+These questions are intentionally unresolved; answer them through the repository's ADR/issue review process before making a production-facing contract. A prototype must label its assumptions and must not silently turn one answer into a supported policy.
+
+| Decision | Options/questions that need evidence | Minimum review evidence |
+|---|---|---|
+| Build network egress | Deny by default, allow only reviewed destinations, or allow broader egress with explicit user consent? How are DNS rebinding, redirects, private/link-local ranges, and package registries handled? | Threat review, deterministic network tests, documented exception UX, and proof that panel/agent/metadata endpoints remain unreachable. |
+| Build-time secrets | Should untrusted dependency/build scripts receive any application runtime secrets? Can credential forwarding be avoided through a separate fetch phase? | Explicit secret lifecycle diagram; tests prove least exposure and absence from logs, argv, environment snapshots accessible to other apps, and failed-build diagnostics. |
+| Build and runtime identities | Separate identity per app, per build, or per build attempt? Which paths and process metadata can tenants observe? | OS capability/UID model, systemd sandbox profile, process/file visibility tests, cleanup and crash-recovery evidence. |
+| Runtime/toolchain provenance | Which official sources and pinning/signature mechanism establish Node/Python runtime trust? Who can revoke a compromised release? | Maintained version matrix, key/trust-root ownership and rotation/revocation plan, tamper and stale-metadata tests, SBOM/licence output. |
+| Artifact immutability and retention | Where are source snapshots, intermediate outputs and promoted releases stored? What prevents in-place mutation, and which retention policy is compatible with rollback and quotas? | Storage threat model, tenant/quota accounting, digest verification, concurrent publication and garbage-collection recovery tests. |
+| Deploy state machine and route switch | Which exact state transitions are durable? When does a build become the active release, and how are concurrent deploy, cancel, timeout, restart and uncertain proxy reload resolved? | Versioned state/event model, idempotency rules, crash injection at each boundary and externally verified old/new route behavior. |
+| Webhook and Git authorization | Which source/ref/repository is bound to an app? How are delivery replay, credential scope, credential revocation and provider outage represented? | Threat model, signature/replay tests, least-scope provider configuration, and redacted audit evidence. |
+| Catalogue trust and removal | Who signs first-party recipes, how is key compromise/revocation handled, and what exact data is owned by a recipe versus a customer? | Maintainer-approved permissions and provenance policy, tamper/revocation tests, explicit data ownership/removal UX and restore proof. |
+
+### Review dependency order
+
+This order is a review aid, not an approval or a chosen implementation. Later decisions depend on stable guarantees from earlier layers; unresolved upstream decisions must remain explicit blockers rather than being filled with convenient defaults.
+
+| Order | Contract/design decision | Depends on | Review artifact required before the next layer |
+|---|---|---|---|
+| 0 | P1/P2 entry evidence and accepted producer contracts | P0 ADR/threat decisions; P1 exit; P2 integrated alpha | Exact-commit gate dossier, maintainer/security decisions, versioned auth/tenant, jobs/agent, routing, quota/files, secret, backup and restore contracts |
+| 1 | Source authorization and deploy admission | Order 0 identity, tenant/app ownership, durable job and audit contracts | Threat-reviewed Git credential scope, signed webhook/replay policy, app/ref binding, denial/error states, redacted audit schema and idempotency contract |
+| 2 | Runtime/toolchain trust and build boundary | Order 0 host/agent trust boundary; Order 1 source snapshot and job identity | Supported Node/Python matrix, source/digest/signature/revocation policy, build/runtime identity model, egress and resource policy, secret exposure diagram, negative-test plan |
+| 3 | Artifact publication and release-history ownership | Order 2 bounded build result; stable P2 storage/quota and backup contracts | Immutable artifact schema and digest ownership, publication atomicity/idempotency rules, quota/retention accounting, garbage-collection and restore consistency tests |
+| 4 | Runtime launch, ports, health and route switch | Order 3 verified artifact; accepted P2 routing contract | Versioned deploy state/event model, port reservation and identity policy, readiness deadline, route observation method, conflict/cancel/crash reconciliation table |
+| 5 | Rollback, data compatibility and app removal | Order 4 observed route outcomes; P2 backup/restore and data ownership | Rollback/data migration compatibility rules, backup/restore ordering, app-owned vs customer-owned data policy, removal/export UX, crash-injection matrix |
+| 6 | Signed catalogue and optional rootless-container profile | Orders 1–5 security and provenance decisions; separate optional-profile threat review | Recipe manifest/signature/revocation/permission and licence review; for containers, independent image digest, rootless isolation, volume/network and resource-limit evidence. Optional profile must not inherit native-runtime approval by implication. |
+
+The review packet should record decision ID, accountable reviewer, decision state, input contract revisions, rejected alternatives and rationale, security consequences, compatibility impact, test IDs, and evidence URL. A row cannot be treated as decided because a draft branch or test fixture happens to embody one option. The complete packet is a design deliverable only; implementation remains governed by the P1/P2 gates above.
+
+## Hostile fixture catalog
+
+Create synthetic repositories and test applications only after the runner boundary is chosen. Run these fixtures solely in disposable guests with no production credentials or network access to real services. Fixture code is adversarial test input and must never be run on the Windows developer host.
+
+| Fixture ID | Build/runtime behavior | Required oracle |
+|---|---|---|
+| `app-cross-tenant-read` | Tries known synthetic paths and IDs belonging to a second tenant, including secrets, source, artifacts and backup fixtures | Every access denied; canary values absent from stdout/stderr, logs and API responses; victim files unchanged. |
+| `app-process-probe` | Enumerates process metadata and attempts to signal a sibling app/build identity | Only the fixture's permitted process metadata is visible; cross-identity inspection/signals fail; no host or control-plane process can be affected. |
+| `build-limit-cpu-memory` | Bounded CPU loop and incremental memory allocation until the configured cgroup limit is reached | CPU throttling or termination, and memory containment or termination, follow their separate approved policies within measured bounds; an external observer confirms guest responsiveness and unchanged prior-release/other-app health; job has the typed resource-limit result. |
+| `build-limit-disk-process-time` | Writes only within its workspace, creates bounded child processes and blocks on a controllable timer | Each configured limit trips independently; workspace/quota accounting is reconciled; no orphan process or reservation remains after cleanup. |
+| `build-network-boundary` | Attempts loopback/private/link-local and synthetic metadata targets, then follows controlled redirect/DNS-rebinding fixtures | Requests outside the reviewed allowlist fail; no credential or internal response is returned; logs redact request secrets. |
+| `build-secret-canary` | Searches its own environment, argv and workspace for a synthetic canary and emits discovered values | Only the explicitly approved secret stage receives the canary; no unapproved phase receives it; all logs and audit output are redacted. |
+| `release-tamper` | Alters one byte in a staged artifact or supplies an artifact under another tenant/app identity | Digest/ownership verification rejects promotion before route change; old healthy release stays active; rejection is audited without secret data. |
+| `health-failure` | Starts but returns wrong status/body, hangs, or exits after initial readiness | Readiness timeout is bounded; active traffic stays on the previous release; rollback/job state is durable and operator-visible. |
+| `webhook-replay-invalid` | Sends invalid signature, duplicate delivery ID, stale timestamp, wrong ref and malformed/oversized payloads | No build job is accepted; response is bounded and non-sensitive; audit has an attributable denial reason. |
+| `recipe-untrusted` | Uses unsigned, revoked, mutable-only, digest-mismatched, unknown-license or overprivileged definitions | Refuse at the earliest stage that can establish the specific violation: trust/authorization failures before fetch, digest mismatches after retrieving bytes but before build or promotion, and every case before untrusted execution or installation. Leave no partial installation, service, port, or resource records; retain the required attributable denial/audit record. |
+
+Each fixture should have a pinned source revision and deterministic expected result. Record the guest image digest, runner policy, test command, output digest, and cleanup result. A fixture pass is only evidence for its named assertion; it does not imply overall P3 or P2 acceptance.
+
+## Phase-plan module traceability
+
+This crosswalk follows all ten modules in `docs/phases/P3-APP-PLATFORM.md`. It is a coverage map for the plan, not a statement that any module is implemented.
+
+| P3 plan module | Covered here | Fixture/acceptance evidence |
+|---|---|---|
+| 1. Versioned Node.js/Python runtimes | P3-01, runtime/toolchain provenance decision | Runtime compatibility matrix, pinned source/digest and tamper rejection; Node and Python exit scenarios 1–2. |
+| 2. Git deploy and webhook verification | P3-02, webhook/Git authorization decision | `webhook-replay-invalid`, least-scope disposable credential, revocation/redaction; scenario 1 references P3-02 valid signed admission, authorization-denial, pre-fetch credential recheck and redaction evidence; scenario 7 references P3-02 duplicate/concurrent/lost-ack restart and idempotency evidence. |
+| 3. Native process manager and site UID sandbox | P3-05, build/runtime identities decision | `app-process-probe`; process visibility, resource policy, crash/restart and bounded cleanup; exit scenarios 3–4. |
+| 4. Isolated build runners and resource limits | P3-03/P3-04, build network and secret decisions | `build-limit-cpu-memory`, `build-limit-disk-process-time`, `build-network-boundary`, `build-secret-canary`, `release-tamper` and candidate-artifact integrity; exit scenarios 3–4 and 7. |
+| 5. Python WSGI/ASGI profiles | P3-01, P3-05, P3-07 | Python ASGI fixture with isolated dependencies, dedicated identity, health and proxy checks; exit scenario 2. Add WSGI only when separately listed in the compatibility matrix. |
+| 6. Node app profiles and reverse proxy | P3-01, P3-05, P3-07 | Node fixture with pinned runtime, centrally reserved port, verified route/health, release switch and rollback; exit scenario 1. |
+| 7. Per-app secrets and audit | P3-06, build-time secrets decision | `build-secret-canary`, cross-tenant fixture, secret rotation/redaction assertions; exit scenarios 3 and 7. |
+| 8. Deployment history, health and rollback | P3-04, P3-07, deploy state-machine decision | `release-tamper`, `health-failure`, cancellation/restart, immutable prior release and operator-visible status/logs; exit scenarios 1–2, 7 and 9. |
+| 9. Optional rootless containers | P3-08, runtime/toolchain provenance decision | Separate container-profile escape, digest, network, volume and resource-limit tests; exit scenarios 3–5 when that optional profile is claimed. Native runtime acceptance remains independently required. |
+| 10. Signed declarative app catalogue | P3-09, catalogue trust/removal and positive recipe-family lifecycle matrix | `recipe-untrusted`, signature/revocation/digest/permission checks, representative positive lifecycle evidence in every claimed family, data-preserving removal; exit scenarios 5–6 and 8. |
+
+Any change to the phase plan must update this crosswalk and its linked test evidence in the same reviewed change. A framework, OS, architecture, or optional container profile is out of the compatibility claim until its corresponding exact-head test record exists.
+
+## P3 contract and test specifications
+
+Use disposable Linux VMs corresponding to the eventually approved OS matrix. No test may target the developer workstation, a live server, production credentials, or a non-disposable shared host. Test fixtures must be synthetic. Start from a clean snapshot, capture evidence, and destroy the VM after the run. Never relax isolation merely to make a scenario pass.
+
+### P3-01: Runtime pinning and compatibility
+
+- Define a small explicit Node.js LTS and Python version matrix; pin exact runtime/package sources and checksums/digests per app release.
+- Build/deploy a minimal Node HTTP app and Python ASGI app from known fixture revisions. Record runtime, architecture, dependency lock state, build artifact digest, and health endpoint.
+- Verify per-app runtime selection does not modify system Python/Node packages and that two apps can pin different supported versions concurrently.
+- Reject unsupported, changed, or unverifiable runtime artifacts before executing them; preserve prior healthy deployment.
+- Evidence: compatibility table, clean guest logs, artifact digests, negative tamper test, and rollback result.
+
+#### Framework profile coverage
+
+The Phase 3 module names Node profiles plus Python Django/Flask/FastAPI with WSGI/ASGI. A generic HTTP server or generic ASGI callable does not establish those framework claims. Before beta support is declared, maintain an explicit matrix of framework, interface/protocol, supported mode (for example, server-rendered vs static export where applicable), runtime version, OS/architecture, dependency lock, build/start command contract, and health behavior.
+
+| Planned family | Required coverage decision | Minimum evidence for each claimed profile |
+|---|---|---|
+| Node.js | Built-in HTTP, Express, and Next.js; list supported Next.js output/launch mode explicitly | Pinned fixture revision and runtime, lockfile, build/start result, readiness/termination behavior, route verification and artifact provenance |
+| Python Django | Mark WSGI and ASGI support independently; name any adapter/server used | Pinned project/dependency lock, selected interface/server, isolated virtual environment, migration/start behavior, health and route results |
+| Python Flask | Mark WSGI and any ASGI adapter profile independently; do not infer one from the other | Pinned project/dependency lock, adapter/server contract when applicable, isolated virtual environment, start/health/route results |
+| Python FastAPI | Explicitly identify its ASGI profile and launch contract; any alternate interface requires a separately reviewed adapter claim | Pinned project/dependency lock, isolated virtual environment, build/start behavior, health/route and shutdown results |
+
+Every row begins **not supported/not tested** until exact evidence exists. If a planned combination cannot meet the reviewed security, compatibility, or resource gate, record a maintainer-approved exclusion rather than silently treating the generic sample as coverage.
+
+#### Runtime and profile benchmark protocol
+
+Benchmark each claimed runtime/profile combination in a clean disposable guest using a pinned synthetic workload and source/runtime/dependency digests. Record guest image, vCPU/memory/storage, OS/architecture, runtime flags, workload parameters, warm/cold state, command, raw samples, and reviewer. At minimum measure clean install/build duration, artifact size, cold-start-to-ready time, steady and peak CPU/RSS under an agreed request load, shutdown/restart time, and guest health before/during/after. Repeat the same profile under its configured limits and alongside another supported app/runtime to reveal contention and resource-limit effects. Record measurement tool(s) and version(s), the number of repetitions, and the aggregation/statistic used for any summary; retain per-run raw samples.
+
+Do not invent pass thresholds in this plan. Until owners approve workload representativeness and numeric budgets, report the measurements as evidence only—no performance SLA or compatibility claim follows from a successful run. Keep performance results separate from correctness, isolation, and security gates; failing any of those cannot be offset by a favorable benchmark.
+
+### P3-02: Git credentials, webhook authenticity, and deploy idempotency
+
+- Use a disposable repository and least-privilege, read-only deploy credential. Prove token material never appears in process arguments, URLs, build output, panel logs, audit records, error pages, or support bundles.
+- Accept a valid signed webhook once. Reject invalid signature, missing signature, wrong repository/ref, stale timestamp, replayed delivery ID, oversized body, and malformed payload without queuing a build.
+- Revoke/rotate the credential and verify future fetches fail closed while historical logs remain redacted.
+- Verify cancellation and retry do not duplicate publication or leave ambiguous current-release state.
+- Evidence: captured redacted audit/log assertions, replay/negative test results, and exact credential scopes (never the secret value).
+
+#### Webhook admission decision matrix
+
+Use a disposable provider simulator/repository after the signature, freshness-window, and delivery-ID policy has been reviewed. Keep signature and replay validation separate from repository deploy-credential fetch. No live provider, real repository, or credential is used in these tests.
+
+| Delivery case | Queue/job oracle | Retry/audit oracle |
+|---|---|---|
+| Valid signature, current accepted timestamp, authorized repository/ref, new delivery ID | Exactly one durable job bound to the authorized tenant/app/repository/ref and immutable source revision | Store delivery identity and decision metadata; never log signing/deploy secret values |
+| Same delivery ID and identical signed request repeated | Return the existing operation/result; no second job or publication | Record duplicate/replay decision without treating it as a new deploy |
+| Duplicate request fails current signature, freshness, or app/tenant authorization checks | Do not create a job or disclose/retrieve the existing operation; follow the reviewed denial policy | Attribute the denial safely; verify no job, publication, or audit detail crosses tenant scope |
+| Concurrent identical signed deliveries race for admission | Exactly one durable delivery-to-job binding and one job under the accepted P1 job contract and at most one publication, only after build integrity and health gates pass | Record one accepted binding and duplicate outcomes; verify no consumed delivery lacks an attributable job/outcome |
+| Admission commits but provider acknowledgement is lost, then delivery is repeated after worker/control-plane restart | Recover the same durable job/result without creating a second job or publication | Verify the binding survives restart and its state/outcome is attributable; redact secrets |
+| Same delivery ID reused with a different payload/repository/ref | Reject; do not mutate the original job binding | Bounded conflict response; attributable denial without disclosing another tenant's objects |
+| Missing/invalid signature, stale/future timestamp, or revoked signing key | Reject before creating a job | Record only safe delivery/key identifiers and denial reason; never echo signature material |
+| Validly signed but unauthorized repository/ref or app/tenant binding | Reject before fetch/build; no job visible to the unauthorized tenant | Cross-tenant and wrong-ref denial results are indistinguishable where object existence is sensitive |
+| Oversized, malformed, duplicate-field, or ambiguous payload | Reject before job admission; no partial job or body-dependent side effect | Bound parsing/error work; redact body fields and credentials |
+| Deploy credential revoked/rotated after admission but before source fetch | Worker rechecks approved credential state and fails closed; no stale credential fallback | Existing job reaches an explicit typed outcome; logs remain redacted and retry requires valid authorization |
+| Provider verification service unavailable or trust metadata stale | Fail closed or enter an explicitly reviewed non-admitted state; never treat uncertainty as valid | Bounded operator-visible status; no build starts until a later independently verified delivery/retry |
+
+For every rejected case, assert durable job count, process/build count, artifact count, route pointer, and audit contents before/after. Freshness tolerance, signature canonicalization, delivery-ID namespace, and outage/retry policy remain design decisions until recorded in the reviewed contract; absent that decision, mark the corresponding case **not run / blocked by design policy**.
+
+### P3-03: Isolated build execution and hostile build inputs
+
+- Run builds under a dedicated unprivileged per-app/build identity or the reviewed isolated runner contract; no root, host-root mounts, Docker socket, panel DB, agent socket, signing key, or other tenant paths.
+- Apply explicit CPU, memory, disk, wall-clock, process-count, and network policy. Test each limit independently and in combination; the worker and host must remain healthy after termination.
+- Hostile fixtures attempt cross-tenant reads, process inspection/signals, symlink/path traversal, archive traversal/bomb expansion, metadata-service/internal-network access, credential scraping, fork/resource exhaustion, and persistence after build cleanup.
+- Default network policy is deny or an explicitly reviewed allowlist; test DNS/IP rebinding and redirects if outbound access is permitted.
+- Verify abort, timeout, worker crash, disk pressure, and retry leave no published partial artifact and no orphan process/mount/reservation.
+- Evidence: isolation boundary review, adversarial test matrix, measured limits and host health before/after, cleanup and retry state.
+
+#### Resource-limit measurement matrix
+
+These hostile workloads must run only in the reviewed unprivileged runner inside a disposable Linux guest after entry gates. Never run the hostile workload itself on the Windows developer host. Limit values are selected by owners for a supported guest/profile; this specification does not invent numeric budgets.
+
+| Limit dimension | Synthetic pressure case | Required pass oracle |
+|---|---|---|
+| CPU | Bounded sustained compute loop | The reviewed throttle/termination policy is applied within its measured bound; guest API/agent and unrelated app remain responsive; job reports the correct limit outcome |
+| Memory | Bounded incremental allocation | The worker stays within the approved memory boundary or is terminated by the reviewed policy; an external observer confirms host services and unrelated app remain healthy; no orphan worker or ambiguous partial release remains |
+| Workspace/disk | Fill only the assigned build workspace to the approved boundary | Writes cannot escape the workspace or consume unaccounted tenant/global space; reservation/quota returns to a reconciled value after termination |
+| Wall-clock | Wait beyond the configured build deadline | Cancellation is observable and bounded; child processes, temporary files and reservations are cleaned; retry starts from a clean attributable state |
+| Process count | Create child processes up to and beyond the approved cap | The cap is enforced without signaling other app/host processes; cleanup finds no orphan descendants and reports a typed outcome |
+| Network | Attempt denied loopback/private/link-local/metadata targets and controlled redirects/rebinding cases | Denied destinations return no internal response or credential; approved destinations, if any, match the reviewed allowlist; logs redact request material |
+| Concurrent worker accounting (only if the accepted runner policy permits concurrent builds) | Run a bounded pressure fixture in build worker A alongside a benign bounded fixture in build worker B | Attribute both to tenant/app/build/job and reservation identities; record each worker's enforcement scope and resource/reservation deltas; verify A receives its configured typed limit outcome and B remains responsive with no cross-worker process/workspace/quota effect; using the accepted P2 quota/reservation interface, reconcile the aggregate against independently attributed per-worker deltas. This verifies P3 integration/attribution and does not re-accept P2 quota enforcement. If overlap is not permitted, record the exact policy revision and do not claim concurrent-build support |
+| Combined pressure | Apply selected CPU, memory, disk, time, process and network pressures concurrently | The guest and unrelated app remain healthy; actual limit cause(s), cleanup, quota accounting, audit and prior active release are consistent and attributable |
+
+For every row capture configured policy revision and enforcement scope (such as the reviewed cgroup/namespace), observed usage/time-to-enforcement, guest health before/during/after from an external observer, unrelated app health, process/workspace/mount inventory, quota delta, release pointer, typed job result and cleanup status. For concurrent-worker cases, also capture each tenant/app/build/job and reservation identity plus per-worker resource deltas, so one worker's pressure cannot be attributed to another. Show that forked/exec descendants remain inside the accounted limit scope, compare process/mount/cgroup/namespace inventory before and after, and report raw measurements and exclusions; a workload that merely exits is not proof that the intended limit fired.
+
+### P3-04: Immutable artifact and release history
+
+- Publish a build only after successful completion and integrity verification; associate source revision, runtime/dependency lock, builder identity, output digest, and deployment job.
+- Confirm failed builds never replace the active artifact. Concurrent deploys serialize or fail with a clear conflict; duplicate idempotency keys resolve to one operation.
+- Retain immutable release history sufficient for rollback. Reject missing, altered, cross-app, cross-tenant, or untrusted artifacts.
+- Verify retention and deletion behavior against backup/restore policy; do not silently remove user data when removing an app recipe.
+
+#### Crash/restart decision table (test specification; states are not normative)
+
+The accepted implementation must define its own versioned states and transition rules before coding. This table identifies externally observable interruption points and required safety outcomes without prescribing a database schema, job API, or proxy mechanism. Execute only in a disposable lab after the entry gates and runner boundary are accepted.
+
+| Interruption point | Recovery assertion |
+|---|---|
+| Request received, before durable job admission | After restart, either no job was admitted or exactly one attributable job exists; a retry with the same idempotency key cannot create duplicate work. |
+| Job admitted, before worker claim | Job remains claimable or reaches a typed terminal denial; tenant/app authorization is checked again before any effect. |
+| During source fetch or build | No partial artifact is eligible for promotion; cancellation/retry leaves no orphan process, workspace, credential material, or quota reservation. |
+| Build finished, before artifact metadata commit | Recovery either verifies and adopts one complete immutable artifact or cleans it; it never trusts an unrecorded path by name alone. |
+| Artifact recorded, before runtime start | Verified artifact remains attributable and non-active; retry does not publish a second release identity for the same operation. |
+| Runtime process started, before process identity is durably recorded | Reconciliation identifies and safely adopts or terminates only the intended app process; it does not signal another tenant or an unrelated host process. |
+| Health passed, before any route-switch effect is issued | Prior route remains active; health success or intended promotion alone is not a completed deployment. |
+| Route-switch effect may have occurred, but interruption precedes independent confirmation | Keep the outcome uncertain; reconcile actual route and artifact identity before reporting success or initiating rollback. Never infer route state from health, intent, or a lost response. |
+| New route observed, before success/audit record commits | Recovery verifies the active route, artifact digest and tenant/app binding, then durably records one outcome; if verification fails, preserve service and fail closed. |
+| Rollback requested, during route change or cleanup | Only a previously verified immutable release can be restored; old/new route, process and job records converge after restart without deleting customer data. |
+
+For every row, inject termination immediately before and after the durable boundary, then assert job state, active route, process set, artifact inventory, quota/accounting, audit record, and retry behavior. Record the exact transition model and which outcomes are safely retryable versus require operator reconciliation. Any ambiguous external effect must remain explicitly uncertain until observed; do not report success based only on intent or a queued command.
+
+An executable, non-normative in-memory example is in [`prototypes/p3-deploy-recovery-model`](../prototypes/p3-deploy-recovery-model/README.md). Its tests check repeated/contradictory route observations and same-process concurrent idempotency calls, including changed-payload conflicts. Because it has no durable/multi-process persistence, authorization, real process, route, quota, or audit integration, passing it is not product or phase-acceptance evidence; the modeled idempotency-key scope is not an approved policy.
+
+### P3-05: Runtime identity, process manager, ports, and resource controls
+
+- Run Node/Python processes as dedicated site identities with reviewed systemd sandbox/resource controls. Assert effective UID/GID, filesystem visibility, capabilities, namespaces, limits and writable paths from inside a test process.
+- Consume P2’s accepted port-reservation contract. Test collision, stale reservation, restart, simultaneous app launch, and rollback after failed start. Bind each reservation to the intended tenant/app/release/process generation: a candidate health check passes only when the bounded probe reaches the listener bound to that candidate reservation and identifies the expected app/release/process generation. A stale or unrelated responder fails the candidate health check and leaves the prior route active; it cannot receive candidate traffic. Cleanup must not signal an unverified or unrelated process; a stale process with verified app/generation ownership follows the reviewed reconciliation policy. Record the reservation ID, listener identity and probe responder identity; verify each bind address/interface follows the accepted P2 network/proxy policy and cannot bypass its TLS/routing path; do not duplicate P2 allocator acceptance.
+- Exercise start, stop, restart, crash loop, health timeout, resource exhaustion, host reboot, and graceful shutdown under the reviewed restart/shutdown policy. Record its policy revision, unit/process generation and descendant inventory, actual listener-to-reservation binding, active release/route, typed outcome, operator-visible diagnostics, and cleanup. Do not invent restart budgets or claim a bounded policy until owners approve one.
+- Verify process arguments, environment inspection, `/proc` visibility, and logs do not disclose another app's secret or command content.
+
+### P3-06: Per-app secrets and audit
+
+- Store secret references through the approved secret boundary; expose values only to the intended app process. Test cross-tenant/app denial, rotation, deletion, failed decryption, and backup/restore behavior.
+- Inject canary secrets and assert absence from API responses, build output, deploy logs, runtime logs, exceptions, process listings visible to other tenants, and audit exports.
+- Audit actor, app, action, release, and outcome without recording secret values. Ensure authorization is rechecked at deploy-job execution time.
+
+#### Secret lifecycle decision matrix
+
+Use synthetic canary values in the approved disposable lab only. These outcomes do not select key custody, rotation timing, process reload behavior, or backup semantics; those policies must be reviewed and versioned before integration.
+
+| Scenario | Required oracle | Evidence |
+|---|---|---|
+| Target app reads an assigned secret; a second app/tenant requests it by ID or guessed reference | Only the authorized target identity receives the value; every other identity is denied without confirming secret existence | Synthetic IDs, actor/app/tenant identity, allow/deny result, canary search across responses and logs |
+| Configure or update per-app environment variables | An authorized change affects only the intended app binding; its runtime sees only its assigned values, while other apps and the host/control-plane environment remain unchanged. Unauthorized cross-app updates leave bindings unchanged. Reserved names, precedence, validation, and activation follow a reviewed policy; otherwise classify blocked. | Synthetic app/actor IDs and variable names, before/after binding revisions, runtime observations, denial result, host/control-plane comparison, and redacted canary scan |
+| Roll back a release whose configuration references a revoked secret version | Follow the reviewed binding policy; never silently reactivate a revoked version. The result is an explicit denial or an approved rebind, with route health and prior-release behavior recorded. If policy is unresolved, classify blocked/not run. | Release and secret-version references (no values), policy revision, launch/denial outcome, health/route observations, audit attribution, and redaction scan |
+| Rotate a secret while an app process is running | New launches use only the version authorized by the reviewed activation/release-binding policy at the applicable boundary; process generations follow the approved reload/restart rule; no unauthorized process observes either value | Secret version IDs (never values), selected version and policy revision, process generation, activation time, route/health outcome and redacted logs |
+| Rotate while a build/deploy job is queued or running | At each reviewed binding/injection boundary, the job uses only a version authorized by the reviewed activation/release-binding policy; retries cannot silently switch versions or expose runtime secrets to build scripts | Job ID, selected version reference and policy revision at each boundary, stage, retry result and canary scan of build output/argv/logs |
+| Revoke/delete a secret or remove app authorization | Reads or launches using the revoked/deleted binding fail closed unless the reviewed policy explicitly authorizes a rebind. Record the ordering when revocation occurs between job binding, secret injection, launch, health, and promotion; apply the reviewed boundary's denial/rebind/reconciliation result. Behavior of already-running processes follows the documented revocation boundary; no stale fallback is silently used. Keep unresolved boundaries blocked/not run. | Revocation time, selected binding and policy revision, job/launch ordering, authorization result, process/route reconciliation, rebind or denial outcome, no-value audit evidence |
+| Decryption/key lookup fails | No plaintext fallback or secret value in diagnostics; candidate launch/deploy fails safely and the prior release outcome is explicit | Injected failure point, job outcome, route health, redacted error and cleanup result |
+| Restore app configuration or backup after rotation/revocation | Restore follows the approved key/reference policy; it cannot silently resurrect a revoked version or expose plaintext in the backup | Backup/restore revision, secret-reference state, re-entry/rebind decision, access-denial and redaction results |
+| Audit and support export for any lifecycle operation | Record actor, tenant, app, action, version reference and outcome as approved; never include secret value, ciphertext or derivation material | Redacted audit/export scan with canary match results and reviewer |
+
+Every test must distinguish a reference/version identifier from secret material. Record environment-variable validation, reserved names, precedence and activation, secret activation/revocation, and rollback-binding semantics explicitly; absent an approved policy, classify the case **not run / blocked by design decision**, not pass.
+
+### P3-07: Routing, health checks, rollback, and TLS integration
+
+- Only after P2 routing/TLS is accepted, deploy Node and Python fixtures behind a custom domain and verified HTTPS route. For each app/release, record a request matrix of hostname/SNI/path, expected app and release, and observed content. Inputs whose Host/SNI/forwarded-header/target conflict with the registered app route under the accepted P2 policy must not return another app/tenant content or a canary, or change the registered route; valid alternate hostnames follow the accepted P2 contract.
+- Test health success, wrong response, timeout, dependency failure, and app crash. Probe only the registered candidate app/process/port under the reviewed policy; record target identity and bounded result. Attempts to redirect/configure a probe toward an unrelated app, control-plane, or another unregistered internal endpoint must be denied without route change. Probe-target/redirect policy remains blocked until reviewed. Failed health gates preserve the old traffic/release and report a bounded remediation path.
+- Upgrade to a new release, verify externally, then rollback to a pinned previous artifact. Test rollback when prior artifact is corrupt/unavailable and ensure the active route is not silently pointed at an unverified release.
+- Confirm domain ownership/TLS and existing P2 proxy controls are not bypassed by app-provided Host, forwarded headers, or arbitrary target URLs.
+
+### P3-08: Optional rootless-container profile
+
+- Treat this as optional, independently gated scope. No Docker socket, privileged mode, host PID/network namespace, host root mount, or unreviewed device access.
+- Pin image digests and verify provenance; reject mutable-only tags and signature/digest mismatch by default.
+- Test restricted network, volume allowlists, cgroups/resource limits, user namespace behavior, teardown, restart, and hostile container escape attempts in disposable guests.
+- If runtime support or isolation cannot be proven on a candidate OS, mark that profile unsupported and keep it disabled; this does not excuse failure of the native Node/Python profile.
+
+### P3-09: Declarative catalogue and recipes
+
+- Catalogue definition must be data-only and schema-validated; default deny untrusted sources. Verify signature, immutable version/digest, declared permissions, resource requirements, licence/provenance, health check, backup/removal behavior, and rollback metadata.
+- Malformed, unsigned, replayed, revoked, overprivileged, licence-unknown, or digest-mismatched recipes fail before installation. Signature key rotation/revocation and stale metadata are tested.
+- Removing a recipe must not delete customer-created data unless a separately authorized, explicit, recoverable operation chooses that outcome.
+- Start with a narrow supported compatibility list; adding a framework or marketplace claim requires its own repeatable test evidence.
+
+#### Recipe trust and removal decision matrix
+
+Use inert synthetic manifest fixtures only. These are admission/removal test inputs, not executable apps, signing policy, or a production schema. The verifier and trust-root lifecycle must be reviewed before any fixture is connected to a fetch or install path.
+
+| Fixture condition | Required outcome | Evidence to record |
+|---|---|---|
+| Valid schema, trusted non-revoked signer, immutable source/version digest, supported permission/resource set, known licence metadata | May proceed to the separate reviewed install flow; signature alone does not waive other policy checks | Manifest digest, signer/key ID, trust metadata revision, policy revision, deterministic decision and audit redaction |
+| Malformed, oversized, duplicate-field, or unknown-field manifest | Reject without interpreting it as a partial/defaulted recipe | Parser result, bounded error, no artifact fetch or recipe-controlled execution; no install/resource/customer-state mutation, with the attributable denial/audit record retained |
+| Missing signature, unknown signer, revoked key, or stale/replayed trust metadata | Reject before dependency/source artifact fetch or execution | Exact trust snapshot/key status and denial reason; no secret or sensitive object enumeration |
+| Mutable-only tag or missing immutable digest | Reject before dependency/source fetch and any recipe-controlled build/install execution; preserve the current app/release | Requested synthetic reference, unchanged release pointer, no partial artifact, attributable denial record |
+| Retrieved source bytes do not match the declared immutable digest | Reject after byte retrieval but before recipe-controlled build/install execution or promotion; preserve the current app/release | Requested and observed synthetic digest, unchanged release pointer, no partial artifact, attributable denial record |
+| Undeclared capability, unsupported permission, or resource requirement outside reviewed limits | Deny by default before recipe-controlled build/install execution | Requested-vs-allowed permission/resource diff and attributable denial audit |
+| Missing, unknown, or policy-blocked licence/provenance metadata | Reject or hold for explicit maintainer disposition before recipe-controlled build/install execution; never infer approval from a signature | Licence/provenance source, policy version and review disposition, attributable denial/hold record |
+| Recipe removal references customer-created data or backups | Remove recipe-owned metadata only; preserve customer data unless a distinct, explicit, authorized and recoverable export/delete action is completed | Before/after object inventory, actor/authorization, backup/export choice, restore proof and audit record |
+
+For every denial case, verify no application runtime process starts, route changes, or customer data is deleted; no installation, resource allocation, or customer-owned state is mutated. Preserve the attributable safe denial/audit record and bound/redact sensitive details. The accepted trust policy must define which cases are hard-deny versus maintainer-review; no behavior is inferred from this test table alone.
+
+#### Positive recipe-family lifecycle inventory
+
+The Phase 3 plan names five marketplace families. This inventory is a required compatibility/evidence checklist, not a claim that recipes or a trusted catalogue already exist. Maintainers must select and pin an exact candidate recipe, immutable source/version digest, runtime/profile, licence/provenance and resource declaration for each family that the curated beta will claim. Until then its state is **not selected / not run**.
+
+| Planned family | Candidate recipe and profile | Synthetic user-data sentinel | Required positive lifecycle evidence | Status | Evidence record |
+|---|---|---|---|---|---|
+| CMS | Not selected; exact recipe/version/digest/profile TBD | Representative page/content and uploaded-media sentinel chosen by the fixture owner | Signature/policy admission, install and health, supported upgrade, backup/restore, rollback, and removal without deleting the sentinel absent explicit authorization | **NOT SELECTED / NOT RUN** | None; when selected, record exact recipe/profile/version/digest, fixture/source revision, OS/architecture, trust/policy revision, sentinel result, lifecycle outcomes, exact run/evidence, and reviewer. |
+| Collaboration | Not selected; exact recipe/version/digest/profile TBD | Representative tenant-owned record/file sentinel chosen by the fixture owner | Signature/policy admission, tenant-scoped install/health, supported upgrade, backup/restore, rollback, and data-preserving removal | **NOT SELECTED / NOT RUN** | None; when selected, record exact recipe/profile/version/digest, fixture/source revision, OS/architecture, trust/policy revision, sentinel result, lifecycle outcomes, exact run/evidence, and reviewer. |
+| Ecommerce | Not selected; exact recipe/version/digest/profile TBD | Representative synthetic catalogue/order sentinel chosen by the fixture owner | Signature/policy admission, install/health, supported upgrade, backup/restore, rollback, and data-preserving removal | **NOT SELECTED / NOT RUN** | None; when selected, record exact recipe/profile/version/digest, fixture/source revision, OS/architecture, trust/policy revision, sentinel result, lifecycle outcomes, exact run/evidence, and reviewer. |
+| Monitoring | Not selected; exact recipe/version/digest/profile TBD | Representative configuration/history sentinel chosen by the fixture owner | Signature/policy admission, install/health, supported upgrade, backup/restore, rollback, and data-preserving removal | **NOT SELECTED / NOT RUN** | None; when selected, record exact recipe/profile/version/digest, fixture/source revision, OS/architecture, trust/policy revision, sentinel result, lifecycle outcomes, exact run/evidence, and reviewer. |
+| Developer | Not selected; exact recipe/version/digest/profile TBD | Representative project/configuration sentinel chosen by the fixture owner | Signature/policy admission, install/health, supported upgrade, backup/restore, rollback, and data-preserving removal | **NOT SELECTED / NOT RUN** | None; when selected, record exact recipe/profile/version/digest, fixture/source revision, OS/architecture, trust/policy revision, sentinel result, lifecycle outcomes, exact run/evidence, and reviewer. |
+
+The fixture owner must document data ownership and the sentinel's create/export/restore/delete oracle for the chosen recipe. One recipe cannot stand in for all five families unless maintainers explicitly narrow the supported catalogue and document the excluded families; generic Node/ASGI fixtures are not marketplace-family evidence.
+
+## Phase exit dossier
+
+P3 can be proposed for acceptance only when all prerequisite rows are proven and every in-scope P3 acceptance scenario has exact-commit evidence:
+
+1. Node app from Git, custom domain/TLS, verified route, upgrade and rollback in a lab.
+2. Python ASGI app, isolated dependency/runtime version, health and route verification, supported upgrade and pinned rollback.
+3. Two hostile apps cannot read each other's secrets, processes, backups, files, or artifacts.
+4. Build resource limits fail gracefully and leave the host healthy.
+5. Unverified public tags and untrusted app definitions cannot install by default.
+6. Recipe removal preserves user-created data absent a separately authorized backup/export/delete decision.
+7. API/job/agent tenant reauthorization, audit/redaction, crash/cancellation/retry, and rollback tests pass.
+8. Supported OS/architecture and framework matrix is limited to measured configurations; dependency licences/provenance and security review are recorded.
+9. User-facing deployment status, health, logs, and error recovery have accessibility and manual developer/operator acceptance.
+
+### Current scenario evidence ledger
+
+This ledger reports only end-to-end acceptance evidence for this P3 workstream. Local fixtures, model tests, component PR checks, unsigned previews, and design proposals do not satisfy these rows. All scenarios are **NOT RUN** because P1/P2 entry and the P3 runner/UI contracts are not proven. Reclassify each row only with exact-head, reviewable evidence; mark unsupported profiles **EXCLUDED** only after the required maintainer decision and rationale are recorded.
+
+| Scenario | Status now | Evidence bundle required to close the row |
+|---|---|---|
+| 1. Node Git deployment, custom domain/TLS, upgrade and rollback | **NOT RUN — gates unproven** | Exact app/fixture commit, target architecture, pinned runtime and dependency-lock digests, candidate output artifact digest bound to those inputs, guest image/OS, tenant and route IDs, job IDs, accepted P2 routing/TLS/port/proxy evidence references, hostname/SNI/path request matrix with expected app/release and negative Host/SNI/forwarded-header/target outcomes relative to the registered app route under the accepted P2 routing policy, registered probe target identity, bounded result and observed responder app/release/process generation bound to the candidate reservation/listener, health and external TLS route observations before/after upgrade and rollback, prior-release integrity, exact P3-02 case/run references for valid signed admission, replay/invalid/wrong-ref denials, pre-fetch credential revocation/recheck and redaction, audit and redacted logs, reviewer. |
+| 2. Python ASGI and dependency/runtime isolation | **NOT RUN — gates unproven** | Exact app/lockfile/runtime digests, target architecture, candidate output artifact digest bound to those inputs, guest image/OS, tenant/app/route and job IDs, ASGI server/launch contract, evidence host packages are unchanged, per-app identity and dependency boundaries, accepted P2 routing/TLS/port/proxy evidence references, hostname/SNI/path request matrix with expected app/release and negative Host/SNI/forwarded-header/target outcomes relative to the registered app route under the accepted P2 routing policy, registered probe target identity, bounded result and observed responder app/release/process generation bound to the candidate reservation/listener, prior-release integrity, health/route observations before and after upgrade/rollback, audit and redacted-log references, and reviewer. |
+| 3. Two hostile apps isolated from each other's secrets, process, backup, file and artifact state | **NOT RUN — hostile workload prohibited before approved guest boundary** | Pinned hostile fixture revisions, approved runner policy, guest image, synthetic tenant/app/object IDs and canary IDs, per-resource allow/deny outcomes, process/filesystem snapshots, and P3-03/P3-05 host-boundary evidence (effective UID/GID, capabilities/namespaces/mount view, denied host-root/control-plane/agent-socket/unrelated-process access), exact P3-06 case/run references for approved secret-stage delivery, cross-tenant denial and redaction scans, host/unrelated-app health, cleanup and independent security review. |
+| 4. Resource-limit failure leaves host healthy | **NOT RUN — hostile workload prohibited before approved guest boundary** | Approved per-limit policy/revision, P3-03 case/run IDs, workload and fixture digest, enforcement scope and time-to-enforcement, actual CPU/RSS/disk/time/process/network samples, guest and unrelated-service health before/during/after from an external observer, typed job result, process/mount and quota/reservation before/after reconciliation, retry and cleanup evidence. If accepted policy permits concurrent builds, include both worker identities/deltas and reconciliation through the accepted P2 quota/reservation interface (P3 attribution only, not P2 quota re-acceptance); otherwise record the policy revision and make no concurrent-build support claim. |
+| 5. Unverified tags and untrusted definitions fail by default | **NOT RUN — trust contract and runner gates unproven** | Pinned valid and invalid tag/manifest inputs, registry/trust snapshot, policy and signature/digest/license decisions, evidence that each denial occurs at the earliest stage capable of establishing that violation and always before untrusted execution/install/promotion, unchanged route/data/process/artifact inventory, no partial installation/resource records, bounded denial and attributable audit record. |
+| 6. Recipe removal preserves customer-created data | **NOT RUN — catalogue and backup/removal contracts unproven** | Exact recipe/profile/version, before/after object inventory and synthetic sentinels, actor/authorization, explicit backup/export/delete choice, restore verification, recipe metadata cleanup, audit and reviewer. |
+| 7. Tenant reauthorization, audit/redaction, crash/cancellation/retry and rollback | **NOT RUN — P1/P2 identity/jobs/agent contracts unproven** | Approved interface/policy revisions, two-tenant actor/resource matrix, exact job and interruption IDs, and the P3-04 before/after bundle for every interruption (durable job state, artifact digest/inventory, process-generation/listener inventory, independently observed route, and audit outcome); a route observation alone cannot close recovery evidence. Link exact P3-02 case/run references for duplicate/concurrent/lost-ack restart delivery and idempotency outcomes, and P3-06 case/run references for rotation/revocation boundary, denial/rebind and redaction evidence. Also include retry/idempotency results, audit attribution, secret canary scans, cleanup and security review. For P3 app launch, also record stale/conflicting and simultaneous port-reservation outcomes, bounded failure under the approved policy, unchanged active route, and the reservation-to-listener tenant/app/release/process-generation binding. A stale or unrelated listener must not satisfy health or receive candidate traffic. Cleanup must not terminate an unverified or unrelated process; a verified stale app-owned generation follows the reviewed reconciliation policy. Record process/reservation cleanup using the accepted P2 reservation interface without duplicating P2 allocator acceptance. |
+| 8. Supported OS/framework matrix, licence/provenance and security review | **NOT RUN — no P3 profile is certified** | Per-profile ID linked to its P3-01 matrix row (framework/interface/mode/launch contract), exact source/runtime/dependency/OS/architecture tuple, case/run and artifact references, clean-guest correctness/compatibility/benchmark records, licence and provenance disposition, security review, measured exclusions and maintainer approval for the claimed support list. For each claimed optional P3-08 container profile, require separate evidence and approval; native runtime acceptance remains independently required. Keep unproven profiles disabled; mark EXCLUDED only after the required maintainer decision and rationale. |
+| 9. Deployment status/log/error accessibility and manual operator acceptance | **NOT RUN — accepted UI/API contracts and runnable workflow absent** | Exact application build, role and tenant fixture, browser/viewport/assistive-technology versions, documented keyboard and manual task outcomes, status/error/log redaction evidence, screenshots or transcript, findings, retest and reviewer. |
+
+### Scenario 7 ownership boundary
+
+P1 owns verified-principal/session/current-membership checks, durable typed jobs, worker reauthorization, host-agent capability, and their focused regression evidence. That P1 evidence is a prerequisite; P3 must not duplicate or claim ownership of P1's site/catalog detail-read tests. P2 owns the shared site/tenant routing substrate, domain/TLS ownership, port reservation, proxy configuration/reload rollback, and base file/ACL/quota/backup contracts. P3 consumes those accepted, versioned contracts and does not re-accept the generic P2 service lifecycle.
+
+After P1/P2 gates and the P3 runner/API contracts are accepted, P3's Scenario 7 evidence must cover the application-specific integration: derive tenant and actor from verified server context; bind app, repository/ref, artifact, deploy job, logs, and route to that context; reauthorize at worker execution; and exercise deployment crash/cancel/retry/promotion/rollback while comparing durable job state to externally observed release/route state. Include P3 audit attribution, secret-canary redaction, and cross-tenant denials. Route tests must prove P3 uses P2's accepted routing controls, not replace P2's domain/TLS/port/proxy acceptance. Until these producer contracts and gates pass, Scenario 7 stays **NOT RUN**; a proposed P1 interface or component check is not sufficient evidence.
+
+Each result must be classified **pass / fail / not run / excluded with rationale**. Any cross-tenant access, leaked canary secret, host breakout, untrusted artifact execution, or non-recoverable failed deployment blocks exit. Do not use a percentage-complete claim.
+
+## Manual developer acceptance walkthroughs
+
+Run only after P1/P2 entry gates, the P3 runner boundary, and the relevant UI/API contracts have been accepted. These steps describe outcomes rather than prescribing unreviewed screens or endpoints. Use a disposable lab, synthetic tenants, a disposable Git repository, synthetic credentials, and lab-only DNS/TLS. Never copy production secrets or point tests at a live host.
+
+### Node Git deployment and rollback
+
+1. As a tenant developer, create an app from the pinned Node fixture repository and choose a supported runtime. The app is visibly scoped to the current tenant and repository credential access is least-privileged.
+2. Deploy a known-good commit. Confirm the UI/job history identifies the source revision, runtime pin, build, artifact digest, health result and active release. Verify the app through its assigned lab hostname/TLS route.
+3. Push a second valid commit and deploy it. Verify the new release becomes active only after its health check passes; retain the previous release for rollback.
+4. Push a commit that intentionally fails readiness. Confirm the deployment reports a bounded error and remediation hint, the prior release continues serving, and the failure log contains no canary secret or Git credential.
+5. Roll back to the pinned previous release. Verify route content and release history agree, and the rollback is attributed and auditable.
+6. Rotate a synthetic runtime secret and repeat a deployment/restart. Verify only the intended app receives the new value; API views, build output, process listings visible to another tenant, runtime logs and audit exports do not expose it.
+7. In a second tenant session, attempt to enumerate the app, inspect its job/log/history/artifact, and access its route-management action. Every cross-tenant request is denied without leaking whether protected objects exist.
+
+### Python ASGI deployment and dependency isolation
+
+1. As a different tenant developer, deploy the pinned FastAPI/ASGI fixture with the approved Python runtime and its lockfile.
+2. Verify health and lab hostname/TLS routing. Record runtime and dependency digests; confirm no host Python packages changed.
+3. Upgrade this app to a second valid commit. Verify it becomes active only after health passes, and record source/runtime/dependency digests and release history while retaining the previous pinned release.
+4. Deploy a commit that intentionally fails readiness. Verify the candidate is not active, the prior Python release and route remain healthy, and cleanup leaves no partial artifact or orphan process.
+5. Roll back to the pinned previous Python release. Verify the externally observed route, source revision, runtime/dependency lock, release history and audit outcome all identify that prior release; include a corrupt/unavailable prior-artifact denial case.
+6. Deploy a second app using a different supported Python pin and dependency set. Confirm each app starts under its assigned identity and neither can read the other's tree, process secrets or artifacts.
+7. Submit a package/runtime digest mismatch and an unsupported runtime. Both must fail before execution and leave the healthy route/release unchanged.
+8. Trigger a bounded build limit and a failed readiness check. Verify job state is clear, the prior route remains healthy, and cleanup leaves no process, workspace reservation or partial artifact.
+
+### Operator review during both walkthroughs
+
+- The app owner can find deployment state, source revision, health, relevant redacted logs, and a concrete recovery action without access to another tenant's information.
+- An operator can distinguish build failure, health failure, route failure, unsupported runtime and policy denial; diagnostics must not suggest disabling security controls.
+- Keyboard-only operation and accessible status announcements work for long-running deploy, health, failure and rollback states. Any UI-only claim is labeled until the backend operation is verified.
+- Observe guest CPU, memory, disk and process health before, during and after hostile/resource-limit fixtures. Record actual measurements; do not invent thresholds in this plan.
+
+#### Observable accessibility acceptance checks
+
+| User task | Pass condition | Evidence |
+|---|---|---|
+| Start, inspect, cancel or recover a deployment using only the keyboard | Every action is reachable in a logical order, focus remains visible, no keyboard trap occurs, and focus returns to a useful location after a dialog/action | Browser/version, input-only steps, focus sequence, failures and retest result |
+| Follow a long-running job without repeatedly polling visually | Admission and meaningful state changes are announced with the app/job context; repeated progress does not overwhelm or replace the final outcome | Assistive-technology/browser versions, captured announcement sequence and comparison to durable job state |
+| Understand and correct a failed action | Controls have programmatic names; field errors identify the affected input; denial/build/health/route failures are distinguishable without color alone and expose a safe next action | Error type, control/field association, keyboard and assistive-technology result, redacted diagnostic evidence |
+| Find and inspect logs or health details | Section headings/labels identify content; log updates do not steal focus; secret masking and tenant authorization hold for copied/exported content as well as on-screen content | Keyboard/assistive-technology transcript, redaction assertions, same-tenant and cross-tenant outcomes |
+| Complete core tasks at constrained viewport/zoom | Deployment status, health, logs and recovery actions remain available without overlapping or losing information at the tested supported viewport and zoom settings | Viewport/zoom values, browser version, screenshots and any excluded combinations with rationale |
+
+Treat a failed task as an exit blocker for the affected supported combination. Record the human task, role, browser and assistive-technology versions, exact build/commit, and retest evidence; a visual-only review or automated scan alone is insufficient.
+
+For every walkthrough, record operator role, tenant fixture IDs, source commit, environment and guest image digests, browser/runtime versions, exact job/test IDs, route verification method, expected/actual results per step, redacted evidence locations, reviewer and exclusions. A successful manual walkthrough complements automated negative tests; it does not replace them or establish phase acceptance by itself.
+
+## Current next action
+
+Maintain this as a reviewable P3 design/test artifact while P1/P2 remain gated. The next implementation action must be selected only after GitHub records the P1 exit decisions and the complete P2 contracts stabilize. Recheck open PRs and current branch heads immediately before that selection to avoid duplicating active work.
+
+## Synthetic app fixture smoke checks (Windows, 2026-11-10)
+
+The supplemental `testdata/p3-fixtures/` contains dependency-free synthetic Node HTTP and Python ASGI applications for exercising a minimal acceptance harness. The Node fixture listens only on `127.0.0.1` on an OS-assigned ephemeral port; Python is called in-process and opens no listener. Neither fixture models a production contract or exercises isolation, installation, privileged operations, or deployment. The README restricts use to disposable environments after gate approval.
+
+- Node v22.23.2: `node --test testdata/p3-fixtures/node/server.test.cjs` — 2 passed.
+- Python 3.13.17: `python -m unittest discover -s testdata/p3-fixtures/python -v` — 2 passed.
+- These results are fixture behavior only; they do not change the P3 entry-gate decision.
+
+### Prototype-to-acceptance boundary
+
+The local fixtures are harness samples, not the pinned hostile fixtures listed above or the deployable Node/Python applications in the Phase 3 acceptance scenarios. Their present coverage is deliberately narrow:
+
+| Prototype assertion | Local check | Required Phase 3 evidence still missing |
+|---|---|---|
+| Readiness returns healthy/unhealthy | Node HTTP test; Python ASGI callable test | Bounded readiness timeout, process exit/hang handling, durable job outcome, and previous-release availability after failure |
+| Synthetic release identity is returned | Node HTTP test; Python ASGI callable test | Immutable artifact digest/provenance, ownership validation, promotion ordering, release history and rollback |
+| Unknown path and non-GET method are denied | Node HTTP test; Python ASGI callable test | Authenticated tenant/app routing, custom-domain/TLS route verification, webhook signature/replay denial, bounded errors and audit evidence |
+| Requests stay on a test-only interface | Node binds loopback on an ephemeral port; Python runs in-process | Dedicated runtime identity, network namespace/egress boundary, resource limits, filesystem/process/secret isolation and host-health measurements |
+
+These prototype checks must not be counted toward the P3 exit scenarios or the ten hostile-fixture results. Keep the hostile fixtures deterministic and separately pinned once the required unprivileged lab contract and entry gates are approved.

@@ -1,0 +1,81 @@
+name: Go static security analysis
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/go-sast.yml'
+      - 'docs/P1_GO_SAST.md'
+  push:
+    branches: [main]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/go-sast.yml'
+      - 'docs/P1_GO_SAST.md'
+
+permissions:
+  contents: read
+
+jobs:
+  gosec:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOOS: linux
+      GOARCH: amd64
+      CGO_ENABLED: '0'
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Verify application module checksums
+        run: |
+          go mod download
+          go mod verify
+      - name: Install pinned gosec scanner
+        run: GOBIN="$RUNNER_TEMP/tong-sast-bin" go install github.com/securego/gosec/v2/cmd/gosec@v2.30.0
+      - name: Scan Go source and tests and write JSON report
+        run: |
+          mkdir -p "$RUNNER_TEMP/tong-sast"
+          "$RUNNER_TEMP/tong-sast-bin/gosec" -no-fail -tests -fmt=json -out "$RUNNER_TEMP/tong-sast/gosec-report.json" ./...
+      - name: Validate machine-readable report
+        run: |
+          python3 - "$RUNNER_TEMP/tong-sast/gosec-report.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          path = pathlib.Path(sys.argv[1])
+          if not path.is_file() or path.stat().st_size == 0:
+              raise SystemExit("gosec did not produce a non-empty report")
+          with path.open(encoding="utf-8") as stream:
+              report = json.load(stream)
+          if not isinstance(report, dict) or not all(key in report for key in ("Issues", "Stats", "Golang errors")):
+              raise SystemExit("gosec report is missing the expected Issues, Stats, or Golang errors fields")
+          issues = report["Issues"]
+          if issues is not None and not isinstance(issues, list):
+              raise SystemExit("gosec report Issues field is not a list or null")
+          errors = report["Golang errors"]
+          if errors is not None and not isinstance(errors, dict):
+              raise SystemExit("gosec report Golang errors field is not an object or null")
+          if errors:
+              raise SystemExit(f"gosec reported analyzer errors: {errors}")
+          print(f"Validated gosec JSON report; findings: {len(issues or [])}")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: gosec-json-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/tong-sast/gosec-report.json
+          if-no-files-found: error
+          retention-days: 14

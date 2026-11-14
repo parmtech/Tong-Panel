@@ -1,0 +1,67 @@
+# Tong Panel — first release checklist
+
+**Owner-directed first-release target, 2026-11-12; not a release-ready certification.** The owner wants all common hosting capabilities discussed below in the first version: Node.js and Python apps, DNS zone records, file management, domains, email/webmail, databases, SSL, backups, PHP settings, cron, FTP/SFTP/SSH and logs/resource usage. The supported OS, exact acceptance criteria and whether the first publication is an alpha or stable 1.0 still need decisions. `ROADMAP.md` calls P2 an experimental hosting alpha and reserves stable 1.0 for P6; this target does not waive those gates. Entries marked candidate are not selected or installed. No checkboxes below are acceptance claims.
+
+**Owner direction on costs and source:** Build panel functionality without mandatory paid software or paid-only components; integrated third-party components should be free and open source. Use suitable open-source components or original open-source Tong Panel implementation as needed. Softaculous is not selected. Verify the exact license, notices, versions, security and compatibility before integrating any component; a free/community edition does not imply its paid features are included, and suitability is not yet proven for every feature. Server hosting, domain registration, optional external providers and other infrastructure can still cost money independently of the panel.
+
+## Live development context / agent resume
+
+This checklist is a **desired scope and acceptance target**, not a completion certificate. Code/tests/research are consolidated in [development PR #171](https://github.com/parmtech/Tong-Panel/pull/171), and workstreams are tracked in [#172](https://github.com/parmtech/Tong-Panel/issues/172). For exactly what exists, current checks, rejected assumptions and one next task, read [AI_AGENT_START_HERE.md](AI_AGENT_START_HERE.md) and [AI_AGENT_STATE.json](AI_AGENT_STATE.json); always refresh live GitHub. No item is checked off by a passing model/CI fixture unless its end-to-end exit evidence and independent release/security approval exist.
+
+## 1. Decide scope before building
+
+- [ ] Owner approves target users, release name, supported OS/version/architecture, system requirements, support policy and exactly which features are in/out.
+- [ ] Complete P0 architecture, threat-model, dependency/provenance and independent security decision records. Use the canonical P0–P6 phases and historical crosswalk in `FEATURE_MATRIX.md` when matching requirements to `ROADMAP.md`.
+- [ ] Specify whether this is single-tenant admin hosting or multi-tenant shared hosting. Do not market multi-tenant support until isolation is tested.
+- [ ] Set measurable feature acceptance, recovery targets and known limitations; agree who can approve release.
+
+## 2. Minimum working product (proposed)
+
+- [ ] **Installer and upgrades:** clean supported OS preflight, port/resource checks, signed/pinned packages, clear failures, upgrade, rollback and uninstall/recovery instructions. Fail safely on unsupported platforms.
+- [ ] **Admin access:** secure bootstrap, TLS, login/logout, sessions, MFA and recovery, rate limits, account recovery and audited administrative actions. Independently assess whether an external identity service such as [Authelia](https://github.com/authelia/authelia) fits; do not assume it is integrated or that it replaces the panel's authorization.
+- [ ] **Authorization and isolation:** roles, tenant/site ownership, server-side enforcement, restricted privileged agent and allowlisted typed jobs; no arbitrary root commands. Prove cross-tenant denial, revocation, path and symlink protections.
+- [ ] **Websites and domains:** create/list/update/remove a site with safe validation, verified domain ownership, isolated filesystem and usable status/errors. Manage an externally installed [NGINX](https://github.com/nginx/nginx) and PHP-FPM through reviewed adapters with config validation and rollback.
+- [ ] **Files and databases:** restricted file browsing/upload/download/restore as scoped, and MariaDB database/user lifecycle with credentials stored safely. Evaluate [phpMyAdmin](https://github.com/phpmyadmin/phpmyadmin) only if owner wants an optional separate database UI. Include safe deletion, limits and tenant isolation.
+- [ ] **SSL:** issue, install, renew and recover certificates with domain rechecks, safe key/account storage, challenge cleanup and clear errors. [lego](https://github.com/go-acme/lego) is a candidate. Local test CA, read-only preflight, recorded domain-proof evidence and cancellation of prototype challenges exist; live issuance is not integrated. Resolve the [certificate operation and key-custody contract](P1_CERTIFICATE_OPERATION_CONTRACT.md); see also [local E2E evidence](../tools/acme-prototype/LOCAL_E2E.md) and [preflight boundaries](P1_ACME_PREFLIGHT.md).
+- [ ] **Backups:** select encrypted local/offsite backup tool, protect keys and schedules, support failure recovery and restore to a fresh host. The [restic](https://github.com/restic/restic) synthetic drill passed but its tested binary has unresolved scanner findings; patched build investigation is blocked. Do not ship it until reviewed. See `tools/restic-prototype/README.md`.
+- [ ] **User interface:** original responsive interface, accessible keyboard/screen-reader flows, status and actionable errors, consistent roles and no controls that falsely imply unfinished capabilities. Current SSL snapshot UI is read-only, not an issuance feature.
+- [ ] **Service operations:** logs with secret redaction, health and disk/resource alerts, safe restart/recovery and audit visibility. Prometheus has only an opt-in development marker, not complete production monitoring; [Prometheus](https://github.com/prometheus/prometheus) or [Netdata](https://github.com/netdata/netdata) are candidates.
+- [ ] **Applications:** if WordPress is in first-release scope, pin package sources and verify install, upgrade, rollback and backup/restore in clean disposable VMs. No unverified marketplace execution.
+- [ ] **Node.js and Python apps:** runtime selection, isolated builds, dependency management, process supervision, routing, logs, health and rollback. Prove a representative deployment and isolation for each.
+- [ ] **DNS zone editor:** manage supported A/AAAA, CNAME, MX, TXT and other chosen records with validation, scoped authorization, recovery and honest status for externally managed DNS.
+- [ ] **Email and webmail:** mailbox, alias and forwarding management, browser access, routing, DNS configuration and delivery diagnostics; validate send/receive and port-25 limitations.
+- [ ] **PHP settings and cron:** per-site PHP versions/configuration and scoped scheduled jobs, with safe ownership, limits, logs and tests.
+- [ ] **FTP/SFTP/SSH:** define which protocols are enabled and how, prefer encrypted access, enforce tenant isolation, credentials, audit and safe defaults; test connection and revocation. Plain FTP must not be assumed secure.
+- [ ] **Browser terminal:** provide an opt-in terminal for explicitly authorized accounts, confined to the account's isolated environment. Specify session authentication, per-user identity, transport and origin checks, idle timeout, revocation, resource limits and audit before enabling any shell. Test cross-tenant and host-escape denial. This is a first-release target, not an implemented or production-ready feature. See [implementation proposal](P1_BROWSER_TERMINAL_PROPOSAL.md).
+- [ ] **Resellers and quotas:** package and account management, quota enforcement, scoped delegation, suspension and concurrency tests, with strict tenant boundaries.
+- [ ] **cPanel migration:** inspect supported exports, validate archives, provide dry-run and unsupported-feature reports, stage restoration and require verified reconciliation and rollback. Do not claim complete cPanel compatibility.
+
+## 3. Candidate tools and additional scope
+
+DNS, email, file transfer and modern app capabilities above are part of the owner's first-release target. The following names are implementation candidates; choosing a particular tool is not yet approved.
+
+- [ ] **DNS:** separately operated [PowerDNS](https://github.com/PowerDNS/pdns) or BIND; validate zone permissions, DNSSEC and recovery.
+- [ ] **Email:** Postfix/Dovecot plus optional [Roundcube](https://github.com/roundcube/roundcubemail); validate send/receive, spam controls, DNS and port-25 limitations.
+- [ ] **File transfer:** [SFTPGo Community](https://github.com/drakkan/sftpgo) or another tool; review per-component terms, especially its restricted UI theme, and verify isolation. Use original Tong Panel UI.
+- [ ] **Malware and intrusion tools:** [ClamAV](https://github.com/Cisco-Talos/clamav), [Fail2ban](https://github.com/fail2ban/fail2ban), [Coraza](https://github.com/corazawaf/coraza) or [CrowdSec](https://github.com/crowdsecurity/crowdsec) only after false-positive, update, resource and recovery testing.
+- [ ] **Git and modern app deployment:** assess [Coolify](https://github.com/coollabsio/coolify) as a separate integration or reference; isolate builds, secrets, ports and rollback.
+- [ ] **Multi-node, marketplace and high availability:** separately scoped unless explicitly selected and tested for this release. Resellers and cPanel migration are first-release targets above; exact compatibility must be established by testing.
+
+## 4. Release evidence — mandatory for the selected scope
+
+- [ ] Dependency inventory with exact versions, source, hashes, license/copyright/NOTICE and SBOM; security advisory triage and documented maintenance/update plan. Do not silently ignore scanner errors or findings.
+- [ ] Automated unit, integration, contract and browser/accessibility checks against the release commit. Verify actual hosted CI results for that exact commit; Windows-only or cross-compilation is not Linux runtime evidence.
+- [ ] Clean Linux VM install, normal operations, failed/interrupted install, upgrade/rollback and unsupported-OS tests on each advertised platform.
+- [ ] Two-user/tenant adversarial tests where multi-tenancy is claimed, including revoked access, credential leakage, privilege boundaries, path traversal and malicious archives.
+- [ ] Restore an encrypted backup to a clean new host, verify data and service recovery, and document timing and key-recovery process.
+- [ ] Independent security assessment and owner review; remediate critical/high exploitable issues before stable release, document residual risks and follow the published decision process.
+- [ ] Reproducible/signed build and provenance, release checksums, change log, installation/upgrade/restore docs, privacy and open-source notices, support matrix and known limitations.
+- [ ] Explicit owner go/no-go after reviewing the evidence. No production deployment or release is authorized by creating this list.
+
+## 5. Current starting point and order
+
+1. Read the current checkpoint in `UPDATES.md`, `docs/RESUME_HANDOFF_2026-11-12.md`, `docs/BLUEPRINT.md`, `docs/ROADMAP.md` and `docs/OPEN_SOURCE_RESEARCH_REPORT_2026-11-12.md`; fetch the recorded continuation branch and check its exact-head CI. PR #166 is the earlier baseline, not the latest continuation.
+2. Resolve P0 decisions and agree first-release scope. Preserve existing work and private evidence boundaries.
+3. Finish foundation/auth/isolation and a clean installer; implement a small complete site-to-restore path in disposable environments.
+4. Integrate approved upstream components one at a time with provenance, tests and rollback; mark unfinished work as drafts.
+5. Run all selected release checks, document remaining issues and seek the existing owner/security decisions. A research candidate or passing prototype alone does not satisfy release acceptance.

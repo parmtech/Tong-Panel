@@ -1,0 +1,56 @@
+# Tong Panel — Phase 2 Exit Gate Report
+**Prepared:** 2026-11-07 (Australia/Sydney)  
+**Verdict:** **P2 IN PROGRESS — EXIT GATE NOT PASSED; NOT PRODUCTION READY.**  
+**Basis:** `docs/phases/P2-HOSTING-ALPHA.md`, current draft PRs, hosted CI evidence, and advisory review `docs/ADR_SECURITY_REVIEW_2026-10-29.md`.
+
+This report distinguishes component evidence from integrated product acceptance. All cited work remains on unmerged draft branches. No real VPS, production tenant, or customer data was changed. A green unit test or disposable VM lab does not constitute support certification or security approval.
+
+## Implementation slices
+
+| P2 slice | Current evidence | Exit status / remaining acceptance |
+|---|---|---|
+| 1. Supported package/installer, preflight, journal and recovery | PR #74 unsigned Debian package lab tests install without auto-start, loopback non-root service, upgrade/downgrade and state-marker retention on Ubuntu 24.04/Debian 12. PR #80 tests isolated Nginx staged-config rollback. | **Open.** No signed/approved installer, privileged install lifecycle, migration/restore recovery guarantee, or full interruption/rollback drill. Neither distro is certified. |
+| 2. Nginx/PHP-FPM service adapters | PRs #61/#65 preview renderers; PR #80 rollback lab; clean guests run isolated two-tenant PHP-FPM/Nginx fixtures. | **Open.** Preview and lab code are not wired to a reviewed privileged adapter or customer host. No integrated apply, health-check, rollback and reconciliation lifecycle. |
+| 3. Domains, DNS ownership, redirects and vhosts | PRs #58–#70 implement metadata, proof and preview checkpoints; clean guest checks exercise tenant host routing and redirects. | **Open.** No production DNS/provider integration, full lifecycle, external ownership/certificate verification, or reviewed host apply path. |
+| 4. MariaDB provisioning, rotation, export/import and isolation | PRs #75/#77 provide credential-free metadata APIs. PR #79's isolated tenant-grant/export/import test passes Ubuntu/Debian. PR #84's exact current head `955a61098ea4a40b95bbc4e521f1a4c96542168c` passes Go/race/vet, daemon, archive and both clean-VM package checks; the encrypted fresh-host MariaDB restore itself passed Ubuntu [job 123172500141](https://github.com/parmtech/Tong-Panel/actions/runs/40789979352/job/123172500141) and Debian [job 123172500626](https://github.com/parmtech/Tong-Panel/actions/runs/40789979352/job/123172500626) at earlier code head `95257da5d1faaae5cc07f27125b64c20b24c8e49`. | **Open.** No app-managed MariaDB creation/removal/credential rotation or approved secret custody. PR #84's runner temp handoff is not offsite storage; no schedule, retention/deletion, full multi-tenant/settings restore, or recovery guarantee. |
+| 5. Files API/UI, quotas and ACL | PR #53 quota metadata; PR #73 read-only Explorer/download UI; tenant-scoped path/entry guards and download limits. | **Open.** No upload/edit/delete flow, integrated auth/CSRF session path, privileged filesystem adapter, per-operation quotas/ACL lifecycle, or browser accessibility acceptance. |
+| 6. ACME issue/renew/status/redirect | HTTPS renderer/redirect and HTTP-01 challenge-path fixture checks exist. | **Open.** No real ACME issuance/renewal, DNS-01 provider, certificate lifecycle/secret custody, expiry alert or external certificate verification. |
+| 7. Cron, site logs and templates | No integrated lifecycle evidence found in the reviewed P2 checkpoint set. | **Open.** Define tenant authorization, safe schedule validation, log isolation/retention, template versioning and failure recovery; implement and test on clean guests. |
+| 8. WordPress/PHP deploy and restore | Draft PR #87 prepares pinned core and private config. Script-repair head `a8fd4b9` passed Go/race/vet, daemon and package checks. VM execution remains pending. Runtime-test head `ea73329` executes generated config against a harmless PHP stub, checking exact values and injection denial; its hosted checks remain pending. | **Partial; open.** No app-managed database, approved secret source, vhost apply, tenant activation, upgrade/rollback or full site restore. No privileged deployment path. |
+| 9. Scheduled offsite encrypted backups, retention and complete restore | PRs #81–#83 implement streaming envelope, private atomic staging and key re-encryption; PR #84 verifies fresh-VM MariaDB restore on both target guest OSes. | **Open.** No durable offsite provider, backup scheduler, retention/deletion policy, production external-key custody/rotation/recovery, panel job integration, or complete settings/sites/databases restore. |
+| 10. Multi-tenant adversarial tests and usable onboarding | Component tests cover many cross-tenant cases; disposable guests verify selected MariaDB, PHP-FPM/Nginx and HTTPS isolation cases. PR #73 is read-only Explorer. | **Open.** No end-to-end adversarial panel-to-agent suite across files, DB, domains and job logs; no integrated phone/tablet task-completion or accessibility acceptance. |
+
+## Must-pass end-to-end acceptance
+
+| Requirement | Current evidence | Status |
+|---|---|---|
+| Two tenants isolated through API, files, DB users and job logs | Separate component/VM checks exist for selected database and PHP-FPM/Nginx paths; no single integrated panel-to-agent suite. | **Not passed end-to-end.** |
+| Unsupported OS, disk and port preflight before destructive changes | Read-only `tongctl` preflight denies occupied ports in a disposable guest; there is no destructive installer flow to prove preflight ordering. | **Partial; gate open.** |
+| Existing cert detection, real issue/retry/renew and external HTTP→HTTPS verification | Renderer fixtures and HTTP redirect checks only; no real certificate. | **Not passed.** |
+| Staged config syntax validation and reload rollback | Standalone isolated Nginx rollback lab passes. | **Component passed; integrated host lifecycle open.** |
+| Offsite backup, source destruction, clean-VM restore of data and settings | Fresh pristine-overlay MariaDB data restore passes both Ubuntu 24.04 and Debian 12 at the cited code head; the transfer is runner temp staging and no Tong settings/sites restore is included. | **Partial; not offsite or complete.** |
+| Malicious archive/symlink cannot escape tenant paths | Selected path and file API tests exist; no complete jailed upload/extraction workflow and hostile archive suite. | **Not passed.** |
+| Login/MFA/recovery isolation and secret-redacted audit | Internal auth/session primitives and logout route exist in drafts; no public production login/session issuance, recovery flow, trusted deployment proxy, or sign-off. | **Not passed.** |
+| Phone/tablet site/domain/files tasks with guidance | Read-only Explorer component exists; no end-to-end responsive usability/accessibility acceptance. | **Not passed.** |
+
+## P0 prerequisites and disposition
+
+The 2026-10-29 advisory review recommends **Needs revision** for ADR-001–009 and the draft threat model, with concrete implementation evidence still required. It is not an owner decision, independent security review, penetration test or approval. Human owner/security reviewer identity, formal outcome/date and linked evidence remain **pending**. ADR-007 privilege/key custody and ADR-009 production authentication are unresolved dependencies; no public insecure login is enabled.
+
+## Exit decision
+
+P2 remains **IN PROGRESS**. Do not merge draft PRs, deploy to a real VPS, claim distro support/security approval, or declare Phase 1/Phase 2 production-ready on this evidence. Revisit this report only when each open slice and must-pass test has authoritative integrated evidence and the responsible human owners record the required architecture/security decisions.
+
+
+## P2 package preflight ordering lab — draft PR #86 (29 October 2026)
+
+A follow-up disposable-package test now extracts the unsigned `tongctl` binary without installing it, proves low-disk and occupied-port policies deny, and asserts package metadata/service files/state directories remain absent before the first `dpkg --install`. It then proves the supported clean guest satisfies the lab policy immediately before installation. This adds test-harness ordering evidence only; it does not create a supported installer or prove upgrade/recovery authorization. Exact-head Ubuntu/Debian CI is pending, so the gate remains **partial and open**.
+
+
+## P2 pinned WordPress core recipe — draft PR #87 (29 October 2026)
+
+Adds a single checksum-pinned WordPress core release fetch using HTTPS with redirects disabled, exact SHA-256 verification before any write, bounded gzip/tar validation, rejection of links and noncanonical archive roots, and no-replace atomic extraction beneath a caller-pinned tenant root. The pinned WordPress 7.1.4 tarball's SHA-256 was calculated only after matching its SHA-1 against the value published by [WordPress.org](https://wordpress.org/wordpress-7.1.4.tar.gz.sha1); this provenance check does not turn the upstream SHA-1 into a modern signature. Focused tests cover tampering, traversal, symlinks, wrong hosts, redirects, oversized responses, cancellation and concurrent publication. The clean-VM job downloads the pinned artifact and checks a real extracted core tree. The package also has a private atomic config writer with negative/race tests and a targeted PHP CLI lint step. This remains only local file preparation: it does not provision a database, obtain/store secrets, configure vhosts, apply host changes, upgrade sites or restore a complete site. Clean-VM verification for the current code head is in progress.
+
+
+### 2026-11-10 validation correction
+PR #87's earlier VM attempt #42344509749 failed on a malformed generated shell script. Commits `3e293ba` and `a8fd4b9` repair it, validate guest syntax before boot, and explicitly require PHP CLI. Go #42625886972, daemon #42625887052 and package #42625887023 passed on a8fd4b9. VM #42625887081 remains active. Commit `ea73329` strengthens the PHP test to execute generated config and verify runtime values; Go #42626437445 and VM #42626437411 are pending. These checks cover file preparation; application database provisioning, site activation and full application restore remain open.

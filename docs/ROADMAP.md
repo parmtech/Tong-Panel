@@ -1,9 +1,13 @@
 # Tong Panel — Development Roadmap
-**Date:** 2026-10-26 | **Current phases:** P0 design review open; P1 experimental developer prototype in [draft PR #14](https://github.com/parmtech/Tong-Panel/pull/14), **not completed**.  
+**Original roadmap:** 2026-10-28 | **Status reconciled:** 2026-11-13. P0 owner/independent security decisions are pending; P1 prototypes and disposable P2 QA may continue, but P1 exit and P2 entry are not approved. [A–Z next-agent handoff](AI_AGENT_START_HERE.md).
 All durations are intentionally uncommitted; phases are gated by evidence rather than time estimates.
 
-## Operational phase documents
-See [PHASE_INDEX.md](PHASE_INDEX.md) for the current seven-phase execution index, per-phase task lists and gate acceptance. The [kickoff report](REPORT_2026-10-26.md) and [UPDATES.md](../UPDATES.md) distinguish drafted planning from implemented code. The first non-privileged local health API is in draft PR #13; it is not merged or a production installer.
+## Canonical execution checkpoint and ordering
+
+- **Code/review:** [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) is the sole open draft; the 149 original drafts are closed unmerged and their source commits retained. [Tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) is the integrated first-release backlog. `main` remains documentation-only.
+- **Agent resume:** read [A–Z handoff](AI_AGENT_START_HERE.md), [machine state](AI_AGENT_STATE.json) and the journal. The verified executable-source SHA `83fe8931` completed **13/13 successful workflows**, including both full clean guests. Next safe slice: isolated synthetic rootless dpkg crash/interruption and state-reconciliation tests, after checking newer docs-head CI.
+- **Gate policy:** P0 ADR-001–009, independent security acceptance, production auth/secret custody, privileged agent, signed installer, real two-tenant restore and accessibility are **blocked**. A green blocker-inventory test does *not* unblock them. Safe nonprivileged design/model/negative-test work may continue without implying phase acceptance.
+- **Evidence first:** every task has issue, source SHA, test result or pending/failure, and next action. Keep first-release broad feature goals without advertising incomplete P3–P5 models as shipped service integrations.
 
 ## Milestone definitions
 
@@ -11,7 +15,7 @@ See [PHASE_INDEX.md](PHASE_INDEX.md) for the current seven-phase execution index
 **Deliverables:** README, blueprint, feature matrix, architecture, upstream/licensing research, security model, UI/UX spec, install strategy, roadmap, UPDATES, AGENTS.
 **Exit:** maintainers review and approve top-level architecture ADRs; scope of P1 and distro matrix fixed; explicit go/no-go for code.
 
-### P1 — Core platform foundation (IN PROGRESS — not accepted)
+### P1 — Core platform foundation
 **Scope:** monorepo organization, Go API, local privileged agent, TS UI shell, safe session/MFA/RBAC, server instance identity, metadata migrations, durable jobs, audit ledger, CLI skeleton, OpenAPI, CI/release signing, test harness and simulated ops.
 **Exit:** malicious API inputs cannot run arbitrary privileged commands; tenant boundary and auth tests green; UI accessible and recoverable; bootstrapping and revert smoke tested in clean VMs.
 **Dependencies:** approved ADRs and threat model.
@@ -63,5 +67,15 @@ Multiple agents may work in independent branches. Use CODEOWNERS later; never si
 ## Version/release format
 0.0.x planning/prototypes (not installable); 0.1.x experimental; 0.5.x beta only with explicit caution; 1.0.0 stable only after P6. A tagged release is not a compatibility promise by itself.
 
-## Next concrete implementation action — NOT STARTED
-Review ADR-001 through ADR-008, threat model and P1 report. Draft PR #14 has experimental UI/API/journal/agent-proof and passing Go CI but production auth, storage, agent and VM installer gates are still pending. Do not run installer scripts or alter real servers before approval. See UPDATES.md and AGENTS.md for current checkpoint.
+## Historical gate evidence — 2026-10-28
+
+- P0 architecture ADRs and the threat model remain proposed/unapproved. Owner issue [#1](https://github.com/parmtech/Tong-Panel/issues/1) is open with no review comments. P1 authentication design issue [#6](https://github.com/parmtech/Tong-Panel/issues/6) is also open with no review comments.
+- P1 development prototypes are spread across unmerged draft PRs, including internal Argon2id/MFA/rate-limit/login/session work and the HTTPS cookie boundary. They do not constitute an approved public login or production authentication system.
+- Isolated P2 Files and QA prototypes are in draft PRs #35–#42. The clean VM workflow tests the unsigned preview runtime only; it is not an installer, service lifecycle, rollback or restore drill.
+- No supported production package, privileged host mutation path, authenticated Files API/UI, full hosting lifecycle, signed release or restore acceptance has been verified. Do not install or deploy to a real host.
+
+The current combined-source and CI evidence is tracked in the [PR reconciliation report](PR_RECONCILIATION_2026-11-13.md) and [resume handoff](RESUME_HANDOFF_2026-11-12.md); the dated inventory above is historical.
+
+## Next concrete action — owner/security review required
+
+Record Accepted, Rejected or Needs revision for ADR-001 through ADR-009 and the threat model in the ADR register and owner issues. Then rebaseline the P1 exit gate against the actual unmerged prototypes. Do not expose public login, create privileged installer/service actions or claim P2 alpha completion before those trust and lifecycle decisions receive review. See UPDATES.md and AGENTS.md for the detailed current checkpoint.

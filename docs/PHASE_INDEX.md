@@ -1,5 +1,5 @@
 # Tong Panel — Phase Index / Single Operational Plan
-**Updated:** 2026-10-26. P1 includes development-only draft code in PR #14, **not production-ready**. All downstream hosting features are proposed unless UPDATES.md confirms implementation.
+**Updated:** 2026-11-13. The [combined development review](PR_RECONCILIATION_2026-11-13.md) preserves all original draft work. P0 decisions and phase acceptance remain open; use the [current handoff](RESUME_HANDOFF_2026-11-12.md) for executed evidence.
 
 | Phase | Goal | Prerequisite | Gate | Detailed plan |
 |---|---|---|---|---|
@@ -8,8 +8,12 @@
 | P2 | Web hosting single-server alpha | P1 | two-tenant isolation, PHP/DB/site/SSL, restore drill | [P2](phases/P2-HOSTING-ALPHA.md) |
 | P3 | Modern Node/Python/Git/container deployments | P2 | deploy/rollback plus sandbox hostile-app tests | [P3](phases/P3-APP-PLATFORM.md) |
 | P4 | Mail/DNS, reseller, migrations, more parity | P2/P3 | service and quota/migration acceptance tests | [P4](phases/P4-HOSTING-PARITY.md) |
-| P5 | Multi-server / plugin ecosystem | P4 | partition/revocation/recovery tests | [P5](phases/P5-MULTISERVER-ECOSYSTEM.md) |
+| P5 | Multi-server / plugin ecosystem | P4 | partition/revocation/recovery tests | [P5](phases/P5-MULTISERVER-ECOSYSTEM.md); [prerequisite assessment and test specification](P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md) |
 | P6 | Signed, audited 1.0 release | P1-P5 target scope tested | independent audit, verified install/backup/recovery | [P6](phases/P6-STABLE-RELEASE.md) |
+
+## For a new AI agent
+
+**Start with [AI_AGENT_START_HERE.md](AI_AGENT_START_HERE.md), [machine state](AI_AGENT_STATE.json), [AGENTS.md](../AGENTS.md) and live [PR #171](https://github.com/parmtech/Tong-Panel/pull/171).** [Tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) coordinates phases. The executable-source SHA `83fe8931` passed **13/13 workflows, including both full Ubuntu/Debian guest jobs**. Newer documentation-commit SHA needs separate CI verification. Next isolated test: synthetic rootless dpkg crash/reconciliation. No phase approval is inferred.
 
 ## Work sequence and parallelism
 Security, installer and UX can be planned concurrently during P0. P1 starts in isolated code branches with **non-privileged prototypes** while risky architecture decisions are reviewed, but root daemon and installer changes stay gated. P2 follows verified identity/jobs/agent boundary; P3 and optional mail/DNS design can start in parallel *after* P2 contracts stabilise. P5 must not arrive before reliable single-server recovery. P6 reviews and validates already-implemented scope rather than inventing missing features.
@@ -22,4 +26,5 @@ Security, installer and UX can be planned concurrently during P0. P1 starts in i
 - Completion is evidence-based; no invented percentages/dates, and no phase flips until gates pass.
 
 ## Current operational status
-P0 documents are drafted; architecture review pending. P1 experimental branch [PR #14](https://github.com/parmtech/Tong-Panel/pull/14) has passing Go CI but not production login/jobs/agent or installer. [Phase 1 report](PHASE1_REPORT_2026-10-26.md). No verified production installer or deployable hosting product. Check UPDATES.md for live commits and the exact next action.
+
+P0 review materials, P1/P2 development components and isolated P3/P4/P5 models are now present in the combined review branch. The models are design experiments with their own CI, not deployed app, migration or multi-node features. No phase is advanced by consolidation. Follow [UPDATES.md](../UPDATES.md) and the [current handoff](RESUME_HANDOFF_2026-11-12.md) for the exact code and subsequent hosted results.

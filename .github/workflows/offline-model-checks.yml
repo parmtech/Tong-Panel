@@ -1,0 +1,112 @@
+name: Offline model and fixture checks
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'prototypes/p1-release-manifest-model/**'
+      - 'prototypes/p3-deploy-recovery-model/**'
+      - 'prototypes/p4-migration-review/**'
+      - 'prototypes/p5-outcome-model/**'
+      - 'prototypes/p5-placement-gate-model/**'
+      - 'prototypes/p5-plugin-capability-model/**'
+      - 'testdata/p3-fixtures/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/offline-model-checks.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'prototypes/p1-release-manifest-model/**'
+      - 'prototypes/p3-deploy-recovery-model/**'
+      - 'prototypes/p4-migration-review/**'
+      - 'prototypes/p5-outcome-model/**'
+      - 'prototypes/p5-placement-gate-model/**'
+      - 'prototypes/p5-plugin-capability-model/**'
+      - 'testdata/p3-fixtures/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/offline-model-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  model:
+    name: ${{ matrix.name }} model
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: P1 signed-release verification lab
+            directory: prototypes/p1-release-manifest-model
+          - name: P3 deployment recovery
+            directory: prototypes/p3-deploy-recovery-model
+          - name: P4 migration review
+            directory: prototypes/p4-migration-review
+          - name: P5 remote outcome
+            directory: prototypes/p5-outcome-model
+          - name: P5 placement gate
+            directory: prototypes/p5-placement-gate-model
+          - name: P5 plugin capability
+            directory: prototypes/p5-plugin-capability-model
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ matrix.directory }}
+    env:
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+      GOWORK: 'off'
+      GOPROXY: 'off'
+      GOSUMDB: 'off'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Check Go formatting
+        run: |
+          files="$(gofmt -l .)"
+          if [ -n "$files" ]; then
+            printf 'Go files requiring gofmt:\n%s\n' "$files"
+            exit 1
+          fi
+      - name: Test offline model with race detection
+        run: go test -race -count=1 -timeout=120s ./...
+      - name: Vet offline model
+        run: go vet ./...
+      - name: Check module manifests remain unchanged
+        working-directory: ${{ github.workspace }}
+        run: git diff --exit-code -- go.mod go.sum 'prototypes/**/go.mod' 'prototypes/**/go.sum'
+
+  fixtures:
+    name: P3 synthetic app fixtures
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Record fixture runtime versions
+        run: |
+          node --version
+          python3 --version
+      - name: Test synthetic Node HTTP fixture on loopback
+        run: timeout --signal=TERM --kill-after=5s 60s node --test testdata/p3-fixtures/node/server.test.cjs
+      - name: Test synthetic Python ASGI fixture in process
+        run: timeout --signal=TERM --kill-after=5s 60s python3 -m unittest discover -s testdata/p3-fixtures/python -v

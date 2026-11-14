@@ -1,0 +1,128 @@
+name: P2 clean disposable VM smoke
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'cmd/tongd/**'
+      - 'cmd/tongctl/**'
+      - 'cmd/tongbackup/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'internal/files/**'
+      - 'internal/api/**'
+      - 'internal/backups/**'
+      - 'internal/sites/**'
+      - 'LICENSE'
+      - 'scripts/smoke_p1.py'
+      - 'scripts/verify_vm_image_checksum.sh'
+      - 'scripts/test_verify_vm_image_checksum.sh'
+      - 'scripts/clean_vm_smoke.sh'
+      - 'scripts/vm_startup_transport.sh'
+      - 'scripts/test_vm_startup_transport.sh'
+      - 'scripts/probe_https_isolation.py'
+      - 'scripts/test_probe_https_isolation.py'
+      - 'scripts/build_deb.sh'
+      - 'scripts/test_deb_package.sh'
+      - 'scripts/run_dpkg_labs.py'
+      - 'scripts/test_run_dpkg_labs.py'
+      - 'scripts/test_dpkg_failure_recovery_lab.py'
+      - 'scripts/test_dpkg_crash_recovery_lab.py'
+      - 'scripts/verify_dev_deb.py'
+      - 'scripts/test_verify_dev_deb.py'
+      - 'scripts/p2_package_install_vm.sh'
+      - 'scripts/smoke_mariadb_isolation.sh'
+      - 'scripts/smoke_encrypted_backup_restore.sh'
+      - 'scripts/test_backup_verify_cli.py'
+      - 'scripts/test_backup_export_site_cli.py'
+      - 'scripts/test_backup_restore_site_lab_cli.py'
+      - 'scripts/test_backup_verify_site_cli.py'
+      - 'scripts/test_backup_inspect_restore_lab_cli.py'
+      - 'scripts/smoke_wordpress_backup_source.sh'
+      - 'scripts/smoke_wordpress_restore_target.sh'
+      - 'scripts/smoke_nginx_config_rollback.sh'
+      - 'packaging/debian/**'
+      - '.github/workflows/p2-clean-vm-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  clean-vm:
+    name: ${{ matrix.distro }} clean VM smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu-24.04
+            image_url: https://cloud-images.ubuntu.com/releases/server/24.04/release-20261017/ubuntu-24.04-server-cloudimg-amd64.img
+            checksum_algorithm: sha256
+            image_checksum: 04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94
+            os_id: ubuntu
+            version_id: '24.04'
+          - distro: debian-12
+            image_url: https://cloud.debian.org/images/cloud/bookworm/20261026-2643/debian-12-genericcloud-amd64-20261026-2643.qcow2
+            checksum_algorithm: sha512
+            image_checksum: 0464b5d4ae3aa4f658468d88da83af7857b71548b30d46dcb6282770955a747fb95a983476db90d25afd0653af607224c7ebd05122ab71faa106fd712aaad652
+            os_id: debian
+            version_id: '12'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Test bounded HTTPS isolation diagnostics
+        run: python3 -m unittest discover -s scripts -p 'test_probe_https_isolation.py'
+      - name: Test guest SSH transport retries preserve command failures
+        run: bash scripts/test_vm_startup_transport.sh
+      - name: Test dpkg lab CI guard
+        run: python3 -m unittest discover -s scripts -p 'test_run_dpkg_labs.py' -v
+      - name: Verify isolated dpkg failure and explicit recovery semantics
+        run: python3 scripts/run_dpkg_labs.py failure
+        env:
+          TONG_DISPOSABLE_DPKG_LAB: '1'
+      - name: Verify isolated dpkg interruption and recovery semantics
+        run: python3 scripts/run_dpkg_labs.py crash
+        env:
+          TONG_DISPOSABLE_DPKG_LAB: '1'
+      - name: Build unsigned developer preview for isolated VM smoke
+        run: |
+          mkdir -p "$RUNNER_TEMP/tong-p1-dev/bin"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/bin/tongd" ./cmd/tongd
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/bin/tongctl" ./cmd/tongctl
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/bin/tongbackup" ./cmd/tongbackup
+          mkdir -p "$RUNNER_TEMP/tong-p1-dev/tests"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go test -c -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/tests/files.test" ./internal/files
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go test -c -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/tests/api.test" ./internal/api
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go test -c -trimpath -buildvcs=false -o "$RUNNER_TEMP/tong-p1-dev/tests/sites.test" ./internal/sites
+          cp LICENSE "$RUNNER_TEMP/tong-p1-dev/LICENSE"
+          cp scripts/smoke_mariadb_isolation.sh "$RUNNER_TEMP/tong-p1-dev/tests/mariadb-isolation.sh"
+          cp scripts/smoke_encrypted_backup_restore.sh "$RUNNER_TEMP/tong-p1-dev/tests/encrypted-backup-restore.sh"
+          cp scripts/smoke_nginx_config_rollback.sh "$RUNNER_TEMP/tong-p1-dev/tests/nginx-config-rollback.sh"
+          printf '%s\n' 'TONG PANEL — UNSIGNED DEVELOPER PREVIEW ONLY' 'DO NOT RUN ON A PRODUCTION SERVER OR EXPOSE TO THE INTERNET.' 'There is no production login, root host-agent action or verified installer.' 'The source is on unmerged development branches; do not use with customers.' 'This is NOT a supported distro package or signed release.' > "$RUNNER_TEMP/tong-p1-dev/DO_NOT_INSTALL.txt"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/tong-p1-UNSIGNED-dev-linux-amd64.tar.gz" tong-p1-dev
+          (cd "$RUNNER_TEMP" && sha256sum tong-p1-UNSIGNED-dev-linux-amd64.tar.gz > SHA256SUMS)
+      - name: Exercise synthetic backup verify CLI
+        run: python3 scripts/test_backup_verify_cli.py "$RUNNER_TEMP/tong-p1-dev/bin/tongbackup"
+      - name: Exercise synthetic site export CLI
+        run: python3 scripts/test_backup_export_site_cli.py "$RUNNER_TEMP/tong-p1-dev/bin/tongbackup"
+      - name: Exercise disposable site restore CLI
+        run: python3 scripts/test_backup_restore_site_lab_cli.py "$RUNNER_TEMP/tong-p1-dev/bin/tongbackup"
+      - name: Exercise synthetic verify-site CLI
+        run: python3 scripts/test_backup_verify_site_cli.py "$RUNNER_TEMP/tong-p1-dev/bin/tongbackup"
+      - name: Exercise disposable restore inventory CLI
+        run: python3 scripts/test_backup_inspect_restore_lab_cli.py "$RUNNER_TEMP/tong-p1-dev/bin/tongbackup"
+      - name: Verify image checker rejects tampered and malformed input
+        run: bash scripts/test_verify_vm_image_checksum.sh
+      - name: Build and validate unsigned developer package fixtures
+        run: bash scripts/test_deb_package.sh "$RUNNER_TEMP/tong-package-lab" "$RUNNER_TEMP/tong-p1-dev/bin/tongd" "$RUNNER_TEMP/tong-p1-dev/bin/tongctl"
+      - name: Boot clean guest and run the extracted preview smoke
+        env:
+          VM_DISTRO: ${{ matrix.distro }}
+          VM_IMAGE_URL: ${{ matrix.image_url }}
+          VM_CHECKSUM_ALGORITHM: ${{ matrix.checksum_algorithm }}
+          VM_IMAGE_CHECKSUM: ${{ matrix.image_checksum }}
+          VM_EXPECTED_ID: ${{ matrix.os_id }}
+          VM_EXPECTED_VERSION: ${{ matrix.version_id }}
+          VM_RUNNER_TEMP: ${{ runner.temp }}
+        run: bash scripts/clean_vm_smoke.sh

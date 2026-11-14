@@ -1,0 +1,37 @@
+name: Go checks
+on:
+  push:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - '.github/workflows/go-checks.yml'
+  pull_request:
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - '.github/workflows/go-checks.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: gofmt check
+        run: |
+          files="$(gofmt -l cmd internal)"
+          if [ -n "$files" ]; then
+            printf "Go files requiring gofmt:\\n%s\\n" "$files"
+            for file in $files; do diff -u "$file" <(gofmt "$file") || true; done
+            exit 1
+          fi
+      - name: Test
+        run: go test -race ./...
+      - name: Fuzz the ping-only agent request decoder
+        run: go test ./internal/agent -run '^$' -fuzz '^FuzzDecodeRequestOnlyAllowsPing$' -fuzztime=10s
+      - name: Vet
+        run: go vet ./...

@@ -1,0 +1,33 @@
+name: P1 gate blocker inventory
+on:
+  pull_request:
+    paths:
+      - 'scripts/p1_gate_audit.py'
+      - 'scripts/test_p1_gate_audit.py'
+      - 'docs/P1_GATE_SNAPSHOT.json'
+      - 'docs/ADR_REGISTER.md'
+      - 'docs/ADR-009-AUTHENTICATION.md'
+      - 'docs/THREAT_MODEL.md'
+      - 'docs/SECURITY.md'
+      - 'docs/P1_CERTIFICATE_OPERATION_CONTRACT.md'
+      - 'docs/P1_BROWSER_TERMINAL_PROPOSAL.md'
+      - 'docs/INSTALLER_SPEC.md'
+      - 'docs/P2_TWO_TENANT_END_TO_END_ACCEPTANCE.md'
+      - 'docs/UX_UI_SPEC.md'
+      - '.github/workflows/p1-gate-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    name: Verify blockers remain explicit (not release approval)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Assert blocker manifest and negative cases
+        run: python3 -m unittest discover -s scripts -p 'test_p1_gate_audit.py' -v
+      - name: Audit development blockers; a blocked result is expected
+        run: python3 scripts/p1_gate_audit.py --expect-blocked

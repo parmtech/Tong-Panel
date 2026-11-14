@@ -32,3 +32,8 @@ tongctl doctor, tongctl status, tongctl update, tongctl backup, tongctl restore,
 
 ## CI install validation
 Test clean OS VM matrices and resource profiles, upgrades from previous release, failure at each journal checkpoint, reinstalls, recovery, partial network outages, permission confinement, no accidental data deletion and operator SSH access preservation.
+
+
+## Current non-privileged failure-recovery lab (13 November 2026)
+
+The [isolated dpkg failure/recovery fixture](P1_DPKG_FAILURE_RECOVERY_LAB.md) deliberately exercises non-root, temporary-root `dpkg` behavior: failed new `preinst` preserves an earlier installed version, failed new `postinst` leaves a **half-configured** package requiring an explicitly verified recovery, corrupt archive is rejected, and an old `prerm` failure **can be recovered by dpkg automatically via the new package's hook**. No real Tong Panel package or service is installed by this fixture. These are prerequisites for a reviewable installer failure contract, not a completed installer, verified trust anchor, durable power-loss journal or production compatibility claim. Root/package manager authorization remains subject to P0 and ADR-007/008 security review.

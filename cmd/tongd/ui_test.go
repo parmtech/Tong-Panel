@@ -1,0 +1,41 @@
+package main
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/parmtech/tong-panel/internal/api"
+)
+
+func TestUIAndStaticRouting(t *testing.T) {
+	h := publicHandler(&api.Server{})
+	for _, p := range []string{"/", "/ui/style.css", "/ui/app.js", "/ui/panel-status.mjs", "/ui/site-preview.mjs", "/ui/files-explorer.mjs", "/ui/my-jobs.mjs", "/ui/sites-list.mjs", "/ui/acme-preflight.mjs"} {
+		r := httptest.NewRecorder()
+		h.ServeHTTP(r, httptest.NewRequest(http.MethodGet, p, nil))
+		if r.Code != 200 {
+			t.Fatalf("%s got %d: %s", p, r.Code, r.Body.String())
+		}
+		if strings.HasSuffix(p, ".mjs") && !strings.HasPrefix(r.Header().Get("Content-Type"), "text/javascript") {
+			t.Fatalf("module has unexpected Content-Type %q", r.Header().Get("Content-Type"))
+		}
+	}
+	r := httptest.NewRecorder()
+	h.ServeHTTP(r, httptest.NewRequest(http.MethodGet, "/", nil))
+	if !strings.Contains(r.Body.String(), "Development preview") {
+		t.Fatal("UI not a labeled preview")
+	}
+	for _, label := range []string{`aria-label="Home"`, `aria-label="Roadmap"`, `aria-label="Updates"`, `aria-label="Source code"`, `id="refresh-status"`, `id="site-preview-form"`, `id="site-preview-status"`, `id="files-explorer-title"`, `id="files-refresh"`, `id="files-status"`, `id="jobs-panel"`, `id="jobs-title"`, `id="jobs-refresh"`, `id="jobs-status"`, `id="jobs-list"`, `id="job-detail"`, `id="job-detail-title"`, `id="job-detail-retry"`, `aria-live="polite"`} {
+		if !strings.Contains(r.Body.String(), label) {
+			t.Fatalf("UI missing accessible status/navigation contract %q", label)
+		}
+	}
+	for _, p := range []string{"/ui/../../../etc/passwd", "/settings"} {
+		r = httptest.NewRecorder()
+		h.ServeHTTP(r, httptest.NewRequest("GET", p, nil))
+		if r.Code == 200 {
+			t.Fatalf("unexpected route %s", p)
+		}
+	}
+}

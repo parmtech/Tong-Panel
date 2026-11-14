@@ -1,0 +1,775 @@
+//go:build linux
+
+package files
+
+import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path"
+	"strings"
+	"time"
+
+	"golang.org/x/sys/unix"
+)
+
+const (
+	MaxArchiveCompressedBytes         int64 = 32 << 20
+	MaxArchiveExpandedBytes           int64 = 80 << 20
+	MaxArchiveFileBytes               int64 = 16 << 20
+	MaxArchiveTotalBytes              int64 = 64 << 20
+	MaxArchiveEntries                       = 2048
+	MaxVerifiedArchiveCompressedBytes int64 = 64 << 20
+	MaxVerifiedArchiveExpandedBytes   int64 = 160 << 20
+	MaxVerifiedArchiveFileBytes       int64 = 32 << 20
+	MaxVerifiedArchiveTotalBytes      int64 = 128 << 20
+	MaxVerifiedArchiveEntries               = 8192
+)
+
+var (
+	ErrInvalidArchive            = errors.New("invalid or unsupported archive entry")
+	ErrArchiveLimit              = errors.New("archive exceeds configured limit")
+	ErrPublicationOutcomeUnknown = errors.New("archive publication outcome unknown")
+)
+
+// ArchiveLimits may lower the hard bounds for a caller. Zero fields select the
+// package defaults; values above those defaults are rejected.
+type ArchiveLimits struct {
+	CompressedBytes int64
+	ExpandedBytes   int64
+	FileBytes       int64
+	TotalBytes      int64
+	Entries         int
+}
+
+func (l ArchiveLimits) withDefaults() (ArchiveLimits, error) {
+	return l.withCaps(ArchiveLimits{
+		CompressedBytes: MaxArchiveCompressedBytes,
+		ExpandedBytes:   MaxArchiveExpandedBytes,
+		FileBytes:       MaxArchiveFileBytes,
+		TotalBytes:      MaxArchiveTotalBytes,
+		Entries:         MaxArchiveEntries,
+	})
+}
+
+func (l ArchiveLimits) withVerifiedDefaults() (ArchiveLimits, error) {
+	return l.withCaps(ArchiveLimits{
+		CompressedBytes: MaxVerifiedArchiveCompressedBytes,
+		ExpandedBytes:   MaxVerifiedArchiveExpandedBytes,
+		FileBytes:       MaxVerifiedArchiveFileBytes,
+		TotalBytes:      MaxVerifiedArchiveTotalBytes,
+		Entries:         MaxVerifiedArchiveEntries,
+	})
+}
+
+func (l ArchiveLimits) withCaps(max ArchiveLimits) (ArchiveLimits, error) {
+	if l.CompressedBytes == 0 {
+		l.CompressedBytes = max.CompressedBytes
+	}
+	if l.ExpandedBytes == 0 {
+		l.ExpandedBytes = max.ExpandedBytes
+	}
+	if l.FileBytes == 0 {
+		l.FileBytes = max.FileBytes
+	}
+	if l.TotalBytes == 0 {
+		l.TotalBytes = max.TotalBytes
+	}
+	if l.Entries == 0 {
+		l.Entries = max.Entries
+	}
+	if l.CompressedBytes < 1 || l.CompressedBytes > max.CompressedBytes ||
+		l.ExpandedBytes < 1 || l.ExpandedBytes > max.ExpandedBytes ||
+		l.FileBytes < 1 || l.FileBytes > max.FileBytes ||
+		l.TotalBytes < 1 || l.TotalBytes > max.TotalBytes ||
+		l.Entries < 1 || l.Entries > max.Entries {
+		return ArchiveLimits{}, ErrInvalidLimit
+	}
+	return l, nil
+}
+
+// ReadGzipTarBounded reads at most maxBytes+1 bytes to determine whether the
+// compressed input exceeds its configured cap. It never reads the full
+// untrusted stream before checking the limit. Callers should pass request
+// bodies directly to ExtractGzipTarNewFrom rather than allocating them first.
+func ReadGzipTarBounded(src io.Reader, maxBytes int64) ([]byte, error) {
+	if src == nil {
+		return nil, ErrInvalidArchive
+	}
+	if maxBytes < 1 || maxBytes > MaxArchiveCompressedBytes {
+		return nil, ErrInvalidLimit
+	}
+	data, err := io.ReadAll(io.LimitReader(src, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, ErrArchiveLimit
+	}
+	return data, nil
+}
+
+// ExtractGzipTarNew extracts a bounded gzip-compressed tar archive into a new
+// directory below the pinned root. It publishes the completed tree atomically
+// and never replaces an existing path. Only regular files and directories are
+// accepted; symlinks, hardlinks, devices, FIFOs, traversal and duplicate paths
+// fail closed. Files use mode 0600 and directories mode 0700. A returned
+// ErrPublishedDurabilityUnconfirmed means publication occurred and directory
+// durability could not be confirmed. ErrPublicationOutcomeUnknown means the
+// rename was attempted but its effect is unknown. Both require reconciliation.
+func (r *Root) ExtractGzipTarNew(relative string, archive []byte, limits ArchiveLimits) error {
+	return r.extractGzipTarNew(relative, archive, limits, false)
+}
+
+// ExtractVerifiedGzipTarNew verifies a caller-pinned SHA-256 before extracting
+// a larger vendor artifact. It retains the same path, type, no-replace and
+// atomic-publication protections as ExtractGzipTarNew, with larger but still
+// bounded archive limits appropriate for a checksum-pinned application core.
+// Callers must obtain expectedSHA256 from a reviewed, immutable release pin.
+func (r *Root) ExtractVerifiedGzipTarNew(relative string, archive []byte, expectedSHA256 [sha256.Size]byte) error {
+	if int64(len(archive)) > MaxVerifiedArchiveCompressedBytes {
+		return ErrArchiveLimit
+	}
+	actual := sha256.Sum256(archive)
+	if subtle.ConstantTimeCompare(actual[:], expectedSHA256[:]) != 1 {
+		return ErrInvalidArchive
+	}
+	return r.extractGzipTarNew(relative, archive, ArchiveLimits{}, true)
+}
+
+func (r *Root) extractGzipTarNew(relative string, archive []byte, limits ArchiveLimits, verified bool) error {
+	return r.extractGzipTarNewContext(context.Background(), relative, archive, limits, verified, unix.Fsync)
+}
+
+func (r *Root) extractGzipTarNewContext(ctx context.Context, relative string, archive []byte, limits ArchiveLimits, verified bool, syncDir func(int) error) error {
+	var ignored ArchivePublishResult
+	return r.extractGzipTarNewWithResult(ctx, relative, archive, limits, verified, syncDir, unix.Renameat2, &ignored)
+}
+
+type ArchivePublicationState uint8
+
+const (
+	ArchiveNotPublished ArchivePublicationState = iota
+	ArchivePublished
+	ArchivePublicationUnknown
+)
+
+// ArchivePublishResult reports observed publication in a returned call; process
+// crashes require separate reconciliation. LogicalBytes counts only regular
+// file contents of the validated candidate for Published or Unknown. Neither
+// NotPublished nor an error proves staging cleanup succeeded, establishes disk
+// usage, or makes a quota reservation safe to release.
+type ArchivePublishResult struct {
+	State        ArchivePublicationState
+	LogicalBytes int64
+}
+
+func (r *Root) extractGzipTarNewWithResult(ctx context.Context, relative string, archive []byte, limits ArchiveLimits, verified bool, syncDir func(int) error, rename func(int, string, int, string, uint) error, result *ArchivePublishResult) error {
+	if result == nil {
+		return ErrInvalidContext
+	}
+	*result = ArchivePublishResult{}
+	if ctx == nil {
+		return ErrInvalidContext
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if syncDir == nil || rename == nil {
+		return ErrInvalidContext
+	}
+	if r == nil {
+		return ErrClosed
+	}
+	if !validRelativePath(relative) {
+		return ErrInvalidPath
+	}
+	var err error
+	if verified {
+		limits, err = limits.withVerifiedDefaults()
+	} else {
+		limits, err = limits.withDefaults()
+	}
+	if err != nil {
+		return err
+	}
+	if int64(len(archive)) > limits.CompressedBytes {
+		return ErrArchiveLimit
+	}
+
+	r.operations.RLock()
+	defer r.operations.RUnlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if !r.open {
+		return ErrClosed
+	}
+	parent, base, err := r.openParent(relative)
+	if err != nil {
+		return err
+	}
+	defer unix.Close(parent)
+
+	var random [16]byte
+	if _, err := rand.Read(random[:]); err != nil {
+		return err
+	}
+	stage := ".tong-archive-stage-" + hex.EncodeToString(random[:])
+	if err := unix.Mkdirat(r.fd, stage, 0700); err != nil {
+		return err
+	}
+	stageFD, err := unix.Openat2(r.fd, stage, &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		return err
+	}
+	if err := unix.Flock(stageFD, unix.LOCK_EX|unix.LOCK_NB); err != nil {
+		_ = unix.Close(stageFD)
+		_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		return err
+	}
+	published := false
+	defer func() {
+		if !published {
+			_ = removeArchiveTree(stageFD)
+			_ = unix.Unlinkat(r.fd, stage, unix.AT_REMOVEDIR)
+		}
+		_ = unix.Close(stageFD)
+	}()
+
+	var logicalBytes int64
+	if err := extractTarInto(stageFD, archive, limits, &logicalBytes); err != nil {
+		return err
+	}
+	if err := syncArchiveTree(stageFD); err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	// A known existing target can be rejected before attempting rename. This
+	// is an optimization only: RENAME_NOREPLACE remains the authoritative
+	// no-overwrite check for a target created after this observation.
+	var existing unix.Stat_t
+	if err := unix.Fstatat(parent, base, &existing, unix.AT_SYMLINK_NOFOLLOW); err == nil {
+		return ErrAlreadyExists
+	} else if !errors.Is(err, unix.ENOENT) {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := rename(r.fd, stage, parent, base, unix.RENAME_NOREPLACE); err != nil {
+		// A filesystem error can leave rename outcome ambiguous. The stage FD
+		// may now refer to the published destination; never erase it here.
+		published = true
+		*result = ArchivePublishResult{State: ArchivePublicationUnknown, LogicalBytes: logicalBytes}
+		if errors.Is(err, unix.EEXIST) {
+			return fmt.Errorf("%w: %w: %w", ErrPublicationOutcomeUnknown, ErrAlreadyExists, err)
+		}
+		return fmt.Errorf("%w: %w", ErrPublicationOutcomeUnknown, err)
+	}
+	published = true
+	*result = ArchivePublishResult{State: ArchivePublished, LogicalBytes: logicalBytes}
+	if err := syncDir(parent); err != nil {
+		return fmt.Errorf("%w: %w", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	rootDir, err := unix.Openat2(r.fd, ".", &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	defer unix.Close(rootDir)
+	if err := syncDir(rootDir); err != nil {
+		return fmt.Errorf("%w: %w", ErrPublishedDurabilityUnconfirmed, err)
+	}
+	return nil
+}
+
+// ExtractGzipTarNewFrom reads a gzip tar stream under its compressed-byte
+// limit, then extracts it using the same atomic no-replace contract as
+// ExtractGzipTarNew. It does not close src.
+func (r *Root) ExtractGzipTarNewFrom(relative string, src io.Reader, limits ArchiveLimits) error {
+	if r == nil {
+		return ErrClosed
+	}
+	if !validRelativePath(relative) {
+		return ErrInvalidPath
+	}
+	limits, err := limits.withDefaults()
+	if err != nil {
+		return err
+	}
+	r.mu.RLock()
+	open := r.open
+	r.mu.RUnlock()
+	if !open {
+		return ErrClosed
+	}
+	archive, err := ReadGzipTarBounded(src, limits.CompressedBytes)
+	if err != nil {
+		return err
+	}
+	return r.ExtractGzipTarNew(relative, archive, limits)
+}
+
+func extractTarInto(stageFD int, archive []byte, limits ArchiveLimits, logicalBytes *int64) error {
+	return parseGzipTar(stageFD, archive, limits, logicalBytes, false)
+}
+
+// parseGzipTar uses one validation path for extraction and no-write inspection.
+// Validation-only mode consumes file bytes but never calls filesystem writers.
+func parseGzipTar(stageFD int, archive []byte, limits ArchiveLimits, logicalBytes *int64, validateOnly bool) error {
+	source := bytes.NewReader(archive)
+	gz, err := gzip.NewReader(source)
+	if err != nil {
+		return ErrInvalidArchive
+	}
+	gz.Multistream(false)
+	defer gz.Close()
+
+	// Read one byte beyond the inclusive limit so the caller can distinguish
+	// an archive that ends exactly at the limit from one that exceeds it.
+	bounded := &io.LimitedReader{R: gz, N: limits.ExpandedBytes + 1}
+	tr := tar.NewReader(bounded)
+	seenHeaders := make(map[string]struct{})
+	directories := make(map[string]struct{})
+	files := make(map[string]struct{})
+	nodes := 0
+	totalBytes := int64(0)
+	headerCount := 0
+
+	for {
+		header, err := tr.Next()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			if bounded.N == 0 {
+				return ErrArchiveLimit
+			}
+			return ErrInvalidArchive
+		}
+		headerCount++
+		if headerCount > limits.Entries {
+			return ErrArchiveLimit
+		}
+		name, err := cleanArchivePath(header.Name, header.Typeflag == tar.TypeDir)
+		if err != nil {
+			return err
+		}
+		if _, exists := seenHeaders[name]; exists {
+			return ErrInvalidArchive
+		}
+		seenHeaders[name] = struct{}{}
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := ensureArchiveDirs(stageFD, name, directories, files, &nodes, limits.Entries, validateOnly); err != nil {
+				return err
+			}
+		case tar.TypeReg, tar.TypeRegA:
+			if header.Size < 0 || header.Size > limits.FileBytes || header.Size > limits.TotalBytes-totalBytes {
+				return ErrArchiveLimit
+			}
+			parent := path.Dir(name)
+			if parent != "." {
+				if err := ensureArchiveDirs(stageFD, parent, directories, files, &nodes, limits.Entries, validateOnly); err != nil {
+					return err
+				}
+			}
+			if _, exists := directories[name]; exists {
+				return ErrInvalidArchive
+			}
+			if validateOnly {
+				written, copyErr := io.CopyN(io.Discard, tr, header.Size)
+				if copyErr != nil || written != header.Size {
+					if bounded.N == 0 {
+						return ErrArchiveLimit
+					}
+					return ErrInvalidArchive
+				}
+			} else {
+				fd, err := unix.Openat2(stageFD, name, &unix.OpenHow{
+					Flags:   uint64(unix.O_WRONLY | unix.O_CREAT | unix.O_EXCL | unix.O_CLOEXEC | unix.O_NOFOLLOW | unix.O_NONBLOCK | unix.O_NOCTTY),
+					Mode:    0600,
+					Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+				})
+				if err != nil {
+					return ErrInvalidArchive
+				}
+				f := os.NewFile(uintptr(fd), name)
+				written, copyErr := io.CopyN(f, tr, header.Size)
+				if copyErr == nil && written != header.Size {
+					copyErr = io.ErrUnexpectedEOF
+				}
+				if copyErr == nil {
+					copyErr = f.Sync()
+				}
+				closeErr := f.Close()
+				if copyErr != nil {
+					if bounded.N == 0 {
+						return ErrArchiveLimit
+					}
+					return ErrInvalidArchive
+				}
+				if closeErr != nil {
+					return closeErr
+				}
+			}
+			nodes++
+			if nodes > limits.Entries {
+				return ErrArchiveLimit
+			}
+			files[name] = struct{}{}
+			totalBytes += header.Size
+		default:
+			return ErrInvalidArchive
+		}
+	}
+
+	var tail zeroOnlyWriter
+	if _, err := io.Copy(&tail, bounded); err != nil {
+		return ErrInvalidArchive
+	}
+	if bounded.N == 0 {
+		return ErrArchiveLimit
+	}
+	if tail.nonZero || source.Len() != 0 {
+		return ErrInvalidArchive
+	}
+	*logicalBytes = totalBytes
+	return nil
+}
+
+type zeroOnlyWriter struct{ nonZero bool }
+
+func (w *zeroOnlyWriter) Write(p []byte) (int, error) {
+	for _, b := range p {
+		if b != 0 {
+			w.nonZero = true
+			return 0, ErrInvalidArchive
+		}
+	}
+	return len(p), nil
+}
+
+func cleanArchivePath(name string, directory bool) (string, error) {
+	if name == "" || strings.ContainsRune(name, '\x00') || strings.Contains(name, "\\") || len(name) > 4096 || path.IsAbs(name) {
+		return "", ErrInvalidArchive
+	}
+	if directory {
+		name = strings.TrimSuffix(name, "/")
+	}
+	if name == "" || path.Clean(name) != name {
+		return "", ErrInvalidArchive
+	}
+	for _, part := range strings.Split(name, "/") {
+		if part == "" || part == "." || part == ".." || len(part) > 255 {
+			return "", ErrInvalidArchive
+		}
+	}
+	return name, nil
+}
+
+func ensureArchiveDirs(stageFD int, name string, directories, files map[string]struct{}, nodes *int, maxNodes int, validateOnly bool) error {
+	current := ""
+	for _, part := range strings.Split(name, "/") {
+		if current == "" {
+			current = part
+		} else {
+			current += "/" + part
+		}
+		if _, isFile := files[current]; isFile {
+			return ErrInvalidArchive
+		}
+		if _, exists := directories[current]; exists {
+			continue
+		}
+		if !validateOnly {
+			if err := unix.Mkdirat(stageFD, current, 0700); err != nil {
+				if !errors.Is(err, unix.EEXIST) {
+					return ErrInvalidArchive
+				}
+				var stat unix.Stat_t
+				if err := unix.Fstatat(stageFD, current, &stat, unix.AT_SYMLINK_NOFOLLOW); err != nil || stat.Mode&unix.S_IFMT != unix.S_IFDIR {
+					return ErrInvalidArchive
+				}
+			}
+		}
+		*nodes++
+		if *nodes > maxNodes {
+			return ErrArchiveLimit
+		}
+		directories[current] = struct{}{}
+	}
+	return nil
+}
+
+func syncArchiveTree(dirFD int) error {
+	dup, err := unix.Openat2(dirFD, ".", &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		return err
+	}
+	f := os.NewFile(uintptr(dup), "archive-dir")
+	names, readErr := f.Readdirnames(-1)
+	closeErr := f.Close()
+	if readErr != nil {
+		return readErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	for _, name := range names {
+		var stat unix.Stat_t
+		if err := unix.Fstatat(dirFD, name, &stat, unix.AT_SYMLINK_NOFOLLOW); err != nil {
+			return err
+		}
+		switch stat.Mode & unix.S_IFMT {
+		case unix.S_IFDIR:
+			child, err := unix.Openat2(dirFD, name, &unix.OpenHow{
+				Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+				Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+			})
+			if err != nil {
+				return err
+			}
+			err = syncArchiveTree(child)
+			if err == nil {
+				err = unix.Fsync(child)
+			}
+			_ = unix.Close(child)
+			if err != nil {
+				return err
+			}
+		case unix.S_IFREG:
+		default:
+			return ErrInvalidArchive
+		}
+	}
+	return unix.Fsync(dirFD)
+}
+
+func removeArchiveTree(dirFD int) error {
+	dup, err := unix.Dup(dirFD)
+	if err != nil {
+		return err
+	}
+	f := os.NewFile(uintptr(dup), "archive-dir")
+	names, readErr := f.Readdirnames(-1)
+	closeErr := f.Close()
+	if readErr != nil {
+		return readErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	for _, name := range names {
+		var stat unix.Stat_t
+		if err := unix.Fstatat(dirFD, name, &stat, unix.AT_SYMLINK_NOFOLLOW); err != nil {
+			if errors.Is(err, unix.ENOENT) {
+				continue
+			}
+			return err
+		}
+		if stat.Mode&unix.S_IFMT == unix.S_IFDIR {
+			child, err := unix.Openat2(dirFD, name, &unix.OpenHow{
+				Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+				Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+			})
+			if err != nil {
+				return err
+			}
+			err = removeArchiveTree(child)
+			_ = unix.Close(child)
+			if err != nil {
+				return err
+			}
+			if err := unix.Unlinkat(dirFD, name, unix.AT_REMOVEDIR); err != nil {
+				return err
+			}
+		} else if err := unix.Unlinkat(dirFD, name, 0); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+const archiveStagePrefix = ".tong-archive-stage-"
+
+// CleanupStaleStages removes eligible abandoned internal write stages older
+// than olderThan. Archive stages are retained regardless of age: without a
+// durable publication journal an unlocked stage may represent an unresolved
+// rename outcome. This helper is not restore reconciliation. It skips recent,
+// aliased, wrongly-owned, permissive, and actively locked write stages.
+func (r *Root) CleanupStaleStages(olderThan time.Duration) (int, error) {
+	if r == nil {
+		return 0, ErrClosed
+	}
+	if olderThan < time.Hour {
+		return 0, ErrInvalidLimit
+	}
+	r.operations.RLock()
+	defer r.operations.RUnlock()
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if !r.open {
+		return 0, ErrClosed
+	}
+	rootFD, err := unix.Openat2(r.fd, ".", &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		return 0, err
+	}
+	defer unix.Close(rootFD)
+	scanFD, err := unix.Openat2(r.fd, ".", &unix.OpenHow{
+		Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		return 0, err
+	}
+	rootFile := os.NewFile(uintptr(scanFD), "file-root-scan")
+	if rootFile == nil {
+		_ = unix.Close(scanFD)
+		return 0, ErrInvalidRoot
+	}
+	names, readErr := rootFile.Readdirnames(-1)
+	closeErr := rootFile.Close()
+	if readErr != nil {
+		return 0, readErr
+	}
+	if closeErr != nil {
+		return 0, closeErr
+	}
+
+	cutoff := time.Now().Add(-olderThan)
+	removed := 0
+	for _, name := range names {
+		if !validInternalStageName(name) || strings.HasPrefix(name, archiveStagePrefix) {
+			continue
+		}
+		var before unix.Stat_t
+		if err := unix.Fstatat(r.fd, name, &before, unix.AT_SYMLINK_NOFOLLOW); err != nil {
+			if errors.Is(err, unix.ENOENT) {
+				continue
+			}
+			return removed, err
+		}
+		if !staleInternalStage(before, cutoff) {
+			continue
+		}
+		stageFD, err := unix.Openat2(r.fd, name, &unix.OpenHow{
+			Flags:   uint64(unix.O_RDONLY | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+			Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+		})
+		if err != nil {
+			if errors.Is(err, unix.ENOENT) || errors.Is(err, unix.ELOOP) {
+				continue
+			}
+			return removed, err
+		}
+		var opened unix.Stat_t
+		if err := unix.Fstat(stageFD, &opened); err != nil {
+			_ = unix.Close(stageFD)
+			return removed, err
+		}
+		if !sameInternalStage(before, opened) || !staleInternalStage(opened, cutoff) {
+			_ = unix.Close(stageFD)
+			continue
+		}
+		if err := unix.Flock(stageFD, unix.LOCK_EX|unix.LOCK_NB); err != nil {
+			_ = unix.Close(stageFD)
+			if errors.Is(err, unix.EWOULDBLOCK) || errors.Is(err, unix.EAGAIN) {
+				continue
+			}
+			return removed, err
+		}
+		var current unix.Stat_t
+		statErr := unix.Fstatat(r.fd, name, &current, unix.AT_SYMLINK_NOFOLLOW)
+		if statErr != nil || !sameInternalStage(opened, current) || !staleInternalStage(current, cutoff) {
+			_ = unix.Flock(stageFD, unix.LOCK_UN)
+			_ = unix.Close(stageFD)
+			if statErr != nil && !errors.Is(statErr, unix.ENOENT) {
+				return removed, statErr
+			}
+			continue
+		}
+		if err := removeArchiveTree(stageFD); err != nil {
+			_ = unix.Flock(stageFD, unix.LOCK_UN)
+			_ = unix.Close(stageFD)
+			return removed, err
+		}
+		_ = unix.Flock(stageFD, unix.LOCK_UN)
+		_ = unix.Close(stageFD)
+		if err := unix.Unlinkat(r.fd, name, unix.AT_REMOVEDIR); err != nil {
+			if errors.Is(err, unix.ENOENT) {
+				continue
+			}
+			return removed, err
+		}
+		removed++
+	}
+	if removed > 0 {
+		if err := unix.Fsync(rootFD); err != nil {
+			return removed, err
+		}
+	}
+	return removed, nil
+}
+
+// CleanupStaleArchiveStages is a compatibility alias. It cleans eligible write
+// stages only; archive stages require explicit reconciliation and are retained.
+func (r *Root) CleanupStaleArchiveStages(olderThan time.Duration) (int, error) {
+	return r.CleanupStaleStages(olderThan)
+}
+
+func validInternalStageName(name string) bool {
+	for _, prefix := range []string{writeStagePrefix, archiveStagePrefix} {
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+		suffix := strings.TrimPrefix(name, prefix)
+		if len(suffix) != 32 {
+			return false
+		}
+		for _, char := range suffix {
+			if (char < '0' || char > '9') && (char < 'a' || char > 'f') {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func staleInternalStage(stat unix.Stat_t, cutoff time.Time) bool {
+	modified := time.Unix(stat.Mtim.Sec, stat.Mtim.Nsec)
+	return stat.Mode&unix.S_IFMT == unix.S_IFDIR &&
+		stat.Uid == uint32(unix.Geteuid()) &&
+		stat.Mode&0077 == 0 &&
+		!modified.After(cutoff)
+}
+
+func sameInternalStage(a, b unix.Stat_t) bool {
+	return a.Dev == b.Dev && a.Ino == b.Ino
+}
