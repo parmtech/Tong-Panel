@@ -57,6 +57,16 @@ def main():
             return ["restore-site-lab", "--tenant", tenant, "--key-file", str(key_path), "--root", str(directory),
                     "--destination", "restored", "--disposable-only"]
 
+        def inspect_empty_inventory(directory):
+            env = dict(os.environ)
+            env["TONG_DISPOSABLE_SITE_RESTORE"] = "1"
+            result = subprocess.run([binary, "inspect-restore-lab", "--root", str(directory), "--disposable-only"],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30, check=False, env=env)
+            expected = (b"Archive stages observed: 0\n"
+                        b"Snapshot includes active stages; count does not establish publication or permit deletion or quota release.\n")
+            if result.returncode != 0 or result.stdout != expected or result.stderr:
+                raise AssertionError("unexpected restore inventory response")
+
         damaged = bytearray(sealed); damaged[len(damaged) // 2] ^= 1
         cases = [
             ("wrong-tenant", "tenant-b", key, sealed, True, True),
@@ -78,6 +88,10 @@ def main():
             if enabled and flag:
                 if not directory.is_dir() or list(directory.iterdir()):
                     raise AssertionError("authentication denial did not retain an empty lab root")
+                if name == "wrong-key":
+                    inspect_empty_inventory(directory)
+                    if list(directory.iterdir()):
+                        raise AssertionError("inventory modified denied restore root")
             elif directory.exists():
                 raise AssertionError("missing opt-in created a lab root")
         nonempty = lab("nonempty")
@@ -121,6 +135,9 @@ def main():
             raise AssertionError("restored site differs from source")
         if not (restored / "empty").is_dir() or sorted(p.name for p in target.iterdir()) != ["restored"]:
             raise AssertionError("unexpected restored tree or stage")
+        inspect_empty_inventory(target)
+        if (restored / "index.html").read_bytes() != marker or (restored / "nested" / "data.bin").read_bytes() != data:
+            raise AssertionError("inventory changed restored site")
         if artifact.read_bytes() != sealed:
             raise AssertionError("source ciphertext changed")
     print("synthetic export-to-restore-site-lab CLI checks passed")
