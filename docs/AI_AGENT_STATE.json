@@ -95,7 +95,7 @@
   "next": {
     "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
     "priority": 1,
-    "action": "Inspect 9cafc4f exact-source Linux and both guest CI including hostile archive process tests; investigate failures.",
+    "action": "Inspect 71eaede exact-source Linux and clean-guest CI; continue unblocked durable reconciliation/authorization work with existing gates.",
     "required_evidence": [
       "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
       "explicit disposable-only opt-in and non-root guard",
@@ -138,9 +138,9 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "9cafc4f55cef51fc5aaad4fe709f5a335b0e76b2",
+    "sha": "71eaedea7b441b082d4644bd1b5e46ff398f32a2",
     "hosted_ci": "pending_at_handoff",
-    "evidence": "identical source plus branch-only workflow passed Linux runner 43439903805 affected race tests and process cases; security review no concrete blocker",
-    "limitations": "structure validation only; no capacity, authority, quota or application recovery guarantee; guest CI pending"
+    "evidence": "identical source plus branch-only workflow passed Linux runner 43543882477; b3ce476 both clean guests passed",
+    "limitations": "count includes active stages; zero does not authorize deletion/quota release; no durable reconciliation"
   }
 }
