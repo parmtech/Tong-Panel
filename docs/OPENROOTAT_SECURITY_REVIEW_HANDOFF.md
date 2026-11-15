@@ -8,10 +8,11 @@ an approval.
 ## Scope
 
 The candidate is based on PR #171 source `dff0a230f3c7840df118efec63fa00011435e9a4`.
-The isolated QA branch `codex/qa-root-at-runtime-20261116` contains the
-candidate at `c79f589abb60ecfbb87201dd6fa1aaebd9e05975`; its branch-only Linux
-workflow passed, but the current worktree has an additional umask edge under
-review and requires a fresh exact-candidate run.
+The first isolated QA branch `codex/qa-root-at-runtime-20261116` tested
+`c79f589abb60ecfbb87201dd6fa1aaebd9e05975` before the umask fix; its
+branch-only Linux workflow passed. The updated candidate is local commit
+`d98e0f35fab91709ac8536aae1d06ca5343e16d7` and requires its own exact-candidate
+Linux run before integration.
 
 Files in the candidate:
 
@@ -63,16 +64,17 @@ Return a concrete blocker/no-blocker assessment, exact code locations, and any
 required regression tests. Do not expand the review into production restore
 authorization or quota approval; those gates remain separate and blocked.
 
-## Evidence before the umask follow-up
+## Evidence
 
 - PR #171 exact source `dff0a23` had all 13 workflows successful, including
   both clean VM guests. This verifies only that committed source.
 - Branch-only run [43769672249](https://github.com/parmtech/Tong-Panel/actions/runs/43769672249)
-  passed on Ubuntu at `c79f589` before the umask follow-up; it ran Linux race tests for
-  `./internal/files` and `./cmd/tongbackup` plus both non-root restore and
-  inventory CLI process tests. It is runner-only evidence, not clean-guest or
-  PR-head verification.
-- Umask-follow-up local checks: Go 1.27.3 `go test ./cmd/tongbackup` passed;
+  passed on Ubuntu at `c79f589` before the umask follow-up; it ran Linux race
+  tests for `./internal/files` and `./cmd/tongbackup` plus both non-root
+  restore and inventory CLI process tests. It is runner-only evidence, not
+  clean-guest or PR-head verification.
+- The umask follow-up is committed locally as `d98e0f3`; it does not have Linux
+  runtime evidence yet. Go 1.27.3 `go test ./cmd/tongbackup` passed;
   `./internal/files` has no Windows build files and therefore did not execute
   on Windows. Linux amd64 test binaries cross-compiled and Linux-targeted
   `go vet ./cmd/tongbackup ./internal/files` passed. `git diff --check` passed.
@@ -80,6 +82,5 @@ authorization or quota approval; those gates remain separate and blocked.
   Windows; an exact-candidate Linux workflow is still required.
 - A separate independent code review found no concrete security blocker and
   documented the same-UID/mount-alias caveats; it identified the umask edge
-  addressed by the uncommitted follow-up. The Sol review agent's latest
-  attempt ended on a model usage limit, so no Sol review is claimed.
-
+  addressed by `d98e0f3`. The Sol review agent's latest attempt ended on a
+  model usage limit, so no Sol review is claimed.
