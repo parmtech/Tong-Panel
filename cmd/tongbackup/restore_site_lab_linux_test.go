@@ -8,12 +8,14 @@ import (
 	"compress/gzip"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/parmtech/tong-panel/internal/backups"
 	"github.com/parmtech/tong-panel/internal/files"
+	"golang.org/x/sys/unix"
 )
 
 func labEncryptedArchive(t *testing.T, key []byte) []byte {
@@ -105,6 +107,72 @@ func TestRestoreSiteLabFreshRootRoundTripAndDenials(t *testing.T) {
 		}
 	}
 }
+
+func TestRestoreSiteLabUmask0777Helper(t *testing.T) {
+	if os.Getenv("TONG_TEST_RESTORE_SITE_LAB_UMASK_HELPER") != "1" {
+		return
+	}
+	if os.Geteuid() == 0 {
+		t.Fatal("restore-site-lab helper must run as non-root")
+	}
+	// Isolate this process-global umask change in a child test process.
+	unix.Umask(0777)
+	if err := os.Setenv("TONG_DISPOSABLE_SITE_RESTORE", "1"); err != nil {
+		t.Fatal(err)
+	}
+	parent := os.Getenv("TONG_TEST_RESTORE_SITE_LAB_PARENT")
+	key := os.Getenv("TONG_TEST_RESTORE_SITE_LAB_KEY")
+	if parent == "" || key == "" {
+		t.Fatal("missing helper fixture")
+	}
+	input := &restoreLabObservedReader{}
+	err := runRestoreSiteLab(labArgs(parent, key, "umask", "tenant-a"), input)
+	if !errors.Is(err, errLabRootUnusable) || input.reads != 0 {
+		t.Fatalf("expected truthful unusable-root refusal before input read, got err=%v reads=%d", err, input.reads)
+	}
+}
+
+func TestRestoreSiteLabRestrictiveUmaskSubprocessRetainsEvidence(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("lab command refuses root")
+	}
+	parent := t.TempDir()
+	if err := os.Chmod(parent, 0700); err != nil {
+		t.Fatal(err)
+	}
+	key := writeKeyFile(t, parent, "wrapping.key", bytes.Repeat([]byte{0x61}, 32), 0600)
+	rootPath := filepath.Join(parent, "tong-restore-lab-umask")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestRestoreSiteLabUmask0777Helper$")
+	childEnv := make([]string, 0, len(os.Environ())+3)
+	for _, entry := range os.Environ() {
+		if strings.HasPrefix(entry, "TONG_TEST_RESTORE_SITE_LAB_") || strings.HasPrefix(entry, "TONG_DISPOSABLE_SITE_RESTORE=") {
+			continue
+		}
+		childEnv = append(childEnv, entry)
+	}
+	cmd.Env = append(childEnv,
+		"TONG_TEST_RESTORE_SITE_LAB_UMASK_HELPER=1",
+		"TONG_TEST_RESTORE_SITE_LAB_PARENT="+parent,
+		"TONG_TEST_RESTORE_SITE_LAB_KEY="+key,
+	)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("subprocess failed: %v\n%s", err, output)
+	}
+	info, err := os.Lstat(rootPath)
+	if err != nil || !info.IsDir() || info.Mode().Perm() != 0 {
+		t.Fatalf("expected retained mode-000 root, info=%v err=%v", info, err)
+	}
+	// The helper reports a truthful failure and retains its empty root. Restore
+	// owner permissions only after confirming that evidence survived the child.
+	if err := os.Chmod(rootPath, 0700); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(rootPath)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("retained root should be empty after mode repair: %v %v", entries, err)
+	}
+}
+
 func TestRestoreSiteLabOutcomePreservesUncertainty(t *testing.T) {
 	failure := &os.PathError{Op: "open", Path: "private-filename-and-secret-marker", Err: os.ErrPermission}
 	dir := t.TempDir()

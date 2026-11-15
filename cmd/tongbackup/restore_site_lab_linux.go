@@ -21,6 +21,7 @@ var (
 	errLabPublishedUncertain = errors.New("restore published but durability is uncertain; reconcile before retry")
 	errLabRootOutcomeUnknown = errors.New("lab root creation outcome unknown; inspect before retry")
 	errLabRootCreatedFailure = errors.New("lab root was created but could not be opened; inspect before retry")
+	errLabRootUnusable       = errors.New("lab root was created with unusable permissions; preserve it and repair permissions before inspection or retry")
 )
 
 type restoreSiteLabArgs struct{ tenant, key, root, destination string }
@@ -168,11 +169,14 @@ func runRestoreSiteLab(args []string, src io.Reader) error {
 	if err := unix.Mkdirat(parentFD, base, 0700); err != nil {
 		return errLabRootOutcomeUnknown
 	}
-	root, err := files.OpenRoot(rootCanonical)
+	root, err := files.OpenRootAt(parentFD, base)
 	if err != nil {
 		return errLabRootCreatedFailure
 	}
 	defer root.Close()
+	if err := root.CheckOwnerPrivateDirectory0700(); err != nil {
+		return errLabRootUnusable
+	}
 	roots, err := files.NewTenantRoots(map[string]*files.Root{config.tenant: root})
 	if err != nil {
 		return errLabRootCreatedFailure
