@@ -1,0 +1,28 @@
+name: Isolated root-at Linux QA
+on:
+  push:
+    branches: ['codex/qa-root-at-runtime-20261116']
+permissions:
+  contents: read
+jobs:
+  root-at:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Run affected Linux race tests
+        run: go test -race -count=1 ./cmd/tongbackup ./internal/files
+      - name: Run non-root restore and inventory process tests
+        run: |
+          test "$(id -u)" -ne 0
+          go build -trimpath -buildvcs=false -o "$RUNNER_TEMP/tongbackup" ./cmd/tongbackup
+          python3 scripts/test_backup_restore_site_lab_cli.py "$RUNNER_TEMP/tongbackup"
+          python3 scripts/test_backup_inspect_restore_lab_cli.py "$RUNNER_TEMP/tongbackup"

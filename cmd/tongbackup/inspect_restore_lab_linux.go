@@ -98,9 +98,9 @@ func runInspectRestoreLab(args []string, output io.Writer) error {
 	if err := unix.Fstatat(parentFD, base, &before, unix.AT_SYMLINK_NOFOLLOW); err != nil || !privateLabDirectory(before) {
 		return errLabBoundary
 	}
-	// The trusted parent must remain stable; OpenRoot pins the selected root but
-	// does not independently authorize its ownership or resolve mount aliases.
-	root, err := files.OpenRoot(filepath.Join(parent, base))
+	// The trusted parent must remain stable; fd-relative opening pins the root
+	// but does not independently authorize it or resolve mount aliases.
+	root, err := files.OpenRootAt(parentFD, base)
 	if err != nil {
 		return errLabBoundary
 	}

@@ -168,7 +168,7 @@ func runRestoreSiteLab(args []string, src io.Reader) error {
 	if err := unix.Mkdirat(parentFD, base, 0700); err != nil {
 		return errLabRootOutcomeUnknown
 	}
-	root, err := files.OpenRoot(rootCanonical)
+	root, err := files.OpenRootAt(parentFD, base)
 	if err != nil {
 		return errLabRootCreatedFailure
 	}
