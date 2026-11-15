@@ -1,4 +1,11 @@
-## CURRENT CHECKPOINT — P2 responsive Sites/Files keyboard component-preview tests (16 November 2026)
+## CURRENT CHECKPOINT — keyboard focus-return QA follow-up (16 November 2026)
+
+- **Branch/source:** isolated `codex/p2-responsive-sites-files-keyboard-20261116`, based on `5e9b019a8f3605b16f88b9879ac5a3dee027866e`; UI/test fix commit `40d5b92ae9d216823278ca47eff5ac3be5415257`.
+- **Change:** `cmd/tongd/ui/app.js` now restores focus to the Files Preview button after an explicit Close. Blur, visibility, refresh and navigation cleanup continue clearing the preview without returning focus. The keyboard spec checks Close focus restoration, Shift+Tab from Files Load to Jobs Load, and from Sites Load to the dynamically rendered current `Files` breadcrumb. Source inspection confirmed that breadcrumb is the actual preceding tabbable control; the fixture and product order were left intact.
+- **Verification:** `node --check cmd/tongd/ui/app.js`, `node --check responsive-sites-files.spec.mjs`, focused `npm test -- responsive-sites-files.spec.mjs` (4/4 passed across five viewports), and `git diff --check` passed. Tests use only local synthetic/intercepted responses; no authenticated flows, tenant operations, live Nginx/handler or human accessibility acceptance were exercised.
+- **Next:** independent QA re-review of the isolated candidate. Nothing pushed; P0/P1, security, release and full issue #155 acceptance gates remain open.
+
+## PREVIOUS CHECKPOINT — P2 responsive Sites/Files keyboard component-preview tests (16 November 2026)
 
 - **Branch/source:** isolated `codex/p2-responsive-sites-files-keyboard-20261116`, based on reviewed component-preview commit `febb38f5d968b9f8e1a15c405b74ba5a445c612f`; keyboard-test commit `be3ad966d53ac80c4d20ae8ad7ef4b8ce039aa9e`.
 - **Change:** extended `tools/ui-browser/responsive-sites-files.spec.mjs` with keyboard-only Sites and Files component-preview journeys. It uses Tab/Shift+Tab plus Enter/Space for Load, filter, Use-for-preview, Preview and Close; checks keyboard-visible focus, reverse traversal/no focus trap, action results and no document overflow at 320×640, 390×844, 768×1024, 1024×768 and 1280×800. All API responses are synthetic/intercepted; external requests are blocked. No product CSS or backend code changed.
