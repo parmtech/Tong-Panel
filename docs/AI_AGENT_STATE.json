@@ -1,19 +1,19 @@
 {
   "schema": 1,
-  "generated_date": "2026-11-13",
+  "generated_date": "2026-11-16",
   "timezone": "Australia/Sydney",
   "snapshot_kind": "not_live_monitor",
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "integration/pr-reconciliation-20261113",
-  "source_head_before_handoff_commit": "83fe8931e8674a849e6fef35ecd86446cf36405f",
-  "source_tree_sha": "fb2f0a220031ff86432c733aab3d61cdedee6767",
+  "source_head_before_handoff_commit": "dff0a230f3c7840df118efec63fa00011435e9a4",
+  "source_tree_sha": "8c45c902ff0a8957ee63f07b0253fa660d78b233",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
   "pr_state_at_snapshot": "open_draft_unmerged",
   "master_issue": 172,
-  "tracked_files_at_snapshot": 458,
+  "tracked_files_at_snapshot": 515,
   "prior_prs": {
     "closed_unmerged": 149,
     "all_observed_checks_successful": 129,
@@ -93,16 +93,16 @@
     }
   },
   "next": {
-    "task_id": "P1-SYNTHETIC-INSTALL-CRASH-RECOVERY-LAB",
-    "priority": 1,
-    "action": "Inspect 71eaede exact-source Linux and clean-guest CI; continue unblocked durable reconciliation/authorization work with existing gates.",
+    "task_id": "P2-DOCS-EXACT-HEAD-CI-AND-OPENROOTAT-SECURITY-REVIEW",
+    "priority": 2,
+    "action": "Publish the QA-reviewed P2 journey-plan and handoff commits to the existing PR #171 branch, then inspect every exact-head workflow including both clean guests. Keep OpenRootAt separate until Sol 6.1 Medium independently reviews the code handoff.",
     "required_evidence": [
-      "baseline source SHA 83fe893: 13/13 hosted workflows passed including both full clean guests",
-      "explicit disposable-only opt-in and non-root guard",
-      "inert fixture and only owned test subprocess killed",
-      "negative interrupted state not mistaken for successful install",
-      "new exact-head CI plus runner/guest outcomes documented",
-      "no root/customer install, signer or approval claim"
+      "confirm remote branch still equals captured dff0a23 before push",
+      "published exact PR SHA gets its own full Actions verification",
+      "inspect both Ubuntu and Debian clean guest jobs",
+      "do not count design-only issue #155 work as implementation or accessibility acceptance",
+      "do not integrate OpenRootAt before independent security review",
+      "keep owner/P0/P1/production approvals blocked until actual approval"
     ]
   },
   "approvals": {
@@ -128,7 +128,9 @@
     "docs/PR_RECONCILIATION_2026-11-13.md",
     "docs/BLUEPRINT.md",
     "docs/ROADMAP.md",
-    "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md"
+    "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
+    "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+    "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md"
   ],
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
@@ -138,9 +140,30 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "71eaedea7b441b082d4644bd1b5e46ff398f32a2",
-    "hosted_ci": "pending_at_handoff",
-    "evidence": "identical source plus branch-only workflow passed Linux runner 43543882477; b3ce476 both clean guests passed",
-    "limitations": "count includes active stages; zero does not authorize deletion/quota release; no durable reconciliation"
+    "sha": "dff0a230f3c7840df118efec63fa00011435e9a4",
+    "hosted_ci": "13_of_13_passed_on_exact_PR_171_head_run_43544041759_before_current_docs",
+    "evidence": "Exact PR head dff0a23 passed 13/13, including both clean guests; local design-doc merge f1c3879 has not yet been published and needs its own CI.",
+    "limitations": "P2 responsive journey document is design-only; OpenRootAt candidate remains isolated pending independent Sol review; no P0/P1 or release approval."
+  },
+  "published_pr_head_at_snapshot": "dff0a230f3c7840df118efec63fa00011435e9a4",
+  "local_checkpoint_parent_at_snapshot": "f1c3879af9b32fc3cc680f9496a7406429da0a8c",
+  "responsive_journey_plan": {
+    "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+    "issue": 155,
+    "state": "design_only_qa_reviewed_not_accepted",
+    "branch": "integration/pr-reconciliation-20261113",
+    "local_merge": "f1c3879af9b32fc3cc680f9496a7406429da0a8c",
+    "remote_push": "pending_at_snapshot",
+    "qa_findings": "Three requested corrections verified; no remaining document blocker."
+  },
+  "openrootat_candidate": {
+    "branch": "codex/root-at-dff0a23",
+    "head": "487c4c1",
+    "base": "dff0a230f3c7840df118efec63fa00011435e9a4",
+    "state": "isolated_pending_independent_security_review",
+    "linux_branch_run": 43770861328,
+    "exact_pr_ci": "pending",
+    "ubuntu_debian_guests": "pending",
+    "sol_review": "pending_not_claimed"
   }
 }

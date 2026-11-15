@@ -4,6 +4,8 @@
 
 **Work item:** [P2 issue #157](https://github.com/parmtech/Tong-Panel/issues/157).
 
+**Responsive journey design:** [Issue #155 plan](P2_RESPONSIVE_SITES_FILES_JOURNEYS.md) is a design-only proposal independently checked against the current browser-test evidence. Issue #155 remains open: responsive Sites/Files execution, approved first-run/login-recovery behavior, and human accessibility/usability evidence are not complete.
+
 **Current gate:** the latest [P1 exit report](https://github.com/parmtech/Tong-Panel/blob/feature/p1-file-quota-request-context/docs/P1_EXIT_GATE_REPORT_2026-10-27.md) says **NOT PHASE 1 COMPLETE; PHASE 2 ENTRY BLOCKED**. The latest [P2 exit report](https://github.com/parmtech/Tong-Panel/blob/feature/p1-file-quota-request-context/docs/P2_EXIT_GATE_REPORT_2026-10-29.md) says **P2 IN PROGRESS — EXIT GATE NOT PASSED**. This map does not override either report.
 
 ## Ten implementation slices
