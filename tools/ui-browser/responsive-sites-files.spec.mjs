@@ -7,10 +7,12 @@ import { expect, test } from '@playwright/test';
 const uiRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../cmd/tongd/ui');
 const viewports = [
     { width: 320, height: 640 },
+    { width: 390, height: 360 },
     { width: 390, height: 844 },
     { width: 768, height: 1024 },
     { width: 1024, height: 768 },
     { width: 1280, height: 800 },
+    { width: 1440, height: 900 },
 ];
 const contentTypes = new Map([
     ['.css', 'text/css; charset=utf-8'],
