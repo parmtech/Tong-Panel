@@ -5,7 +5,7 @@ if (channel && channel !== 'chrome' && channel !== 'msedge') throw new Error('Un
 
 export default defineConfig({
     testDir: '.',
-    testMatch: 'jobs.spec.mjs',
+    testMatch: ['jobs.spec.mjs', 'responsive-sites-files.spec.mjs'],
     timeout: 30000,
     expect: { timeout: 5000 },
     workers: 1,
