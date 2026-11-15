@@ -1,4 +1,11 @@
-## CURRENT CHECKPOINT — P2 responsive Sites/Files component-preview tests (16 November 2026)
+## CURRENT CHECKPOINT — P2 responsive Sites/Files keyboard component-preview tests (16 November 2026)
+
+- **Branch/source:** isolated `codex/p2-responsive-sites-files-keyboard-20261116`, based on reviewed component-preview commit `febb38f5d968b9f8e1a15c405b74ba5a445c612f`; keyboard-test commit `be3ad966d53ac80c4d20ae8ad7ef4b8ce039aa9e`.
+- **Change:** extended `tools/ui-browser/responsive-sites-files.spec.mjs` with keyboard-only Sites and Files component-preview journeys. It uses Tab/Shift+Tab plus Enter/Space for Load, filter, Use-for-preview, Preview and Close; checks keyboard-visible focus, reverse traversal/no focus trap, action results and no document overflow at 320×640, 390×844, 768×1024, 1024×768 and 1280×800. All API responses are synthetic/intercepted; external requests are blocked. No product CSS or backend code changed.
+- **Verification:** `node --check responsive-sites-files.spec.mjs`, `npm test -- --list` (36 discovered tests in 2 files), `npm test -- responsive-sites-files.spec.mjs` (4/4 passed) and `git diff --check` passed. This remains component-preview evidence only: no authenticated flows, tenant operations, live Nginx/handler, axe scan or human accessibility/usability acceptance.
+- **Next:** coordinator review and integration decision, then verify exact PR-head CI. Issue #155 and P0/P1, security, accessibility and production gates remain open.
+
+## PREVIOUS CHECKPOINT — P2 responsive Sites/Files component-preview tests (16 November 2026)
 
 - **Branch/source:** isolated `codex/p2-responsive-sites-files-browser-20261116`, based exactly on PR #171 head `b292c89e3d37d48c78a3e555d6e2cb02810da00d`; test/config commit `b9db69527da848e41248ea1dc80a150113502103`.
 - **Change:** added a Playwright component-preview spec that serves the current UI files from a local static server and intercepts all API/health requests. Sites and Files lists and the file preview use synthetic responses; unauthenticated requests have no cookie or Authorization header, and external origins are blocked. Coverage checks 320×640, 390×844, 768×1024, 1024×768 and 1280×800 for document overflow and visible, horizontally contained headings/actions, including Load/filter/preview interactions. No CSS change was needed because no overflow reproduced.
