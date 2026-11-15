@@ -282,7 +282,9 @@ test('component preview: Sites controls work by keyboard at phone, tablet, and d
         await tabUntilFocused(page, '#sites-load', viewport);
         await expectVisibleKeyboardFocus(page, '#sites-load', viewport);
         await expectResponsiveBounds(page, viewport, ['#sites-title', '#sites-load']);
-        await expectReverseTabAndReturn(page, '#sites-load');
+        const currentFilesBreadcrumb = '#files-breadcrumbs button[aria-current="location"]';
+        await expectReverseTabAndReturn(page, '#sites-load', currentFilesBreadcrumb);
+        await expect(page.locator(currentFilesBreadcrumb)).toHaveText('Files');
         await page.keyboard.press(keyboardActivation(index));
         await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
         await expect(page.locator('#sites-list')).toContainText('responsive.example.test');
@@ -326,7 +328,7 @@ test('component preview: Files controls work by keyboard at phone, tablet, and d
         await tabUntilFocused(page, '#files-refresh', viewport);
         await expectVisibleKeyboardFocus(page, '#files-refresh', viewport);
         await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-refresh']);
-        await expectReverseTabAndReturn(page, '#files-refresh');
+        await expectReverseTabAndReturn(page, '#files-refresh', '#jobs-refresh');
         await page.keyboard.press(keyboardActivation(index));
         await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
         await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
@@ -360,6 +362,8 @@ test('component preview: Files controls work by keyboard at phone, tablet, and d
         await expectReverseTabAndReturn(page, '#files-preview-close', preview);
         await page.keyboard.press(keyboardActivation(index));
         await expect(page.locator('#files-preview')).toBeHidden();
+        await expect(page.locator(preview)).toBeFocused();
+        await expectVisibleKeyboardFocus(page, preview, viewport);
         await page.keyboard.press('Tab');
         const focusInsideHiddenPreview = await page.locator('#files-preview').evaluate(element => element.contains(document.activeElement));
         expect(focusInsideHiddenPreview).toBe(false);

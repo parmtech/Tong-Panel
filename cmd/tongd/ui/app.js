@@ -678,7 +678,8 @@ const filesPreviewTitle = document.querySelector('#files-preview-title');
 const filesPreviewContent = document.querySelector('#files-preview-content');
 const filesPreviewClose = document.querySelector('#files-preview-close');
 let filesPreviewRequestID = 0;
-function clearFilePreview() {
+let filesPreviewReturnFocus = null;
+function clearFilePreview({ restoreFocus = false } = {}) {
     filesPreviewRequestID++;
     if (filesPreview)
         filesPreview.hidden = true;
@@ -686,8 +687,13 @@ function clearFilePreview() {
         filesPreviewContent.textContent = '';
     if (filesPreviewTitle)
         filesPreviewTitle.textContent = 'Text preview';
+    const returnFocus = restoreFocus ? filesPreviewReturnFocus : null;
+    filesPreviewReturnFocus = null;
+    if (returnFocus?.isConnected && !returnFocus.disabled)
+        returnFocus.focus();
 }
-filesPreviewClose?.addEventListener('click', clearFilePreview);
+// Focus returns only after an explicit close, never after blur/visibility cleanup.
+filesPreviewClose?.addEventListener('click', () => clearFilePreview({ restoreFocus: true }));
 document.addEventListener('visibilitychange', () => { if (document.hidden)
     clearFilePreview(); });
 window.addEventListener('blur', clearFilePreview);
@@ -786,7 +792,7 @@ function renderFilesEntries(entries) {
             preview.setAttribute('aria-label', `Preview text ${entry.name}`);
             preview.disabled = entry.size > 256 * 1024;
             preview.addEventListener('click', () => { if (rowActive())
-                void showFilePreview(entry.name, rowPath); });
+                void showFilePreview(entry.name, rowPath, preview); });
             item.append(preview);
         }
         filesList.append(item);
@@ -896,8 +902,9 @@ function clearFilesOnDenial(error) {
     if (filesNext)
         filesNext.disabled = true;
 }
-async function showFilePreview(name, rowPath) {
+async function showFilePreview(name, rowPath, returnFocus) {
     clearFilePreview();
+    filesPreviewReturnFocus = returnFocus;
     const requestID = filesPreviewRequestID;
     if (filesStatus) {
         filesStatus.dataset.state = 'loading';
