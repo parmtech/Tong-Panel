@@ -1,4 +1,11 @@
-## CURRENT CHECKPOINT — P2 journey design reviewed; exact PR CI pending
+## CURRENT CHECKPOINT — P2 responsive Sites/Files component-preview tests (16 November 2026)
+
+- **Branch/source:** isolated `codex/p2-responsive-sites-files-browser-20261116`, based exactly on PR #171 head `b292c89e3d37d48c78a3e555d6e2cb02810da00d`; test/config commit `b9db69527da848e41248ea1dc80a150113502103`.
+- **Change:** added a Playwright component-preview spec that serves the current UI files from a local static server and intercepts all API/health requests. Sites and Files lists and the file preview use synthetic responses; unauthenticated requests have no cookie or Authorization header, and external origins are blocked. Coverage checks 320×640, 390×844, 768×1024, 1024×768 and 1280×800 for document overflow and visible, horizontally contained headings/actions, including Load/filter/preview interactions. No CSS change was needed because no overflow reproduced.
+- **Verification:** locked `npm ci`, `node --check responsive-sites-files.spec.mjs`, focused `npm test -- responsive-sites-files.spec.mjs` (2/2 passed), default Playwright discovery (`--list`: 34 tests in 2 files), and `git diff --cached --check` passed. These are component-preview checks only; no authenticated backend, real tenant data, live Nginx/host work, axe or human accessibility/usability acceptance was exercised.
+- **Next:** coordinator review and integration decision, then verify exact PR-head CI. Issue #155 and P0/P1, security, accessibility, and production gates remain open.
+
+## PREVIOUS CHECKPOINT — P2 journey design reviewed; exact PR CI pending
 
 - **Published PR #171 HEAD at session start:** `dff0a230f3c7840df118efec63fa00011435e9a4`; all 13 workflows passed on that exact source in [run 43544041759](https://github.com/parmtech/Tong-Panel/actions/runs/43544041759), including clean Ubuntu/Debian guests. This pass does not cover changes made after that SHA.
 - **P2 issue #155 design proposal:** `docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md` is independently reviewed against the current tests and issue scope. It now explicitly defers first-run/login recovery pending P0/P1 decisions, correctly limits the axe claim to selected `wcag2a`/`wcag2aa` tags, and states the Nginx preview case uses an intercepted synthetic response. It remains design-only; no UI execution, human accessibility review, P2 acceptance, or issue closure is claimed.
@@ -1439,3 +1446,10 @@ Windows Go `test -count=1` and `vet` passed for `cmd/tongctl`, `internal/preflig
 - **Next:** QA re-review the corrected plan before any integration or issue acceptance.
 # Tong Panel — Live Project Status and Work Journal
 **Updated:** 2026-11-16 (Australia/Sydney; reviewed P2 journey plan and pending OpenRootAt security decision)
+
+### 2026-11-16 — P2 issue #155 Sites/Files responsive component-preview slice
+
+- **Branch/code:** isolated `codex/p2-responsive-sites-files-browser`, based on exact PR #171 head `b292c89e3d37d48c78a3e555d6e2cb02810da00d`; test/config commit `b9db69527da848e41248ea1dc80a150113502103`. No push.
+- **Change:** added `tools/ui-browser/responsive-sites-files.spec.mjs` and included it in `tools/ui-browser/playwright.config.mjs`. It serves current UI assets from loopback static files, intercepts API requests with synthetic Sites, Files and text-preview responses, blocks external origins, and sets no session. Both read-only views test five phone/tablet/desktop viewport sizes, document overflow, heading/action bounds, and Load/filter/preview interactions. No CSS failure was reproduced; no CSS changed.
+- **Evidence and limits:** `npm ci` from the existing lockfile passed (zero reported vulnerabilities); `node --check responsive-sites-files.spec.mjs` passed; `npm test -- responsive-sites-files.spec.mjs` passed 2/2; `npm test -- --list` discovered 34 tests in 2 files; staged `git diff --check` passed. Evidence is component preview only, not end-to-end/authenticated tenant acceptance or accessibility/human review.
+- **Next:** coordinator review, then decide whether to integrate into PR #171 and inspect its exact-head workflows. Issue #155 and P0/P1/security/production gates remain open.
