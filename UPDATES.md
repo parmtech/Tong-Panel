@@ -1,4 +1,11 @@
-## CURRENT CHECKPOINT — keyboard focus-return QA follow-up (16 November 2026)
+## CURRENT CHECKPOINT — expanded responsive preview viewport matrix (16 November 2026)
+
+- **Branch/source:** isolated `codex/p2-responsive-sites-files-keyboard-20261116`, based on focus-return candidate `f54a500d56f1e68bfcfe63e07fe7124a79fe3163`; viewport test commit `78b3b418e5d53a2119966ee39cedbadae0580431`.
+- **Change:** added the P2 plan’s 390×360 phone-landscape and 1440×900 wide-desktop cases to the shared browser viewport list. Existing 320×640, 390×844, 768×1024 and 1280×800 cases remain; all expected response counts and prefix sequences derive from this shared list. The candidate remains synthetic browser-preview evidence, not physical-device or full issue #155 acceptance.
+- **Verification:** `node --check cmd/tongd/ui/app.js`, `node --check responsive-sites-files.spec.mjs`, focused `npm test -- responsive-sites-files.spec.mjs` (4/4 passed at seven viewport sizes), and `git diff --check` passed. No authenticated flows, tenant operations, live Nginx/handler or human accessibility/usability acceptance were exercised.
+- **Next:** QA re-review this exact candidate. Nothing pushed; P0/P1, security, release and full issue #155 acceptance gates remain open.
+
+## PREVIOUS CHECKPOINT — keyboard focus-return QA follow-up (16 November 2026)
 
 - **Branch/source:** isolated `codex/p2-responsive-sites-files-keyboard-20261116`, based on `5e9b019a8f3605b16f88b9879ac5a3dee027866e`; UI/test fix commit `40d5b92ae9d216823278ca47eff5ac3be5415257`.
 - **Change:** `cmd/tongd/ui/app.js` now restores focus to the Files Preview button after an explicit Close. Blur, visibility, refresh and navigation cleanup continue clearing the preview without returning focus. The keyboard spec checks Close focus restoration, Shift+Tab from Files Load to Jobs Load, and from Sites Load to the dynamically rendered current `Files` breadcrumb. Source inspection confirmed that breadcrumb is the actual preceding tabbable control; the fixture and product order were left intact.
