@@ -159,9 +159,11 @@ async function expectResponsiveBounds(page, viewport, selectors) {
     }
 }
 
-function expectSyntheticReadOnlyRequests(records, expected) {
+function expectSyntheticReadOnlyRequests(records, expected, pageLoads = 1) {
     expect(records.external).toEqual([]);
-    expect(records.otherAPI.map(request => request.path).sort()).toEqual(['/api/v1/version', '/healthz']);
+    expect(records.otherAPI.map(request => request.path).sort()).toEqual(
+        Array.from({ length: pageLoads }, () => ['/api/v1/version', '/healthz']).flat().sort(),
+    );
     for (const request of [...records.sites, ...records.files, ...records.previews, ...records.otherAPI]) {
         expect(request.method).toBe('GET');
         expect(request.hasCookie).toBe(false);
@@ -170,6 +172,47 @@ function expectSyntheticReadOnlyRequests(records, expected) {
     expect(records.sites).toHaveLength(expected.sites);
     expect(records.files).toHaveLength(expected.files);
     expect(records.previews).toHaveLength(expected.previews);
+}
+
+async function tabUntilFocused(page, selector, viewport) {
+    const target = page.locator(selector);
+    for (let step = 0; step < 128; step++) {
+        await page.keyboard.press('Tab');
+        if (await target.evaluate(element => document.activeElement === element)) return;
+    }
+    throw new Error(`${selector} was not reachable by Tab at ${viewport.width}×${viewport.height}`);
+}
+
+async function expectVisibleKeyboardFocus(page, selector, viewport) {
+    const focus = await page.locator(selector).evaluate(element => {
+        const style = getComputedStyle(element);
+        const bounds = element.getBoundingClientRect();
+        return {
+            focusVisible: element.matches(':focus-visible'),
+            outlineStyle: style.outlineStyle,
+            outlineWidth: style.outlineWidth,
+            left: bounds.left,
+            right: bounds.right,
+        };
+    });
+    expect(focus.focusVisible, `${selector} should use keyboard-visible focus`).toBe(true);
+    expect(focus.outlineStyle, `${selector} should show a focus outline`).not.toBe('none');
+    expect(Number.parseFloat(focus.outlineWidth), `${selector} should have a nonzero focus outline`).toBeGreaterThan(0);
+    expect(focus.left, `${selector} focus should stay inside the viewport`).toBeGreaterThanOrEqual(0);
+    expect(focus.right, `${selector} focus should stay inside the viewport`).toBeLessThanOrEqual(viewport.width + 1);
+}
+
+async function expectReverseTabAndReturn(page, selector, previousSelector) {
+    const target = page.locator(selector);
+    await page.keyboard.press('Shift+Tab');
+    if (previousSelector) await expect(page.locator(previousSelector)).toBeFocused();
+    else await expect(target).not.toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(target).toBeFocused();
+}
+
+function keyboardActivation(index) {
+    return index % 2 === 0 ? 'Enter' : 'Space';
 }
 
 test('component preview: Sites view fits phone, tablet, and desktop widths with synthetic data', async ({ page }) => {
@@ -223,4 +266,105 @@ test('component preview: Files view fits phone, tablet, and desktop widths with 
 
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: viewports.length * 2, previews: viewports.length });
     expect(records.files.map(request => request.prefix)).toEqual(['', ...Array(viewports.length * 2 - 1).fill('responsive')]);
+});
+
+test('component preview: Sites controls work by keyboard at phone, tablet, and desktop widths', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    await openComponentPreview(page, records);
+
+    for (const [index, viewport] of viewports.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+
+        await tabUntilFocused(page, '#sites-load', viewport);
+        await expectVisibleKeyboardFocus(page, '#sites-load', viewport);
+        await expectResponsiveBounds(page, viewport, ['#sites-title', '#sites-load']);
+        await expectReverseTabAndReturn(page, '#sites-load');
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#sites-list')).toContainText('responsive.example.test');
+
+        await tabUntilFocused(page, '#sites-prefix', viewport);
+        await expectVisibleKeyboardFocus(page, '#sites-prefix', viewport);
+        await page.keyboard.type('res');
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#sites-filter button')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#sites-filter button', viewport);
+        await expectReverseTabAndReturn(page, '#sites-filter button', '#sites-prefix');
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+
+        const usePreview = 'button[aria-label="Use responsive-site for preview"]';
+        await tabUntilFocused(page, usePreview, viewport);
+        await expectVisibleKeyboardFocus(page, usePreview, viewport);
+        await expectResponsiveBounds(page, viewport, ['#sites-title', '#sites-load', '#sites-filter button', usePreview]);
+        await expectReverseTabAndReturn(page, usePreview, 'button[aria-label="View details for responsive-site"]');
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#site-preview-id')).toHaveValue('responsive-site');
+        await expect(page.locator('#site-preview-id')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#site-preview-id', viewport);
+    }
+
+    expectSyntheticReadOnlyRequests(records, { sites: viewports.length * 2, files: 0, previews: 0 }, viewports.length);
+    expect(records.sites.map(request => request.prefix)).toEqual(viewports.flatMap(() => ['', 'res']));
+});
+
+test('component preview: Files controls work by keyboard at phone, tablet, and desktop widths', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    await openComponentPreview(page, records);
+
+    for (const [index, viewport] of viewports.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+
+        await tabUntilFocused(page, '#files-refresh', viewport);
+        await expectVisibleKeyboardFocus(page, '#files-refresh', viewport);
+        await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-refresh']);
+        await expectReverseTabAndReturn(page, '#files-refresh');
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
+
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-prefix')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#files-prefix', viewport);
+        await page.keyboard.type('responsive');
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-filter button')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#files-filter button', viewport);
+        await expectReverseTabAndReturn(page, '#files-filter button', '#files-prefix');
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-list')).not.toContainText('documents');
+
+        const preview = 'button[aria-label="Preview text responsive-layout-notes.txt"]';
+        const download = 'button[aria-label="Download responsive-layout-notes.txt"]';
+        await tabUntilFocused(page, preview, viewport);
+        await expectVisibleKeyboardFocus(page, preview, viewport);
+        await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-refresh', '#files-filter button', preview]);
+        await expectReverseTabAndReturn(page, preview, download);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-preview')).toBeVisible();
+        await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-preview-close')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#files-preview-close', viewport);
+        await expectResponsiveBounds(page, viewport, ['#files-preview-title', '#files-preview-close', '#files-preview-content']);
+        await expectReverseTabAndReturn(page, '#files-preview-close', preview);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-preview')).toBeHidden();
+        await page.keyboard.press('Tab');
+        const focusInsideHiddenPreview = await page.locator('#files-preview').evaluate(element => element.contains(document.activeElement));
+        expect(focusInsideHiddenPreview).toBe(false);
+    }
+
+    expectSyntheticReadOnlyRequests(records, { sites: 0, files: viewports.length * 2, previews: viewports.length }, viewports.length);
+    expect(records.files.map(request => request.prefix)).toEqual(viewports.flatMap(() => ['', 'responsive']));
 });
