@@ -19,16 +19,21 @@ The inventory below was checked against `tools/ui-browser/jobs.spec.mjs`, `web/t
 | Existing evidence | Current coverage | Gap for issue #155 |
 |---|---|---|
 | Home launcher browser test | Grid widths 1440, 1024, 768, 390, and 320 CSS px; checks columns and horizontal overflow. | It does not complete a Sites or Files task. |
-| Jobs mobile browser tests | At 390×844, checks job/details overflow and scoped axe WCAG 2.2 A/AA rules. Keyboard tests cover job details. | Does not cover Sites or Files; no human screen-reader review. |
-| Sites and domain tests | Real loopback TLS/SQLite fixture tests catalog selection, site details, prefix pagination, tenant/session changes, stale responses, and authorization denials. The certificate snapshot and Nginx preview have read-only browser cases. | Current tests are not run across the responsive viewport matrix and do not complete site creation, DNS proof, certificate issuance, activation, or rollback. |
+| Jobs mobile browser tests | At 390×844, checks job/details overflow and selected axe-core `wcag2a`/`wcag2aa` tags. Keyboard tests cover job details. These selected rules are not a full WCAG 2.2 scan. | Does not cover Sites or Files; no human screen-reader review. |
+| Sites and domain tests | Real loopback TLS/SQLite fixture tests catalog selection, site details, prefix pagination, tenant/session changes, stale responses, and authorization denials. The certificate snapshot has a read-only browser case. The Nginx preview browser case intercepts the response with a synthetic body; it does not exercise a live Nginx process or handler. | Current tests are not run across the responsive viewport matrix and do not complete site creation, DNS proof, certificate issuance, activation, or rollback. |
 | Files tests | Browser cases cover tenant-scoped Linux handler pages/previews, prefix filtering, 401/403 clearing, pagination, stale folder actions, and retry/failure behavior. Other cases use intercepted responses. | No phone/tablet/desktop Files matrix, touch review, screen-reader review, or full upload/edit/move/delete/archive journey. |
-| Accessibility checks | Some Chromium/axe checks cover Jobs and the read-only certificate snapshot. | No recorded human accessibility/usability findings for Sites or Files; no review evidence for screen-reader use, contrast in all themes, forced-colors, reduced motion, or touch-target operation. |
+| First-run/login-recovery journey | No approved journey or authentication/session policy is currently defined for this issue. | Explicitly deferred pending P0/P1 authentication, session, and recovery decisions; do not exercise or claim acceptance. |
+| Accessibility checks | Some Chromium/axe checks cover Jobs and the read-only certificate snapshot with selected `wcag2a`/`wcag2aa` tags; these are not a full WCAG 2.2 scan. | No recorded human accessibility/usability findings for Sites or Files; no review evidence for screen-reader use, contrast in all themes, forced-colors, reduced motion, or touch-target operation. |
 
 Playwright currently uses Chromium and a disposable loopback TLS fixture. These tests do not establish behavior on physical phones/tablets, other browser engines, production authentication, or a supported hosting installation.
 
 ## Personas and journeys
 
 Persona names are test roles, not a proposed authorization model. A persona may see or act on only resources authorized by the approved server-side policy. “Admin” does not imply blanket cross-tenant access.
+
+### Deferred — first-run and login recovery (named by issue #155)
+
+Issue #155 also calls for a first-run/login-recovery journey. This proposal does not define or accept it. Defer it until owners approve the P0/P1 authentication and session design, including the applicable first-run, sign-in, MFA recovery, and account/session recovery decisions. Do not exercise first-run or login-recovery flows, and do not report them as passed or accepted from a synthetic fixture. Once those decisions exist, add explicit synthetic-only criteria under the approved policy before attempting the journey. Issue #155 remains open while this dependency is unresolved.
 
 ### N1 — Novice site owner: find a site, establish a domain, understand HTTPS
 
@@ -116,6 +121,7 @@ Do not capture real hostnames, secrets, customer files, tokens, or unrestricted 
 ## Exit criteria for issue #155
 
 - [ ] Named novice and administrator/operator site-domain-HTTPS journeys and tenant Files journeys complete at phone, tablet, and desktop sizes without facilitator rescue, when all required layers are implemented and approved.
+- [ ] The first-run/login-recovery journey named by issue #155 remains explicitly deferred until P0/P1 authentication, session, and recovery decisions are approved; it is not exercised or claimed as accepted before then.
 - [ ] Each layout/state matrix passes, including absent/expired session, foreign-tenant ID/path, delayed stale response, network failure, retry, long operation, and rollback/unknown outcome.
 - [ ] No cross-tenant site, domain, file, path, cursor, preview, status, or stale response is disclosed; all denials follow the approved public response policy and have no partial effect.
 - [ ] Keyboard-only and human screen-reader reviews cover the actual flows; focus and announcements remain usable through loading, page changes, denial, retry, and recovery.
