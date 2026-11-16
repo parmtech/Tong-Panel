@@ -710,3 +710,67 @@ test('component preview: blur and simulated hidden visibility clear Files previe
     }
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length, previews: phones.length * 4 }, phones.length);
 });
+
+
+test('component preview: simulated focus loss suppresses pending Files previews at phone sizes', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const controls = { sites: null, files: null, preview: null };
+    const phones = [{ width: 320, height: 640 }, { width: 390, height: 360 }];
+    await openComponentPreview(page, records, controls);
+    for (const [index, viewport] of phones.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+        await page.locator('#files-refresh').click();
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        const preview = page.getByRole('button', { name: 'Preview text responsive-layout-notes.txt' });
+        for (const signal of ['blur', 'visibility']) {
+            let markFinished;
+            const finished = new Promise(resolve => { markFinished = resolve; });
+            const held = createHeldNetworkFailure();
+            held.markFinished = markFinished;
+            controls.preview = held;
+            const response = page.waitForResponse(result => new URL(result.url()).pathname === '/api/v1/files/content');
+            await preview.click();
+            try {
+                await held.started;
+                await page.locator('#files-prefix').focus();
+                // Simulated DOM events/property, not a real background-tab transition.
+                await page.evaluate(kind => {
+                    if (kind === 'blur') window.dispatchEvent(new Event('blur'));
+                    else {
+                        Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+                        document.dispatchEvent(new Event('visibilitychange'));
+                    }
+                }, signal);
+                await expect(page.locator('#files-preview')).toBeHidden();
+                await expect(page.locator('#files-preview-content')).toBeEmpty();
+                await expect(page.locator('#files-prefix')).toBeFocused();
+                if (signal === 'visibility') {
+                    await page.evaluate(() => {
+                        delete document.hidden;
+                        document.dispatchEvent(new Event('visibilitychange'));
+                    });
+                } else {
+                    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+                }
+            } finally {
+                held.release();
+            }
+            expect(await finished, 'held preview must be fulfilled').toBe(true);
+            expect((await (await response).body()).toString()).toBe('Synthetic stale preview marker.');
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            await expect(page.locator('#files-preview')).toBeHidden();
+            await expect(page.locator('#files-preview-content')).toBeEmpty();
+            await expect(page.locator('#files-prefix')).toBeFocused();
+            await expect(preview).not.toBeFocused();
+            await preview.click();
+            await expect(page.locator('#files-preview')).toBeVisible();
+            await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+            await page.locator('#files-preview-close').click();
+        }
+    }
+    expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length, previews: phones.length * 4 }, phones.length);
+});
