@@ -953,6 +953,46 @@ test('component preview: Files task survives portrait and landscape resizing wit
 });
 
 
+test('component preview: Sites task survives portrait and landscape resizing without requests', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const requests = [];
+    page.on('request', request => requests.push({ url: request.url(), method: request.method() }));
+    const portrait = { width: 390, height: 844 };
+    const landscape = { width: 844, height: 390 };
+    await page.setViewportSize(portrait);
+    await openComponentPreview(page, records);
+    await page.locator('#sites-load').click();
+    await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+    await expect(page.locator('#sites-list')).toContainText('responsive.example.test');
+    await page.locator('#sites-prefix').fill('res');
+    await page.locator('#sites-filter button').click();
+    await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+    await expect(page.locator('#sites-list')).toContainText('responsive.example.test');
+    const usePreview = 'button[aria-label="Use responsive-site for preview"]';
+    await page.locator(usePreview).click();
+    await expect(page.locator('#site-preview-id')).toHaveValue('responsive-site');
+    const listBefore = await page.locator('#sites-list').textContent();
+    const statusBefore = await page.locator('#sites-status').textContent();
+    const urlBefore = page.url();
+    const requestsBefore = requests.slice();
+
+    for (const viewport of [landscape, portrait]) {
+        await page.setViewportSize(viewport);
+        await expect(page.locator('#sites-prefix')).toHaveValue('res');
+        expect(await page.locator('#sites-list').textContent()).toBe(listBefore);
+        await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+        expect(await page.locator('#sites-status').textContent()).toBe(statusBefore);
+        await expect(page.locator('#site-preview-id')).toHaveValue('responsive-site');
+        expect(page.url()).toBe(urlBefore);
+        expect(requests).toEqual(requestsBefore);
+        await expectResponsiveBounds(page, viewport, ['#sites-title', '#sites-load', '#sites-prefix', '#sites-filter button', usePreview]);
+    }
+
+    expectSyntheticReadOnlyRequests(records, { sites: 2, files: 0, previews: 0 });
+    expect(records.sites.map(request => request.prefix)).toEqual(['', 'res']);
+});
+
+
 test('component preview: blur and simulated hidden visibility clear Files previews at phone sizes', async ({ page }) => {
     const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
     const requests = [];
