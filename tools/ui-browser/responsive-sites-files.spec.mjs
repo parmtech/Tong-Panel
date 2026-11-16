@@ -545,3 +545,55 @@ test('component preview: Files refresh suppresses a held stale preview and recov
     }
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length * 2, previews: phones.length * 2 }, phones.length);
 });
+
+
+test('component preview: Sites and Files controls remain vertically reachable on short screens', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const shortViewports = [{ width: 320, height: 640 }, { width: 390, height: 360 }];
+    await openComponentPreview(page, records);
+
+    async function expectReachable(selector, viewport) {
+        const element = page.locator(selector);
+        await expect(element).toBeVisible();
+        await element.scrollIntoViewIfNeeded();
+        const geometry = await element.evaluate(node => {
+            const rect = node.getBoundingClientRect();
+            const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            return { top: rect.top, bottom: rect.bottom, height: rect.height,
+                hit: hit === node || node.contains(hit) };
+        });
+        expect(geometry.height, `${selector} has no height`).toBeGreaterThan(0);
+        expect(geometry.top, `${selector} clipped above ${viewport.width}×${viewport.height}`).toBeGreaterThanOrEqual(0);
+        expect(geometry.bottom, `${selector} clipped below ${viewport.width}×${viewport.height}`).toBeLessThanOrEqual(viewport.height + 1);
+        expect(geometry.hit, `${selector} obscured at ${viewport.width}×${viewport.height}`).toBe(true);
+    }
+
+    for (const [index, viewport] of shortViewports.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+        await expectReachable('#sites-load', viewport);
+        await page.locator('#sites-load').click();
+        await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+        for (const selector of ['#sites-title', '#sites-prefix', '#sites-filter button', '#sites-status', 'button[aria-label="Use responsive-site for preview"]']) {
+            await expectReachable(selector, viewport);
+        }
+        await expectReachable('#files-refresh', viewport);
+        await page.locator('#files-refresh').click();
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        for (const selector of ['#files-explorer-title', '#files-prefix', '#files-filter button', '#files-status', 'button[aria-label="Preview text responsive-layout-notes.txt"]']) {
+            await expectReachable(selector, viewport);
+        }
+        await page.getByRole('button', { name: 'Preview text responsive-layout-notes.txt' }).click();
+        await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+        for (const selector of ['#files-preview-title', '#files-preview-close', '#files-preview-content']) {
+            await expectReachable(selector, viewport);
+        }
+        await expectResponsiveBounds(page, viewport, ['#files-preview-close']);
+        await page.locator('#files-preview-close').click();
+        await expect(page.locator('#files-preview')).toBeHidden();
+    }
+    expectSyntheticReadOnlyRequests(records, { sites: shortViewports.length, files: shortViewports.length, previews: shortViewports.length }, shortViewports.length);
+});
