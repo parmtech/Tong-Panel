@@ -6,8 +6,8 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "integration/pr-reconciliation-20261113",
-  "source_head_before_handoff_commit": "bf87538e2d318da6a0503fffb80f0be105c56176",
-  "source_tree_sha": "563c8fb7d55452a02d901a2d656f5b636524e9e7",
+  "source_head_before_handoff_commit": "d57be7584f16ca62a1442984d19aa158a6649ef1",
+  "source_tree_sha": "9687e651a53927e644ce974d32e93cba6a3f3ad5",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -22,44 +22,45 @@
     "no_head_workflows": 14
   },
   "source_head_ci": {
-    "head_sha": "3ce7c545feae1152666fa7c268de8bff312b8130",
+    "head_sha": "f95fa64a2954e2c31417eac087493918b31bcf22",
     "total": 13,
-    "check_run_total": 23,
+    "check_run_total": 24,
     "success": 13,
     "completed_failure": 0,
     "pending": [],
-    "vm_run": 43783250239,
+    "vm_run": 43787590403,
     "ubuntu_guest": "completed_success_smoke_cleanup_and_complete",
     "debian_guest": "completed_success_smoke_cleanup_and_complete",
-    "ubuntu_job_id": 133025056308,
-    "debian_job_id": 133025056738,
+    "ubuntu_job_id": 133038606567,
+    "debian_job_id": 133038606408,
     "vm_run_conclusion": "success",
-    "browser_run": 43783250384,
-    "go_run": 43783250241,
+    "browser_run": 43787590305,
+    "go_run": 43787590214,
+    "go_push_run": 43787586134,
     "workflow_runs": {
-      "Current API contract checks": { "run_id": 43783250281, "conclusion": "success" },
-      "Go checks": { "run_id": 43783250241, "conclusion": "success" },
-      "Go static security analysis": { "run_id": 43783250240, "conclusion": "success" },
-      "Go vulnerability checks": { "run_id": 43783250254, "conclusion": "success" },
-      "Isolated Go prototype checks": { "run_id": 43783250335, "conclusion": "success" },
-      "Jobs browser checks": { "run_id": 43783250384, "conclusion": "success" },
-      "Offline model and fixture checks": { "run_id": 43783250487, "conclusion": "success" },
-      "P1 developer smoke (non-destructive)": { "run_id": 43783250266, "conclusion": "success" },
-      "P1 gate blocker inventory": { "run_id": 43783250330, "conclusion": "success" },
-      "P1 unsigned developer package lab": { "run_id": 43783250227, "conclusion": "success" },
-      "P2 clean disposable VM smoke": { "run_id": 43783250239, "conclusion": "success" },
-      "SQLite schema checks": { "run_id": 43783250349, "conclusion": "success" },
-      "UI checks": { "run_id": 43783250248, "conclusion": "success" }
+      "Current API contract checks": { "run_id": 43787590200, "conclusion": "success" },
+      "Go checks": { "run_id": 43787590214, "conclusion": "success" },
+      "Go static security analysis": { "run_id": 43787590208, "conclusion": "success" },
+      "Go vulnerability checks": { "run_id": 43787590233, "conclusion": "success" },
+      "Isolated Go prototype checks": { "run_id": 43787590210, "conclusion": "success" },
+      "Jobs browser checks": { "run_id": 43787590305, "conclusion": "success" },
+      "Offline model and fixture checks": { "run_id": 43787590277, "conclusion": "success" },
+      "P1 developer smoke (non-destructive)": { "run_id": 43787590230, "conclusion": "success" },
+      "P1 gate blocker inventory": { "run_id": 43787590527, "conclusion": "success" },
+      "P1 unsigned developer package lab": { "run_id": 43787590408, "conclusion": "success" },
+      "P2 clean disposable VM smoke": { "run_id": 43787590403, "conclusion": "success" },
+      "SQLite schema checks": { "run_id": 43787590196, "conclusion": "success" },
+      "UI checks": { "run_id": 43787590193, "conclusion": "success" }
     }
   },
   "next": {
-    "task_id": "API-DOMAIN-DNS-RETRY-REGRESSION-PUBLISH-AND-VERIFY",
+    "task_id": "FILES-QUOTA-API-REGRESSIONS-PUBLISH-AND-VERIFY",
     "priority": 2,
-    "action": "Refresh handoffs and tracker, confirm the remote PR branch remains at 3ce7c545feae1152666fa7c268de8bff312b8130, publish reviewed API tests 44cbb52 and bf87538 with docs without force, then inspect all 13 exact-head workflows including hosted Linux execution of both regressions and both clean guests.",
+    "action": "Refresh handoffs and tracker, confirm the remote PR branch remains at f95fa64a2954e2c31417eac087493918b31bcf22, publish reviewed API tests for DNS retry, worker-lease redaction, unsupported Jobs methods, Files DELETE cancellation, delete-quota failure and upload reservation-release failure without force, then inspect all 13 exact-head workflows, hosted Linux execution and both clean guests.",
     "required_evidence": [
-      "confirm remote branch still equals 3ce7c545feae1152666fa7c268de8bff312b8130 before push",
+      "confirm remote branch still equals f95fa64a2954e2c31417eac087493918b31bcf22 before push",
       "all 13 exact-head PR workflows complete on the newly published head",
-      "Go checks execute the DNS retry and active worker-lease redaction API regressions successfully on Linux",
+      "Go checks execute all new API regressions, including Linux-tagged Files cancellation, delete-quota failure and upload reservation-release cases, successfully on Linux",
       "inspect Ubuntu 24.04 and Debian 12 clean guest jobs, including cleanup",
       "update PR #171 and issue #172 with exact SHA and real outcomes; leave issue #155 open",
       "keep P0/P1, owner/security, production authentication, signing, restore, accessibility, and release approvals blocked until actually resolved"
@@ -95,30 +96,30 @@
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
-    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43783250239",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43787590403",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "bf87538e2d318da6a0503fffb80f0be105c56176",
-    "hosted_ci": "pending_publication_exact_PR_head",
-    "evidence": "Two test-only API regressions are independently reviewed with no blocker. DNS retry gofmt/diff checks pass and its focused test compiled, but Windows Application Control blocked execution; internal/sites passed locally. Worker-lease redaction focused test, full internal/api suite and go vet ./internal/api passed locally. Hosted Linux exact-head execution is required for both.",
-    "limitations": "Synthetic resolver/SQLite and synthetic worker lease only. No public DNS, external provider, production authentication policy, host operation or live tenant is exercised. No production behavior changed."
+    "sha": "d57be7584f16ca62a1442984d19aa158a6649ef1",
+    "hosted_ci": "pending_exact_PR_head; previous f95 head passed all 13 workflows and 24 checks",
+    "evidence": "Six test-only API regressions are integrated into the source candidate and independently reviewed with no blocker. DNS retry and active lease redaction ran in both f95 hosted Linux race checks. Development reports Windows API tests/vet and Linux-targeted compile/vet passed for the new candidate; the three new Files tests are Linux-tagged and await exact-head hosted execution.",
+    "limitations": "Synthetic resolver/SQLite, synthetic lease, cookie-auth fixture, temporary Files root and injected quota failures only. No public DNS, production authentication policy, host operation or live tenant is exercised. No production behavior changed; DELETE cancellation coverage is limited to cancellation observed before removal, not during quarantine/unlink."
   },
-  "published_pr_head_at_snapshot": "3ce7c545feae1152666fa7c268de8bff312b8130",
-  "local_checkpoint_parent_at_snapshot": "3ce7c545feae1152666fa7c268de8bff312b8130",
+  "published_pr_head_at_snapshot": "f95fa64a2954e2c31417eac087493918b31bcf22",
+  "local_checkpoint_parent_at_snapshot": "f95fa64a2954e2c31417eac087493918b31bcf22",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
     "state": "design_only_qa_reviewed_not_accepted",
     "branch": "integration/pr-reconciliation-20261113",
     "local_merge": "f1c3879af9b32fc3cc680f9496a7406429da0a8c",
-    "remote_push": "published_in_PR_171_at_3ce_with_all_13_workflows_successful",
+    "remote_push": "published_in_PR_171_at_f95_with_all_13_workflows_and_24_check_runs_successful",
     "qa_findings": "Three factual corrections verified; plan remains design-only and all P0/P1 and human-acceptance dependencies remain."
   },
   "openrootat_candidate": {
-    "branch": "codex/root-at-dff0a23",
-    "head": "487c4c1",
+    "branch": "codex/qa-root-at-final-20261116",
+    "head": "43ff309760a629cbaca3651c3d1118cb9b5de57b",
     "base": "dff0a230f3c7840df118efec63fa00011435e9a4",
     "state": "isolated_pending_independent_security_review",
     "linux_branch_run": 43770861328,
@@ -126,8 +127,8 @@
     "ubuntu_debian_guests": "pending",
     "sol_review": "pending_not_claimed"
   },
-  "local_candidate_head": "bf87538e2d318da6a0503fffb80f0be105c56176",
-  "local_candidate_tree_sha": "563c8fb7d55452a02d901a2d656f5b636524e9e7",
+  "local_candidate_head": "d57be7584f16ca62a1442984d19aa158a6649ef1",
+  "local_candidate_tree_sha": "9687e651a53927e644ce974d32e93cba6a3f3ad5",
   "responsive_test_candidate": {
     "branch": "codex/p2-responsive-sites-files-retry-20261116",
     "head": "40b9ac2a664893803696ab72153d78c27177b344",
@@ -140,8 +141,8 @@
   "domain_dns_retry_candidate": {
     "branch": "codex/p2-domain-dns-retry-api-20261116",
     "head": "44cbb52deba12a1eeac9b5233996eb2d22e9dca9",
-    "state": "locally_integrated_QA_reviewed_not_pushed",
-    "test_runtime": "compiled_but_Windows_Application_Control_blocked_execution; exact_PR_Linux_CI_pending",
+    "state": "published_in_PR_171_at_f95_exact_head_Go_race_checks_passed",
+    "test_runtime": "exact_PR_Linux_race_checks_passed_for_candidate_test",
     "independent_review": "no_code_blocker",
     "scope": "synthetic_resolver_failure_retry_API_regression_only"
   },
@@ -149,11 +150,44 @@
     "branch": "codex/p1-job-lease-api-redaction-20261116",
     "head": "c35fb1cf3856159cf076f0f9c233fa3486f06743",
     "integrated_commit": "bf87538e2d318da6a0503fffb80f0be105c56176",
-    "state": "locally_integrated_QA_reviewed_not_pushed",
-    "test_runtime": "focused_regression_and_full_internal_api_passed; go_vet_internal_api_passed; exact_PR_Linux_CI_pending",
+    "state": "published_in_PR_171_at_f95_exact_head_Go_race_checks_passed",
+    "test_runtime": "exact_PR_Linux_race_checks_passed_for_candidate_test",
     "independent_review": "no_blocker",
     "scope": "synthetic_active_SQLite_lease_metadata_redaction_API_regression"
   },
-  "local_snapshot_head": "bf87538e2d318da6a0503fffb80f0be105c56176",
-  "local_snapshot_tree": "563c8fb7d55452a02d901a2d656f5b636524e9e7"
+  "safe_method_rejection_candidate": {
+    "branch": "codex/p1-safe-method-auth-20261116",
+    "head": "a3dd1caacfa5b4c872f35db1d28717ded98911fc",
+    "integrated_commit": "a5363a0e6ca78e89eee023b3e2e67d61f7ae51b1",
+    "state": "integrated_in_current_source_candidate_Development_and_QA_reviewed_no_blocker_exact_head_CI_pending",
+    "test_runtime": "Windows_full_internal_api_and_vet_passed; exact_PR_head_CI_pending",
+    "independent_review": "no_blocker",
+    "scope": "cookie_authenticated_HEAD_and_cross_origin_OPTIONS_rejected_without_CORS_grants_or_job_audit_changes"
+  },
+  "files_delete_cancellation_candidate": {
+    "branch": "codex/files-delete-cancellation-20261116",
+    "head": "7e46f018b95bc7d37269f061119029a93dc5acfb",
+    "integrated_commit": "9efab5b66fea827c0a910fbdb8506db1a718dfcc",
+    "state": "integrated_in_current_source_candidate_Development_and_QA_reviewed_no_blocker_exact_head_CI_pending",
+    "test_runtime": "Windows_full_internal_api_and_vet_passed; Linux_api_files_compile_vet_passed; Linux_runtime_pending",
+    "scope": "API_forwards_in_flight_DELETE_cancellation_to_real_adapter; canceled-before-removal preserves file_and_quota; no quarantine_unlink cancellation claim"
+  },
+  "files_delete_quota_failure_candidate": {
+    "branch": "codex/files-delete-quota-failure-20261116",
+    "head": "3461beec474d96451d102dd35c6947256a54aa86",
+    "integrated_commit": "1193a883ed1e978814654ec651c1f19a018cab4a",
+    "state": "integrated_in_current_source_candidate_Development_and_QA_reviewed_no_blocker_exact_head_CI_pending",
+    "test_runtime": "Windows_full_internal_api_and_vet_passed; Linux_api_files_compile_vet_passed; Linux_runtime_pending",
+    "scope": "injected quota decrement failure after visible file deletion returns_quota_unavailable_and_preserves_stale_usage"
+  },
+  "files_write_release_failure_candidate": {
+    "branch": "codex/files-write-release-failure-20261116",
+    "head": "daf2f2165d096196fd373f57babcbe9435dfb449",
+    "integrated_commit": "d57be7584f16ca62a1442984d19aa158a6649ef1",
+    "state": "integrated_in_current_source_candidate_Development_and_QA_reviewed_no_blocker_exact_head_CI_pending",
+    "test_runtime": "Windows_full_internal_api_and_vet_passed; Linux_api_files_compile_vet_passed; Linux_runtime_pending",
+    "scope": "injected reservation Release failure after duplicate create conflict returns_quota_unavailable_preserves_file_and_retains_reserved_bytes"
+  },
+  "local_snapshot_head": "d57be7584f16ca62a1442984d19aa158a6649ef1",
+  "local_snapshot_tree": "9687e651a53927e644ce974d32e93cba6a3f3ad5"
 }
