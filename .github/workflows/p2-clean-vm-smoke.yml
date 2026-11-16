@@ -17,6 +17,7 @@ on:
       - 'scripts/verify_vm_image_checksum.sh'
       - 'scripts/test_verify_vm_image_checksum.sh'
       - 'scripts/clean_vm_smoke.sh'
+      - 'scripts/test_clean_vm_cleanup.sh'
       - 'scripts/vm_startup_transport.sh'
       - 'scripts/test_vm_startup_transport.sh'
       - 'scripts/probe_https_isolation.py'
@@ -73,6 +74,8 @@ jobs:
           cache: false
       - name: Test bounded HTTPS isolation diagnostics
         run: python3 -m unittest discover -s scripts -p 'test_probe_https_isolation.py'
+      - name: Test guest failure cleanup withholds serial secrets
+        run: bash scripts/test_clean_vm_cleanup.sh
       - name: Test guest SSH transport retries preserve command failures
         run: bash scripts/test_vm_startup_transport.sh
       - name: Test dpkg lab CI guard

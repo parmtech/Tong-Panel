@@ -19,13 +19,12 @@ cleanup() {
     kill "$pid" 2>/dev/null || true
     for _ in {1..20}; do kill -0 "$pid" 2>/dev/null || break; sleep 0.25; done
   fi
-  if [[ $status -ne 0 && -f "$serial" ]]; then
-    echo "QEMU serial log ($VM_DISTRO):"
-    tail -n 120 "$serial" || true
-  fi
-  if [[ $status -ne 0 && -f "$work/restore-serial.log" ]]; then
-    echo "QEMU restore guest serial log ($VM_DISTRO):"
-    tail -n 120 "$work/restore-serial.log" || true
+  if [[ $status -ne 0 ]]; then
+    # Cloud images can write host private keys and other secrets to their
+    # console. Never copy any serial content to CI, even a filtered tail:
+    # a tail can begin inside a key block and arbitrary lines can hold secrets.
+    # Guest checks already emit bounded, allowlisted diagnostics over SSH.
+    printf 'clean_vm failure_status=%s serial_console=withheld\n' "$status"
   fi
   rm -rf "$work"
   exit "$status"
