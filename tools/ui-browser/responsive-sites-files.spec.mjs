@@ -562,7 +562,7 @@ test('component preview: Files controls work by keyboard at phone, tablet, and d
     expect(records.files.map(request => request.prefix)).toEqual(viewports.flatMap(() => ['', 'responsive']));
 });
 
-test('component preview: Sites and Files keyboard focus follows forced colors at responsive widths', async ({ page }) => {
+test('component preview: navigation, Sites, and Files keyboard focus follows forced colors at responsive widths', async ({ page }) => {
     const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
     await page.emulateMedia({ forcedColors: 'active' });
     await openComponentPreview(page, records);
@@ -573,6 +573,14 @@ test('component preview: Sites and Files keyboard focus follows forced colors at
             await page.goto(baseURL);
             await expect(page.locator('#jobs-panel')).toBeVisible();
         }
+
+        const homeLink = '.sidebar nav a[aria-label="Home"]';
+        await tabUntilFocused(page, homeLink, viewport);
+        await expectVisibleForcedColorFocus(page, homeLink, viewport);
+
+        const noticeLink = '.notice a';
+        await tabUntilFocused(page, noticeLink, viewport);
+        await expectVisibleForcedColorFocus(page, noticeLink, viewport);
 
         await tabUntilFocused(page, '#sites-load', viewport);
         await expectVisibleForcedColorFocus(page, '#sites-load', viewport);
