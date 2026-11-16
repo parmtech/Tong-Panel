@@ -526,32 +526,81 @@ else
   probe_status=$?
   # Inspect fixed fixture metadata before the EXIT trap stops Nginx. Do not
   # print logs, command lines, configuration, certificates or response bodies.
-  timeout 3s python3 - <<'PY_HTTPS_DIAGNOSTICS' || true
+  timeout --kill-after=1s 3s python3 - <<'PY_HTTPS_DIAGNOSTICS' || true
 from pathlib import Path
+import itertools
 import re
+import stat
 
-master = "unavailable"
-try:
-    pid = Path("/run/tong/nginx-https-e2e.pid").read_text()[:32].strip()
-    if re.fullmatch(r"[1-9][0-9]{0,9}", pid):
-        master = "missing"
+# Racy metadata snapshots only: neither socket existence nor process state proves readiness.
+STATES = ("R", "S", "D", "Z", "T", "t", "X", "I")
+
+def read_bounded(path, limit):
+    with path.open("rb") as source:
+        data = source.read(limit + 1)
+    if len(data) > limit:
+        raise ValueError
+    return data.decode("ascii", "strict")
+
+def status_fields(path):
+    text = read_bounded(path, 65536)
+    state = re.findall(r"(?m)^State:\s+([RSDZTtXI])(?:\s|$)", text)
+    parent = re.findall(r"(?m)^PPid:\s+([0-9]{1,10})\s*$", text)
+    if len(state) != 1 or len(parent) != 1:
+        raise ValueError
+    return state[0], parent[0]
+
+def master_info(pidfile, names):
+    try:
+        pid = read_bounded(Path(pidfile), 32).strip()
+        if not re.fullmatch(r"[1-9][0-9]{0,9}", pid):
+            raise ValueError
         process = Path("/proc") / pid
-        if (process / "comm").read_text().strip() == "nginx":
-            master = "present"
-            for line in (process / "status").read_text().splitlines():
-                if line.startswith("State:"):
-                    state = line.split()[1]
-                    if state in ("R", "S", "D", "Z", "T", "t", "X", "I"):
-                        master = "state_" + state
-except (OSError, ValueError):
-    pass
-print("https_fixture master=" + master)
+        if read_bounded(process / "comm", 64).strip() not in names:
+            raise ValueError
+        state, _ = status_fields(process / "status")
+        return pid, "state_" + state
+    except (OSError, ValueError, UnicodeError):
+        return None, "unavailable"
+
+def child_counts(parent):
+    if parent is None:
+        return "unavailable"
+    counts = {state: 0 for state in STATES}
+    try:
+        entries = list(itertools.islice(Path("/proc").iterdir(), 4097))
+        if len(entries) > 4096:
+            raise ValueError
+        children = 0
+        for process in entries:
+            if not re.fullmatch(r"[1-9][0-9]{0,9}", process.name):
+                continue
+            state, ppid = status_fields(process / "status")
+            if ppid == parent:
+                children += 1
+                if children > 32:
+                    raise ValueError
+                counts[state] += 1
+        return ",".join(str(counts[state]) for state in STATES)
+    except (OSError, ValueError, UnicodeError):
+        return "unavailable"
+
+nginx_pid, nginx_state = master_info("/run/tong/nginx-https-e2e.pid", {"nginx"})
+fpm_pid, fpm_state = master_info("/run/tong/php-fpm-e2e.pid", {"php-fpm", "php-fpm8.2", "php-fpm8.3"})
+print("https_fixture snapshot=racy_not_readiness")
+print("https_fixture nginx_master=" + nginx_state + " nginx_children_R_S_D_Z_T_t_X_I=" + child_counts(nginx_pid))
+print("https_fixture fpm_master=" + fpm_state + " fpm_children_R_S_D_Z_T_t_X_I=" + child_counts(fpm_pid))
+try:
+    info = Path("/run/tong/php/tenant-a/site-a.sock").lstat()
+    socket_state = "socket" if stat.S_ISSOCK(info.st_mode) else "other"
+except FileNotFoundError:
+    socket_state = "missing"
+except OSError:
+    socket_state = "unavailable"
+print("https_fixture fpm_socket_a=" + socket_state)
 for family in ("tcp", "tcp6"):
     try:
-        with Path("/proc/net", family).open("r") as source:
-            snapshot = source.read(1024 * 1024 + 1)
-        if len(snapshot) > 1024 * 1024:
-            raise ValueError
+        snapshot = read_bounded(Path("/proc/net", family), 1024 * 1024)
         counts = {"0050": 0, "01BB": 0}
         for line in snapshot.splitlines()[1:]:
             fields = line.split()
@@ -560,8 +609,10 @@ for family in ("tcp", "tcp6"):
             port = fields[1].rsplit(":", 1)[-1]
             if fields[3] == "0A" and port in counts:
                 counts[port] += 1
+                if counts[port] > 4096:
+                    raise ValueError
         print(f"https_fixture family={family} listen_80={counts['0050']} listen_443={counts['01BB']}")
-    except (OSError, ValueError):
+    except (OSError, ValueError, UnicodeError):
         print(f"https_fixture family={family} listeners=unavailable")
 PY_HTTPS_DIAGNOSTICS
   echo "HTTPS isolation probe failed; fixture diagnostics are metadata only" >&2

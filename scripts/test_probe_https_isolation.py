@@ -1,6 +1,9 @@
 import contextlib
 import io
 import os
+import shutil
+import stat
+from types import SimpleNamespace
 from pathlib import Path
 import subprocess
 import tempfile
@@ -168,7 +171,7 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
             fixtures = {
                 "run/tong/nginx-https-e2e.pid": "123\n",
                 "proc/123/comm": "nginx\n",
-                "proc/123/status": "State:\tS (sleeping)\nsecret-process-canary\n",
+                "proc/123/status": "State:\tS (sleeping)\nPPid:\t1\nsecret-process-canary\n",
                 "proc/net/tcp": "header\n0: 0100007F:01BB 00000000:0000 0A secret-socket-canary\n",
                 "proc/net/tcp6": "header\n",
             }
@@ -184,7 +187,10 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
             with patch("pathlib.Path", fixture_path), contextlib.redirect_stdout(output):
                 exec(compile(diagnostic, "<guest https diagnostics>", "exec"), {})
             self.assertEqual(output.getvalue().splitlines(), [
-                "https_fixture master=state_S",
+                "https_fixture snapshot=racy_not_readiness",
+                "https_fixture nginx_master=state_S nginx_children_R_S_D_Z_T_t_X_I=0,0,0,0,0,0,0,0",
+                "https_fixture fpm_master=unavailable fpm_children_R_S_D_Z_T_t_X_I=unavailable",
+                "https_fixture fpm_socket_a=missing",
                 "https_fixture family=tcp listen_80=0 listen_443=1",
                 "https_fixture family=tcp6 listen_80=0 listen_443=0",
             ])
@@ -195,6 +201,103 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
                 exec(compile(diagnostic, "<guest https diagnostics>", "exec"), {})
             self.assertIn("family=tcp listeners=unavailable", output.getvalue())
             self.assertNotIn("secret", output.getvalue())
+
+
+    def test_snapshot_process_states_bounds_and_redaction(self):
+        script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
+        diagnostic = script.split("<<'PY_HTTPS_DIAGNOSTICS' || true\n", 1)[1].split("\nPY_HTTPS_DIAGNOSTICS\n", 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def write(name, value):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(value)
+            def run():
+                def fixture_path(*parts):
+                    return root / Path(*parts).as_posix().lstrip("/")
+                output = io.StringIO()
+                with patch("pathlib.Path", fixture_path), contextlib.redirect_stdout(output):
+                    namespace = {}
+                    exec(compile(diagnostic, "<guest https diagnostics>", "exec"), namespace)
+                text = output.getvalue()
+                self.assertLessEqual(len(text.encode()), 2048)
+                self.assertNotIn("secret", text)
+                self.assertNotIn(str(root), text)
+                return text, namespace
+            write("run/tong/nginx-https-e2e.pid", "123\n")
+            write("run/tong/php-fpm-e2e.pid", "124\n")
+            write("proc/123/comm", "nginx\n")
+            write("proc/124/comm", "php-fpm8.2\n")
+            write("proc/123/status", "State: S (sleeping)\nPPid: 1\n")
+            write("proc/124/status", "State: S (sleeping)\nPPid: 1\n")
+            write("proc/net/tcp", "header\n")
+            write("proc/net/tcp6", "header\n")
+            for number, state in enumerate("RSDZTtXI", 200):
+                write(f"proc/{number}/status", f"State: {state} (fixture)\nPPid: 123\nsecret-canary\n")
+            text, ns = run()
+            self.assertIn("nginx_children_R_S_D_Z_T_t_X_I=1,1,1,1,1,1,1,1", text)
+            self.assertIn("fpm_master=state_S fpm_children_R_S_D_Z_T_t_X_I=0,0,0,0,0,0,0,0", text)
+            for state in "RSDZTtXI":
+                write("proc/123/status", f"State: {state} (fixture)\nPPid: 1\n")
+                text, _ = run()
+                self.assertIn(f"nginx_master=state_{state}", text)
+            write("proc/123/status", "State: S (sleeping)\nPPid: 1\n")
+            write("run/tong/nginx-https-e2e.pid", "999\n")
+            text, _ = run()
+            self.assertIn("nginx_master=unavailable", text)
+            write("run/tong/nginx-https-e2e.pid", "123\n")
+            write("proc/124/comm", "secret-canary\n")
+            text, _ = run()
+            self.assertIn("fpm_master=unavailable", text)
+            write("proc/124/comm", "php-fpm8.3\n")
+            write("proc/200/status", "State: R\nPPid: secret-canary\n")
+            text, _ = run()
+            self.assertIn("nginx_children_R_S_D_Z_T_t_X_I=unavailable", text)
+            write("proc/200/status", "X" * 65537)
+            text, _ = run()
+            self.assertIn("nginx_children_R_S_D_Z_T_t_X_I=unavailable", text)
+            write("run/tong/nginx-https-e2e.pid", "1" * 33)
+            text, _ = run()
+            self.assertIn("nginx_master=unavailable", text)
+            write("run/tong/nginx-https-e2e.pid", "123\n")
+            write("proc/200/status", "State: R (fixture)\nPPid: 123\n")
+            for number in range(300, 325):
+                write(f"proc/{number}/status", "State: S (fixture)\nPPid: 123\n")
+            text, ns = run()
+            self.assertIn("nginx_children_R_S_D_Z_T_t_X_I=unavailable", text)
+            with patch("pathlib.Path.iterdir", return_value=iter([root / "x"] * 4097)):
+                self.assertEqual(ns["child_counts"]("123"), "unavailable")
+            with patch("pathlib.Path.open", side_effect=PermissionError("secret-canary")):
+                self.assertEqual(ns["master_info"]("/private", {"nginx"}), (None, "unavailable"))
+            write("run/tong/php/tenant-a/site-a.sock", "secret-canary")
+            text, _ = run()
+            self.assertIn("fpm_socket_a=other", text)
+            with patch("pathlib.Path.lstat", return_value=SimpleNamespace(st_mode=stat.S_IFSOCK)):
+                text, _ = run()
+                self.assertIn("fpm_socket_a=socket", text)
+            with patch("pathlib.Path.lstat", return_value=SimpleNamespace(st_mode=stat.S_IFLNK)):
+                text, _ = run()
+                self.assertIn("fpm_socket_a=other", text)
+            with patch("pathlib.Path.lstat", side_effect=PermissionError("secret-canary")):
+                text, _ = run()
+                self.assertIn("fpm_socket_a=unavailable", text)
+
+    def test_failure_branch_keeps_probe_status_and_has_no_retry(self):
+        script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
+        branch = script.split("if python3 /home/ci/probe_https_isolation.py; then", 1)[1].split("\nfi\n", 1)[0]
+        self.assertIn("probe_status=$?", branch)
+        self.assertIn("timeout --kill-after=1s 3s python3", branch)
+        self.assertIn("exit \"$probe_status\"", branch)
+        self.assertNotIn("curl", branch)
+        self.assertNotIn("probe_https_isolation.py", branch)
+        self.assertNotIn("tenant-b", branch)
+        bash = shutil.which("bash")
+        if bash:
+            command = ("python3() { return 17; }\n"
+                       "timeout() { cat >/dev/null; return 124; }\n"
+                       "if python3 /home/ci/probe_https_isolation.py; then" + branch + "\nfi\n")
+            result = subprocess.run([bash, "-c", command], capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 17)
 
 
 if __name__ == "__main__":
