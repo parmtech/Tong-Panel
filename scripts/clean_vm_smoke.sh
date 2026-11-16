@@ -521,7 +521,53 @@ for host in tenant-a.example.test tenant-b.example.test; do
 done
 # Require exact markers with bounded transport/status diagnostics. Never print
 # response bodies or retry a wrong-tenant response until it happens to pass.
-python3 /home/ci/probe_https_isolation.py
+if python3 /home/ci/probe_https_isolation.py; then
+  :
+else
+  probe_status=$?
+  # Inspect fixed fixture metadata before the EXIT trap stops Nginx. Do not
+  # print logs, command lines, configuration, certificates or response bodies.
+  timeout 3s python3 - <<'PY_HTTPS_DIAGNOSTICS' || true
+from pathlib import Path
+import re
+
+master = "unavailable"
+try:
+    pid = Path("/run/tong/nginx-https-e2e.pid").read_text()[:32].strip()
+    if re.fullmatch(r"[1-9][0-9]{0,9}", pid):
+        master = "missing"
+        process = Path("/proc") / pid
+        if (process / "comm").read_text().strip() == "nginx":
+            master = "present"
+            for line in (process / "status").read_text().splitlines():
+                if line.startswith("State:"):
+                    state = line.split()[1]
+                    if state in ("R", "S", "D", "Z", "T", "t", "X", "I"):
+                        master = "state_" + state
+except (OSError, ValueError):
+    pass
+print("https_fixture master=" + master)
+for family in ("tcp", "tcp6"):
+    try:
+        with Path("/proc/net", family).open("r") as source:
+            snapshot = source.read(1024 * 1024 + 1)
+        if len(snapshot) > 1024 * 1024:
+            raise ValueError
+        counts = {"0050": 0, "01BB": 0}
+        for line in snapshot.splitlines()[1:]:
+            fields = line.split()
+            if len(fields) < 4:
+                raise ValueError
+            port = fields[1].rsplit(":", 1)[-1]
+            if fields[3] == "0A" and port in counts:
+                counts[port] += 1
+        print(f"https_fixture family={family} listen_80={counts['0050']} listen_443={counts['01BB']}")
+    except (OSError, ValueError):
+        print(f"https_fixture family={family} listeners=unavailable")
+PY_HTTPS_DIAGNOSTICS
+  echo "HTTPS isolation probe failed; fixture diagnostics are metadata only" >&2
+  exit "$probe_status"
+fi
 [[ "$(curl --silent --show-error --resolve tenant-a.example.test:80:127.0.0.1 http://tenant-a.example.test/.well-known/acme-challenge/token)" == tenant-a-challenge ]]
 [[ "$(curl --silent --show-error --resolve tenant-b.example.test:80:127.0.0.1 http://tenant-b.example.test/.well-known/acme-challenge/token)" == tenant-b-challenge ]]
 hidden_status="$(curl --silent --show-error --insecure --resolve tenant-a.example.test:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://tenant-a.example.test/.private.php)"

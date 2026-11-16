@@ -3,14 +3,15 @@ import io
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
-from probe_https_isolation import BODY_LIMIT, EXPECTED, main, probe
+from probe_https_isolation import BODY_LIMIT, EXPECTED, TIMING_NAMES, WRITE_OUT, main, probe
 
 
 class HTTPSIsolationProbeTests(unittest.TestCase):
-    def runner(self, body=b"tenant-a-isolated", status="200", code=0, error=None):
+    def runner(self, body=b"tenant-a-isolated", status="200", code=0, error=None, timings="0.001000|0.020000|0.021000|0.022000"):
         self.calls = []
         self.responses = []
 
@@ -25,7 +26,7 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
             path.write_bytes(body)
             if error is not None:
                 raise error
-            return subprocess.CompletedProcess(command, code, stdout=status,
+            return subprocess.CompletedProcess(command, code, stdout=status + "|" + timings,
                                                stderr="secret-error-canary")
 
         return run
@@ -50,6 +51,30 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
         self.assertFalse(options["check"])
         self.assertFalse(self.responses[0].exists())
         self.assertFalse(self.responses[0].parent.exists())
+        self.assertEqual(command[command.index("--write-out") + 1], WRITE_OUT)
+        for name, value in zip(TIMING_NAMES, result.timings):
+            self.assertIn(f"{name}={value}", result.diagnostic())
+
+    def test_timeout_preserves_sanitized_timing_phases(self):
+        result = probe("tenant-a.example.test", self.runner(
+            status="000", code=28, body=b"", timings="0.001000|0.000000|0.000000|5.002000"))
+        self.assertEqual(result.classification, "transport_timeout")
+        self.assertIn("time_connect=0.001000", result.diagnostic())
+        self.assertIn("time_appconnect=0.000000", result.diagnostic())
+        self.assertIn("time_total=5.002000", result.diagnostic())
+        self.assertEqual(len(self.calls), 1)
+
+    def test_malformed_timing_metadata_is_redacted_and_fails_closed(self):
+        for timings in ["secret-canary", "nan|0.000000|0.000000|1.000000",
+                        "0.000000|0.000000|0.000000|1000.000000",
+                        "0.000000|0.000000|0.000000|1.000000\nsecret-canary"]:
+            with self.subTest(timings=timings):
+                result = probe("tenant-a.example.test", self.runner(timings=timings))
+                self.assertFalse(result.passed)
+                self.assertEqual(result.classification, "malformed_metadata")
+                self.assertEqual(result.timings, ())
+                self.assertNotIn("secret", result.diagnostic())
+                self.assertEqual(len(self.calls), 1)
 
     def test_http_error_and_redirect_are_single_attempt_failures(self):
         for status in ["502", "503", "504", "302", "403"]:
@@ -106,7 +131,7 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
             calls.append(command)
             host = command[-1].split("/")[2]
             Path(command[command.index("--output") + 1]).write_bytes(EXPECTED[host])
-            return subprocess.CompletedProcess(command, 0, stdout="200")
+            return subprocess.CompletedProcess(command, 0, stdout="200|0.001000|0.020000|0.021000|0.022000")
 
         output = io.StringIO()
         self.assertEqual(main([], valid_runner, output), 0)
@@ -134,6 +159,42 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
         self.assertEqual(result.classification, "probe_unavailable")
         self.assertEqual(len(self.calls), 0)
         self.assertNotIn("secret-directory-canary", result.diagnostic())
+
+    def test_guest_failure_snapshot_prints_only_fixed_metadata(self):
+        script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
+        diagnostic = script.split("<<'PY_HTTPS_DIAGNOSTICS' || true\n", 1)[1].split("\nPY_HTTPS_DIAGNOSTICS\n", 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixtures = {
+                "run/tong/nginx-https-e2e.pid": "123\n",
+                "proc/123/comm": "nginx\n",
+                "proc/123/status": "State:\tS (sleeping)\nsecret-process-canary\n",
+                "proc/net/tcp": "header\n0: 0100007F:01BB 00000000:0000 0A secret-socket-canary\n",
+                "proc/net/tcp6": "header\n",
+            }
+            for name, value in fixtures.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(value)
+
+            def fixture_path(*parts):
+                return root / Path(*parts).as_posix().lstrip("/")
+
+            output = io.StringIO()
+            with patch("pathlib.Path", fixture_path), contextlib.redirect_stdout(output):
+                exec(compile(diagnostic, "<guest https diagnostics>", "exec"), {})
+            self.assertEqual(output.getvalue().splitlines(), [
+                "https_fixture master=state_S",
+                "https_fixture family=tcp listen_80=0 listen_443=1",
+                "https_fixture family=tcp6 listen_80=0 listen_443=0",
+            ])
+            # An unavailable proc snapshot remains static; no path or exception text.
+            (root / "proc/net/tcp").unlink()
+            output = io.StringIO()
+            with patch("pathlib.Path", fixture_path), contextlib.redirect_stdout(output):
+                exec(compile(diagnostic, "<guest https diagnostics>", "exec"), {})
+            self.assertIn("family=tcp listeners=unavailable", output.getvalue())
+            self.assertNotIn("secret", output.getvalue())
 
 
 if __name__ == "__main__":

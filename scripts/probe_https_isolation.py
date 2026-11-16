@@ -16,6 +16,8 @@ EXPECTED = {
     "tenant-b.example.test": b"tenant-b-isolated",
 }
 BODY_LIMIT = 4096
+TIMING_NAMES = ("time_connect", "time_appconnect", "time_starttransfer", "time_total")
+WRITE_OUT = "%{http_code}" + "".join("|%{" + name + "}" for name in TIMING_NAMES)
 
 
 @dataclass(frozen=True)
@@ -25,15 +27,17 @@ class ProbeResult:
     transport_exit: int
     body_bytes: int
     classification: str
+    timings: tuple = ()
 
     @property
     def passed(self):
         return self.classification == "pass"
 
     def diagnostic(self):
+        phases = "".join(f" {name}={value}" for name, value in zip(TIMING_NAMES, self.timings))
         return (f"https_isolation host={self.host} status={self.status} "
                 f"transport_exit={self.transport_exit} bytes={self.body_bytes} "
-                f"classification={self.classification}")
+                f"classification={self.classification}{phases}")
 
 
 def probe(host, runner=subprocess.run):
@@ -50,6 +54,7 @@ def probe(host, runner=subprocess.run):
 
 def _probe_once(host, runner):
     status, transport, failure = "000", -1, None
+    timings = ()
     with tempfile.TemporaryDirectory(prefix="tong-https-isolation-") as directory:
         response = Path(directory) / "response"
         descriptor = os.open(response, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
@@ -59,7 +64,7 @@ def _probe_once(host, runner):
             "--insecure", "--resolve", host + ":443:127.0.0.1",
             "--connect-timeout", "5", "--max-time", "15",
             "--max-filesize", str(BODY_LIMIT), "--output", str(response),
-            "--write-out", "%{http_code}", "https://" + host + "/",
+            "--write-out", WRITE_OUT, "https://" + host + "/",
         ]
         try:
             result = runner(command, check=False, stdout=subprocess.PIPE,
@@ -67,7 +72,15 @@ def _probe_once(host, runner):
                             env={"PATH": os.defpath, "LC_ALL": "C"})
             if type(result.returncode) is int and -128 <= result.returncode <= 255:
                 transport = result.returncode
-            raw_status = result.stdout.strip() if isinstance(result.stdout, str) else ""
+            raw_output = result.stdout.strip() if isinstance(result.stdout, str) else ""
+            fields = raw_output.split("|")
+            raw_status = fields[0]
+            # Only fixed-width numeric curl timings may enter the public log.
+            # Malformed timing metadata must never turn a failed probe into a pass.
+            if len(fields) == 5 and all(re.fullmatch(r"[0-9]{1,3}\.[0-9]{6}", value) for value in fields[1:]):
+                timings = tuple(fields[1:])
+            else:
+                failure = "malformed_metadata"
             if re.fullmatch(r"[1-5][0-9]{2}", raw_status):
                 status = raw_status
             elif raw_status != "000":
@@ -82,7 +95,7 @@ def _probe_once(host, runner):
             with response.open("rb") as stream:
                 body = stream.read(BODY_LIMIT + 1)
         except OSError:
-            return ProbeResult(host, status, transport, 0, "response_unavailable")
+            return ProbeResult(host, status, transport, 0, "response_unavailable", timings)
         size = len(body)
         if size > BODY_LIMIT or transport == 63:
             classification = "response_limit"
@@ -98,7 +111,7 @@ def _probe_once(host, runner):
             classification = "unexpected_body"
         else:
             classification = "pass"
-        return ProbeResult(host, status, transport, size, classification)
+        return ProbeResult(host, status, transport, size, classification, timings)
 
 
 def main(arguments=None, runner=subprocess.run, output=None):
