@@ -18,8 +18,9 @@ import (
 	"github.com/parmtech/tong-panel/internal/database"
 )
 
-// This proves queue metadata recovery after a worker process is killed. It does
-// not exercise tongd's fixed 30-second worker lease or simulate host power loss.
+// This Go test proves queue metadata recovery after a worker process is killed
+// with a short test lease. The P1 real-binary smoke exercises the daemon's fixed
+// 30-second lease; neither test simulates host power loss.
 func TestSQLiteProcessCrashRecovery(t *testing.T) {
 	store, path := openTestSQLiteStore(t)
 	job, err := store.CreateFor("tenant-a", "user-a", KindNoop, "process-crash-recovery-0001")

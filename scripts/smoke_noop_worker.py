@@ -2,7 +2,7 @@
 """Run the opt-in development no-op worker against disposable SQLite only."""
 
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -107,6 +107,31 @@ def state(path, job):
         return connection.execute("SELECT state,attempt_count FROM jobs WHERE id=?", (job,)).fetchone()
 
 
+def wait_for_lease_expiry(path, job):
+    with connect(path) as connection:
+        row = connection.execute(
+            "SELECT state,attempt_count,lease_until FROM jobs WHERE id=?", (job,)
+        ).fetchone()
+    require(row is not None and row[0] == "running" and row[1] == 1 and row[2],
+            "failed worker did not retain its first running lease")
+    try:
+        expires = datetime.fromisoformat(row[2].replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        raise RuntimeError("failed worker lease deadline was invalid")
+    require(expires.tzinfo is not None, "failed worker lease deadline had no timezone")
+    remaining = (expires - datetime.now(timezone.utc)).total_seconds()
+    require(remaining <= 35, "failed worker lease deadline exceeded its bounded window")
+    if remaining > 0:
+        time.sleep(remaining + 0.25)
+    with connect(path) as connection:
+        expired = connection.execute(
+            "SELECT julianday(lease_until)<=julianday('now') "
+            "FROM jobs WHERE id=? AND state='running' AND attempt_count=1",
+            (job,),
+        ).fetchone()
+    require(expired == (1,), "worker lease did not naturally expire while the daemon was stopped")
+
+
 def enqueue(key):
     status, job = request("POST", "/api/v1/jobs", key)
     require(status == 202 and job.get("kind") == "validation.noop" and len(job.get("id", "")) == 32,
@@ -196,10 +221,9 @@ def main(binary):
             require(connection.execute("SELECT count(*) FROM audit_events WHERE subject_id=? AND action='job.completed'", (failed,)).fetchone()[0] == 0,
                     "failed completion persisted an audit")
             connection.execute("DROP TRIGGER worker_test_reject_completion")
-            # Explicitly expire the fixture lease; this is not a wall-clock or
-            # physical-host crash test. Recovery does restart the real process.
-            expired = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat().replace("+00:00", "Z")
-            connection.execute("UPDATE jobs SET lease_until=? WHERE id=?", (expired, failed))
+        # Wait for the real daemon lease to expire while its process is down.
+        # Recovery then starts a fresh daemon without editing the clock/deadline.
+        wait_for_lease_expiry(path, failed)
         with daemon(binary, enabled) as process:
             wait_for(lambda: state(path, failed)[0] == "completed", process, "expired attempt recovery")
             check_completed(path, failed, 2)
