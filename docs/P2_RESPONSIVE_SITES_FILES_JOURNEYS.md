@@ -27,6 +27,12 @@ The inventory below was checked against `tools/ui-browser/jobs.spec.mjs`, `web/t
 
 Playwright currently uses Chromium and a disposable loopback TLS fixture. These tests do not establish behavior on physical phones/tablets, other browser engines, production authentication, or a supported hosting installation.
 
+## Local component-preview evidence — 16 November 2026
+
+The reviewed PR #171 candidate at source commit `c8ead119fb7b1a2555474d129a8f3c046b376c28` adds `tools/ui-browser/responsive-sites-files.spec.mjs`. Its four Playwright cases use a local static UI server and synthetic, intercepted GET responses to check Sites/Files layout and keyboard actions at 320×640, 390×360, 390×844, 768×1024, 1024×768, 1280×800, and 1440×900. The Files preview returns focus to its originating Preview button on explicit Close. The focused local suite passed 4/4, JavaScript syntax checks passed, and the independent source review found no blocker. Exact PR-head CI for this candidate is pending publication.
+
+These checks do not exercise authentication, tenant authorization, real Files/Sites handlers, live Nginx, physical devices, screen readers, contrast, reduced motion, or touch interactions. Blur/visibility cleanup is source-inspected but not directly exercised in this spec. This evidence is a narrow component preview; it does not implement or accept the journeys in this proposal. Issue #155 remains open, and the first-run/login-recovery journey remains deferred under P0/P1 policy dependencies.
+
 ## Personas and journeys
 
 Persona names are test roles, not a proposed authorization model. A persona may see or act on only resources authorized by the approved server-side policy. “Admin” does not imply blanket cross-tenant access.

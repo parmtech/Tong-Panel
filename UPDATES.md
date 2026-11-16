@@ -1,9 +1,17 @@
-## CURRENT CHECKPOINT — expanded responsive preview viewport matrix (16 November 2026)
+## CURRENT CHECKPOINT — reviewed responsive Sites/Files component slice (16 November 2026, Australia/Sydney)
 
-- **Branch/source:** isolated `codex/p2-responsive-sites-files-keyboard-20261116`, based on focus-return candidate `f54a500d56f1e68bfcfe63e07fe7124a79fe3163`; viewport test commit `78b3b418e5d53a2119966ee39cedbadae0580431`.
-- **Change:** added the P2 plan’s 390×360 phone-landscape and 1440×900 wide-desktop cases to the shared browser viewport list. Existing 320×640, 390×844, 768×1024 and 1280×800 cases remain; all expected response counts and prefix sequences derive from this shared list. The candidate remains synthetic browser-preview evidence, not physical-device or full issue #155 acceptance.
-- **Verification:** `node --check cmd/tongd/ui/app.js`, `node --check responsive-sites-files.spec.mjs`, focused `npm test -- responsive-sites-files.spec.mjs` (4/4 passed at seven viewport sizes), and `git diff --check` passed. No authenticated flows, tenant operations, live Nginx/handler or human accessibility/usability acceptance were exercised.
-- **Next:** QA re-review this exact candidate. Nothing pushed; P0/P1, security, release and full issue #155 acceptance gates remain open.
+- **Published PR #171 baseline:** open/draft at exact head `b292c89e3d37d48c78a3e555d6e2cb02810da00d`, based on `dff0a230f3c7840df118efec63fa00011435e9a4`. All 13 exact-head workflows passed, including Ubuntu 24.04 and Debian 12 guest jobs in [run #43773412630](https://github.com/parmtech/Tong-Panel/actions/runs/43773412630). These checks predate the local code/test candidate.
+- **Local integration:** `integration/pr-reconciliation-20261113` is at `c8ead119fb7b1a2555474d129a8f3c046b376c28`, tree `db5231c19f402987063c109bc11f253e4e60df7b`, 518 tracked files. Candidate is not pushed. It adds synthetic Sites/Files component-preview pointer and keyboard checks at 320×640, 390×360, 390×844, 768×1024, 1024×768, 1280×800 and 1440×900; Files Preview returns focus to its trigger only on explicit Close. Independent QA found no concrete blocker.
+- **Local verification:** `npm test -- responsive-sites-files.spec.mjs` passed 4/4; `node --check cmd/tongd/ui/app.js`, `node --check tools/ui-browser/responsive-sites-files.spec.mjs`, and `git diff --check` passed. The local full `npm test` invocation reached four responsive passes but stopped at the first Jobs test because `TONG_UI_FIXTURE_BINARY` was unset. This machine has no Go compiler to build the fixture. The hosted browser workflow builds and supplies the fixture; full exact-PR browser verification remains pending.
+- **Scope:** all Sites/Files API and health responses in the new preview tests are synthetic/intercepted GETs; no cookies or Authorization headers are sent, and external requests are blocked. This is not authenticated tenant testing, live Nginx/handler evidence, physical-device testing, human accessibility review, or issue #155 acceptance. Keep #155 open; first-run/login recovery and P0/P1, security, release and production gates remain open.
+- **Next:** refresh the canonical handoff files and tracker; confirm the remote branch still equals `b292c89`; publish the QA-reviewed integration without force; inspect all exact-head workflows, including the browser suite and both clean guests. After CI, add the next safe test slice: synthetic Sites/Files network failure followed by successful retry at narrow-phone and phone-landscape sizes.
+
+The dated `PREVIOUS CHECKPOINT` entries below are retained audit history. Follow this current checkpoint for active work.
+
+### 2026-11-16 — responsive preview candidate integrated locally
+
+- **Review:** independent QA reviewed exact candidate `c8ead119fb7b1a2555474d129a8f3c046b376c28` and found no blocker. QA verified actual reverse-Tab order, all seven viewports, GET-only synthetic request isolation, and explicit Close focus restoration. Blur/visibility cleanup was source-inspected but is not directly exercised by this spec.
+- **Publication:** no push yet. The current remote PR branch was confirmed at `b292c89e3d37d48c78a3e555d6e2cb02810da00d` immediately before local integration. Exact PR-head checks for the candidate are still pending.
 
 ## PREVIOUS CHECKPOINT — keyboard focus-return QA follow-up (16 November 2026)
 
