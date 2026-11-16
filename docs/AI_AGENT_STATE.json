@@ -6,8 +6,8 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "integration/pr-reconciliation-20261113",
-  "source_head_before_handoff_commit": "b398ae76b12af2b28cee013b449720b0c54e1fbc",
-  "source_tree_sha": "710522dccb5bb8bac10db7c72a72d3313b70e34b",
+  "source_head_before_handoff_commit": "01298f0f3ddde726b03d1734af6949c62a32aa73",
+  "source_tree_sha": "e33fd2d5a394cfca5632373f7290e979df830b9d",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -96,14 +96,15 @@
     "browser_run": 43799964041
   },
   "next": {
-    "task_id": "HTTPS-DIAGNOSTICS-AND-RESPONSIVE-STALE-PREVIEW-EXACT-HEAD",
+    "task_id": "HTTPS-DIAGNOSTICS-RESPONSIVE-RECOVERY-AND-REACHABILITY-EXACT-HEAD",
     "priority": 2,
-    "action": "Confirm remote remains at ec38c897, publish the reviewed local source and refreshed handoffs as a normal fast-forward, then inspect every check and both clean guests through cleanup and Complete.",
+    "action": "Confirm the remote PR branch remains at ec38c897, publish the reviewed local source and refreshed handoffs as a normal fast-forward, then inspect every exact-head check and both guest workflows through cleanup and Complete.",
     "required_evidence": [
       "All exact-head workflow runs and check runs completed and individually inspected",
-      "Both Go race jobs pass; P2 restore/inventory runner steps pass",
+      "Both Go race jobs and the P2 runner restore/inventory process steps pass",
       "Ubuntu 24.04 and Debian 12 clean guests inspected through smoke, cleanup and Complete",
-      "If the Debian HTTPS probe fails, use only sanitized connect/TLS/first-response/total timings and fixed Nginx/listener counts; do not weaken tenant isolation assertions or retry",
+      "Responsive browser suite passes with stale-preview and short-viewport vertical-reachability cases",
+      "If Debian HTTPS fails, use only sanitized connect/TLS/first-response/total timings and fixed Nginx/listener counts; do not weaken isolation assertions or retry",
       "Update PR #171 and tracker #172 with exact SHA and observed results; leave issue #155 open",
       "Preserve P0/P1, owner/security, authentication, signing, restore authorization, accessibility and release gates"
     ]
@@ -144,9 +145,9 @@
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "b398ae76b12af2b28cee013b449720b0c54e1fbc",
+    "sha": "01298f0f3ddde726b03d1734af6949c62a32aa73",
     "hosted_ci": "pending_exact_PR_head; parent ec38 completed with 23_of_24_check_runs_successful, Go race runs and Ubuntu guest passed; Debian HTTPS guest failure preserved",
-    "evidence": "Candidate adds a synthetic stale-preview recovery regression and bounded HTTPS timeout diagnostics. Development and QA found no blocker for the browser test; focused Chrome passed 1/1 and responsive suite 6/6. Sol's diagnostic candidate passed 12 focused Python tests, shell syntax, embedded Python compilation and diff checks; QA found no blocker. Exact-head hosted verification remains pending.",
+    "evidence": "Candidate adds a synthetic stale-preview recovery regression, vertical reachability checks at 320x640 and 390x360, and bounded HTTPS timeout diagnostics. Development and QA found no blocker for responsive coverage; focused Chrome passed 1/1 and the responsive suite passed 7/7. Sol's diagnostic candidate passed 12 focused Python tests, shell syntax, embedded Python compilation and diff checks; QA found no blocker. Exact-head hosted verification remains pending.",
     "limitations": "HTTPS timeout root cause remains unknown. New instrumentation does not retry or increase timeout and reports sanitized timing/fixed metadata only. Responsive evidence is synthetic. No P0/P1, owner/security, production, accessibility or release approval is implied."
   },
   "published_pr_head_at_snapshot": "ec38c897b5f08e03c40bb8b3192759f21ed452a8",
@@ -173,8 +174,8 @@
     "qa_review": "completed_no_code_or_descriptor_cleanup_blocker",
     "limitations": "No production restore authorization, durable quota-release authority or cross-process fence; same-UID pre-observation replacement, ABA, mount aliases and ancestor replacement remain outside guarantees."
   },
-  "local_candidate_head": "b398ae76b12af2b28cee013b449720b0c54e1fbc",
-  "local_candidate_tree_sha": "710522dccb5bb8bac10db7c72a72d3313b70e34b",
+  "local_candidate_head": "01298f0f3ddde726b03d1734af6949c62a32aa73",
+  "local_candidate_tree_sha": "e33fd2d5a394cfca5632373f7290e979df830b9d",
   "responsive_test_candidate": {
     "branch": "codex/p2-responsive-sites-files-retry-20261116",
     "head": "40b9ac2a664893803696ab72153d78c27177b344",
@@ -186,10 +187,19 @@
     "stale_preview_followup": {
       "source_head": "83ed539f0633cfbe6d2c9e6ce22f12352a59ed4d",
       "integrated_commit": "83e8d0b9d1a6371eba55040250395a25c336c487",
-      "state": "local_only_pending_exact_head_hosted_CI",
+      "state": "locally_integrated_pending_exact_head_hosted_CI",
       "review": "Development_and_QA_no_blocker",
       "validation": "focused_Chrome_1_of_1_and_responsive_suite_6_of_6_passed_locally",
-      "scope": "synthetic held response after view invalidation; no authenticated tenant flow or human accessibility acceptance"
+      "scope": "synthetic held response after view invalidation; no authenticated tenant flow or human accessibility acceptance",
+      "suite_after_vertical_followup": "7_of_7_passed_locally"
+    },
+    "vertical_reachability_followup": {
+      "source_head": "30d68aa8437f4855c12a422c7abc1a42588e839c",
+      "integrated_commit": "01298f0f3ddde726b03d1734af6949c62a32aa73",
+      "state": "local_only_pending_exact_head_hosted_CI",
+      "review": "Development_and_QA_no_blocker",
+      "validation": "focused_Chrome_1_of_1_and_responsive_suite_7_of_7_passed_locally",
+      "scope": "selected synthetic Sites/Files headings controls status and preview at 320x640 and 390x360; scroll-into-view, vertical bounds and center hit test; not keyboard/touch/human accessibility"
     }
   },
   "domain_dns_retry_candidate": {
@@ -242,8 +252,8 @@
     "test_runtime": "PR and push Go race checks passed on exact head 9a, including Linux-tagged Files runtime",
     "scope": "injected reservation Release failure after duplicate create conflict returns_quota_unavailable_preserves_file_and_retains_reserved_bytes"
   },
-  "local_snapshot_head": "b398ae76b12af2b28cee013b449720b0c54e1fbc",
-  "local_snapshot_tree": "710522dccb5bb8bac10db7c72a72d3313b70e34b",
+  "local_snapshot_head": "01298f0f3ddde726b03d1734af6949c62a32aa73",
+  "local_snapshot_tree": "e33fd2d5a394cfca5632373f7290e979df830b9d",
   "files_media_type_candidate": {
     "branch": "codex/api-contract-gap-scan-20261116",
     "head": "8a622a0400e6b6f13e9f526664bfa53e397d78f1",
@@ -274,7 +284,7 @@
   },
   "https_timeout_diagnostics_candidate": {
     "source_head": "26517dd18756679a7cccd3b183e99b95556b0693",
-    "integrated_commit": "b398ae76b12af2b28cee013b449720b0c54e1fbc",
+    "integrated_commit": "01298f0f3ddde726b03d1734af6949c62a32aa73",
     "state": "local_only_pending_exact_head_hosted_CI",
     "review": "Sol_6_1_Medium_implemented; QA_no_blocker",
     "validation": "12_focused_python_tests_shell_syntax_embedded_python_compile_and_diff_check_passed",

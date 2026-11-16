@@ -1,10 +1,10 @@
 ## Current resume checkpoint — 16 November 2026 (Australia/Sydney)
 
-PR #171 remains open/draft at latest completed exact head ec38c897b5f08e03c40bb8b3192759f21ed452a8. 23/24 check runs and 12/13 PR workflows succeeded. Both Go race runs passed; P2 runner restore/inventory steps passed. Ubuntu guest #133077560043 passed smoke, cleanup and Complete. Debian guest #133077560375 failed its HTTPS isolation probe with status 000, curl exit 28, zero bytes and transport_timeout before HTTP; cause remains unknown.
+PR #171 remains open/draft at latest completed exact head ec38c897b5f08e03c40bb8b3192759f21ed452a8. 23/24 check runs and 12/13 PR workflows succeeded. Both Go race runs and P2 runner restore/inventory steps passed; Ubuntu guest #133077560043 passed smoke, cleanup and Complete. Debian guest #133077560375 failed HTTPS isolation before HTTP (status 000, curl exit 28, zero bytes); cause remains unknown.
 
-The local source/test candidate b398ae76b12af2b28cee013b449720b0c54e1fbc adds synthetic stale-preview recovery coverage plus bounded HTTPS timing and failure-only metadata diagnostics. Development/QA reviewed the test without a blocker; focused Chrome passed 1/1 and the responsive suite passed 6/6. Sol's diagnostic changes passed 12 focused Python tests and syntax checks; QA found no blocker. Hosted verification is pending.
+Local candidate 01298f0f3ddde726b03d1734af6949c62a32aa73 adds sanitized HTTPS diagnostics and synthetic stale-preview plus vertical-reachability regressions. Development/QA found no blocker for the browser coverage; focused Chrome passed 1/1 and the responsive suite passed 7/7. Sol's diagnostic changes passed 12 focused Python tests and syntax checks; QA found no blocker. Hosted verification is pending.
 
-**Next:** validate the canonical handoffs, confirm remote ec38, publish source plus docs as a normal fast-forward, and inspect all checks and both guests on the new exact head. Use sanitized timing and fixed metadata if the HTTPS timeout reproduces. Keep issue #155, P0/P1, owner/security, production and release gates open.
+**Next:** validate the canonical handoffs, confirm remote ec38, publish source plus docs as a normal fast-forward, and inspect all checks and both guests through cleanup/Complete. Use sanitized timing and fixed metadata if the timeout recurs. Keep issue #155, P0/P1, owner/security, production and release gates open.
 
 ---
 
@@ -60,8 +60,8 @@ The local source/test candidate b398ae76b12af2b28cee013b449720b0c54e1fbc adds sy
 
 - Repo: parmtech/Tong-Panel. Sole current review is open/draft PR #171 on integration/pr-reconciliation-20261113; master tracker is issue #172. main remains docs-only; 149 prior drafts remain closed unmerged.
 - **Latest completed published head:** ec38c897b5f08e03c40bb8b3192759f21ed452a8. All 24 checks finished: 23 success, one failure. The 13 PR workflow runs finished 12 success, one failure. Both Go race runs passed. P2 run #43799964054 passed runner restore/inventory and Ubuntu guest smoke/cleanup/Complete; Debian failed its tenant-a HTTPS probe before HTTP (status 000, curl exit 28, zero bytes).
-- **Unpublished local source/test candidate:** b398ae76b12af2b28cee013b449720b0c54e1fbc, based on ec38. It adds a synthetic stale-preview test and bounded, sanitized HTTPS timing plus failure-only fixed metadata. Local reviews/tests are recorded in UPDATES.md. Exact hosted CI is pending.
-- **ONE exact next action:** refresh/validate the canonical docs, verify the remote is still ec38, publish as a normal fast-forward, then inspect all exact-head workflows and both guests through cleanup. Update PR #171 and issue #172 with observed results. Keep issue #155 open.
+- **Unpublished local candidate:** 01298f0f3ddde726b03d1734af6949c62a32aa73, based on ec38. It adds bounded HTTPS diagnostics plus synthetic stale-preview and vertical-reachability tests. Local reviews/tests are recorded in UPDATES.md. Exact hosted CI is pending.
+- **ONE exact next action:** refresh/validate canonical docs, verify remote ec38, publish as a normal fast-forward, then inspect all exact-head workflows and both guests through cleanup. Update PR #171 and issue #172 with observed results. Keep issue #155 open.
 - **Gates:** formal P0/ADR-001–009, independent security approval, public login, root agent, CA/key custody, terminal T0, signed installer/rollback, real two-tenant restore and accessibility remain blocked.
 
 ## Current continuation — Debian guest dpkg helper PATH (13 November 2026)
