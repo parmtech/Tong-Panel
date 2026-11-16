@@ -159,6 +159,53 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
                     evidence["profile_fingerprint"] = fingerprint
                 self.assertEqual([], audit_matrix(self.matrix, self.root, SYNTHETIC_COMMIT))
 
+    def test_all_profile_pins_reject_common_ranges_and_wildcards(self):
+        for field, error in (
+            ("os", "profile_os_unpinned"),
+            ("architecture", "profile_architecture_unpinned"),
+            ("components", "profile_component_unpinned"),
+        ):
+            for value in (
+                "1.x", "1.2.x", "1.X", "v1.2.X", "x", "X",
+                "Ubuntu 24.x", "Ubuntu >= 24.04", "Ubuntu>=24.04",
+                "<=24.04", ">24.04", "<24.04", "^24.04", "~24.04",
+                "~=24.04", "Ubuntu 22.04 - 24.04", "24.*", "24.?",
+            ):
+                with self.subTest(field=field, value=value):
+                    self.matrix = self.valid_matrix()
+                    profile = self.matrix["profiles"][0]
+                    if field == "components":
+                        profile[field]["fixture-web"] = value
+                    else:
+                        profile[field] = value
+                    # Isolate pin validation from the existing stale-evidence check.
+                    for evidence in self.matrix["rows"][0]["evidence"]:
+                        evidence["profile_fingerprint"] = profile_fingerprint(profile)
+                    self.assertEqual(
+                        [f"{error}:synthetic-web-ubuntu-fixture"],
+                        audit_matrix(self.matrix, self.root, SYNTHETIC_COMMIT),
+                    )
+
+    def test_architecture_alternatives_fail_closed(self):
+        for value in (
+            "amd64 or arm64", "amd64 and arm64", "amd64 and/or arm64",
+            "amd64, arm64", "amd64 | arm64", "amd64 / arm64",
+        ):
+            with self.subTest(architecture=value):
+                self.matrix = self.valid_matrix()
+                self.matrix["profiles"][0]["architecture"] = value
+                self.assert_error("profile_architecture_unpinned:synthetic-web-ubuntu-fixture")
+
+    def test_single_os_and_architecture_pins_remain_valid(self):
+        for architecture in ("amd64", "arm64", "x86_64", "x86", "aarch64"):
+            with self.subTest(architecture=architecture):
+                self.matrix = self.valid_matrix()
+                profile = self.matrix["profiles"][0]
+                profile.update(os="Ubuntu 24.04.1 LTS", architecture=architecture)
+                for evidence in self.matrix["rows"][0]["evidence"]:
+                    evidence["profile_fingerprint"] = profile_fingerprint(profile)
+                self.assertEqual([], audit_matrix(self.matrix, self.root, SYNTHETIC_COMMIT))
+
     def test_duplicate_profile_id_and_duplicate_profile_identity_are_ambiguous(self):
         self.matrix["profiles"].append(dict(self.matrix["profiles"][0]))
         self.assert_error("profile_id_ambiguous:synthetic-web-ubuntu-fixture")
@@ -275,6 +322,26 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
         self.assertTrue(result["structurally_valid"])
         self.assertFalse(result["product_support_approval"])
         self.assertEqual("draft structural consistency only", result["tool_scope"])
+
+    def test_cli_rejects_wildcard_without_product_support_approval(self):
+        profile = self.matrix["profiles"][0]
+        profile["components"]["fixture-web"] = "1.2.x"
+        for evidence in self.matrix["rows"][0]["evidence"]:
+            evidence["profile_fingerprint"] = profile_fingerprint(profile)
+        matrix_path = self.write_file("synthetic-matrix.json", json.dumps(self.matrix))
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            exit_code = main([
+                matrix_path.name, "--root", str(self.root),
+                "--expected-source-commit", SYNTHETIC_COMMIT,
+            ])
+        self.assertEqual(1, exit_code)
+        result = json.loads(output.getvalue())
+        self.assertFalse(result["structurally_valid"])
+        self.assertFalse(result["product_support_approval"])
+        self.assertEqual(
+            ["profile_component_unpinned:synthetic-web-ubuntu-fixture"], result["errors"]
+        )
 
 
 if __name__ == "__main__":

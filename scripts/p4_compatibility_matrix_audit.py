@@ -75,10 +75,14 @@ def _pinned_version(value: Any) -> bool:
     if not _pinned_text(value):
         return False
     normalized = value.strip()
+    # Apply the same screening to OS, architecture and component pins. Reject
+    # numeric x/X wildcard segments without mistaking x86_64 for a wildcard.
+    if re.search(r"(?<![\w.])(?:v?\d+\.)+[xX](?!\w)|^[xX]$", normalized):
+        return False
     # Reject common range syntax while allowing exact package versions such as
     # Debian's ``1.2~rc1``. The final schema still needs an owner-approved
     # version grammar for each component ecosystem.
-    if re.search(r"(^|\s)(?:>=|<=|>|<|~=|\^|~)\s*\S", normalized):
+    if re.search(r"[<>^]|~=|(^|\s)~\s*\S", normalized):
         return False
     if re.search(r"\s+-\s+|\|\|", normalized):
         return False
@@ -190,10 +194,10 @@ def audit_matrix(matrix: Any, root: Path, expected_source_commit: str) -> list[s
         architecture = profile.get("architecture")
         components = profile.get("components")
         profile_valid = True
-        if not _pinned_text(os_name):
+        if not _pinned_version(os_name):
             errors.append(f"profile_os_unpinned:{profile_id}")
             profile_valid = False
-        if not _pinned_text(architecture):
+        if not _pinned_version(architecture):
             errors.append(f"profile_architecture_unpinned:{profile_id}")
             profile_valid = False
         if not isinstance(components, dict) or not components:

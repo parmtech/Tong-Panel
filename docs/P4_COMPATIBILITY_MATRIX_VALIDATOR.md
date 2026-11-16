@@ -14,6 +14,8 @@ This structural checker does not enforce that the matrix inventories all eight P
 
 The JSON document has integer `schema_version: 1`, a 40-character lowercase `candidate_commit`, a non-empty `profiles` array, and a non-empty `rows` array. Each profile has a unique `id`, exact `os`, `architecture`, and a non-empty `components` map whose values are pinned versions. `TBD`, `unknown`, `latest`, wildcard forms, common version ranges, clear alternatives such as `or`, `and`, comma-separated choices, `|`, or spaced `/`, and blank values are rejected. Two different profile IDs with the same OS/architecture/component tuple are ambiguous and rejected. This screening is not a canonical version parser; ecosystem-specific exact-version grammar remains an unresolved schema choice.
 
+OS, architecture and component values share the same range/wildcard screening: `*`, `?`, numeric dot-segment wildcards such as `1.x`, `1.2.X` and `v1.x`, bare `x`/`X`, comparison operators (`<`/`>`), caret, `~=`, leading or whitespace-separated tilde ranges, and spaced hyphen ranges are rejected. For example, `Ubuntu >= 24.04` and `amd64 or arm64` cannot describe one exact profile. Exact labels such as `Ubuntu 24.04.1 LTS` and `x86_64`, and component versions such as `1:1.26.3-1ubuntu1.2`, `1.2~rc1` and `v1.2.3+build.7`, remain permitted by this draft screening. Passing these checks does not prove that an arbitrary label is a valid or exact version in its ecosystem.
+
 Each row binds one `capability` to one declared `profile_id` and records:
 
 - `status`: `supported`, `unsupported`, `experimental`, or `unverified`;
