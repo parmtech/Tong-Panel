@@ -171,6 +171,67 @@ func TestSQLiteProcessCrashRecovery(t *testing.T) {
 	}
 }
 
+func TestSQLiteCompletionCommitProcessCrashBeforeAck(t *testing.T) {
+	store, path := openTestSQLiteStore(t)
+	job, err := store.CreateFor("tenant-a", "user-a", KindNoop, "process-completion-crash-0001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	child := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestSQLiteCrashProcessHelper$")
+	child.Env = crashHelperEnvironment("complete-kill", path)
+	err = child.Run()
+	if ctx.Err() != nil {
+		t.Fatal("completion helper timed out")
+	}
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) {
+		t.Fatal("completion helper did not exit from SIGKILL")
+	}
+	status, ok := exit.Sys().(syscall.WaitStatus)
+	if !ok || !status.Signaled() || status.Signal() != syscall.SIGKILL {
+		t.Fatal("completion helper termination was not SIGKILL")
+	}
+
+	db, err := database.Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	store, err = NewSQLiteStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	current, err := store.Get("tenant-a", job.ID)
+	if err != nil || current.State != Done {
+		t.Fatal("completed job state was not durable after process death")
+	}
+	var attempts, completed int
+	if err := db.QueryRowContext(ctx, "SELECT count(*),sum(status='completed') FROM job_attempts WHERE job_id=?", job.ID).Scan(&attempts, &completed); err != nil || attempts != 1 || completed != 1 {
+		t.Fatal("unexpected durable completion attempt ledger")
+	}
+	var cleared int
+	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM jobs WHERE id=? AND state=? AND attempt_count=1 AND lease_until IS NULL AND lease_owner IS NULL AND lease_token_sha256 IS NULL", job.ID, Done).Scan(&cleared); err != nil || cleared != 1 {
+		t.Fatal("completed job retained lease authority or lost its terminal state")
+	}
+	var completionAudits int
+	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM audit_events WHERE subject_id=? AND action='job.completed' AND actor_kind='worker' AND COALESCE(actor_identity_id,actor_ref)='process-complete-test'", job.ID).Scan(&completionAudits); err != nil || completionAudits != 1 {
+		t.Fatal("unexpected durable completion audit")
+	}
+	retry, err := store.CreateFor("tenant-a", "user-a", KindNoop, "process-completion-crash-0001")
+	if err != nil || retry.ID != job.ID {
+		t.Fatal("restart idempotency changed job identity")
+	}
+	if _, err := store.ClaimNext("process-final-test", time.Second); !errors.Is(err, ErrNoJobs) {
+		t.Fatal("completed job could be claimed again")
+	}
+}
+
 func TestSQLiteCrashProcessHelper(t *testing.T) {
 	// An inherited helper environment alone must never activate this subprocess.
 	selected := false
@@ -186,7 +247,7 @@ func TestSQLiteCrashProcessHelper(t *testing.T) {
 	if mode == "" {
 		return
 	}
-	if mode != "claim" && mode != "recover" {
+	if mode != "claim" && mode != "recover" && mode != "complete-kill" {
 		t.Fatal("invalid helper mode")
 	}
 	db, err := database.Open(context.Background(), os.Getenv("TONG_QUEUE_CRASH_DB"))
@@ -201,6 +262,8 @@ func TestSQLiteCrashProcessHelper(t *testing.T) {
 	worker := "process-crash-test"
 	if mode == "recover" {
 		worker = "process-recover-test"
+	} else if mode == "complete-kill" {
+		worker = "process-complete-test"
 	}
 	claim, err := store.ClaimNext(worker, 3*time.Second)
 	if err != nil {
@@ -219,6 +282,12 @@ func TestSQLiteCrashProcessHelper(t *testing.T) {
 	}
 	if _, err := store.Complete(claim); err != nil {
 		t.Fatal("helper completion failed")
+	}
+	if mode == "complete-kill" {
+		if err := syscall.Kill(os.Getpid(), syscall.SIGKILL); err != nil {
+			t.Fatal("helper could not SIGKILL itself after completion")
+		}
+		t.Fatal("completion helper survived its SIGKILL")
 	}
 }
 
