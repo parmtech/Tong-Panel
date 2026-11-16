@@ -31,7 +31,7 @@ func (f *blockedContextFileRemoval) RemoveForTenantContext(ctx context.Context, 
 	close(f.entered)
 	<-ctx.Done()
 	f.contextErr = ctx.Err()
-	return 0, ctx.Err()
+	return f.ContextTenantFileService.RemoveForTenantContext(ctx, tenantID, relative)
 }
 
 type recordingRemoveQuota struct {
@@ -48,6 +48,9 @@ func (q *recordingRemoveQuota) RemoveUsed(tenantID string, bytes int64) error {
 	return q.testFileQuota.RemoveUsed(tenantID, bytes)
 }
 
+// This proves the API forwards request cancellation through the context-aware
+// adapter and the adapter honors an already-canceled request before removal.
+// It does not inject cancellation during the root's quarantine/unlink sequence.
 func TestFilesDeletePassesCancellationToContextService(t *testing.T) {
 	s, _, _, token, csrf := setupCookieAPI(t)
 	rootA, _ := attachTestTenantFiles(t, s)
