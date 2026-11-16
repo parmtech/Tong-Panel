@@ -113,6 +113,12 @@ and production restore/rollback require owner, security and provider decisions.
 Until those decisions and the existing P0/P1 approvals are recorded, use only
 synthetic fixtures and do not connect a production target or service.
 
+### Offline generation-fence model (synthetic, non-normative)
+
+The local [`p2-backup-retry-model`](../prototypes/p2-backup-retry-model/) adds an in-memory Python-standard-library model for immutable synthetic backup ID, generation and expected digest binding. It checks that digest verification precedes publication, an older attempt cannot replace a newer current generation, and stale deletion requests cannot remove that newer artifact. Its six focused local tests pass. The model uses a positive integer only as its own generation-ordering representation; the production generation type and persisted format remain undecided.
+
+This prototype has no persistence or restart behavior, provider/storage integration, retry/backoff policy, transfer limits, retention/deletion policy, key custody, tenant authorization, API or filesystem/network operation. The prior `f804127` hosted result does not cover this addition; it needs exact-head CI on the next candidate. These tests are not P2 acceptance and do not close issue #152.
+
 ## Verify before restore
 
 To authenticate one encrypted artifact for its tenant without publishing or printing plaintext, run:

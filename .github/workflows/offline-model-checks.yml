@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'prototypes/p1-release-manifest-model/**'
+      - 'prototypes/p2-backup-retry-model/**'
       - 'prototypes/p3-deploy-recovery-model/**'
       - 'prototypes/p4-migration-review/**'
       - 'prototypes/p5-outcome-model/**'
@@ -22,6 +23,7 @@ on:
     branches: [main]
     paths:
       - 'prototypes/p1-release-manifest-model/**'
+      - 'prototypes/p2-backup-retry-model/**'
       - 'prototypes/p3-deploy-recovery-model/**'
       - 'prototypes/p4-migration-review/**'
       - 'prototypes/p5-outcome-model/**'
@@ -118,6 +120,19 @@ jobs:
         run: timeout --signal=TERM --kill-after=5s 60s node --test testdata/p3-fixtures/node/server.test.cjs
       - name: Test synthetic Python ASGI fixture in process
         run: timeout --signal=TERM --kill-after=5s 60s python3 -m unittest discover -s testdata/p3-fixtures/python -v
+
+  p2-backup-retry-model:
+    name: P2 backup retry model (synthetic only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test provider-neutral backup generation fencing model
+        run: python3 -m unittest discover -s prototypes/p2-backup-retry-model -p 'test_*.py' -v
 
   p4-compatibility-matrix:
     name: P4 compatibility matrix (synthetic only; not support approval)
