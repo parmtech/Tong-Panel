@@ -6,8 +6,8 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "codex/tong-panel-candidate-20261116",
-  "source_head_before_handoff_commit": "47d95a6fad17053c888a178d0afaecd928226f7d",
-  "source_tree_sha": "182a326fc3ee5a07a339fe7a46c96d97311a663e",
+  "source_head_before_handoff_commit": "5257aa3bd3b217a5a28316812618009c6244c01f",
+  "source_tree_sha": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -22,144 +22,48 @@
     "no_head_workflows": 14
   },
   "source_head_ci": {
-    "head_sha": "db97e1d1a67a24a85ff61d59f0dccc8ca4033de0",
-    "total": 16,
-    "pull_request_workflows": 13,
-    "push_workflows": 3,
-    "check_run_total": 25,
-    "success": 15,
-    "completed_failure": 1,
-    "check_run_success": 24,
-    "check_run_failure": 1,
-    "pending": [],
-    "vm_run": 43900009729,
-    "ubuntu_guest": "step_18_and_guest_cli_passed; cleanup_and_complete_passed",
-    "debian_guest": "step_18_failed_generic_exit_1_after_steps_1_to_17_passed; guest_cli_reachability_unknown; shell_cleanup_trap_status_unreported",
-    "ubuntu_job_id": 133413738641,
-    "debian_job_id": 133413739628,
-    "vm_run_conclusion": "failure_debian_job",
-    "go_run": 43900009544,
-    "gosec_run": 43900010163,
-    "govulncheck_run": 43900009853,
-    "browser_run": 43900010106,
-    "offline_model_run": 43900009659,
-    "isolated_prototype_run": 43900009883,
-    "workflow_runs": {
-      "P1 gate blocker inventory": {
-        "run_id": 43900009713,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "UI checks": {
-        "run_id": 43900010412,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "SQLite schema checks": {
-        "run_id": 43900009866,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "Go static security analysis": {
-        "run_id": 43900010163,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "Go checks": {
-        "run_id": 43900009544,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "Offline model and fixture checks": {
-        "run_id": 43900009659,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "Go vulnerability checks": {
-        "run_id": 43900009853,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "Current API contract checks": {
-        "run_id": 43900009612,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "Isolated Go prototype checks": {
-        "run_id": 43900009883,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "P1 developer smoke (non-destructive)": {
-        "run_id": 43900009961,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "Jobs browser checks": {
-        "run_id": 43900010106,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "P1 unsigned developer package lab": {
-        "run_id": 43900009874,
-        "conclusion": "success",
-        "event": "pull_request"
-      },
-      "P2 clean disposable VM smoke": {
-        "run_id": 43900009729,
-        "conclusion": "failure",
-        "event": "pull_request"
-      },
-      "Go checks (push)": {
-        "run_id": 43899996469,
-        "conclusion": "success",
-        "event": "push"
-      },
-      "P1 developer smoke (non-destructive) (push)": {
-        "run_id": 43899996598,
-        "conclusion": "success",
-        "event": "push"
-      },
-      "P1 unsigned developer package lab (push)": {
-        "run_id": 43899996434,
-        "conclusion": "success",
-        "event": "push"
-      }
-    },
-    "status": "one_p2_debian_failure_cause_unknown"
+    "head_sha": "5257aa3bd3b217a5a28316812618009c6244c01f",
+    "tree_sha": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
+    "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+    "pr_state": "open_draft_unmerged",
+    "observed_at_utc": "2026-11-16T19:23:42Z",
+    "workflow_runs_total": 13,
+    "workflow_success": 13,
+    "workflow_failure": 0,
+    "check_runs_total": 22,
+    "check_success": 22,
+    "check_failure": 0,
+    "pending": 0,
+    "p2_run_id": 43922690907,
+    "debian_job_id": 133493841211,
+    "ubuntu_job_id": 133493840911,
+    "debian_guest": "step_18_success; post_steps_35_and_36_success; Complete_step_37_success",
+    "ubuntu_guest": "step_18_success; post_steps_35_and_36_success; Complete_step_37_success",
+    "failure_cause_db97": "unknown_generic_exit_1; 5257_success_does_not_explain_it",
+    "raw_guest_or_serial_output_read": false
   },
   "next": {
-    "task_id": "REVIEW_COMMIT_PUSH_DIAGNOSTIC_PATCH_AND_INSPECT_EXACT_HEAD_CI",
+    "task_id": "VERIFY_REMOTE_AND_PUBLISH_LOCAL_P4_CANDIDATE",
     "priority": 1,
-    "action": "Finish independent diagnostics and handoff review, refresh documentation, rerun focused checks, commit the source/tests/docs, re-read PR #171, issue #172 and the remote integration ref, then push by normal fast-forward and inspect every exact-head workflow/check plus both P2 guest lifecycles.",
+    "action": "P4 schema-v2 source commit a5e1787832cf74754e45750f47b512ac9e81a721 (parent 5257aa3bd3b217a5a28316812618009c6244c01f) is committed locally and not pushed. The root verified 27/27 focused tests; offline-workflow path coverage is verified and no filter update is pending. Complete the handoff-doc refresh; verify fresh PR #171, issue #172 and remote integration-ref state; commit the reviewed handoff updates and publish the local P4 candidate by normal fast-forward; then inspect exact-head hosted CI. Hosted P4 CI remains pending. Preserve product_support_approval:false.",
     "required_evidence": [
-      "fresh PR #171 head, draft/open/merge state and base before push",
-      "issue #172 still open with 12 unchecked DoD boxes and all nine approval fields false",
-      "normal fast-forward push result and remote head verification",
-      "all exact-head workflows and checks on the pushed head",
-      "Debian and Ubuntu guest smoke, cleanup and Complete outcomes",
-      "paired #152 CLI process test result from runner and both guests, with Debian reachability stated only if observed",
-      "P0 crosswalk and P2 traceability aligned to exact published source and preserving component-only limits",
-      "P4 workflow result and unchanged product_support_approval:false"
+      "local P4 source commit a5e1787832cf74754e45750f47b512ac9e81a721 has parent published 5257 and is not pushed",
+      "root-verified focused P4 suite: 27/27 passed",
+      "offline-model workflow path coverage for validator, tests and guide verified; no filter change pending",
+      "local design-only doc updates for #150/#151/#152/#154/#155 and issue-body clarifications for #150/#151/#152 recorded; all remain open with no approval or production authorization",
+      "fresh PR #171, issue #172 and remote-ref state verified before publication",
+      "reviewed handoff updates committed and local P4 candidate published by normal fast-forward",
+      "new exact-head Actions/check results inspected after publication",
+      "product_support_approval remains false and no P4 acceptance is inferred"
     ],
-    "reviews": {
-      "diagnostics_first_pass": "no_blocker; source_setup_stage_and_denial_branch_gaps_corrected",
-      "cleanup_only_review": "fixed_metadata_and_original_status_preserved; final line-number check passed",
-      "blueprint_next_slice": "draft_P4_all_eight_slice_inventory_check_after_diagnostics_CI",
-      "tracker_gates": "issue_172_open_12_unchecked_nine_false; live_state_rechecked"
-    },
-    "future_safe_slice_after_exact_ci": {
-      "candidate": "draft_only_P4_baseline_slice_presence_check",
-      "scope": "schema_v2_required_blueprint_slice_ordinals_unique_strict_json_integers_1_to_8_and_matrix_wide_union",
-      "schema_note": "schema_version_2; draft_labels_only_not_owner_approved_machine_stable_ids; distinct_from_acceptance_case_ids_1_to_10",
-      "source_of_truth": "docs/phases/P4-HOSTING-PARITY.md; seed register is navigation only",
-      "validation_guardrails": [
-        "require a non_empty list of unique exact JSON integers 1_to_8 per row; reject booleans, floats, strings and out_of_range_values",
-        "require matrix_wide union of 1_to_8 regardless of row status or availability; do not require every slice in every profile",
-        "blueprint_slice_ordinals are not acceptance_case_ids 1_to_10; do not infer optional_integration coverage or row acceptance",
-        "preserve product_support_approval_false; inventory presence is not P4 acceptance"
-      ],
-      "start_after": "inspect_exact_head_CI_for_diagnostics_patch"
+    "gates_unchanged": true,
+    "p4_draft_contract": {
+      "schema_version": 2,
+      "blueprint_slice_ordinals": "required_nonempty_per_row_list_of_unique_exact_int_1_to_8; reject_bool_float_string_out_of_range_duplicate",
+      "matrix_union": "all_eight_required_regardless_of_row_status_availability_or_evidence",
+      "acceptance_case_ids": "distinct_string_ids_1_to_10",
+      "product_support_approval": false,
+      "status": "structural_inventory_only; owner_support_decision_pending; not_P4_acceptance"
     }
   },
   "approvals": {
@@ -193,7 +97,6 @@
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
-    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009729",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6",
     "historical_b411_vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43832980490",
@@ -202,94 +105,66 @@
     "historical_2054_current_p2_ubuntu_attempt1_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133278120084",
     "historical_2054_current_p2_debian_attempt2_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133289204879",
     "historical_2054_current_p2_ubuntu_attempt2_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133289208279",
-    "current_p2_run": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009729",
-    "current_p2_debian_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009729/job/133413739628",
-    "current_p2_ubuntu_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009729/job/133413738641",
-    "current_go": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009544",
-    "current_acme": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009883",
-    "current_offline_model": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009659",
     "historical_b02_vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43879447114",
     "historical_b02_p2_run": "https://github.com/parmtech/Tong-Panel/actions/runs/43879447114",
     "historical_b02_go": "https://github.com/parmtech/Tong-Panel/actions/runs/43879446845",
     "historical_b02_acme": "https://github.com/parmtech/Tong-Panel/actions/runs/43879447032",
     "historical_b02_offline_model": "https://github.com/parmtech/Tong-Panel/actions/runs/43879446921",
-    "current_static_security": "https://github.com/parmtech/Tong-Panel/actions/runs/43900010163",
-    "current_vulnerability": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009853",
-    "current_api_contract": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009612",
-    "current_browser": "https://github.com/parmtech/Tong-Panel/actions/runs/43900010106"
+    "historical_db97_vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009729",
+    "historical_db97_p2_run": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009729",
+    "historical_db97_p2_debian_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009729/job/133413739628",
+    "historical_db97_p2_ubuntu_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009729/job/133413738641",
+    "historical_db97_go": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009544",
+    "historical_db97_isolated_prototypes": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009883",
+    "historical_db97_offline_model": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009659",
+    "historical_db97_static_security": "https://github.com/parmtech/Tong-Panel/actions/runs/43900010163",
+    "historical_db97_vulnerability": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009853",
+    "historical_db97_api_contract": "https://github.com/parmtech/Tong-Panel/actions/runs/43900009612",
+    "historical_db97_jobs_browser": "https://github.com/parmtech/Tong-Panel/actions/runs/43900010106",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690907",
+    "current_p2_run": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690907",
+    "current_p2_debian_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690907/job/133493841211",
+    "current_p2_ubuntu_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690907/job/133493840911",
+    "current_go": "https://github.com/parmtech/Tong-Panel/actions/runs/43922691138",
+    "current_acme": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690938",
+    "current_isolated_prototypes": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690938",
+    "current_offline_model": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690955",
+    "current_static_security": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690855",
+    "current_vulnerability": "https://github.com/parmtech/Tong-Panel/actions/runs/43922691002",
+    "current_api_contract": "https://github.com/parmtech/Tong-Panel/actions/runs/43922691006",
+    "current_browser": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690929",
+    "current_ui": "https://github.com/parmtech/Tong-Panel/actions/runs/43922691049",
+    "current_gate_inventory": "https://github.com/parmtech/Tong-Panel/actions/runs/43922691005",
+    "current_p1_smoke": "https://github.com/parmtech/Tong-Panel/actions/runs/43922691367",
+    "current_unsigned_package": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690882",
+    "current_sqlite_schema": "https://github.com/parmtech/Tong-Panel/actions/runs/43922691212"
   },
   "latest_source_checkpoint": {
-    "sha": "47d95a6fad17053c888a178d0afaecd928226f7d",
-    "tree_sha": "182a326fc3ee5a07a339fe7a46c96d97311a663e",
-    "source_commit_count_after_b02": 12,
-    "commit_groups": {
-      "p154_preflight_regression": 1,
-      "p151_api_authority_regressions": 2,
-      "p3_model_correction": 1,
-      "p4_draft_validator_and_pin_fixes": 5,
-      "p152_paired_restore_test_and_journal": 2,
-      "p152_paired_cli_process_test": 1
-    },
-    "hosted_ci": "published_at_db97; 15_of_16_workflows_and_24_of_25_checks_passed; Debian_P2_step18_failed_generic_exit1; Ubuntu_passed",
-    "evidence": "P4 focused suite passed 23/23. Exact-db97 Go race/fuzz/vet and offline model workflows passed, including paired restore Go tests. The paired CLI passed the runner step in both P2 jobs and the Ubuntu guest path; Debian guest reachability is unknown. A local three-script diagnostics follow-up now has focused tests but no hosted exact-head CI.",
-    "workflow_trigger_audit": {
-      "pr_synchronize_expected": [
-        "P2 runner and Ubuntu/Debian guests",
-        "Go race/vet and API checks",
-        "API contract and browser checks",
-        "offline P3/P4 model and fixture checks",
-        "Go static analysis and vulnerability checks"
-      ],
-      "branch_push_alone_does_not_run": [
-        "P2",
-        "API contract",
-        "browser",
-        "offline P3/P4",
-        "static analysis",
-        "vulnerability checks"
-      ],
-      "status": "P2_path_filter_confirmed_for_all_three_diagnostic_scripts_on_PR_synchronize; other listed triggers remain configuration notes"
-    },
+    "sha": "5257aa3bd3b217a5a28316812618009c6244c01f",
+    "tree_sha": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
+    "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+    "source_commit_count_after_b02": 14,
+    "hosted_ci": "all_13_Actions_runs_and_22_check_runs_succeeded_at_exact_head_5257; both_P2_guest_jobs_passed_step_18_post_steps_35_36_and_Complete_37",
+    "evidence": "Published diagnostics patch passed local Python HTTPS 21/21, cleanup/failure-report scenarios 30/30 including 15 new, both Bash syntax checks, and diff check. Earlier db97 Debian failure cause remains unknown; 5257 success does not explain it. No raw guest/serial output was read.",
     "p4_validator": {
-      "scope": "draft_structural_checker_only",
+      "schema_version": 2,
+      "scope": "local draft structural inventory only",
       "product_support_approval": false,
-      "not_acceptance_oracle": true,
-      "screening": "common_ranges_wildcards_and_not_equal_exclusions_rejected",
-      "unresolved": [
-        "complete eight-slice and optional-combination inventory",
-        "per-row acceptance-case applicability",
-        "owner-approved ecosystem-specific exact-version grammar"
-      ]
+      "next": "verify_fresh_PR_issue_and_remote_ref; publish_local_commit_a5_by_normal_fast_forward; inspect_exact_head_hosted_CI; workflow_path_coverage_verified_no_filter_update_pending; hosted_P4_CI_pending",
+      "locally_verified_by_root_rerun": "27_of_27_passed",
+      "independent_code_test_guide_review": "complete",
+      "source_commit": "a5e1787832cf74754e45750f47b512ac9e81a721",
+      "parent_published_head": "5257aa3bd3b217a5a28316812618009c6244c01f",
+      "local_commit": true,
+      "pushed": false,
+      "focused_tests": "root_verified_27_of_27",
+      "workflow_path_coverage": "verified_no_filter_update_pending",
+      "hosted_exact_head_ci": "pending"
     },
-    "p152_paired_restore_test": {
-      "commit": "d17e78fc99eaa8f60aae945369f7849331916f4a",
-      "scope": "component_only",
-      "local_go_execution": "passed_in_exact_db97_Go_race_run_43900009544; not_run_locally_Go_unavailable"
-    },
-    "p152_paired_restore_cli_test": {
-      "commit": "47d95a6fad17053c888a178d0afaecd928226f7d",
-      "scope": "synthetic_disposable_non_root_process_test",
-      "coverage": "A_to_A_and_B_to_B_success; A_archive_requested_as_B_denial; B_archive_requested_as_B_with_A_key_denial; snapshots_of_both_successful_destination_roots_around_swapped_key_denial",
-      "not_covered": [
-        "reciprocal_tenant_identity_mismatch_at_CLI_boundary",
-        "scheduled_or_offsite_backup_and_retention",
-        "source_VM_destruction_or_external_key_custody",
-        "integrated_site_database_and_settings_restore"
-      ],
-      "local_verification": "Python syntax compilation and diff check passed",
-      "local_runtime": "not_run_linux_only_harness_go_unavailable",
-      "hosted_exact_head_runtime": "runner step passed in both db97 P2 jobs; Ubuntu guest passed; Debian guest reachability unknown"
-    },
-    "p0_threat_test_crosswalk": {
-      "path": "docs/P0_THREAT_TEST_CROSSWALK.md",
-      "status": "draft; b02 evidence retained with exact-db97 T04/T10 evidence added",
-      "p0_06": "unchecked",
-      "later_changes_in_b02_runs": false
-    },
-    "limitations": "The db97 Debian P2 failure cause remains unknown; 2054 failure cause and PID-file/umask hypothesis are also unknown/unconfirmed. The diagnostic source follow-up is not yet included in published CI. Guest PHP-FPM values remain unverified; the follow-up does not establish a root cause. The earlier b107 HTTPS stall remains unexplained. Preserve owner, security, production, restore, accessibility and release gates."
+    "limitations": "PR #171 remains open/draft/unmerged. P0-06, all 12 issue #172 DoD items, all nine owner/security/production/release approvals and all human acceptance gates remain open. No phase acceptance, merge, production operation or release is implied."
   },
-  "published_pr_head_at_snapshot": "db97e1d1a67a24a85ff61d59f0dccc8ca4033de0",
-  "local_checkpoint_parent_at_snapshot": "47d95a6fad17053c888a178d0afaecd928226f7d",
+  "published_pr_head_at_snapshot": "5257aa3bd3b217a5a28316812618009c6244c01f",
+  "local_checkpoint_parent_at_snapshot": "5257aa3bd3b217a5a28316812618009c6244c01f",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
@@ -527,12 +402,12 @@
     "evidence": "Adds bounded HTTPS failure-only metadata and invocation-count coverage, keyboard pagination/focus and 401/403 denied-state fallback, and malformed/trailing encrypted-backup coverage. Combined local checks: 11 cleanup cases, 14 Python HTTPS tests, 51/51 web unit tests, shell/JavaScript syntax and diff check. Separate component evidence: focused pagination 1/1, denial 1/1, responsive browser 13/13, TypeScript passed. Independent integrated review found no blocker.",
     "limitations": "At the 1f snapshot, candidate exact-head CI was pending and the integrated worktree lacked Playwright, TypeScript and Go; b411 later included 1f and passed exact-head CI. PHP-FPM comm names on pinned guests remain unverified. The HTTPS failure cause remains unknown. Synthetic UI evidence does not establish authenticated-tenant, physical-device or human accessibility acceptance; issue #155 remains open."
   },
-  "local_candidate_head": "47d95a6fad17053c888a178d0afaecd928226f7d",
-  "local_candidate_tree_sha": "182a326fc3ee5a07a339fe7a46c96d97311a663e",
-  "local_snapshot_head": "47d95a6fad17053c888a178d0afaecd928226f7d",
-  "local_snapshot_tree": "182a326fc3ee5a07a339fe7a46c96d97311a663e",
-  "snapshot_scope_note": "Published PR CI snapshot is exact db97 only: 15 of 16 Actions runs and 24 of 25 check runs passed; the Debian P2 job failed generically at step 18. Source code baseline is 47d95a6. The current diagnostic source patch and handoff refresh are local and need their own exact-head CI.",
-  "published_pr_tree_at_snapshot": "505b7eccb9c88ce4b93694bb33cd08a357ead127",
+  "local_candidate_head": "a5e1787832cf74754e45750f47b512ac9e81a721",
+  "local_candidate_tree_sha": "38237347ef1fd6b63be69a76d1117d4fffadb0f8",
+  "local_snapshot_head": "5257aa3bd3b217a5a28316812618009c6244c01f",
+  "local_snapshot_tree": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
+  "snapshot_scope_note": "Published PR snapshot is 5257aa3: all 13 Actions runs and 22 checks succeeded; both P2 guest jobs passed step 18, post-steps 35/36, and Complete step 37. Earlier db97 failure remains historical with cause unknown; 5257 does not explain it. P4 schema-v2 candidate a5e1787832cf74754e45750f47b512ac9e81a721 is committed locally with parent 5257, not pushed; root verified 27/27 focused tests, workflow path coverage is verified, and hosted P4 CI is pending. P0-06, 0/12 issue #172 DoD items checked, all nine approvals and product_support_approval remain false/open. Design-only documentation updates for #150/#151/#152/#154/#155 and issue-body clarifications for #150/#151/#152 do not authorize implementation or production.",
+  "published_pr_tree_at_snapshot": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
   "published_pr_ci_snapshot": {
     "head_sha": "db97e1d1a67a24a85ff61d59f0dccc8ca4033de0",
     "tree_sha": "505b7eccb9c88ce4b93694bb33cd08a357ead127",
@@ -559,7 +434,8 @@
     "api_contract_run_id": 43900009612,
     "browser_run_id": 43900010106,
     "failure_cause": "unknown_generic_exit_1",
-    "collected_at_utc": "2026-11-16T16:35:23Z"
+    "collected_at_utc": "2026-11-16T16:35:23Z",
+    "snapshot_scope": "historical_db97_only; not_current_5257_CI"
   },
   "tracker_dod_at_snapshot": {
     "total": 12,
@@ -567,8 +443,8 @@
     "unchecked": 12,
     "approval_fields_false": 9
   },
-  "local_snapshot_note": "Source baseline 47d95a6 is the parent of published docs-only db97. This worktree contains the three-file P2 diagnostic source follow-up plus refreshed handoffs; the source changes have local tests but no hosted exact-head CI.",
-  "snapshot_timestamp_utc": "2026-11-16T16:35:23Z",
+  "local_snapshot_note": "Published source base is 5257aa3bd3b217a5a28316812618009c6244c01f. P2 diagnostics and exact-head CI are published. P4 schema-v2 source commit a5e1787832cf74754e45750f47b512ac9e81a721 (parent 5257) is committed locally, not pushed; root verified 27/27 focused tests and workflow path coverage is verified. Parallel local design-only documentation updates cover #150/#151/#152/#154/#155; issue-body clarifications cover #150/#151/#152, all remain open with no approval or production authorization. Commit reviewed handoff updates after fresh PR/issue/ref verification, publish the local candidate by normal fast-forward, then inspect exact-head hosted CI.",
+  "snapshot_timestamp_utc": "2026-11-16T19:23:42Z",
   "historical_pr_2054_ci_snapshot": {
     "head_sha": "2054a425108abd4db8df6e84b29c421dafe17dd0",
     "source_candidate_sha": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
@@ -633,28 +509,77 @@
     "source_fix_present": false,
     "source_fix_scope_note": "false on published head 2054; FPM follow-up is present only in unpublished local candidate 3490235 and does not confirm root cause"
   },
-  "snapshot_read_at_utc": "2026-11-16T16:35:23Z",
+  "snapshot_read_at_utc": "2026-11-16T19:23:42Z",
   "current_follow_up": {
-    "status": "uncommitted_local_diagnostics_patch",
-    "files": [
+    "status": "local_committed_unpushed_P4_schema_v2_candidate_after_published_5257",
+    "published_diagnostics_head": "5257aa3bd3b217a5a28316812618009c6244c01f",
+    "published_diagnostics_files": [
       "scripts/clean_vm_smoke.sh",
       "scripts/test_clean_vm_cleanup.sh",
       "scripts/test_probe_https_isolation.py"
     ],
-    "purpose": "fixed_allowlisted_stage_line_numeric_status_diagnostics_without_serial_output",
-    "does_not": [
-      "change_smoke_assertions",
-      "add_retry_behavior",
-      "establish_root_cause"
-    ],
-    "local_verification": {
+    "diagnostics_local_verification": {
       "https_isolation_unittest": "passed_21_of_21",
       "cleanup_and_failure_reporting_scenarios": "passed_30_of_30_including_15_new",
       "bash_syntax": "passed_for_both_scripts",
       "git_diff_check": "passed"
     },
-    "hosted_exact_head_ci": "pending",
-    "pull_request_path_filter": "all_three_files_trigger_p2_on_synchronize"
+    "published_exact_head_ci": {
+      "actions_success": "13_of_13",
+      "checks_success": "22_of_22",
+      "p2_run_id": 43922690907,
+      "debian_job_id": 133493841211,
+      "ubuntu_job_id": 133493840911,
+      "both_guest_lifecycles": "step_18_and_post_steps_35_36_and_Complete_step_37_passed"
+    },
+    "db97_failure": "cause_unknown; 5257_success_does_not_explain_it; raw_guest_or_serial_output_not_read",
+    "p4_local_draft": {
+      "files": [
+        "scripts/p4_compatibility_matrix_audit.py",
+        "scripts/test_p4_compatibility_matrix_audit.py",
+        "docs/P4_COMPATIBILITY_MATRIX_VALIDATOR.md"
+      ],
+      "schema_version": 2,
+      "product_support_approval": false,
+      "status": "draft_structural_inventory_only; no_P4_acceptance_or_product_support_claim",
+      "locally_verified_by_root_rerun": "27_of_27_passed",
+      "independent_code_test_guide_review": "complete",
+      "source_commit": "a5e1787832cf74754e45750f47b512ac9e81a721",
+      "parent_published_head": "5257aa3bd3b217a5a28316812618009c6244c01f",
+      "local_commit": true,
+      "pushed": false,
+      "hosted_exact_head_ci": "pending",
+      "workflow_path_coverage": "verified_no_filter_update_pending"
+    },
+    "next": "verify_fresh_PR_171_issue_172_and_remote_ref; commit_reviewed_handoff_updates; publish_local_P4_commit_a5_by_normal_fast_forward; inspect_exact_head_hosted_CI; path_coverage_verified_no_filter_update_pending; hosted_P4_CI_pending",
+    "gates": "all_existing_owner_security_production_restore_accessibility_merge_signing_deployment_and_release_gates_remain_false_or_open",
+    "design_only_doc_updates": {
+      "issues": [
+        150,
+        151,
+        152,
+        154,
+        155
+      ],
+      "all_open": true,
+      "issue_body_clarifications": [
+        150,
+        151,
+        152
+      ],
+      "local_docs": [
+        "docs/P2_TWO_TENANT_END_TO_END_ACCEPTANCE.md",
+        "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+        "docs/P2_CRON_LOGS_TEMPLATES_TEST_PLAN.md",
+        "docs/P2_SLICE7_POLICY_DECISION_OPTIONS.md",
+        "docs/P2_BACKUP_LAB.md",
+        "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
+        "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md"
+      ],
+      "owner_security_approval": false,
+      "code_implementation_authorized": false,
+      "production_authorized": false
+    }
   },
   "historical_b02_pr_ci_snapshot": {
     "head_sha": "b02a95726c1317f176f162978b7d1ba035deb796",
@@ -675,26 +600,206 @@
     "collected_at_utc": "2026-11-16T15:25Z"
   },
   "worktree_changes": {
-    "status": "local_changes_prepared_for_review_and_publication",
-    "diagnostic_source_files": [
+    "status": "published_5257_diagnostics_and_current_CI_verified; local_P4_schema_v2_code_tests_guide_reviewed_and_27_of_27_locally_verified; final_handoff_doc_review_and_fresh_remote_verification_pending; workflow_path_coverage_verified_no_filter_update_pending",
+    "published_diagnostic_source_files": [
       "scripts/clean_vm_smoke.sh",
       "scripts/test_clean_vm_cleanup.sh",
       "scripts/test_probe_https_isolation.py"
     ],
-    "handoff_refresh_files": [
+    "local_p4_draft_files": [
+      "scripts/p4_compatibility_matrix_audit.py",
+      "scripts/test_p4_compatibility_matrix_audit.py",
+      "docs/P4_COMPATIBILITY_MATRIX_VALIDATOR.md"
+    ],
+    "current_handoff_files": [
       "AGENTS.md",
       "UPDATES.md",
       "docs/AI_AGENT_START_HERE.md",
       "docs/AI_AGENT_STATE.json",
       "docs/BLUEPRINT.md",
-      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
-      "docs/P0_THREAT_TEST_CROSSWALK.md",
-      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
-      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
       "docs/PHASE_INDEX.md",
       "docs/RESUME_HANDOFF_2026-11-12.md",
       "docs/ROADMAP.md"
     ],
-    "count": 15
+    "hosted_p4_ci": "pending_until_reviewed_draft_is_published",
+    "product_support_approval": false,
+    "offline_workflow_path_coverage": "verified_in_.github/workflows/offline-model-checks.yml_lines_14_to_16_and_31_to_33_for_validator_tests_and_guide; no_filter_change_pending"
+  },
+  "historical_db97_source_head_ci": {
+    "head_sha": "db97e1d1a67a24a85ff61d59f0dccc8ca4033de0",
+    "total": 16,
+    "pull_request_workflows": 13,
+    "push_workflows": 3,
+    "check_run_total": 25,
+    "success": 15,
+    "completed_failure": 1,
+    "check_run_success": 24,
+    "check_run_failure": 1,
+    "pending": [],
+    "vm_run": 43900009729,
+    "ubuntu_guest": "step_18_and_guest_cli_passed; cleanup_and_complete_passed",
+    "debian_guest": "step_18_failed_generic_exit_1_after_steps_1_to_17_passed; guest_cli_reachability_unknown; shell_cleanup_trap_status_unreported",
+    "ubuntu_job_id": 133413738641,
+    "debian_job_id": 133413739628,
+    "vm_run_conclusion": "failure_debian_job",
+    "go_run": 43900009544,
+    "gosec_run": 43900010163,
+    "govulncheck_run": 43900009853,
+    "browser_run": 43900010106,
+    "offline_model_run": 43900009659,
+    "isolated_prototype_run": 43900009883,
+    "workflow_runs": {
+      "P1 gate blocker inventory": {
+        "run_id": 43900009713,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "UI checks": {
+        "run_id": 43900010412,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "SQLite schema checks": {
+        "run_id": 43900009866,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Go static security analysis": {
+        "run_id": 43900010163,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Go checks": {
+        "run_id": 43900009544,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Offline model and fixture checks": {
+        "run_id": 43900009659,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Go vulnerability checks": {
+        "run_id": 43900009853,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Current API contract checks": {
+        "run_id": 43900009612,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Isolated Go prototype checks": {
+        "run_id": 43900009883,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "P1 developer smoke (non-destructive)": {
+        "run_id": 43900009961,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Jobs browser checks": {
+        "run_id": 43900010106,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "P1 unsigned developer package lab": {
+        "run_id": 43900009874,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "P2 clean disposable VM smoke": {
+        "run_id": 43900009729,
+        "conclusion": "failure",
+        "event": "pull_request"
+      },
+      "Go checks (push)": {
+        "run_id": 43899996469,
+        "conclusion": "success",
+        "event": "push"
+      },
+      "P1 developer smoke (non-destructive) (push)": {
+        "run_id": 43899996598,
+        "conclusion": "success",
+        "event": "push"
+      },
+      "P1 unsigned developer package lab (push)": {
+        "run_id": 43899996434,
+        "conclusion": "success",
+        "event": "push"
+      }
+    },
+    "status": "one_p2_debian_failure_cause_unknown"
+  },
+  "historical_db97_source_checkpoint": {
+    "sha": "47d95a6fad17053c888a178d0afaecd928226f7d",
+    "tree_sha": "182a326fc3ee5a07a339fe7a46c96d97311a663e",
+    "source_commit_count_after_b02": 12,
+    "commit_groups": {
+      "p154_preflight_regression": 1,
+      "p151_api_authority_regressions": 2,
+      "p3_model_correction": 1,
+      "p4_draft_validator_and_pin_fixes": 5,
+      "p152_paired_restore_test_and_journal": 2,
+      "p152_paired_cli_process_test": 1
+    },
+    "hosted_ci": "published_at_db97; 15_of_16_workflows_and_24_of_25_checks_passed; Debian_P2_step18_failed_generic_exit1; Ubuntu_passed",
+    "evidence": "P4 focused suite passed 23/23. Exact-db97 Go race/fuzz/vet and offline model workflows passed, including paired restore Go tests. The paired CLI passed the runner step in both P2 jobs and the Ubuntu guest path; Debian guest reachability is unknown. A local three-script diagnostics follow-up now has focused tests but no hosted exact-head CI.",
+    "workflow_trigger_audit": {
+      "pr_synchronize_expected": [
+        "P2 runner and Ubuntu/Debian guests",
+        "Go race/vet and API checks",
+        "API contract and browser checks",
+        "offline P3/P4 model and fixture checks",
+        "Go static analysis and vulnerability checks"
+      ],
+      "branch_push_alone_does_not_run": [
+        "P2",
+        "API contract",
+        "browser",
+        "offline P3/P4",
+        "static analysis",
+        "vulnerability checks"
+      ],
+      "status": "P2_path_filter_confirmed_for_all_three_diagnostic_scripts_on_PR_synchronize; other listed triggers remain configuration notes"
+    },
+    "p4_validator": {
+      "scope": "draft_structural_checker_only",
+      "product_support_approval": false,
+      "not_acceptance_oracle": true,
+      "screening": "common_ranges_wildcards_and_not_equal_exclusions_rejected",
+      "unresolved": [
+        "complete eight-slice and optional-combination inventory",
+        "per-row acceptance-case applicability",
+        "owner-approved ecosystem-specific exact-version grammar"
+      ]
+    },
+    "p152_paired_restore_test": {
+      "commit": "d17e78fc99eaa8f60aae945369f7849331916f4a",
+      "scope": "component_only",
+      "local_go_execution": "passed_in_exact_db97_Go_race_run_43900009544; not_run_locally_Go_unavailable"
+    },
+    "p152_paired_restore_cli_test": {
+      "commit": "47d95a6fad17053c888a178d0afaecd928226f7d",
+      "scope": "synthetic_disposable_non_root_process_test",
+      "coverage": "A_to_A_and_B_to_B_success; A_archive_requested_as_B_denial; B_archive_requested_as_B_with_A_key_denial; snapshots_of_both_successful_destination_roots_around_swapped_key_denial",
+      "not_covered": [
+        "reciprocal_tenant_identity_mismatch_at_CLI_boundary",
+        "scheduled_or_offsite_backup_and_retention",
+        "source_VM_destruction_or_external_key_custody",
+        "integrated_site_database_and_settings_restore"
+      ],
+      "local_verification": "Python syntax compilation and diff check passed",
+      "local_runtime": "not_run_linux_only_harness_go_unavailable",
+      "hosted_exact_head_runtime": "runner step passed in both db97 P2 jobs; Ubuntu guest passed; Debian guest reachability unknown"
+    },
+    "p0_threat_test_crosswalk": {
+      "path": "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "status": "draft; b02 evidence retained with exact-db97 T04/T10 evidence added",
+      "p0_06": "unchecked",
+      "later_changes_in_b02_runs": false
+    },
+    "limitations": "The db97 Debian P2 failure cause remains unknown; 2054 failure cause and PID-file/umask hypothesis are also unknown/unconfirmed. The diagnostic source follow-up is not yet included in published CI. Guest PHP-FPM values remain unverified; the follow-up does not establish a root cause. The earlier b107 HTTPS stall remains unexplained. Preserve owner, security, production, restore, accessibility and release gates."
   }
 }

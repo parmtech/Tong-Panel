@@ -1,4 +1,18 @@
-## CURRENT CHECKPOINT — published db97; local P2 diagnostics follow-up (17 November 2026, Australia/Sydney)
+## CURRENT CHECKPOINT — published 5257; exact-head CI passed (17 November 2026, Australia/Sydney)
+
+**Live PR snapshot:** GitHub read at 2026-11-16 19:23:42 UTC / 2026-11-17 06:23:42 Australia/Sydney confirms PR #171 open/draft/unmerged at `5257aa3bd3b217a5a28316812618009c6244c01f`, based on main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`. All 13 Actions runs and all 22 check runs succeeded.
+
+- **P2 guests:** run #43922690907 succeeded. Debian job #133493841211 and Ubuntu job #133493840911 both passed step 18, post-steps 35/36 and Complete step 37.
+- **Published diagnostics:** the three-script patch in `scripts/clean_vm_smoke.sh`, `scripts/test_clean_vm_cleanup.sh`, and `scripts/test_probe_https_isolation.py` adds allowlisted stage and numeric line/status diagnostics without serial output. Assertions and retries are unchanged. Local checks passed: Python HTTPS tests 21/21, cleanup/failure-report scenarios 30/30 (15 new), both Bash syntax checks, and `git diff --check`.
+- **Previous db97 CI:** 16 Actions runs (15 success, one P2 failure) and 25 check runs (24 success, one failure, none pending). Debian job #133413739628 failed step 18; Ubuntu #133413738641 passed. Its cause remains unknown; the successful 5257 run does not explain it. These results apply to db97 only.
+- **Local P4 candidate:** source commit `a5e1787832cf74754e45750f47b512ac9e81a721` (parent `5257aa3bd3b217a5a28316812618009c6244c01f`) is committed locally and not pushed. The root verified 27/27 focused tests; offline-workflow path coverage is verified with no filter change pending. Exact-head hosted CI remains pending; `product_support_approval:false`, and this is not P4 acceptance or product support.
+- **Parallel design-only docs:** local documentation updates cover issues #150, #151, #152, #154 and #155, with issue-body clarifications for #150/#151/#152. All remain open; no owner/security approvals, code implementation or production authorization are implied.
+- **Next:** verify fresh PR #171, issue #172 and remote integration-ref state; commit the reviewed handoff updates and publish the local P4 candidate by normal fast-forward; then inspect exact-head hosted CI.
+- **Gates:** issue #172 remains open with 12 unchecked DoD items and nine false approvals. P0-06 and all owner, security, production, restore, accessibility, merge, signing, deployment and release gates remain open.
+
+---
+
+## HISTORICAL CHECKPOINT — published db97; diagnostics local at this snapshot (17 November 2026, Australia/Sydney)
 
 **Live PR snapshot:** GitHub reads at 2026-11-16 16:35 UTC confirm PR #171 open/draft/unmerged at db97e1d1a67a24a85ff61d59f0dccc8ca4033de0, based on main 0aad68e81138a0f226e83e401f90bae4d0b6bddc. It has 16 exact-head Actions runs (15 success, one P2 failure) and 25 check runs (24 success, one failure, none pending/canceled).
 
