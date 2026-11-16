@@ -774,3 +774,60 @@ test('component preview: simulated focus loss suppresses pending Files previews 
     }
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length, previews: phones.length * 4 }, phones.length);
 });
+
+
+test('component preview: Files no-match filter recovers by keyboard at phone sizes', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const phones = [{ width: 320, height: 640 }, { width: 390, height: 360 }];
+    await openComponentPreview(page, records);
+    for (const [index, viewport] of phones.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+        await tabUntilFocused(page, '#files-refresh', viewport);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        const preview = 'button[aria-label="Preview text responsive-layout-notes.txt"]';
+        await tabUntilFocused(page, preview, viewport);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+
+        await tabUntilFocused(page, '#files-prefix', viewport);
+        await page.keyboard.type('no-such-entry');
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-filter button')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#files-filter button', viewport);
+        await page.keyboard.press(keyboardActivation(index + 1));
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-status')).toContainText('Page 1: 0 items.');
+        await expect(page.locator('#files-list')).toHaveText('No items on this page.');
+        await expect(page.locator('#files-list')).not.toContainText('responsive-layout-notes.txt');
+        await expect(page.locator('#files-preview')).toBeHidden();
+        await expect(page.locator('#files-preview-content')).toBeEmpty();
+        await expect(page.locator('#files-previous')).toBeDisabled();
+        await expect(page.locator('#files-next')).toBeDisabled();
+        await expect(page.locator('#files-refresh')).toBeEnabled();
+        await expect(page.locator('#files-prefix')).toBeEnabled();
+        await expectResponsiveBounds(page, viewport, ['#files-refresh', '#files-prefix', '#files-filter button', '#files-status']);
+
+        await tabUntilFocused(page, '#files-prefix', viewport);
+        await expectVisibleKeyboardFocus(page, '#files-prefix', viewport);
+        await page.keyboard.press('ControlOrMeta+A');
+        await page.keyboard.type('responsive');
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-filter button')).toBeFocused();
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-status')).toContainText('Page 1: 1 item.');
+        await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
+        await expect(page.locator('#files-list')).not.toContainText('No items on this page.');
+        await expect(page.locator('#files-previous')).toBeDisabled();
+        await expect(page.locator('#files-next')).toBeDisabled();
+        await tabUntilFocused(page, preview, viewport);
+        await expectVisibleKeyboardFocus(page, preview, viewport);
+    }
+    expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length * 3, previews: phones.length }, phones.length);
+    expect(records.files.map(request => request.prefix)).toEqual(phones.flatMap(() => ['', 'no-such-entry', 'responsive']));
+});
