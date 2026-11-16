@@ -5,6 +5,7 @@ from pathlib import Path
 import random
 import subprocess
 import sys
+import stat
 import tarfile
 import tempfile
 
@@ -14,18 +15,26 @@ def main():
         raise SystemExit("requires one tongbackup executable on non-root Linux")
     binary = str(Path(sys.argv[1]).resolve(strict=True))
     marker = b"synthetic-private-site-marker"
+    marker_b = b"synthetic-private-site-marker-tenant-b"
     key_bytes = b"K" * 32
+    key_b_bytes = b"B" * 32
     with tempfile.TemporaryDirectory(prefix="tong-restore-site-cli-", dir="/tmp") as temporary:
         root = Path(temporary)
-        source, output = root / "source", root / "output"
+        source, source_b, output = root / "source", root / "source-b", root / "output"
         (source / "site" / "nested").mkdir(parents=True, mode=0o700)
         (source / "site" / "empty").mkdir(mode=0o700)
+        (source_b / "site" / "nested").mkdir(parents=True, mode=0o700)
+        (source_b / "site" / "empty").mkdir(mode=0o700)
         output.mkdir(mode=0o700)
         data = random.Random(72).randbytes(140000)
+        data_b = random.Random(73).randbytes(140000)
         (source / "site" / "nested" / "data.bin").write_bytes(data)
         (source / "site" / "index.html").write_bytes(marker)
-        key, wrong = root / "key", root / "wrong"
+        (source_b / "site" / "nested" / "data.bin").write_bytes(data_b)
+        (source_b / "site" / "index.html").write_bytes(marker_b)
+        key, key_b, wrong = root / "key", root / "key-b", root / "wrong"
         key.write_bytes(key_bytes); key.chmod(0o600)
+        key_b.write_bytes(key_b_bytes); key_b.chmod(0o600)
         wrong.write_bytes(b"W" * 32); wrong.chmod(0o600)
 
         def run(args, data_in=b"", success=True, enabled=True):
@@ -39,7 +48,8 @@ def main():
                 raise AssertionError("unexpected CLI exit for " + args[0])
             if result.stdout or (success and result.stderr):
                 raise AssertionError("unexpected CLI output for " + args[0])
-            if any(secret in result.stderr for secret in (marker, key_bytes, str(root).encode())):
+            if any(secret in result.stderr for secret in (marker, marker_b, key_bytes, key_b_bytes,
+                                                          str(root).encode())):
                 raise AssertionError("sensitive fixture data appeared in CLI output")
 
         artifact = output / "site.tpbk"
@@ -48,6 +58,12 @@ def main():
         sealed = artifact.read_bytes()
         if marker in sealed or len(sealed) <= 65536:
             raise AssertionError("fixture must be multi-record ciphertext without plaintext marker")
+        artifact_b = output / "site-tenant-b.tpbk"
+        run(["export-site", "--tenant", "tenant-b", "--key-file", str(key_b), "--root", str(source_b),
+             "--site", "site", "--output", str(artifact_b), "--source-quiesced"])
+        sealed_b = artifact_b.read_bytes()
+        if marker in sealed_b or marker_b in sealed_b or len(sealed_b) <= 65536:
+            raise AssertionError("tenant-b fixture must be multi-record ciphertext without plaintext markers")
 
         def lab(name):
             # The command must atomically create this absent, named root.
@@ -56,6 +72,19 @@ def main():
         def args(directory, tenant="tenant-a", key_path=key):
             return ["restore-site-lab", "--tenant", tenant, "--key-file", str(key_path), "--root", str(directory),
                     "--destination", "restored", "--disposable-only"]
+
+        def tree_snapshot(directory):
+            entries = [(".", directory.lstat().st_mode, None)]
+            for path in sorted(directory.rglob("*")):
+                mode = path.lstat().st_mode
+                if stat.S_ISLNK(mode):
+                    value = os.readlink(path)
+                elif stat.S_ISREG(mode):
+                    value = path.read_bytes()
+                else:
+                    value = None
+                entries.append((path.relative_to(directory).as_posix(), mode, value))
+            return tuple(entries)
 
         def inspect_empty_inventory(directory):
             env = dict(os.environ)
@@ -140,6 +169,27 @@ def main():
             raise AssertionError("inventory changed restored site")
         if artifact.read_bytes() != sealed:
             raise AssertionError("source ciphertext changed")
+
+        target_b = lab("valid-tenant-b")
+        run(args(target_b, "tenant-b", key_b), sealed_b)
+        restored_b = target_b / "restored"
+        if ((restored_b / "index.html").read_bytes() != marker_b or
+                (restored_b / "nested" / "data.bin").read_bytes() != data_b):
+            raise AssertionError("tenant-b restored site differs from source")
+        if not (restored_b / "empty").is_dir() or sorted(p.name for p in target_b.iterdir()) != ["restored"]:
+            raise AssertionError("unexpected tenant-b restored tree or stage")
+        if artifact_b.read_bytes() != sealed_b:
+            raise AssertionError("tenant-b source ciphertext changed")
+
+        # A tenant-b archive paired with tenant-a's key must fail while leaving
+        # both previously restored tenant roots byte-for-byte and mode unchanged.
+        snapshot_a, snapshot_b = tree_snapshot(target), tree_snapshot(target_b)
+        denied = lab("paired-swapped-key")
+        run(args(denied, "tenant-b", key), sealed_b, success=False)
+        if not denied.is_dir() or list(denied.iterdir()):
+            raise AssertionError("swapped-key denial did not retain an empty lab root")
+        if tree_snapshot(target) != snapshot_a or tree_snapshot(target_b) != snapshot_b:
+            raise AssertionError("swapped-key denial changed a valid tenant restore root")
     print("synthetic export-to-restore-site-lab CLI checks passed")
 
 
