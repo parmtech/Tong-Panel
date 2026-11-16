@@ -1,9 +1,10 @@
 ## Latest resume checkpoint — 16 November 2026 (Australia/Sydney)
 
-- **Latest completed exact PR #171 head:** ec38c897b5f08e03c40bb8b3192759f21ed452a8. The PR remains open/draft. 23/24 check runs and 12/13 PR workflows succeeded; both Go race runs passed. P2 run #43799964054 passed runner restore/inventory and Ubuntu guest job #133077560043 through smoke, cleanup and Complete. Debian job #133077560375 failed its tenant-a HTTPS probe before HTTP (status 000, curl exit 28, zero bytes); cause is unknown.
-- **Local candidate:** 01298f0f3ddde726b03d1734af6949c62a32aa73, based on ec38. It adds bounded HTTPS failure timings/metadata plus synthetic stale-preview and vertical-reachability tests. Development/QA found no blocker for responsive coverage; focused Chrome passed and the suite passed 7/7. Sol's diagnostics passed 12 focused Python tests and syntax checks; QA found no blocker. No hosted CI has run on this candidate.
-- **Issue #155:** the browser coverage uses synthetic responses and read-only UI. It does not establish authenticated tenant behavior, live handler operation or human accessibility/usability acceptance. Keep #155 open.
-- **Next:** validate the refreshed handoffs and publish as a normal fast-forward from ec38. Then inspect every workflow and check on the new exact head, especially guest diagnostics and both clean guests through cleanup/Complete. Update PR #171 and tracker #172 with observed results.
+- **Latest completed exact PR #171 head:** 558b8c885cb0b4708be157ab49dcaffccd7ecb98. The PR remains open/draft. All 13 workflows and 21 check runs succeeded; Go race and browser workflows passed. P2 run #43804436284 passed Debian job #133091848869 and Ubuntu job #133091848679 through guest smoke, cleanup and Complete.
+- **Debian HTTPS:** both tenants returned HTTP 200 and the expected 17-byte markers. Sanitized connect/TLS/first-response/total timings were recorded. The ec38 Debian timeout did not reproduce, but its cause remains unknown and the failed historical result stays recorded.
+- **Local candidate:** b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2 adds a synthetic Files orientation-change regression based on the green 558b head. Development reports focused Chrome 1/1 and the suite 8/8; QA found no blocker. Exact hosted verification is pending.
+- **Issue #155:** all browser coverage is synthetic and read-only. Authenticated tenant behavior, live handler tasks, physical-device and human accessibility/usability acceptance are not established. Keep #155 open.
+- **Next:** validate the updated handoffs, confirm remote 558b, publish the orientation test and docs as a normal fast-forward, and inspect all exact-head workflows and both clean guests. Update PR #171 and tracker #172 with observed outcomes.
 - **Gates:** P0/ADR decisions, P1 exit/P2 entry, owner/security signoff, production identity/key custody, privileged host operations, signed installer, real two-tenant restore, accessibility and release approval remain blocked.
 
 ---
@@ -128,18 +129,17 @@ The source inventory and verification table below describe the prior 13 November
 - Hosted run [#43341489570](https://github.com/parmtech/Tong-Panel/actions/runs/43341489570) failed inside Debian 12 guest because non-root account PATH omitted `/usr/sbin` and dpkg could not find `ldconfig` / `start-stop-daemon`. Fixed deterministic subprocess PATH and added a fifth restricted-PATH regression.
 - Latest executable-source `83fe893`: **13/13 workflows successful**, including both full Ubuntu and Debian guest jobs in [VM run #43343515245](https://github.com/parmtech/Tong-Panel/actions/runs/43343515245). Original negative tests passed runner-side; guest execution completed.
 
-## 5. Exact NEXT RESUME POINT — publish diagnostics and responsive regressions
+## 5. Exact NEXT RESUME POINT — publish the orientation continuity regression
 
-The latest completed PR #171 exact head is ec38c897b5f08e03c40bb8b3192759f21ed452a8. All 24 check runs completed: 23 succeeded and one failed. Twelve of 13 pull-request workflow runs succeeded; both Go race runs passed. P2 runner restore/inventory steps passed, Ubuntu guest job #133077560043 completed smoke, cleanup and Complete, and Debian job #133077560375 failed at tenant-a HTTPS isolation with status 000, curl exit 28 and zero bytes before HTTP. The root cause is unknown.
+Latest completed PR #171 head 558b8c885cb0b4708be157ab49dcaffccd7ecb98 passed all 13 workflow runs and 21 check runs. Go race run #43804436291 and P2 run #43804436284 passed. Debian job #133091848869 and Ubuntu job #133091848679 both completed guest smoke, cleanup and Complete. Debian's two HTTPS probes returned 200 with expected markers. The previous ec38 Debian timeout did not recur; its cause remains unknown.
 
-Local source candidate 01298f0f3ddde726b03d1734af6949c62a32aa73 is based on ec38. It adds sanitized HTTPS timings and a bounded failure-only listener/master-state snapshot, a synthetic stale-preview regression and vertical reachability assertions at 320×640 and 390×360. QA found no blocker for the responsive tests or diagnostics. Focused Chrome passed 1/1 and the full responsive suite passed 7/7; the diagnostics passed 12 focused Python tests plus syntax and diff checks. Hosted verification is pending.
+Local candidate b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2, based on 558b, adds a synthetic Files task-continuity check across 390×844 → 844×390 → 390×844 orientation-sized viewport changes. It asserts filter/listing/scope/status/preview and URL stability, no additional API calls, and keyboard close with focus return. QA found no blocker; Development reports focused Chrome 1/1 and suite 8/8. Exact hosted CI for this new test is pending.
 
-1. Confirm the remote branch remains at ec38c897b5f08e03c40bb8b3192759f21ed452a8, validate the handoffs and publish source plus docs as a normal fast-forward.
-2. Inspect every workflow and check on the new exact head. Confirm both Go race runs and P2 restore/inventory process steps; inspect Ubuntu 24.04 and Debian 12 guests through smoke, cleanup and Complete.
-3. If Debian fails, use only sanitized connect/TLS/first-response/total timings and fixed Nginx/listener counts to localize the timeout. Keep the single HTTPS attempt and tenant markers unchanged; preserve the ec38 failure historically.
-4. Update PR #171 and tracker #172 with exact SHA and observed results. Keep issue #155 open; browser checks remain synthetic and do not satisfy authenticated or human accessibility acceptance.
-5. Continue the next unblocked blueprint task after exact-head CI. Development's candidate-worktree inventory found no other independent source change; those patches are already integrated or ancestors.
-6. Preserve OpenRootAt limitations: no guarantee against same-UID replacement before first observation, ABA changes, mount aliases or ancestor replacement. No production restore authorization, durable quota release, cross-process fence or owner/security approval is implied; keep P0/P1, owner/security, production and release gates open.
+1. Confirm origin/integration/pr-reconciliation-20261113 remains at 558b8c885cb0b4708be157ab49dcaffccd7ecb98, validate the handoffs and publish the reviewed test plus docs as a normal fast-forward.
+2. Inspect all exact-head workflow and check results. Confirm Go race tests and the Jobs browser suite; inspect Ubuntu 24.04 and Debian 12 guest smoke, cleanup and Complete.
+3. Preserve the ec38 Debian HTTPS timeout as a historical failure; the 558b run passed but did not establish the original cause.
+4. Update PR #171 and tracker #172 with the exact SHA and results. Keep issue #155 open because the test is synthetic.
+5. Preserve OpenRootAt limitations: no guarantee against same-UID replacement before first observation, ABA changes, mount aliases or ancestor replacement. Keep P0/P1, owner/security, production restore, signing, accessibility and release gates open.
 
 **Safe local development checks:**
 

@@ -1,10 +1,10 @@
 ## Current resume checkpoint — 16 November 2026 (Australia/Sydney)
 
-PR #171 remains open/draft at latest completed exact head ec38c897b5f08e03c40bb8b3192759f21ed452a8. 23/24 check runs and 12/13 PR workflows succeeded. Both Go race runs and P2 runner restore/inventory steps passed; Ubuntu guest #133077560043 passed smoke, cleanup and Complete. Debian guest #133077560375 failed HTTPS isolation before HTTP (status 000, curl exit 28, zero bytes); cause remains unknown.
+PR #171 remains open/draft at latest completed exact head 558b8c885cb0b4708be157ab49dcaffccd7ecb98. All 13 workflow runs and 21 check runs passed, including Go race tests and Debian/Ubuntu clean guests through smoke, cleanup and Complete. Debian's tenant HTTPS probes passed; the prior ec38 timeout did not recur, and its cause remains unknown.
 
-Local candidate 01298f0f3ddde726b03d1734af6949c62a32aa73 adds sanitized HTTPS diagnostics and synthetic stale-preview plus vertical-reachability regressions. Development/QA found no blocker for the browser coverage; focused Chrome passed 1/1 and the responsive suite passed 7/7. Sol's diagnostic changes passed 12 focused Python tests and syntax checks; QA found no blocker. Hosted verification is pending.
+Local candidate b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2 adds a synthetic Files orientation-change regression. QA found no blocker; Development reports focused Chrome 1/1 and the full responsive suite 8/8. Hosted verification is pending.
 
-**Next:** validate the canonical handoffs, confirm remote ec38, publish source plus docs as a normal fast-forward, and inspect all checks and both guests through cleanup/Complete. Use sanitized timing and fixed metadata if the timeout recurs. Keep issue #155, P0/P1, owner/security, production and release gates open.
+**Next:** validate the canonical handoffs, confirm remote 558b, publish the test plus docs as a normal fast-forward, and inspect all exact-head workflows and both guests through cleanup/Complete. Keep issue #155, P0/P1, owner/security, production and release gates open.
 
 ---
 
@@ -59,9 +59,9 @@ Local candidate 01298f0f3ddde726b03d1734af6949c62a32aa73 adds sanitized HTTPS di
 **Read [AI_AGENT_START_HERE.md](AI_AGENT_START_HERE.md) FIRST, plus [AI_AGENT_STATE.json](AI_AGENT_STATE.json).** They track P0–P6, current CI, security boundaries and the single next action. Older sections below are retained as audit history.
 
 - Repo: parmtech/Tong-Panel. Sole current review is open/draft PR #171 on integration/pr-reconciliation-20261113; master tracker is issue #172. main remains docs-only; 149 prior drafts remain closed unmerged.
-- **Latest completed published head:** ec38c897b5f08e03c40bb8b3192759f21ed452a8. All 24 checks finished: 23 success, one failure. The 13 PR workflow runs finished 12 success, one failure. Both Go race runs passed. P2 run #43799964054 passed runner restore/inventory and Ubuntu guest smoke/cleanup/Complete; Debian failed its tenant-a HTTPS probe before HTTP (status 000, curl exit 28, zero bytes).
-- **Unpublished local candidate:** 01298f0f3ddde726b03d1734af6949c62a32aa73, based on ec38. It adds bounded HTTPS diagnostics plus synthetic stale-preview and vertical-reachability tests. Local reviews/tests are recorded in UPDATES.md. Exact hosted CI is pending.
-- **ONE exact next action:** refresh/validate canonical docs, verify remote ec38, publish as a normal fast-forward, then inspect all exact-head workflows and both guests through cleanup. Update PR #171 and issue #172 with observed results. Keep issue #155 open.
+- **Latest completed published head:** 558b8c885cb0b4708be157ab49dcaffccd7ecb98. All 13 workflows and 21 checks succeeded. Go race and browser workflows passed. P2 run #43804436284 passed Debian job #133091848869 and Ubuntu job #133091848679 through guest smoke, cleanup and Complete.
+- **Unpublished local candidate:** b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2, based on 558b. It adds synthetic Files state continuity across portrait/landscape viewport sizes. Development reports 1/1 focused Chrome and 8/8 responsive suite; QA found no blocker. Exact hosted CI is pending.
+- **ONE exact next action:** validate canonical docs, verify remote 558b, publish the reviewed candidate as a normal fast-forward, then inspect every exact-head workflow and both guests. Update PR #171 and issue #172 with observed results. Keep issue #155 open.
 - **Gates:** formal P0/ADR-001–009, independent security approval, public login, root agent, CA/key custody, terminal T0, signed installer/rollback, real two-tenant restore and accessibility remain blocked.
 
 ## Current continuation — Debian guest dpkg helper PATH (13 November 2026)

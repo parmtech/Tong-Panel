@@ -1,8 +1,8 @@
-> **CURRENT CHECKPOINT (16 November 2026, Australia/Sydney):** PR #171 remains open/draft. Latest completed exact-head result ec38c897b5f08e03c40bb8b3192759f21ed452a8 had 23/24 check runs and 12/13 PR workflows succeed. Both Go race runs passed; runner restore/inventory passed; Ubuntu guest completed smoke, cleanup and Complete. Debian guest failed the tenant-a HTTPS probe before HTTP (status 000, curl exit 28, zero bytes); the cause is unknown.
+> **CURRENT CHECKPOINT (16 November 2026, Australia/Sydney):** PR #171 remains open/draft. Exact head 558b8c885cb0b4708be157ab49dcaffccd7ecb98 passed all 13 workflow runs and 21 check runs. Go race tests, browser workflow, restore/inventory and both Debian/Ubuntu clean guests passed through cleanup and Complete. Debian passed both isolated HTTPS probes. The earlier ec38 Debian timeout did not recur; its cause remains unknown.
 >
-> **Local candidate:** 01298f0f3ddde726b03d1734af6949c62a32aa73, based on ec38. It includes bounded HTTPS timing/metadata diagnostics plus synthetic responsive stale-preview and vertical-reachability tests. Development and QA found no blocker for the responsive work; focused Chrome passed and the responsive suite passed 7/7. Sol's diagnostics passed 12 focused Python tests and syntax checks; QA found no blocker. Hosted verification is pending.
+> **Local candidate:** b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2, based on 558b, adds a synthetic Files orientation-change continuity regression. Development reports focused Chrome 1/1 and suite 8/8; QA found no blocker. The test is not yet hosted-verified.
 >
-> **Next:** confirm remote ec38, then publish the reviewed source and refreshed handoffs as a normal fast-forward. Inspect all workflows and checks on the new exact head, especially Debian HTTPS timing and both clean guests through cleanup/Complete. Keep #155 open and preserve all P0/P1, owner/security, production and release gates.
+> **Next:** confirm remote 558b, publish the reviewed test and refreshed handoffs as a normal fast-forward, then inspect every exact-head workflow/check and both guests. Keep issue #155 open. P0/P1, owner/security, authentication, production and release approvals remain blocked.
 >
 > The dated entries below are historical evidence, not current task instructions. Read the current checkpoint and [AI_AGENT_START_HERE.md](docs/AI_AGENT_START_HERE.md) first.
 
@@ -81,9 +81,9 @@
 
 ## Current work snapshot
 - P0 architecture and threat-model decisions remain open. Published review packets from #161 and #165 are preserved under docs/p0-review/; passing tests and superseding drafts do not record owner or independent security approval.
-- Current PR #171 continuation is integration/pr-reconciliation-20261113. Exact published head ec38c897 completed with 23/24 checks and 12/13 PR workflows passing. Both Go race runs and runner restore/inventory steps passed; Ubuntu guest completed; Debian guest failed before HTTP at the tenant-a HTTPS probe. The cause remains unknown.
-- Local candidate 01298f0 adds bounded HTTPS timeout diagnostics and synthetic responsive stale-preview plus vertical reachability regressions. Development/QA reviewed the browser work without a blocker; focused Chrome and all seven responsive tests passed locally. Sol/QA found no blocker for the diagnostics. Exact hosted verification is pending.
-- P2 responsive Sites/Files evidence remains synthetic. These tests do not satisfy issue #155, authenticated tenant acceptance, physical-device review or human accessibility acceptance. Real-handler integration remains subject to P0/P1 authentication and session gates.
+- Current PR #171 head 558b8c8 completed all 13 workflows and 21 checks successfully. Go race tests, browser workflow, runner restore/inventory and both clean guests passed through cleanup/Complete. Debian HTTPS passed; the prior ec38 timeout remains unexplained and recorded.
+- Local candidate b00c52a adds a synthetic Files orientation-change continuity test. Development reports the focused Chrome case and all eight responsive tests passed; QA found no blocker. Exact hosted verification is pending.
+- P2 responsive Sites/Files evidence remains synthetic. The browser tests do not satisfy issue #155, authenticated tenant acceptance, physical-device review or human accessibility acceptance. Real-handler integration remains subject to P0/P1 authentication and session gates.
 - The latest SSL interface remains an authorized read-only domain snapshot. Read docs/P1_CERTIFICATE_OPERATION_CONTRACT.md before executable certificate work. The local metrics endpoint reports a development marker, not complete server health.
 - Root-module Go checks do not test separate modules under tools/. The dedicated prototype workflow must enter those modules and run their tagged Linux/race/scanner checks explicitly.
 - docs/FEATURE_MATRIX.md uses the roadmap's canonical P0–P6 phases. First-release features remain targets, not a claim of completion.

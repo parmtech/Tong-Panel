@@ -6,8 +6,8 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "integration/pr-reconciliation-20261113",
-  "source_head_before_handoff_commit": "01298f0f3ddde726b03d1734af6949c62a32aa73",
-  "source_tree_sha": "e33fd2d5a394cfca5632373f7290e979df830b9d",
+  "source_head_before_handoff_commit": "b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2",
+  "source_tree_sha": "482e3105b103ca2593d638e0a6c1b7b055685148",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -22,89 +22,87 @@
     "no_head_workflows": 14
   },
   "source_head_ci": {
-    "head_sha": "ec38c897b5f08e03c40bb8b3192759f21ed452a8",
+    "head_sha": "558b8c885cb0b4708be157ab49dcaffccd7ecb98",
     "total": 13,
-    "check_run_total": 24,
-    "success": 12,
-    "completed_failure": 1,
-    "check_run_success": 23,
-    "check_run_failure": 1,
+    "check_run_total": 21,
+    "success": 13,
+    "completed_failure": 0,
+    "check_run_success": 21,
+    "check_run_failure": 0,
     "pending": [],
-    "vm_run": 43799964054,
+    "vm_run": 43804436284,
     "ubuntu_guest": "completed_success_smoke_cleanup_and_complete",
-    "debian_guest": "failed_https_isolation_probe_before_http_status_000_transport_exit_28_zero_bytes",
-    "ubuntu_job_id": 133077560043,
-    "debian_job_id": 133077560375,
-    "vm_run_conclusion": "failure",
-    "go_run": 43799964182,
-    "go_push_run": 43799958667,
-    "https_failure_cause": "not_established; later_apparmor_and_best_effort_pid_diagnostic_are_not_causal_evidence",
+    "debian_guest": "completed_success_smoke_cleanup_and_complete",
+    "ubuntu_job_id": 133091848679,
+    "debian_job_id": 133091848869,
+    "vm_run_conclusion": "success",
+    "browser_run": 43804436293,
+    "go_run": 43804436291,
+    "debian_https": "both_tenants_200_expected_17_byte_markers; prior_ec38_timeout_not_reproduced_cause_unknown",
     "workflow_runs": {
-      "Jobs browser checks": {
-        "run_id": 43799964041,
-        "conclusion": "success"
-      },
-      "Go checks": {
-        "run_id": 43799964182,
-        "conclusion": "success"
-      },
       "UI checks": {
-        "run_id": 43799964095,
-        "conclusion": "success"
-      },
-      "SQLite schema checks": {
-        "run_id": 43799964126,
+        "run_id": 43804436436,
         "conclusion": "success"
       },
       "P1 gate blocker inventory": {
-        "run_id": 43799964115,
+        "run_id": 43804436409,
+        "conclusion": "success"
+      },
+      "SQLite schema checks": {
+        "run_id": 43804436368,
         "conclusion": "success"
       },
       "Offline model and fixture checks": {
-        "run_id": 43799964073,
+        "run_id": 43804436349,
         "conclusion": "success"
       },
       "Go vulnerability checks": {
-        "run_id": 43799964097,
+        "run_id": 43804436328,
         "conclusion": "success"
       },
       "P1 developer smoke (non-destructive)": {
-        "run_id": 43799964006,
-        "conclusion": "success"
-      },
-      "P1 unsigned developer package lab": {
-        "run_id": 43799964144,
+        "run_id": 43804436288,
         "conclusion": "success"
       },
       "Isolated Go prototype checks": {
-        "run_id": 43799964111,
+        "run_id": 43804436319,
+        "conclusion": "success"
+      },
+      "P1 unsigned developer package lab": {
+        "run_id": 43804436287,
         "conclusion": "success"
       },
       "Current API contract checks": {
-        "run_id": 43799964063,
+        "run_id": 43804436281,
         "conclusion": "success"
       },
       "Go static security analysis": {
-        "run_id": 43799963976,
+        "run_id": 43804436339,
+        "conclusion": "success"
+      },
+      "Jobs browser checks": {
+        "run_id": 43804436293,
+        "conclusion": "success"
+      },
+      "Go checks": {
+        "run_id": 43804436291,
         "conclusion": "success"
       },
       "P2 clean disposable VM smoke": {
-        "run_id": 43799964054,
-        "conclusion": "failure"
+        "run_id": 43804436284,
+        "conclusion": "success"
       }
-    },
-    "browser_run": 43799964041
+    }
   },
   "next": {
-    "task_id": "HTTPS-DIAGNOSTICS-RESPONSIVE-RECOVERY-AND-REACHABILITY-EXACT-HEAD",
+    "task_id": "RESPONSIVE-ORIENTATION-CONTINUITY-EXACT-HEAD",
     "priority": 2,
-    "action": "Confirm the remote PR branch remains at ec38c897, publish the reviewed local source and refreshed handoffs as a normal fast-forward, then inspect every exact-head check and both guest workflows through cleanup and Complete.",
+    "action": "Confirm remote PR head remains at 558b8c8, publish the reviewed orientation-continuity test and refreshed handoffs as a normal fast-forward, then inspect every exact-head workflow and both guest jobs through cleanup and Complete.",
     "required_evidence": [
-      "All exact-head workflow runs and check runs completed and individually inspected",
-      "Both Go race jobs and the P2 runner restore/inventory process steps pass",
-      "Ubuntu 24.04 and Debian 12 clean guests inspected through smoke, cleanup and Complete",
-      "Responsive browser suite passes with stale-preview and short-viewport vertical-reachability cases",
-      "If Debian HTTPS fails, use only sanitized connect/TLS/first-response/total timings and fixed Nginx/listener counts; do not weaken isolation assertions or retry",
+      "All exact-head workflow and check runs complete and individually inspected",
+      "The Jobs browser workflow exercises the new orientation continuity case",
+      "Both Go race jobs pass",
+      "Debian 12 and Ubuntu 24.04 guest smoke, cleanup and Complete pass",
       "Update PR #171 and tracker #172 with exact SHA and observed results; leave issue #155 open",
       "Preserve P0/P1, owner/security, authentication, signing, restore authorization, accessibility and release gates"
     ]
@@ -140,18 +138,18 @@
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
-    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43799964054",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43804436284",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "01298f0f3ddde726b03d1734af6949c62a32aa73",
-    "hosted_ci": "pending_exact_PR_head; parent ec38 completed with 23_of_24_check_runs_successful, Go race runs and Ubuntu guest passed; Debian HTTPS guest failure preserved",
-    "evidence": "Candidate adds a synthetic stale-preview recovery regression, vertical reachability checks at 320x640 and 390x360, and bounded HTTPS timeout diagnostics. Development and QA found no blocker for responsive coverage; focused Chrome passed 1/1 and the responsive suite passed 7/7. Sol's diagnostic candidate passed 12 focused Python tests, shell syntax, embedded Python compilation and diff checks; QA found no blocker. Exact-head hosted verification remains pending.",
-    "limitations": "HTTPS timeout root cause remains unknown. New instrumentation does not retry or increase timeout and reports sanitized timing/fixed metadata only. Responsive evidence is synthetic. No P0/P1, owner/security, production, accessibility or release approval is implied."
+    "sha": "b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2",
+    "hosted_ci": "pending_exact_PR_head; parent 558b8c885 passed all 13 workflows and 21 checks including Go race, browser, and both clean guests",
+    "evidence": "Adds a synthetic Files orientation-continuity test across portrait/landscape viewport sizes. QA found no blocker. Development reports focused Chrome 1/1 and full responsive suite 8/8. Prior stale-preview and vertical-reachability cases passed 7/7 locally and exact 558b browser CI.",
+    "limitations": "Orientation is viewport emulation, not physical rotation, touch, authenticated tenant behavior or human accessibility acceptance. Issue #155 remains open. No P0/P1, owner/security, production or release approval is implied."
   },
-  "published_pr_head_at_snapshot": "ec38c897b5f08e03c40bb8b3192759f21ed452a8",
-  "local_checkpoint_parent_at_snapshot": "ec38c897b5f08e03c40bb8b3192759f21ed452a8",
+  "published_pr_head_at_snapshot": "558b8c885cb0b4708be157ab49dcaffccd7ecb98",
+  "local_checkpoint_parent_at_snapshot": "558b8c885cb0b4708be157ab49dcaffccd7ecb98",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
@@ -174,8 +172,8 @@
     "qa_review": "completed_no_code_or_descriptor_cleanup_blocker",
     "limitations": "No production restore authorization, durable quota-release authority or cross-process fence; same-UID pre-observation replacement, ABA, mount aliases and ancestor replacement remain outside guarantees."
   },
-  "local_candidate_head": "01298f0f3ddde726b03d1734af6949c62a32aa73",
-  "local_candidate_tree_sha": "e33fd2d5a394cfca5632373f7290e979df830b9d",
+  "local_candidate_head": "b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2",
+  "local_candidate_tree_sha": "482e3105b103ca2593d638e0a6c1b7b055685148",
   "responsive_test_candidate": {
     "branch": "codex/p2-responsive-sites-files-retry-20261116",
     "head": "40b9ac2a664893803696ab72153d78c27177b344",
@@ -200,6 +198,15 @@
       "review": "Development_and_QA_no_blocker",
       "validation": "focused_Chrome_1_of_1_and_responsive_suite_7_of_7_passed_locally",
       "scope": "selected synthetic Sites/Files headings controls status and preview at 320x640 and 390x360; scroll-into-view, vertical bounds and center hit test; not keyboard/touch/human accessibility"
+    },
+    "orientation_change_followup": {
+      "source_head": "8c3d63f83468675524a91e6c6b27f2e454c5dbb9",
+      "integrated_commit": "b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2",
+      "base": "558b8c885cb0b4708be157ab49dcaffccd7ecb98",
+      "state": "local_only_pending_exact_head_hosted_CI",
+      "review": "Development_and_QA_no_blocker",
+      "validation": "development_reported_focused_Chrome_1_of_1_and_suite_8_of_8; not independently_rerun",
+      "scope": "synthetic Files filter/list/scope/preview state across portrait-landscape-portrait resize with unchanged requests and keyboard close/focus return"
     }
   },
   "domain_dns_retry_candidate": {
@@ -252,8 +259,8 @@
     "test_runtime": "PR and push Go race checks passed on exact head 9a, including Linux-tagged Files runtime",
     "scope": "injected reservation Release failure after duplicate create conflict returns_quota_unavailable_preserves_file_and_retains_reserved_bytes"
   },
-  "local_snapshot_head": "01298f0f3ddde726b03d1734af6949c62a32aa73",
-  "local_snapshot_tree": "e33fd2d5a394cfca5632373f7290e979df830b9d",
+  "local_snapshot_head": "b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2",
+  "local_snapshot_tree": "482e3105b103ca2593d638e0a6c1b7b055685148",
   "files_media_type_candidate": {
     "branch": "codex/api-contract-gap-scan-20261116",
     "head": "8a622a0400e6b6f13e9f526664bfa53e397d78f1",
