@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 const uiRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../cmd/tongd/ui');
@@ -424,6 +425,16 @@ test('component preview: Sites view fits phone, tablet, and desktop widths with 
         await expect(page.locator('#site-preview-id')).toHaveValue('responsive-site');
     }
 
+    const sitesAxe = await new AxeBuilder({ page })
+        .include('section[aria-labelledby="sites-title"]')
+        .withTags(['wcag2a', 'wcag2aa'])
+        .analyze();
+    expect(sitesAxe.violations.map(({ id, impact, nodes }) => ({
+        id,
+        impact,
+        nodes: nodes.map(node => ({ target: node.target, reason: node.failureSummary })),
+    }))).toEqual([]);
+
     expectSyntheticReadOnlyRequests(records, { sites: viewports.length * 2, files: 0, previews: 0 });
     expect(records.sites.map(request => request.prefix)).toEqual(['', ...Array(viewports.length * 2 - 1).fill('res')]);
 });
@@ -452,6 +463,16 @@ test('component preview: Files view fits phone, tablet, and desktop widths with 
         await page.locator('#files-preview-close').click();
         await expect(page.locator('#files-preview')).toBeHidden();
     }
+
+    const filesAxe = await new AxeBuilder({ page })
+        .include('.files-explorer')
+        .withTags(['wcag2a', 'wcag2aa'])
+        .analyze();
+    expect(filesAxe.violations.map(({ id, impact, nodes }) => ({
+        id,
+        impact,
+        nodes: nodes.map(node => ({ target: node.target, reason: node.failureSummary })),
+    }))).toEqual([]);
 
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: viewports.length * 2, previews: viewports.length });
     expect(records.files.map(request => request.prefix)).toEqual(['', ...Array(viewports.length * 2 - 1).fill('responsive')]);
