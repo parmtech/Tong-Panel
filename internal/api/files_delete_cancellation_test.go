@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -20,6 +21,7 @@ type blockedContextFileRemoval struct {
 	ContextTenantFileService
 
 	entered    chan struct{}
+	release    chan struct{}
 	tenantID   string
 	relative   string
 	contextErr error
@@ -29,9 +31,14 @@ func (f *blockedContextFileRemoval) RemoveForTenantContext(ctx context.Context, 
 	f.tenantID = tenantID
 	f.relative = relative
 	close(f.entered)
-	<-ctx.Done()
-	f.contextErr = ctx.Err()
-	return f.ContextTenantFileService.RemoveForTenantContext(ctx, tenantID, relative)
+	select {
+	case <-ctx.Done():
+		f.contextErr = ctx.Err()
+		return f.ContextTenantFileService.RemoveForTenantContext(ctx, tenantID, relative)
+	case <-f.release:
+		f.contextErr = ctx.Err()
+		return 0, context.Canceled
+	}
 }
 
 type recordingRemoveQuota struct {
@@ -76,12 +83,12 @@ func TestFilesDeletePassesCancellationToContextService(t *testing.T) {
 		TenantFileService:        baseFiles,
 		ContextTenantFileService: contextFiles,
 		entered:                  make(chan struct{}),
+		release:                  make(chan struct{}),
 	}
 	s.Files = blocked
 	h = s.Handler()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	req := httptest.NewRequest(http.MethodDelete, "https://panel.test/api/v1/files/content?path="+path, nil).WithContext(ctx)
 	req.TLS = &tls.ConnectionState{}
 	req.AddCookie(&http.Cookie{Name: auth.BrowserCookieName, Value: token})
@@ -93,6 +100,17 @@ func TestFilesDeletePassesCancellationToContextService(t *testing.T) {
 		h.ServeHTTP(rec, req)
 		close(done)
 	}()
+	var releaseOnce sync.Once
+	releaseBlocked := func() { releaseOnce.Do(func() { close(blocked.release) }) }
+	defer func() {
+		cancel()
+		releaseBlocked()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Errorf("DELETE handler goroutine did not stop during test cleanup")
+		}
+	}()
 
 	select {
 	case <-blocked.entered:
@@ -100,10 +118,11 @@ func TestFilesDeletePassesCancellationToContextService(t *testing.T) {
 		t.Fatal("DELETE finished without entering RemoveForTenantContext")
 	case <-time.After(5 * time.Second):
 		cancel()
+		releaseBlocked()
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):
-			t.Fatal("DELETE did not enter RemoveForTenantContext or stop after cancellation")
+			t.Fatal("DELETE did not enter RemoveForTenantContext or stop after release")
 		}
 		t.Fatal("DELETE did not enter RemoveForTenantContext")
 	}
@@ -115,7 +134,13 @@ func TestFilesDeletePassesCancellationToContextService(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
-		t.Fatal("DELETE handler did not stop after cancellation")
+		releaseBlocked()
+		select {
+		case <-done:
+			t.Errorf("DELETE handler stopped only after test release; request cancellation was not propagated")
+		case <-time.After(5 * time.Second):
+			t.Fatal("DELETE handler did not stop after cancellation or test release")
+		}
 	}
 	if blocked.contextErr != context.Canceled {
 		t.Fatalf("removal context error=%v, want context.Canceled", blocked.contextErr)
