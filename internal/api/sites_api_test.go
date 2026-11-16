@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -23,6 +24,7 @@ import (
 type siteTXTStub struct {
 	mu      sync.RWMutex
 	records map[string][]string
+	errors  map[string]error
 	calls   []string
 }
 
@@ -30,7 +32,7 @@ func (s *siteTXTStub) LookupTXT(_ context.Context, name string) ([]string, error
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.calls = append(s.calls, name)
-	return append([]string(nil), s.records[name]...), nil
+	return append([]string(nil), s.records[name]...), s.errors[name]
 }
 
 func (s *siteTXTStub) set(name string, values ...string) {
@@ -40,6 +42,16 @@ func (s *siteTXTStub) set(name string, values ...string) {
 		s.records = make(map[string][]string)
 	}
 	s.records[name] = append([]string(nil), values...)
+	delete(s.errors, name)
+}
+
+func (s *siteTXTStub) setError(name string, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.errors == nil {
+		s.errors = make(map[string]error)
+	}
+	s.errors[name] = err
 }
 
 func (s *siteTXTStub) callCount() int {
@@ -298,6 +310,92 @@ func TestDomainVerificationAPIIsSingleUseTenantBoundAndStoresOnlyDigest(t *testi
 	}
 	if r := call(h, http.MethodPost, completePath, secret, "", `{"value":"ok","tenant_id":"tenant-b"}`); r.Code != http.StatusBadRequest {
 		t.Fatalf("unexpected completion field was accepted: %d", r.Code)
+	}
+}
+
+func TestDomainVerificationAPIRetriesTransientDNSFailureWithSameChallenge(t *testing.T) {
+	server, lookup, db := setupSiteAPI(t)
+	h := server.Handler()
+	if r := createTestSite(t, h, secret, "site-retry", "retry.example.test"); r.Code != http.StatusCreated {
+		t.Fatalf("create site: %d %s", r.Code, r.Body.String())
+	}
+
+	const beginPath = "/api/v1/sites/site-retry/domains/retry.example.test/verification"
+	begin := call(h, http.MethodPost, beginPath, secret, "", "")
+	if begin.Code != http.StatusCreated {
+		t.Fatalf("verification begin returned %d: %s", begin.Code, begin.Body.String())
+	}
+	var instruction sites.DomainVerificationInstruction
+	if err := json.Unmarshal(begin.Body.Bytes(), &instruction); err != nil {
+		t.Fatal(err)
+	}
+
+	var digestBefore string
+	var expiryBefore int64
+	if err := db.QueryRow(`SELECT verification_token_sha256,verification_expires_at
+		FROM site_domains WHERE tenant_id='tenant-a' AND site_id='site-retry' AND domain='retry.example.test'`).Scan(&digestBefore, &expiryBefore); err != nil {
+		t.Fatal(err)
+	}
+	if digestBefore == instruction.Value || expiryBefore != instruction.ExpiresAt {
+		t.Fatal("challenge was not stored as an expiring digest")
+	}
+
+	const completePath = "/api/v1/sites/site-retry/domains/retry.example.test/verification/complete"
+	resolverErr := errors.New("synthetic TXT resolver timeout")
+	lookup.setError(instruction.Name+".", resolverErr)
+	failed := call(h, http.MethodPost, completePath, secret, "", fmt.Sprintf(`{"value":%q}`, instruction.Value))
+	if failed.Code != http.StatusServiceUnavailable {
+		t.Fatalf("transient DNS failure returned %d: %s", failed.Code, failed.Body.String())
+	}
+	var failureBody failure
+	if err := json.Unmarshal(failed.Body.Bytes(), &failureBody); err != nil {
+		t.Fatal(err)
+	}
+	if failureBody.Error.Code != "sites_unavailable" || strings.Contains(failed.Body.String(), resolverErr.Error()) {
+		t.Fatalf("DNS error was not reported generically: %s", failed.Body.String())
+	}
+
+	var stateAfterFailure, digestAfterFailure string
+	var expiryAfterFailure int64
+	if err := db.QueryRow(`SELECT ownership_state,verification_token_sha256,verification_expires_at
+		FROM site_domains WHERE tenant_id='tenant-a' AND site_id='site-retry' AND domain='retry.example.test'`).Scan(&stateAfterFailure, &digestAfterFailure, &expiryAfterFailure); err != nil {
+		t.Fatal(err)
+	}
+	if stateAfterFailure != "pending" || digestAfterFailure != digestBefore || expiryAfterFailure != expiryBefore {
+		t.Fatalf("DNS failure changed challenge state: state=%q digest unchanged=%t expiry unchanged=%t",
+			stateAfterFailure, digestAfterFailure == digestBefore, expiryAfterFailure == expiryBefore)
+	}
+	var verifiedAudits int
+	if err := db.QueryRow(`SELECT count(*) FROM audit_events WHERE action='site.domain_verified'
+		AND tenant_id='tenant-a' AND subject_id='site-retry/retry.example.test'`).Scan(&verifiedAudits); err != nil {
+		t.Fatal(err)
+	}
+	if verifiedAudits != 0 {
+		t.Fatalf("failed DNS attempt recorded %d success audit events", verifiedAudits)
+	}
+
+	lookup.set(instruction.Name+".", instruction.Value)
+	retried := call(h, http.MethodPost, completePath, secret, "", fmt.Sprintf(`{"value":%q}`, instruction.Value))
+	if retried.Code != http.StatusOK {
+		t.Fatalf("retry with same challenge returned %d: %s", retried.Code, retried.Body.String())
+	}
+	var stateAfterRetry string
+	if err := db.QueryRow(`SELECT ownership_state FROM site_domains
+		WHERE tenant_id='tenant-a' AND site_id='site-retry' AND domain='retry.example.test'`).Scan(&stateAfterRetry); err != nil {
+		t.Fatal(err)
+	}
+	if stateAfterRetry != "verified" {
+		t.Fatalf("retry left ownership state %q, want verified", stateAfterRetry)
+	}
+	if err := db.QueryRow(`SELECT count(*) FROM audit_events WHERE action='site.domain_verified'
+		AND tenant_id='tenant-a' AND subject_id='site-retry/retry.example.test'`).Scan(&verifiedAudits); err != nil {
+		t.Fatal(err)
+	}
+	if verifiedAudits != 1 {
+		t.Fatalf("retry recorded %d success audit events, want one", verifiedAudits)
+	}
+	if lookup.callCount() != 2 {
+		t.Fatalf("synthetic TXT lookup count=%d, want failed attempt and retry", lookup.callCount())
 	}
 }
 
