@@ -354,6 +354,31 @@ func TestRepeatedRollbackRecoveryIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestRepeatedRollbackNotObservedRecoveryIsIdempotentAfterSnapshotRoundTrip(t *testing.T) {
+	m := readyForSwitch(t)
+	if err := m.ApplySwitch(); err != nil {
+		t.Fatal(err)
+	}
+	m.Recover(m.CandidateDigest)
+	if err := m.RequestRollback(true, true); err != nil {
+		t.Fatal(err)
+	}
+	m.Recover(m.CandidateDigest)
+	if m.State != StateActive || m.Outcome != "rollback_not_observed" {
+		t.Fatalf("rollback with candidate route observed = state %q outcome %q", m.State, m.Outcome)
+	}
+
+	restarted := restartModel(t, m)
+	routeBefore := restarted.ActualRoute
+	restarted.Recover(restarted.CandidateDigest)
+	if restarted.State != StateActive || restarted.Outcome != "rollback_not_observed" {
+		t.Fatalf("repeated candidate observation = state %q outcome %q, want active and rollback_not_observed", restarted.State, restarted.Outcome)
+	}
+	if restarted.ActualRoute != routeBefore || restarted.ActualRoute != restarted.CandidateDigest {
+		t.Fatalf("repeated observation changed simulated route from %q to %q", routeBefore, restarted.ActualRoute)
+	}
+}
+
 func TestContradictoryObservationAfterRollbackBecomesUncertain(t *testing.T) {
 	m := readyForSwitch(t)
 	if err := m.ApplySwitch(); err != nil {

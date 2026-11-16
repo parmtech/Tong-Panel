@@ -139,7 +139,9 @@ func (m *Model) Recover(observedRoute string) {
 		}
 	case StateActive:
 		if observedRoute == m.CandidateDigest && m.CandidateVerified && m.ArtifactRecorded && m.CandidateStarted && m.HealthPassed {
-			m.Outcome = "promoted"
+			if m.Outcome != "rollback_not_observed" {
+				m.Outcome = "promoted"
+			}
 		} else {
 			m.markUncertain()
 		}
