@@ -541,6 +541,8 @@ test('component preview: reduced motion preserves keyboard Sites and Files statu
     const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openComponentPreview(page, records);
+    const refreshTransitionProperty = await page.locator('#files-refresh').evaluate(element => getComputedStyle(element).transitionProperty);
+    expect(refreshTransitionProperty, 'reduced motion should disable control transitions').toBe('none');
     expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
 
     for (const [index, viewport] of viewports.entries()) {
