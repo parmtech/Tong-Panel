@@ -208,10 +208,10 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
         self.assertLess(script.index(command), script.index(probe_command))
 
         diagnostic = script.split("<<'PY_HTTPS_DIAGNOSTICS' || true\n", 1)[1].split("\nPY_HTTPS_DIAGNOSTICS\n", 1)[0]
-        self.assertIn(f'master_info("{PHP_FPM_PID_FILE}", ', diagnostic)
-        match = re.search(r'fpm_pid, fpm_state = master_info\("/run/tong/php-fpm-e2e\.pid", (\{[^}]+\})\)', diagnostic)
+        match = re.search(r'fpm_pid, fpm_state = master_info\("([^"]+)", (\{[^}]+\})\)', diagnostic)
         self.assertIsNotNone(match, "failure snapshot must keep an explicit FPM comm allowlist")
-        self.assertEqual(ast.literal_eval(match.group(1)), set(PHP_FPM_COMM_NAMES))
+        self.assertEqual(match.group(1), PHP_FPM_PID_FILE)
+        self.assertEqual(ast.literal_eval(match.group(2)), set(PHP_FPM_COMM_NAMES))
 
     def test_guest_failure_snapshot_prints_only_fixed_metadata(self):
         script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
