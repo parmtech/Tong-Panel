@@ -21,7 +21,7 @@ finish() {
   if [[ $status -ne 0 ]]; then
     # Status/journal text can contain secrets. Discard all command output and
     # report only a bounded exit-code classification and a fixed lab phase.
-    if timeout 3s sudo -n systemctl is-active --quiet tong-panel-dev.service >/dev/null 2>&1; then
+    if timeout --kill-after=1s 3s sudo -n systemctl is-active --quiet tong-panel-dev.service >/dev/null 2>&1; then
       service_state=active
     else
       case "$?" in

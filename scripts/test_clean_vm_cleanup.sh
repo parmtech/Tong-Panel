@@ -86,7 +86,7 @@ check_package_case() {
   mkdir "$preflight_work"
   # Exercise the real finish function, replacing system access with noisy stubs.
   timeout() {
-    [[ "$*" == '3s sudo -n systemctl is-active --quiet tong-panel-dev.service' ]] || return 90
+    [[ "$*" == '--kill-after=1s 3s sudo -n systemctl is-active --quiet tong-panel-dev.service' ]] || return 90
     printf 'called\n' > "$query_called"
     cat "$canaries"
     cat "$canaries" >&2
