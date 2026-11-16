@@ -76,14 +76,22 @@ func TestEncryptedTenantArchiveDiskRoundTrip(t *testing.T) {
 	if err := os.WriteFile(corruptPath, corrupt, 0600); err != nil {
 		t.Fatal(err)
 	}
-	restore := func(tenant, input string, k []byte) error {
+	truncatedPath := filepath.Join(filepath.Dir(artifact), "truncated.tpbk")
+	if err := os.WriteFile(truncatedPath, sealed[:len(sealed)-1], 0600); err != nil {
+		t.Fatal(err)
+	}
+	trailingPath := filepath.Join(filepath.Dir(artifact), "trailing.tpbk")
+	if err := os.WriteFile(trailingPath, append(bytes.Clone(sealed), 0x42, 0x43), 0600); err != nil {
+		t.Fatal(err)
+	}
+	restore := func(tenant, input string, k []byte) (ArchivePublishResult, error) {
 		t.Helper()
 		f, err := os.Open(input)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer f.Close()
-		return destinations.RestoreEncryptedGzipTarNewForTenant(context.Background(), tenant, "restored", f, k, ArchiveLimits{})
+		return destinations.RestoreEncryptedGzipTarNewForTenantWithResult(context.Background(), tenant, "restored", f, k, ArchiveLimits{})
 	}
 	assertPristine := func() {
 		t.Helper()
@@ -110,14 +118,16 @@ func TestEncryptedTenantArchiveDiskRoundTrip(t *testing.T) {
 		key          []byte
 	}{
 		{"tenant-b", artifact, key}, {"tenant-a", artifact, bytes.Repeat([]byte{0x52}, 32)}, {"tenant-a", corruptPath, key},
+		{"tenant-a", truncatedPath, key}, {"tenant-a", trailingPath, key},
 	} {
-		if err := restore(tc.tenant, tc.file, tc.key); !errors.Is(err, backups.ErrInvalidBackup) {
-			t.Fatalf("denied restore: %v", err)
+		result, err := restore(tc.tenant, tc.file, tc.key)
+		if !errors.Is(err, backups.ErrInvalidBackup) || result.State != ArchiveNotPublished || result.LogicalBytes != 0 {
+			t.Fatalf("denied restore: result=%+v err=%v", result, err)
 		}
 		assertPristine()
 	}
-	if err := restore("tenant-a", artifact, key); err != nil {
-		t.Fatal(err)
+	if result, err := restore("tenant-a", artifact, key); err != nil || result.State != ArchivePublished {
+		t.Fatalf("valid restore: result=%+v err=%v", result, err)
 	}
 	got, err := os.ReadFile(filepath.Join(dirA, "restored", "nested", "data.bin"))
 	if err != nil || !bytes.Equal(got, data) {
