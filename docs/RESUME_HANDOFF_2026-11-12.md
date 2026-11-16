@@ -1,4 +1,14 @@
-## Current resume checkpoint — unpublished 3490235 candidate; published PR snapshot at 2054 (17 November 2026, Australia/Sydney)
+## Current resume checkpoint — published PR b02; local candidate 47d95a6 (17 November 2026, Australia/Sydney)
+
+PR #171 remains open/draft/unmerged at exact head `b02a95726c1317f176f162978b7d1ba035deb796`, based on `main` `0aad68e81138a0f226e83e401f90bae4d0b6bddc`. GitHub read at 2026-11-16 15:25 UTC: 16/16 Actions runs and 24/24 checks passed; both Debian and Ubuntu guest jobs passed smoke, cleanup and Complete. These results apply only to b02. The earlier 2054 Debian step-18 failure remains unexplained; the PID-file/umask hypothesis is unconfirmed.
+
+The local code candidate is `47d95a6fad17053c888a178d0afaecd928226f7d` (tree `182a326fc3ee5a07a339fe7a46c96d97311a663e`), 12 commits after b02. It includes focused #154 preflight, #151 API authority, P3 model, P4 structural-validator with `!=` screening, paired synthetic #152 encrypted-restore tests, and a paired-tenant CLI process test. The P4 Python suite passed 23/23 after the exclusion fix; the CLI test passed Python syntax compilation but was not run on Linux. Post-b02 Go and P3 changes could not run locally because Go/gofmt/WSL are unavailable. The P0 crosswalk maps exact b02 T04/T05/T09/T15 jobs and explicitly excludes later changes. No exact-head hosted CI has run on the local candidate.
+
+**Next:** complete the handoff consistency audit; commit the refreshed canonical handoffs; re-read remote PR and tracker state; push normally; inspect all checks for the new exact head, including post-b02 Go changes, P4, and the paired #152 CLI test in both P2 guests. Refresh the P0 crosswalk and P2 traceability from the live final head without advancing P0-06 or any phase decision. Keep issue #172 at 12 unchecked DoD items and nine false approval fields. Owner/security/production/restore/accessibility/release gates remain open. No merge, live-server mutation or public release is authorized.
+
+---
+
+## Historical checkpoint — unpublished 3490235 candidate; published PR 2054 snapshot (superseded 17 November 2026)
 
 PR #171 remains open/draft/unmerged at exact head 2054a425108abd4db8df6e84b29c421dafe17dd0; base main remains 0aad68e81138a0f226e83e401f90bae4d0b6bddc. Published snapshot read 2026-11-16 12:36 UTC: 16/17 workflows and 24/25 checks succeeded, with one failure and zero pending. Attempt 1 ran Debian and Ubuntu, with step 17 passing both; attempt 2 reran only failed Debian, where step 17 passed and step 18 failed. Ubuntu's attempt-1 success was retained, not rerun. The failure cause is unknown; umask remains unconfirmed.
 

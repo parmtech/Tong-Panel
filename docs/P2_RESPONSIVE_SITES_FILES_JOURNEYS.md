@@ -4,7 +4,11 @@
 
 **Issue:** [#155 — P2 acceptance: define mobile/tablet site and Files journeys](https://github.com/parmtech/Tong-Panel/issues/155).
 
-## Current automation checkpoint — unpublished 3490235 candidate; published 2054 snapshot (17 November 2026)
+## Current automation checkpoint — local candidate 47d95a6 (17 November 2026)
+
+PR #171 is open/draft/unmerged at published head b02 `b02a95726c1317f176f162978b7d1ba035deb796`; its 16 Actions runs and 24 checks passed, including both guests. Local candidate `47d95a6` adds no responsive product behavior and has not received exact-head CI. The responsive journey plan remains design-only; synthetic browser coverage does not establish authenticated tenant behavior, physical-device use or human accessibility/usability. Keep #155 open and preserve P0/P1 identity/session gates.
+
+### Historical automation checkpoint — unpublished 3490235 / published 2054 (superseded 17 November 2026)
 
 The original five-case component-preview suite passed on its historical exact PR head 3ce7c545feae1152666fa7c268de8bff312b8130. Published source candidate 61fdb4b8faf520ec277cb5aeef82d4ac3510fe88 (tree 019c3f734a1743f91e1bdb3203013cbc154bec2c) is included in PR #171 head 2054a425108abd4db8df6e84b29c421dafe17dd0. Snapshot read 2026-11-16 12:36 UTC: 16/17 workflows and 24/25 checks succeeded, with one failure and zero pending. Attempt 1 ran both guest OSes and step 17 passed on both; attempt 2 reran only failed Debian, where step 17 passed and step 18 failed. Ubuntu's attempt-1 success was retained, not rerun. Root cause is unknown and umask unconfirmed. Candidate 34902351b90c0bb7fe8f67d6681a15031f24e5d1 (tree 61335cc7c6078aaa65daf6f6dab50cf9cd8724e3) has 11 source commits after 61fdb: three P2, three OpenRootAt, three ACME and two SQLite completion-crash-test commits; it also includes prior docs and two P0 crosswalk commits (14 after 2054). Python 19/19, bash -n, 11 cleanup scenarios and diff check passed. Go/gofmt/WSL/govulncheck are unavailable; OpenRootAt, ACME and SQLite Go tests including TestSQLiteCompletionCommitProcessCrashBeforeAck did not run. Draft P0 crosswalk is execution-unverified; P0-06 remains unchecked, all 43 references resolve, and no tests were run for the crosswalk. No exact-head hosted CI has run on the candidate.
 

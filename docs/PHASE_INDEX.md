@@ -1,6 +1,8 @@
 # Tong Panel — Phase Index / Single Operational Plan
 **Updated:** 2026-11-17. The combined development review preserves all original draft work. P0 decisions and phase acceptance remain open; P1 prototypes and disposable P2 QA may continue, but P1 exit and P2 entry are not approved. Read the current handoff for executed evidence.
 
+Current PR #171 is open/draft/unmerged at exact b02 head `b02a95726c1317f176f162978b7d1ba035deb796`; 16/16 Actions runs and 24/24 checks passed on that head. The local code candidate is `47d95a6fad17053c888a178d0afaecd928226f7d`, with no exact-head hosted CI yet. P4 focused Python is 23/23 after the exclusion fix; the paired CLI process test passed syntax compilation only. Go/gofmt/WSL are unavailable locally. Issue #172 remains at 12 unchecked DoD items and nine false approvals. See the current A–Z handoff and machine state for next steps and exact scope.
+
 | Phase | Goal | Prerequisite | Gate | Detailed plan |
 |---|---|---|---|---|
 | P0 | Blueprint, decisions, threats, agent handoff | existing docs | ADR/threat review, scoped P1 backlog | [P0](phases/P0-PLANNING.md) |
@@ -12,6 +14,10 @@
 | P6 | Signed, audited 1.0 release | P1-P5 target scope tested | independent audit, verified install/backup/recovery | [P6](phases/P6-STABLE-RELEASE.md) |
 
 ## For a new AI agent
+
+**Current snapshot (17 November 2026):** PR #171 is still at b02 open/draft/unmerged; candidate `47d95a6` is local only and its changes are unverified by hosted CI. Focused P4/API/P3/#152 reviews found no blocker within their stated scope. Cumulative source review is complete; only handoff consistency review remains. Commit handoffs, publish by fast-forward, and verify every exact-head workflow and both guests. Preserve all gates and the 12/12 unchecked issue #172 DoD state.
+
+### Historical resume snapshot — 16 November 2026 (superseded)
 
 **Start with [AI_AGENT_START_HERE.md](AI_AGENT_START_HERE.md), [machine state](AI_AGENT_STATE.json), [AGENTS.md](../AGENTS.md) and live [PR #171](https://github.com/parmtech/Tong-Panel/pull/171).** [Tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) coordinates phases. Published snapshot read 2026-11-16 12:36 UTC: open/draft/unmerged PR #171 at 2054a425108abd4db8df6e84b29c421dafe17dd0 against unchanged main; 16/17 workflows and 24/25 checks succeeded. Attempt 1 ran Debian+Ubuntu and step 17 passed on both. Attempt 2 reran only failed Debian: step 17 passed and step 18 failed; Ubuntu's attempt-1 success was retained, not rerun. Cause remains unknown; umask remains unconfirmed. Candidate 34902351b90c0bb7fe8f67d6681a15031f24e5d1 (tree 61335cc7c6078aaa65daf6f6dab50cf9cd8724e3) has 11 source commits after published source 61fdb plus prior docs and two P0 crosswalk commits, 14 total after 2054. Two SQLite test commits add TestSQLiteCompletionCommitProcessCrashBeforeAck, which is unexecuted; draft crosswalk P0-06 remains unchecked, all 43 references resolve, no tests run. Python 19/19, bash -n, 11 cleanup scenarios and diff check passed. Go/gofmt/WSL/govulncheck unavailable; OpenRootAt, ACME and SQLite Go tests did not run. No exact-head hosted CI has run. Next: on publication, inspect exact-head Go and P2 guest checks. No phase approval is inferred.
 
