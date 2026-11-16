@@ -648,3 +648,65 @@ test('component preview: Files task survives portrait and landscape resizing wit
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: 2, previews: 1 });
     expect(records.files.map(request => request.prefix)).toEqual(['', 'responsive']);
 });
+
+
+test('component preview: blur and simulated hidden visibility clear Files previews at phone sizes', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const requests = [];
+    page.on('request', request => requests.push({ url: request.url(), method: request.method() }));
+    const phones = [{ width: 320, height: 640 }, { width: 390, height: 360 }];
+    await openComponentPreview(page, records);
+
+    for (const [index, viewport] of phones.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+        await page.locator('#files-refresh').click();
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        const preview = page.getByRole('button', { name: 'Preview text responsive-layout-notes.txt' });
+
+        for (const signal of ['blur', 'visibility']) {
+            await preview.click();
+            await expect(page.locator('#files-preview')).toBeVisible();
+            await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+            await page.locator('#files-prefix').focus();
+            await expect(page.locator('#files-prefix')).toBeFocused();
+            const beforeCleanup = requests.slice();
+            // Deterministically simulate the event and, for visibility, the hidden
+            // property. This does not claim a real browser tab/background transition.
+            await page.evaluate(kind => {
+                if (kind === 'blur') window.dispatchEvent(new Event('blur'));
+                else {
+                    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+                    document.dispatchEvent(new Event('visibilitychange'));
+                }
+            }, signal);
+            await expect(page.locator('#files-preview')).toBeHidden();
+            await expect(page.locator('#files-preview-content')).toBeEmpty();
+            await expect(page.locator('#files-prefix')).toBeFocused();
+            await expect(preview).not.toBeFocused();
+            expect(requests).toEqual(beforeCleanup);
+            if (signal === 'visibility') {
+                await page.evaluate(() => {
+                    delete document.hidden;
+                    document.dispatchEvent(new Event('visibilitychange'));
+                });
+            } else {
+                await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+            }
+            await expect(page.locator('#files-preview')).toBeHidden();
+            await expect(page.locator('#files-preview-content')).toBeEmpty();
+            await expect(page.locator('#files-prefix')).toBeFocused();
+            expect(requests).toEqual(beforeCleanup);
+
+            await preview.click();
+            await expect(page.locator('#files-preview')).toBeVisible();
+            await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+            expect(requests).toHaveLength(beforeCleanup.length + 1);
+            await page.locator('#files-preview-close').click();
+        }
+    }
+    expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length, previews: phones.length * 4 }, phones.length);
+});
