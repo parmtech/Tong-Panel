@@ -1,98 +1,43 @@
 # Security review handoff: fd-relative restore-lab root opening
 
-**Status:** Independent Sol 6.1 Medium review is pending. Do not describe the
-change as specialist-reviewed or integrate it into PR #171 until that review
-and the updated Linux run are complete. This document is a review packet, not
-an approval.
+**Status:** Sol 6.1 Medium independently reviewed the exact candidate at `43ff309760a629cbaca3651c3d1118cb9b5de57b` and found no concrete blocker for the explicitly opted-in, non-root disposable restore-lab/inventory scope. Development and QA also reviewed the candidate without a code or descriptor-cleanup blocker. The source/tests have been forward-ported locally onto PR #171 after exact verified head `1f0c5a7`; source commit `02258ae38caad7462f74c8f02bc474c306f6ca28` is not yet published or hosted-verified. Exact PR-head Linux CI and both clean guests remain required. This review grants no production restore authorization, quota-release authority, cross-process fence or owner/security approval.
 
 ## Scope
 
-The candidate is based on PR #171 source `dff0a230f3c7840df118efec63fa00011435e9a4`.
-The candidate code is local commit
-`d98e0f35fab91709ac8536aae1d06ca5343e16d7`; follow-up commit
-`2158373c92cb60556de906bccc229f6b9eb39ea5` adds restore-to-inventory process
-coverage. Both are based on PR #171 source
-`dff0a230f3c7840df118efec63fa00011435e9a4`. The isolated branch-only run at
-`43ff309760a629cbaca3651c3d1118cb9b5de57b` passed these candidate changes on
-Ubuntu; the PR remains unchanged and still needs specialist review and exact
-PR-head CI.
+The isolated candidate branch is `codex/qa-root-at-final-20261116` at `43ff309760a629cbaca3651c3d1118cb9b5de57b`, based on PR #171 source `dff0a230f3c7840df118efec63fa00011435e9a4`.
 
-Files in the candidate:
+The source changes are `d98e0f35fab91709ac8536aae1d06ca5343e16d7` (pinned-root permission check and umask regression) and `2158373c92cb60556de906bccc229f6b9eb39ea5` (restore-to-inventory process coverage). The final candidate branch also contains documentation and an isolated branch-only workflow. The local forward-port keeps the source/tests and P2 lab documentation, replaces this handoff with this reviewed packet, and omits the one-off workflow.
 
-- `internal/files/root_at_linux.go`: `OpenRootAt` accepts one child component,
-  performs no-follow metadata observations, opens with `openat2` using
-  beneath/no-symlink/no-magic-link/no-cross-mount resolution, compares device
-  and inode before/opened/after, and leaves parent-FD ownership with caller.
-  `CheckOwnerPrivateDirectory0700` validates owner and mode with `fstat` on
-  the pinned descriptor; it does not change the process-global umask.
-- `internal/files/root_at_linux_test.go`: path-replaced parent, unsafe
-  component, symlink, regular file, missing child and parent-FD ownership.
-- `cmd/tongbackup/restore_site_lab_linux.go`: opens the just-created lab root
-  relative to the pinned parent descriptor and refuses to read input if umask
-  removed required permissions.
-- `cmd/tongbackup/restore_site_lab_linux_test.go`: runs the helper in a
-  subprocess with umask `0777`, requires a specific unusable-root error before
-  input read, verifies the retained mode-000 root, repairs it, and confirms
-  the root is empty and inspectable.
-- `scripts/test_backup_restore_site_lab_cli.py`: checks the count-only
-  inventory after wrong-key denial and successful restore, and verifies the
-  inventory did not modify either root.
-- `cmd/tongbackup/inspect_restore_lab_linux.go`: opens the selected lab root
-  relative to its pinned parent and checks identity around the inventory scan.
-- `docs/P2_RESTORE_SITE_LAB.md` and `docs/P2_INSPECT_RESTORE_LAB.md`: disclose
-  same-UID, mount-alias, ancestor and first-observation limitations.
+Files and functions:
 
-The commands remain non-root, explicitly opted-in disposable-lab tools. This
-does not add a production endpoint, authorization, quota settlement or a
-cross-process filesystem fence.
+- `internal/files/root_at_linux.go`: `OpenRootAt` accepts one child component, performs no-follow metadata observations, opens with `openat2` using beneath/no-symlink/no-magic-link/no-cross-mount resolution, compares device and inode before/opened/after, and closes the descriptor on mismatch. The caller retains ownership of `parentFD`.
+- `internal/files/root_at_linux.go`: `CheckOwnerPrivateDirectory0700` checks owner and exact mode with `fstat` on the pinned descriptor; it does not change the process-global umask.
+- `internal/files/root_at_linux_test.go`: pinned-parent replacement, unsafe component, symlink, regular file, missing child and parent-FD ownership cases.
+- `cmd/tongbackup/restore_site_lab_linux.go`: opens the new lab root relative to the pinned parent and refuses to read restore input if umask removed required permissions.
+- `cmd/tongbackup/restore_site_lab_linux_test.go`: runs a subprocess with umask `0777`, verifies an unusable-root error before input read and retained mode-000 root, then repairs permissions and uses `os.ReadDir` to confirm the directory is empty. This test does not itself invoke the inventory CLI.
+- `cmd/tongbackup/inspect_restore_lab_linux.go`: opens the selected root relative to its pinned parent and checks identity around the bounded inventory scan.
+- `scripts/test_backup_restore_site_lab_cli.py`: checks count-only inventory after wrong-key denial and successful restore, and verifies inventory does not modify either root.
+- `docs/P2_RESTORE_SITE_LAB.md` and `docs/P2_INSPECT_RESTORE_LAB.md`: document preconditions and same-UID, mount-alias and ancestor limitations.
 
-## Review questions
+The utilities remain non-root, explicitly opted-in disposable-lab tools. They add no production endpoint, authorization, quota settlement or cross-process filesystem fence.
 
-1. Are the basename validation, `openat2` resolution flags, descriptor flags,
-   and before/opened/after identity comparisons correct for this scope?
-2. Is the remaining same-UID replacement window before the first `fstatat`
-   clearly bounded by the documented trusted-parent precondition? Does either
-   caller accidentally imply stronger fencing?
-3. Are descriptor ownership, error cleanup, and interaction with `Root.Close`
-   safe when the caller owns and retains `parentFD`?
-4. Does restore-root creation remain safely private and inspectable under a
-   restrictive process umask such as `0777`? The implementation checks the
-   opened root's owner/mode using its pinned descriptor before reading the
-   encrypted input. A subprocess regression uses umask `0777`, expects a
-   truthful static error, verifies the empty mode-000 root is retained, then
-   repairs it as its owner and confirms it is inspectable. This case passed in
-   the isolated Linux run below.
-5. Does unsupported `openat2` fail closed consistently with existing Linux
-   support assumptions?
-6. Are the tests sufficient to support the stated disposable-only claim,
-   without claiming inode fencing against a same-UID actor?
+## Sol 6.1 Medium review — 16 November 2026
 
-Return a concrete blocker/no-blocker assessment, exact code locations, and any
-required regression tests. Do not expand the review into production restore
-authorization or quota approval; those gates remain separate and blocked.
+No concrete blocker was found at exact candidate head `43ff309760a629cbaca3651c3d1118cb9b5de57b` for the bounded disposable-only claim.
 
-## Evidence
+- `OpenRootAt` rejects invalid basenames and uses `O_PATH|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW` with `RESOLVE_BENEATH|RESOLVE_NO_SYMLINKS|RESOLVE_NO_MAGICLINKS|RESOLVE_NO_XDEV`; it fails closed without a fallback. Before/opened/after device+inode comparisons detect some replacements.
+- Descriptor ownership and post-open error cleanup are sound. `CheckOwnerPrivateDirectory0700` holds the root read lock while checking its pinned descriptor, excluding `Root.Close` during the check.
+- Restore pins the parent, creates the child with `Mkdirat(...,0700)`, opens relative to that descriptor and validates exact pinned owner/mode before encrypted input reaches the restore routine. Restrictive umask fails truthfully, retains evidence and does not modify global umask.
+- Inventory pins parent/root and rechecks the visible name’s device/inode and private owner/mode around the scan before emitting a result.
+- Optional future coverage: nil/closed owner checks, exact-mode rejection with special bits, and injected identity-mismatch cleanup. These are not blockers for the current scope.
 
-- PR #171 exact source `dff0a23` had all 13 workflows successful, including
-  both clean VM guests. This verifies only that committed source.
-- Branch-only run [43769672249](https://github.com/parmtech/Tong-Panel/actions/runs/43769672249)
-  passed on Ubuntu at `c79f589`, before the umask fix.
-- Branch-only run [43770584554](https://github.com/parmtech/Tong-Panel/actions/runs/43770584554)
-  passed at `beee3dc`, based on `d98e0f3`. The restrictive-umask subprocess
-  regression, affected Linux race suites, and non-root restore/inventory CLI
-  tests all passed.
-- Final combined run [43770861328](https://github.com/parmtech/Tong-Panel/actions/runs/43770861328)
-  passed at `43ff309`, with candidate code through `2158373`. Its job shows
-  successful explicit umask, race-suite, and process-suite steps, including
-  restore-to-inventory checks. Both runs are Ubuntu runner-only evidence, not
-  clean-guest or PR-head verification.
-- Go 1.27.3 `go test ./cmd/tongbackup` passed;
-  `./internal/files` has no Windows build files and therefore did not execute
-  on Windows. Linux amd64 test binaries cross-compiled and Linux-targeted
-  `go vet ./cmd/tongbackup ./internal/files` passed. `git diff --check` passed.
-- The subprocess regression did not run locally because this checkout is on
-  Windows; hosted Ubuntu supplied the runtime execution.
-- A separate independent code review found no concrete security blocker and
-  documented the same-UID/mount-alias caveats; it identified the umask edge
-  fixed by `d98e0f3`. The Sol review agent's latest attempt ended on a model
-  usage limit, so no Sol review is claimed.
+The identity observations do **not** prove continuity against same-UID replacement before the first observation, ABA swaps or subsequent mutation. Ancestor replacement during earlier pathname validation and mount aliases remain outside this mechanism. The trusted/stable-parent and topology preconditions are required and documented.
+
+## Evidence and remaining verification
+
+- Exact branch-only Ubuntu run [#43770861328](https://github.com/parmtech/Tong-Panel/actions/runs/43770861328), job #132986235012, passed at candidate head `43ff309`, including the explicit umask regression, affected Linux race suites, restore/inventory CLI process suites, cleanup and Complete. This is runner-only evidence, not PR-head or clean-guest evidence.
+- QA independently reviewed the exact candidate and confirmed the run steps and documented caveats. Sol did not rerun Go locally because Go was unavailable on the review environment; the branch-only Linux run remains the runtime evidence.
+- Parent PR #171 source `1f0c5a7` passed its own 13 workflows and 24 checks before this forward-port. That result does not verify the new OpenRootAt or ASCII-key changes.
+- The current local forward-port must be published only after handoff review; then inspect its exact PR-head Go/Linux tests and both Ubuntu/Debian clean guests through cleanup.
+
+Do not expand this review into production restore authorization, durable quota release, cross-process fencing or release approval.
