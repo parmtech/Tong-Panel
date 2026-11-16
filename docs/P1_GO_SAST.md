@@ -23,7 +23,7 @@ for the pending P0 threat-model and owner/security review. Making its result a
 required merge check also requires repository ruleset configuration; this
 workflow does not change that configuration.
 
-Reproduce the scan from the repository root after installing Go 1.27.3:
+Reproduce the scan from the repository root after installing Go 1.27.4:
 
 ```sh
 go mod download
