@@ -152,8 +152,13 @@ async function openComponentPreview(page, records, nextFailures = { sites: null,
                         await route.fulfill({ status, contentType: 'application/json', body: '{}' });
                         return;
                     }
+                    if (nextFailures.openFolderTouchTarget && summary.filesPath === 'documents') {
+                        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: [{ name: 'inside.txt', kind: 'file', size: 3 }], next_after: '' }) });
+                        return;
+                    }
                     const pages = {
-                        '': { entries: [{ name: 'alpha.txt', kind: 'file', size: 5 }], next_after: 'alpha.txt' },
+                        '': { entries: nextFailures.openFolderTouchTarget ? [{ name: 'alpha.txt', kind: 'file', size: 5 }, { name: 'documents', kind: 'directory', size: 0 }] : [{ name: 'alpha.txt', kind: 'file', size: 5 }], next_after: nextFailures.openFolderTouchTarget ? 'documents' : 'alpha.txt' },
+                        'documents': { entries: [{ name: 'beta.txt', kind: 'file', size: 4 }], next_after: '' },
                         'alpha.txt': { entries: [{ name: 'beta.txt', kind: 'file', size: 4 }], next_after: '' },
                     };
                     if (!Object.hasOwn(pages, summary.after)) {
@@ -1149,7 +1154,7 @@ test('component preview: denied Files pagination returns keyboard focus to refre
 
 test('component preview: phone Sites and Files pointer targets meet project sizes', async ({ page }) => {
     const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
-    const controls = { sites: null, files: null, paginatedSites: true, paginatedFiles: true };
+    const controls = { sites: null, files: null, paginatedSites: true, paginatedFiles: true, openFolderTouchTarget: true };
     const phones = [{ width: 320, height: 640 }, { width: 390, height: 844 }];
 
     async function expectTarget(selector, minimum, viewport) {
@@ -1213,6 +1218,7 @@ test('component preview: phone Sites and Files pointer targets meet project size
         await page.locator('#files-filter button').click();
         await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
         await expectTarget('button[aria-label="Download alpha.txt"]', 24, viewport);
+        await expectTarget('button[aria-label="Open folder documents"]', 44, viewport);
         await expectTarget('button[aria-label="Preview text alpha.txt"]', 44, viewport);
         await page.locator('button[aria-label="Preview text alpha.txt"]').click();
         await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
@@ -1225,13 +1231,18 @@ test('component preview: phone Sites and Files pointer targets meet project size
         await expect(page.locator('#files-status')).toContainText('Page 2: 1 item.');
         await expectTarget('#files-previous', 44, viewport);
         await page.locator('#files-previous').click();
-        await expect(page.locator('#files-status')).toContainText('Page 1: 1 item.');
+        await expect(page.locator('#files-status')).toContainText('Page 1: 2 items.');
+        await page.locator('button[aria-label="Open folder documents"]').click();
+        await expect(page.locator('#files-breadcrumbs')).toContainText('documents');
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-list')).toContainText('inside.txt');
         await expectResponsiveBounds(page, viewport, ['#sites-load', '#sites-filter button', '#files-refresh', '#files-filter button']);
     }
 
     expectSyntheticReadOnlyRequests(records, {
         sites: phones.length * 4,
-        files: phones.length * 4,
+        files: phones.length * 5,
         previews: phones.length,
     }, phones.length);
+    expect(records.files.filter(request => request.filesPath === 'documents')).toHaveLength(phones.length);
 });
