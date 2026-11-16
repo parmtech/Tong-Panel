@@ -6,14 +6,14 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "integration/pr-reconciliation-20261113",
-  "source_head_before_handoff_commit": "d57be7584f16ca62a1442984d19aa158a6649ef1",
-  "source_tree_sha": "9687e651a53927e644ce974d32e93cba6a3f3ad5",
+  "source_head_before_handoff_commit": "bcc576f5ce85a8ebe4708f43b6ec417d15b6ae7e",
+  "source_tree_sha": "7e3c45ba423f6141975697db7724a794ddab710a",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
   "pr_state_at_snapshot": "open_draft_unmerged",
   "master_issue": 172,
-  "tracked_files_at_snapshot": 518,
+  "tracked_files_at_snapshot": 525,
   "prior_prs": {
     "closed_unmerged": 149,
     "all_observed_checks_successful": 129,
@@ -22,48 +22,87 @@
     "no_head_workflows": 14
   },
   "source_head_ci": {
-    "head_sha": "f95fa64a2954e2c31417eac087493918b31bcf22",
+    "head_sha": "9a8a4f51c9eae3d398fd78d2462c68686f506f98",
     "total": 13,
     "check_run_total": 24,
     "success": 13,
     "completed_failure": 0,
     "pending": [],
-    "vm_run": 43787590403,
+    "vm_run": 43793072330,
     "ubuntu_guest": "completed_success_smoke_cleanup_and_complete",
     "debian_guest": "completed_success_smoke_cleanup_and_complete",
-    "ubuntu_job_id": 133038606567,
-    "debian_job_id": 133038606408,
+    "ubuntu_job_id": 133055668429,
+    "debian_job_id": 133055668036,
     "vm_run_conclusion": "success",
-    "browser_run": 43787590305,
-    "go_run": 43787590214,
-    "go_push_run": 43787586134,
+    "browser_run": 43793072397,
+    "go_run": 43793072292,
+    "go_push_run": 43793067387,
     "workflow_runs": {
-      "Current API contract checks": { "run_id": 43787590200, "conclusion": "success" },
-      "Go checks": { "run_id": 43787590214, "conclusion": "success" },
-      "Go static security analysis": { "run_id": 43787590208, "conclusion": "success" },
-      "Go vulnerability checks": { "run_id": 43787590233, "conclusion": "success" },
-      "Isolated Go prototype checks": { "run_id": 43787590210, "conclusion": "success" },
-      "Jobs browser checks": { "run_id": 43787590305, "conclusion": "success" },
-      "Offline model and fixture checks": { "run_id": 43787590277, "conclusion": "success" },
-      "P1 developer smoke (non-destructive)": { "run_id": 43787590230, "conclusion": "success" },
-      "P1 gate blocker inventory": { "run_id": 43787590527, "conclusion": "success" },
-      "P1 unsigned developer package lab": { "run_id": 43787590408, "conclusion": "success" },
-      "P2 clean disposable VM smoke": { "run_id": 43787590403, "conclusion": "success" },
-      "SQLite schema checks": { "run_id": 43787590196, "conclusion": "success" },
-      "UI checks": { "run_id": 43787590193, "conclusion": "success" }
+      "Current API contract checks": {
+        "run_id": 43793072367,
+        "conclusion": "success"
+      },
+      "Go checks": {
+        "run_id": 43793072292,
+        "conclusion": "success"
+      },
+      "Go static security analysis": {
+        "run_id": 43793072515,
+        "conclusion": "success"
+      },
+      "Go vulnerability checks": {
+        "run_id": 43793072289,
+        "conclusion": "success"
+      },
+      "Isolated Go prototype checks": {
+        "run_id": 43793072313,
+        "conclusion": "success"
+      },
+      "Jobs browser checks": {
+        "run_id": 43793072397,
+        "conclusion": "success"
+      },
+      "Offline model and fixture checks": {
+        "run_id": 43793072334,
+        "conclusion": "success"
+      },
+      "P1 developer smoke (non-destructive)": {
+        "run_id": 43793072405,
+        "conclusion": "success"
+      },
+      "P1 gate blocker inventory": {
+        "run_id": 43793072371,
+        "conclusion": "success"
+      },
+      "P1 unsigned developer package lab": {
+        "run_id": 43793072319,
+        "conclusion": "success"
+      },
+      "P2 clean disposable VM smoke": {
+        "run_id": 43793072330,
+        "conclusion": "success"
+      },
+      "SQLite schema checks": {
+        "run_id": 43793072306,
+        "conclusion": "success"
+      },
+      "UI checks": {
+        "run_id": 43793072401,
+        "conclusion": "success"
+      }
     }
   },
   "next": {
-    "task_id": "FILES-QUOTA-API-REGRESSIONS-PUBLISH-AND-VERIFY",
+    "task_id": "FILES-API-MEDIA-TYPE-AND-LIST-OVERFLOW-VERIFY",
     "priority": 2,
-    "action": "Refresh handoffs and tracker, confirm the remote PR branch remains at f95fa64a2954e2c31417eac087493918b31bcf22, publish reviewed API tests for DNS retry, worker-lease redaction, unsupported Jobs methods, Files DELETE cancellation, delete-quota failure and upload reservation-release failure without force, then inspect all 13 exact-head workflows, hosted Linux execution and both clean guests.",
+    "action": "Confirm the remote PR branch remains at 9a8a4f51c9eae3d398fd78d2462c68686f506f98, publish the two reviewed local API test commits and refreshed handoffs without force, then inspect every workflow and clean guest on the new exact head.",
     "required_evidence": [
-      "confirm remote branch still equals f95fa64a2954e2c31417eac087493918b31bcf22 before push",
-      "all 13 exact-head PR workflows complete on the newly published head",
-      "Go checks execute all new API regressions, including Linux-tagged Files cancellation, delete-quota failure and upload reservation-release cases, successfully on Linux",
-      "inspect Ubuntu 24.04 and Debian 12 clean guest jobs, including cleanup",
-      "update PR #171 and issue #172 with exact SHA and real outcomes; leave issue #155 open",
-      "keep P0/P1, owner/security, production authentication, signing, restore, accessibility, and release approvals blocked until actually resolved"
+      "confirm remote branch still equals 9a8a4f51c9eae3d398fd78d2462c68686f506f98 before publication",
+      "all 13 exact-head workflows and 24 check runs complete on the new head",
+      "Go Linux race checks execute parameterized Files Content-Type rejection and legacy Files listing overflow tests",
+      "inspect Ubuntu 24.04 and Debian 12 clean guest smoke, cleanup and Complete",
+      "update PR #171 and issue #172 with exact SHA and observed outcomes; leave issue #155 open",
+      "keep P0/P1, owner/security, production authentication, signing, restore, accessibility and release gates blocked until actually resolved"
     ]
   },
   "approvals": {
@@ -96,18 +135,18 @@
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
-    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43787590403",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43793072330",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "d57be7584f16ca62a1442984d19aa158a6649ef1",
-    "hosted_ci": "pending_exact_PR_head; previous f95 head passed all 13 workflows and 24 checks",
-    "evidence": "Six test-only API regressions are integrated into the source candidate and independently reviewed with no blocker. DNS retry and active lease redaction ran in both f95 hosted Linux race checks. Development reports Windows API tests/vet and Linux-targeted compile/vet passed for the new candidate; the three new Files tests are Linux-tagged and await exact-head hosted execution.",
-    "limitations": "Synthetic resolver/SQLite, synthetic lease, cookie-auth fixture, temporary Files root and injected quota failures only. No public DNS, production authentication policy, host operation or live tenant is exercised. No production behavior changed; DELETE cancellation coverage is limited to cancellation observed before removal, not during quarantine/unlink."
+    "sha": "bcc576f5ce85a8ebe4708f43b6ec417d15b6ae7e",
+    "hosted_ci": "pending_exact_PR_head; parent 9a8a4f5 passed all 13 workflows and 24 checks",
+    "evidence": "Eight test-only API regressions are now in the local candidate. The six earlier DNS/job/Files regressions passed the exact 9a Linux Go race checks. Development and QA reviewed the two new Linux-tagged Files cases with no blocker; Linux-targeted API compilation/vet and Windows API tests passed. Hosted Linux runtime for the two new cases is pending.",
+    "limitations": "Synthetic resolver/SQLite, synthetic lease, cookie-auth fixtures, temporary Files roots and injected quota failures only. No public DNS, production authentication policy, host operation or live tenant is exercised. No production behavior changed; DELETE cancellation coverage remains limited to cancellation observed before removal, not during quarantine/unlink."
   },
-  "published_pr_head_at_snapshot": "f95fa64a2954e2c31417eac087493918b31bcf22",
-  "local_checkpoint_parent_at_snapshot": "f95fa64a2954e2c31417eac087493918b31bcf22",
+  "published_pr_head_at_snapshot": "9a8a4f51c9eae3d398fd78d2462c68686f506f98",
+  "local_checkpoint_parent_at_snapshot": "9a8a4f51c9eae3d398fd78d2462c68686f506f98",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
@@ -127,8 +166,8 @@
     "ubuntu_debian_guests": "pending",
     "sol_review": "pending_not_claimed"
   },
-  "local_candidate_head": "d57be7584f16ca62a1442984d19aa158a6649ef1",
-  "local_candidate_tree_sha": "9687e651a53927e644ce974d32e93cba6a3f3ad5",
+  "local_candidate_head": "bcc576f5ce85a8ebe4708f43b6ec417d15b6ae7e",
+  "local_candidate_tree_sha": "7e3c45ba423f6141975697db7724a794ddab710a",
   "responsive_test_candidate": {
     "branch": "codex/p2-responsive-sites-files-retry-20261116",
     "head": "40b9ac2a664893803696ab72153d78c27177b344",
@@ -159,8 +198,8 @@
     "branch": "codex/p1-safe-method-auth-20261116",
     "head": "a3dd1caacfa5b4c872f35db1d28717ded98911fc",
     "integrated_commit": "a5363a0e6ca78e89eee023b3e2e67d61f7ae51b1",
-    "state": "integrated_in_current_source_candidate_Development_and_QA_reviewed_no_blocker_exact_head_CI_pending",
-    "test_runtime": "Windows_full_internal_api_and_vet_passed; exact_PR_head_CI_pending",
+    "state": "integrated_in_source_9a; exact_head_Go_race_CI_passed",
+    "test_runtime": "PR and push Go race checks passed on exact head 9a",
     "independent_review": "no_blocker",
     "scope": "cookie_authenticated_HEAD_and_cross_origin_OPTIONS_rejected_without_CORS_grants_or_job_audit_changes"
   },
@@ -168,26 +207,44 @@
     "branch": "codex/files-delete-cancellation-20261116",
     "head": "7e46f018b95bc7d37269f061119029a93dc5acfb",
     "integrated_commit": "9efab5b66fea827c0a910fbdb8506db1a718dfcc",
-    "state": "integrated_in_current_source_candidate_Development_and_QA_reviewed_no_blocker_exact_head_CI_pending",
-    "test_runtime": "Windows_full_internal_api_and_vet_passed; Linux_api_files_compile_vet_passed; Linux_runtime_pending",
+    "state": "integrated_in_source_9a; exact_head_Go_race_CI_passed",
+    "test_runtime": "PR and push Go race checks passed on exact head 9a, including Linux-tagged Files runtime",
     "scope": "API_forwards_in_flight_DELETE_cancellation_to_real_adapter; canceled-before-removal preserves file_and_quota; no quarantine_unlink cancellation claim"
   },
   "files_delete_quota_failure_candidate": {
     "branch": "codex/files-delete-quota-failure-20261116",
     "head": "3461beec474d96451d102dd35c6947256a54aa86",
     "integrated_commit": "1193a883ed1e978814654ec651c1f19a018cab4a",
-    "state": "integrated_in_current_source_candidate_Development_and_QA_reviewed_no_blocker_exact_head_CI_pending",
-    "test_runtime": "Windows_full_internal_api_and_vet_passed; Linux_api_files_compile_vet_passed; Linux_runtime_pending",
+    "state": "integrated_in_source_9a; exact_head_Go_race_CI_passed",
+    "test_runtime": "PR and push Go race checks passed on exact head 9a, including Linux-tagged Files runtime",
     "scope": "injected quota decrement failure after visible file deletion returns_quota_unavailable_and_preserves_stale_usage"
   },
   "files_write_release_failure_candidate": {
     "branch": "codex/files-write-release-failure-20261116",
     "head": "daf2f2165d096196fd373f57babcbe9435dfb449",
     "integrated_commit": "d57be7584f16ca62a1442984d19aa158a6649ef1",
-    "state": "integrated_in_current_source_candidate_Development_and_QA_reviewed_no_blocker_exact_head_CI_pending",
-    "test_runtime": "Windows_full_internal_api_and_vet_passed; Linux_api_files_compile_vet_passed; Linux_runtime_pending",
+    "state": "integrated_in_source_9a; exact_head_Go_race_CI_passed",
+    "test_runtime": "PR and push Go race checks passed on exact head 9a, including Linux-tagged Files runtime",
     "scope": "injected reservation Release failure after duplicate create conflict returns_quota_unavailable_preserves_file_and_retains_reserved_bytes"
   },
-  "local_snapshot_head": "d57be7584f16ca62a1442984d19aa158a6649ef1",
-  "local_snapshot_tree": "9687e651a53927e644ce974d32e93cba6a3f3ad5"
+  "local_snapshot_head": "bcc576f5ce85a8ebe4708f43b6ec417d15b6ae7e",
+  "local_snapshot_tree": "7e3c45ba423f6141975697db7724a794ddab710a",
+  "files_media_type_candidate": {
+    "branch": "codex/api-contract-gap-scan-20261116",
+    "head": "8a622a0400e6b6f13e9f526664bfa53e397d78f1",
+    "integrated_commit": "a9eb620decdc37e642fd90e8231840bcc2ba7909",
+    "state": "locally_integrated_pending_exact_head_hosted_CI",
+    "test_runtime": "Linux API compile/vet and Windows full API tests passed; Linux-tagged runtime pending",
+    "independent_review": "Development and QA found no blocker",
+    "scope": "parameterized application/octet-stream rejected with 415 before request-body reads or quota reservation; accounting and file state unchanged"
+  },
+  "files_list_overflow_candidate": {
+    "branch": "codex/api-contract-gap-scan2-20261116",
+    "head": "bc1ee4675988f6b435c81f713a8bd399aaae1514",
+    "integrated_commit": "bcc576f",
+    "state": "locally_integrated_pending_exact_head_hosted_CI",
+    "test_runtime": "Linux API compile/vet and Windows full API tests passed; Linux-tagged runtime pending",
+    "independent_review": "Development and QA found no blocker",
+    "scope": "legacy Files listing above limit returns 413 file_limit_exceeded without partial entries or tenant fixture-name leakage"
+  }
 }
