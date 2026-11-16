@@ -226,6 +226,7 @@ func TestValidateOpenedRootAtTransfersDescriptorOwnershipOnSuccess(t *testing.T)
 		}
 		t.Fatalf("validateOpenedRootAt() = (%v, %v), want non-nil root and nil error", root, err)
 	}
+	t.Cleanup(func() { _ = root.Close() })
 	if root.fd != fixture.fd || !root.open {
 		t.Fatalf("returned root does not own opened descriptor: fd=%d open=%t, want fd=%d open=true", root.fd, root.open, fixture.fd)
 	}
