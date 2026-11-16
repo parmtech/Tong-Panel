@@ -1,10 +1,10 @@
 ## Current resume checkpoint — 16 November 2026 (Australia/Sydney)
 
-PR #171 remains open/draft at latest completed exact head 558b8c885cb0b4708be157ab49dcaffccd7ecb98. All 13 workflow runs and 21 check runs passed, including Go race tests and Debian/Ubuntu clean guests through smoke, cleanup and Complete. Debian's tenant HTTPS probes passed; the prior ec38 timeout did not recur, and its cause remains unknown.
+PR #171 remains open/draft at latest completed exact head 779203a3cbd3590215d18c2fe14f3727e03f3090. All 13 workflows and 21 checks passed, including Go race and browser, plus Debian/Ubuntu clean guests through smoke, cleanup and Complete. The previous ec38 Debian timeout did not recur; its cause remains unknown.
 
-Local candidate b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2 adds a synthetic Files orientation-change regression. QA found no blocker; Development reports focused Chrome 1/1 and the full responsive suite 8/8. Hosted verification is pending.
+Local candidate e675cacabf972ac1b6a4eaf2dc176855f8177db5 adds synthetic Files preview cleanup/held-response suppression and keyboard recovery from an empty filter. QA found no blocker; Development reports focused Chrome 1/1 and suite 11/11. Hosted verification is pending.
 
-**Next:** validate the canonical handoffs, confirm remote 558b, publish the test plus docs as a normal fast-forward, and inspect all exact-head workflows and both guests through cleanup/Complete. Keep issue #155, P0/P1, owner/security, production and release gates open.
+**Next:** validate handoffs, confirm remote 779203a, publish the candidate plus docs as a normal fast-forward, and inspect exact-head workflows and both clean guests through Complete. Keep issue #155, P0/P1, owner/security, production and release gates open.
 
 ---
 
@@ -59,9 +59,9 @@ Local candidate b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2 adds a synthetic Files 
 **Read [AI_AGENT_START_HERE.md](AI_AGENT_START_HERE.md) FIRST, plus [AI_AGENT_STATE.json](AI_AGENT_STATE.json).** They track P0–P6, current CI, security boundaries and the single next action. Older sections below are retained as audit history.
 
 - Repo: parmtech/Tong-Panel. Sole current review is open/draft PR #171 on integration/pr-reconciliation-20261113; master tracker is issue #172. main remains docs-only; 149 prior drafts remain closed unmerged.
-- **Latest completed published head:** 558b8c885cb0b4708be157ab49dcaffccd7ecb98. All 13 workflows and 21 checks succeeded. Go race and browser workflows passed. P2 run #43804436284 passed Debian job #133091848869 and Ubuntu job #133091848679 through guest smoke, cleanup and Complete.
-- **Unpublished local candidate:** b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2, based on 558b. It adds synthetic Files state continuity across portrait/landscape viewport sizes. Development reports 1/1 focused Chrome and 8/8 responsive suite; QA found no blocker. Exact hosted CI is pending.
-- **ONE exact next action:** validate canonical docs, verify remote 558b, publish the reviewed candidate as a normal fast-forward, then inspect every exact-head workflow and both guests. Update PR #171 and issue #172 with observed results. Keep issue #155 open.
+- **Latest completed published head:** 779203a3cbd3590215d18c2fe14f3727e03f3090. All 13 workflows and 21 checks passed. P2 run #43806992250 passed Debian #133099911318 and Ubuntu #133099911716 through guest smoke, cleanup and Complete.
+- **Unpublished local candidate:** e675cacabf972ac1b6a4eaf2dc176855f8177db5, based on 779203a. It adds simulated blur/visibility preview cleanup, held-response suppression, and keyboard no-match recovery. Development reports focused Chrome 1/1 and suite 11/11; QA found no blocker. Exact hosted CI is pending.
+- **ONE exact next action:** validate docs, verify remote 779203a, publish the reviewed candidate as a normal fast-forward, then inspect every exact-head workflow and both guests. Update PR #171 and issue #172 with observed results. Keep issue #155 open.
 - **Gates:** formal P0/ADR-001–009, independent security approval, public login, root agent, CA/key custody, terminal T0, signed installer/rollback, real two-tenant restore and accessibility remain blocked.
 
 ## Current continuation — Debian guest dpkg helper PATH (13 November 2026)

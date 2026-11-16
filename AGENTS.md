@@ -1,8 +1,8 @@
-> **CURRENT CHECKPOINT (16 November 2026, Australia/Sydney):** PR #171 remains open/draft. Exact head 558b8c885cb0b4708be157ab49dcaffccd7ecb98 passed all 13 workflow runs and 21 check runs. Go race tests, browser workflow, restore/inventory and both Debian/Ubuntu clean guests passed through cleanup and Complete. Debian passed both isolated HTTPS probes. The earlier ec38 Debian timeout did not recur; its cause remains unknown.
+> **CURRENT CHECKPOINT (16 November 2026, Australia/Sydney):** PR #171 remains open/draft. Exact head 779203a3cbd3590215d18c2fe14f3727e03f3090 passed all 13 workflow runs and 21 check runs. Go, gosec and browser passed; Debian and Ubuntu clean guests passed smoke, cleanup and Complete. The orientation-continuity test passed in the Jobs browser workflow.
 >
-> **Local candidate:** b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2, based on 558b, adds a synthetic Files orientation-change continuity regression. Development reports focused Chrome 1/1 and suite 8/8; QA found no blocker. The test is not yet hosted-verified.
+> **Local candidate:** e675cacabf972ac1b6a4eaf2dc176855f8177db5, based on 779203a, adds synthetic Files preview cleanup after blur/visibility loss (including held response suppression) and keyboard no-match recovery. Development reports focused Chrome 1/1 and suite 11/11; QA found no blocker. Exact hosted verification is pending.
 >
-> **Next:** confirm remote 558b, publish the reviewed test and refreshed handoffs as a normal fast-forward, then inspect every exact-head workflow/check and both guests. Keep issue #155 open. P0/P1, owner/security, authentication, production and release approvals remain blocked.
+> **Next:** confirm remote 779203a, publish the reviewed regressions and refreshed handoffs as a normal fast-forward, then inspect all exact-head workflows/checks and both guests. These browser events remain synthetic. Keep #155 open and preserve all P0/P1, owner/security, production and release gates.
 >
 > The dated entries below are historical evidence, not current task instructions. Read the current checkpoint and [AI_AGENT_START_HERE.md](docs/AI_AGENT_START_HERE.md) first.
 
@@ -81,9 +81,9 @@
 
 ## Current work snapshot
 - P0 architecture and threat-model decisions remain open. Published review packets from #161 and #165 are preserved under docs/p0-review/; passing tests and superseding drafts do not record owner or independent security approval.
-- Current PR #171 head 558b8c8 completed all 13 workflows and 21 checks successfully. Go race tests, browser workflow, runner restore/inventory and both clean guests passed through cleanup/Complete. Debian HTTPS passed; the prior ec38 timeout remains unexplained and recorded.
-- Local candidate b00c52a adds a synthetic Files orientation-change continuity test. Development reports the focused Chrome case and all eight responsive tests passed; QA found no blocker. Exact hosted verification is pending.
-- P2 responsive Sites/Files evidence remains synthetic. The browser tests do not satisfy issue #155, authenticated tenant acceptance, physical-device review or human accessibility acceptance. Real-handler integration remains subject to P0/P1 authentication and session gates.
+- Current PR #171 head 779203a passed all 13 workflows and 21 checks. Go race, gosec, browser, runner restore/inventory and both Debian/Ubuntu clean guests passed through cleanup/Complete. The prior ec38 Debian timeout did not recur; its cause remains unknown.
+- Local candidate e675cacab adds synthetic Files preview cleanup for blur/visibility loss, held-response suppression, and keyboard recovery from a no-match filter. Development/QA found no blocker; Development reports focused Chrome 1/1 and responsive suite 11/11. Exact hosted verification is pending.
+- P2 responsive Sites/Files evidence remains synthetic. It does not satisfy issue #155, authenticated tenant acceptance, physical-device review or human accessibility acceptance. Keep real-handler work subject to P0/P1 authentication and session gates.
 - The latest SSL interface remains an authorized read-only domain snapshot. Read docs/P1_CERTIFICATE_OPERATION_CONTRACT.md before executable certificate work. The local metrics endpoint reports a development marker, not complete server health.
 - Root-module Go checks do not test separate modules under tools/. The dedicated prototype workflow must enter those modules and run their tagged Linux/race/scanner checks explicitly.
 - docs/FEATURE_MATRIX.md uses the roadmap's canonical P0–P6 phases. First-release features remain targets, not a claim of completion.

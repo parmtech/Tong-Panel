@@ -6,8 +6,8 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "integration/pr-reconciliation-20261113",
-  "source_head_before_handoff_commit": "b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2",
-  "source_tree_sha": "482e3105b103ca2593d638e0a6c1b7b055685148",
+  "source_head_before_handoff_commit": "e675cacabf972ac1b6a4eaf2dc176855f8177db5",
+  "source_tree_sha": "a1a5554d04490cf6dffd9cd3bd9e112e9a5a58de",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -22,7 +22,7 @@
     "no_head_workflows": 14
   },
   "source_head_ci": {
-    "head_sha": "558b8c885cb0b4708be157ab49dcaffccd7ecb98",
+    "head_sha": "779203a3cbd3590215d18c2fe14f3727e03f3090",
     "total": 13,
     "check_run_total": 21,
     "success": 13,
@@ -30,80 +30,80 @@
     "check_run_success": 21,
     "check_run_failure": 0,
     "pending": [],
-    "vm_run": 43804436284,
+    "vm_run": 43806992250,
     "ubuntu_guest": "completed_success_smoke_cleanup_and_complete",
     "debian_guest": "completed_success_smoke_cleanup_and_complete",
-    "ubuntu_job_id": 133091848679,
-    "debian_job_id": 133091848869,
+    "ubuntu_job_id": 133099911716,
+    "debian_job_id": 133099911318,
     "vm_run_conclusion": "success",
-    "browser_run": 43804436293,
-    "go_run": 43804436291,
-    "debian_https": "both_tenants_200_expected_17_byte_markers; prior_ec38_timeout_not_reproduced_cause_unknown",
+    "browser_run": 43806992151,
+    "go_run": 43806992027,
+    "gosec": "success",
     "workflow_runs": {
-      "UI checks": {
-        "run_id": 43804436436,
+      "SQLite schema checks": {
+        "run_id": 43806992200,
         "conclusion": "success"
       },
       "P1 gate blocker inventory": {
-        "run_id": 43804436409,
+        "run_id": 43806992075,
         "conclusion": "success"
       },
-      "SQLite schema checks": {
-        "run_id": 43804436368,
+      "UI checks": {
+        "run_id": 43806992039,
         "conclusion": "success"
       },
       "Offline model and fixture checks": {
-        "run_id": 43804436349,
+        "run_id": 43806992017,
         "conclusion": "success"
       },
       "Go vulnerability checks": {
-        "run_id": 43804436328,
-        "conclusion": "success"
-      },
-      "P1 developer smoke (non-destructive)": {
-        "run_id": 43804436288,
-        "conclusion": "success"
-      },
-      "Isolated Go prototype checks": {
-        "run_id": 43804436319,
-        "conclusion": "success"
-      },
-      "P1 unsigned developer package lab": {
-        "run_id": 43804436287,
+        "run_id": 43806992065,
         "conclusion": "success"
       },
       "Current API contract checks": {
-        "run_id": 43804436281,
+        "run_id": 43806992045,
+        "conclusion": "success"
+      },
+      "P1 unsigned developer package lab": {
+        "run_id": 43806992049,
+        "conclusion": "success"
+      },
+      "Isolated Go prototype checks": {
+        "run_id": 43806992092,
         "conclusion": "success"
       },
       "Go static security analysis": {
-        "run_id": 43804436339,
+        "run_id": 43806992036,
         "conclusion": "success"
       },
       "Jobs browser checks": {
-        "run_id": 43804436293,
+        "run_id": 43806992151,
+        "conclusion": "success"
+      },
+      "P1 developer smoke (non-destructive)": {
+        "run_id": 43806992021,
         "conclusion": "success"
       },
       "Go checks": {
-        "run_id": 43804436291,
+        "run_id": 43806992027,
         "conclusion": "success"
       },
       "P2 clean disposable VM smoke": {
-        "run_id": 43804436284,
+        "run_id": 43806992250,
         "conclusion": "success"
       }
     }
   },
   "next": {
-    "task_id": "RESPONSIVE-ORIENTATION-CONTINUITY-EXACT-HEAD",
+    "task_id": "FILES-PREVIEW-FOCUS-CLEANUP-AND-EMPTY-STATE-EXACT-HEAD",
     "priority": 2,
-    "action": "Confirm remote PR head remains at 558b8c8, publish the reviewed orientation-continuity test and refreshed handoffs as a normal fast-forward, then inspect every exact-head workflow and both guest jobs through cleanup and Complete.",
+    "action": "Confirm remote PR head remains at 779203a, publish the reviewed preview-cleanup and keyboard empty-state regressions plus refreshed handoffs as a normal fast-forward, then inspect all exact-head workflows and both guests through cleanup and Complete.",
     "required_evidence": [
-      "All exact-head workflow and check runs complete and individually inspected",
-      "The Jobs browser workflow exercises the new orientation continuity case",
-      "Both Go race jobs pass",
+      "All exact-head workflows/check runs complete and individually inspected",
+      "Jobs browser workflow exercises blur/visibility cleanup, held-response suppression, and no-match keyboard recovery",
+      "Go race checks pass",
       "Debian 12 and Ubuntu 24.04 guest smoke, cleanup and Complete pass",
-      "Update PR #171 and tracker #172 with exact SHA and observed results; leave issue #155 open",
+      "Update PR #171 and tracker #172 with exact SHA/results; keep issue #155 open",
       "Preserve P0/P1, owner/security, authentication, signing, restore authorization, accessibility and release gates"
     ]
   },
@@ -138,18 +138,18 @@
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
-    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43804436284",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43806992250",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2",
-    "hosted_ci": "pending_exact_PR_head; parent 558b8c885 passed all 13 workflows and 21 checks including Go race, browser, and both clean guests",
-    "evidence": "Adds a synthetic Files orientation-continuity test across portrait/landscape viewport sizes. QA found no blocker. Development reports focused Chrome 1/1 and full responsive suite 8/8. Prior stale-preview and vertical-reachability cases passed 7/7 locally and exact 558b browser CI.",
-    "limitations": "Orientation is viewport emulation, not physical rotation, touch, authenticated tenant behavior or human accessibility acceptance. Issue #155 remains open. No P0/P1, owner/security, production or release approval is implied."
+    "sha": "e675cacabf972ac1b6a4eaf2dc176855f8177db5",
+    "hosted_ci": "pending_exact_PR_head; parent 779203a passed all 13 workflows and 21 checks including Go/browser/both guests",
+    "evidence": "Adds synthetic Files blur/visibility cleanup, held-response suppression and keyboard no-match recovery. QA found no blocker. Development reports focused Chrome 1/1 and full suite 11/11. Exact hosted verification pending.",
+    "limitations": "Blur/visibility events are simulated DOM signals, not real background-tab transitions. No authenticated tenant, physical-device or human accessibility acceptance is implied; issue #155 remains open."
   },
-  "published_pr_head_at_snapshot": "558b8c885cb0b4708be157ab49dcaffccd7ecb98",
-  "local_checkpoint_parent_at_snapshot": "558b8c885cb0b4708be157ab49dcaffccd7ecb98",
+  "published_pr_head_at_snapshot": "779203a3cbd3590215d18c2fe14f3727e03f3090",
+  "local_checkpoint_parent_at_snapshot": "779203a3cbd3590215d18c2fe14f3727e03f3090",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
@@ -163,17 +163,18 @@
     "branch": "codex/qa-root-at-final-20261116",
     "head": "43ff309760a629cbaca3651c3d1118cb9b5de57b",
     "base": "dff0a230f3c7840df118efec63fa00011435e9a4",
-    "state": "source_tests_integrated_at_ec38_exact_pr_Go_race_and_runner_restore_inventory_passed_Ubuntu_guest_passed_Debian_failed_later_at_HTTPS",
+    "state": "source_tests_integrated_at_ec38; later_558b_exact_PR_full_CI_and_both_guests_passed; preserve_ec38_Debian_HTTPS_failure",
     "linux_branch_run": 43770861328,
     "linux_job_id": 132986235012,
-    "exact_pr_ci": "Go_race_passed_at_ec38; full_workflow_debian_guest_failure_is_unrelated_unproven_HTTPS_transport_timeout",
+    "exact_pr_ci": "Go_race_passed_at_ec38; later_558b_exact_head_all_13_workflows_and_21_checks_passed; ec38_Debian_HTTPS_failure_did_not_recur_but_cause_unknown",
     "ubuntu_debian_guests": "ubuntu_passed_cleanup_complete; debian_failed_https_before_http_status_000_exit_28",
     "sol_review": "completed_no_concrete_blocker_for_nonroot_disposable_lab_scope",
     "qa_review": "completed_no_code_or_descriptor_cleanup_blocker",
-    "limitations": "No production restore authorization, durable quota-release authority or cross-process fence; same-UID pre-observation replacement, ABA, mount aliases and ancestor replacement remain outside guarantees."
+    "limitations": "No production restore authorization, durable quota-release authority or cross-process fence; same-UID pre-observation replacement, ABA, mount aliases and ancestor replacement remain outside guarantees.",
+    "later_exact_pr_ci": "558b8c885cb0b4708be157ab49dcaffccd7ecb98: all_13_workflows_and_21_checks_passed; Ubuntu_and_Debian_guests_passed_smoke_cleanup_and_Complete"
   },
-  "local_candidate_head": "b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2",
-  "local_candidate_tree_sha": "482e3105b103ca2593d638e0a6c1b7b055685148",
+  "local_candidate_head": "e675cacabf972ac1b6a4eaf2dc176855f8177db5",
+  "local_candidate_tree_sha": "a1a5554d04490cf6dffd9cd3bd9e112e9a5a58de",
   "responsive_test_candidate": {
     "branch": "codex/p2-responsive-sites-files-retry-20261116",
     "head": "40b9ac2a664893803696ab72153d78c27177b344",
@@ -185,7 +186,7 @@
     "stale_preview_followup": {
       "source_head": "83ed539f0633cfbe6d2c9e6ce22f12352a59ed4d",
       "integrated_commit": "83e8d0b9d1a6371eba55040250395a25c336c487",
-      "state": "locally_integrated_pending_exact_head_hosted_CI",
+      "state": "published_on_PR_171_exact_head_558b8c8; all_13_workflows_and_21_checks_passed",
       "review": "Development_and_QA_no_blocker",
       "validation": "focused_Chrome_1_of_1_and_responsive_suite_6_of_6_passed_locally",
       "scope": "synthetic held response after view invalidation; no authenticated tenant flow or human accessibility acceptance",
@@ -194,7 +195,7 @@
     "vertical_reachability_followup": {
       "source_head": "30d68aa8437f4855c12a422c7abc1a42588e839c",
       "integrated_commit": "01298f0f3ddde726b03d1734af6949c62a32aa73",
-      "state": "local_only_pending_exact_head_hosted_CI",
+      "state": "published_on_PR_171_exact_head_558b8c8; all_13_workflows_and_21_checks_passed",
       "review": "Development_and_QA_no_blocker",
       "validation": "focused_Chrome_1_of_1_and_responsive_suite_7_of_7_passed_locally",
       "scope": "selected synthetic Sites/Files headings controls status and preview at 320x640 and 390x360; scroll-into-view, vertical bounds and center hit test; not keyboard/touch/human accessibility"
@@ -203,10 +204,23 @@
       "source_head": "8c3d63f83468675524a91e6c6b27f2e454c5dbb9",
       "integrated_commit": "b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2",
       "base": "558b8c885cb0b4708be157ab49dcaffccd7ecb98",
-      "state": "local_only_pending_exact_head_hosted_CI",
+      "state": "published_on_PR_171_exact_head_779203a; all_13_workflows_and_21_checks_passed",
       "review": "Development_and_QA_no_blocker",
       "validation": "development_reported_focused_Chrome_1_of_1_and_suite_8_of_8; not independently_rerun",
       "scope": "synthetic Files filter/list/scope/preview state across portrait-landscape-portrait resize with unchanged requests and keyboard close/focus return"
+    },
+    "preview_cleanup_and_no_match_followup": {
+      "source_commits": [
+        "e3fd91e015f7fe05efeb0c4d385cc4b900aae147",
+        "931a6ca9f88195b5bce74a79a4699507f95222e3",
+        "f9dfbb8aaea71aad683606e07283c884173f94de"
+      ],
+      "integrated_commit": "e675cacabf972ac1b6a4eaf2dc176855f8177db5",
+      "base": "779203a3cbd3590215d18c2fe14f3727e03f3090",
+      "state": "local_only_pending_exact_head_hosted_CI",
+      "review": "Development_and_QA_no_blocker",
+      "validation": "development_reported_focused_Chrome_1_of_1_and_suite_11_of_11; not independently_rerun",
+      "scope": "simulated blur/hidden visibility clears loaded and pending previews without resurrection; keyboard no-match recovery at 320x640 and 390x360; synthetic GET-only fixture"
     }
   },
   "domain_dns_retry_candidate": {
@@ -259,8 +273,8 @@
     "test_runtime": "PR and push Go race checks passed on exact head 9a, including Linux-tagged Files runtime",
     "scope": "injected reservation Release failure after duplicate create conflict returns_quota_unavailable_preserves_file_and_retains_reserved_bytes"
   },
-  "local_snapshot_head": "b00c52a4ee1ff5c7e686ee04b8d4b01a59e688d2",
-  "local_snapshot_tree": "482e3105b103ca2593d638e0a6c1b7b055685148",
+  "local_snapshot_head": "e675cacabf972ac1b6a4eaf2dc176855f8177db5",
+  "local_snapshot_tree": "a1a5554d04490cf6dffd9cd3bd9e112e9a5a58de",
   "files_media_type_candidate": {
     "branch": "codex/api-contract-gap-scan-20261116",
     "head": "8a622a0400e6b6f13e9f526664bfa53e397d78f1",
@@ -284,17 +298,18 @@
     "head": "f89e2512f345dcd445fb3618401eefad983c4a08",
     "source_commit": "721c7620be962b8710f4deda167e5c828d8292ce",
     "integrated_commit": "debc9a0e4530b4f012d1f467319fb5ae9b049d4e",
-    "state": "integrated_at_ec38_exact_pr_Go_checks_passed_full_P2_failed_on_Debian_HTTPS_probe",
-    "validation": "Windows Jobs/API tests and vet passed; Linux-targeted vet and test-binary cross-compilation passed; hosted Linux runtime pending",
+    "state": "integrated_at_ec38; exact_558b_PR_Go_race_and_full_P2_guest_CI_passed; preserve_ec38_Debian_HTTPS_failure",
+    "validation": "Exact 558b PR Go race checks and full P2 Debian/Ubuntu guest jobs passed; ec38 full-workflow Debian HTTPS timeout is retained as historical failure",
     "independent_review": "QA found no blocker",
     "scope": "shared 8–128 ASCII-byte validation across in-memory and SQLite job stores; rejects Unicode multibyte values even when UTF-8 byte length is within limits"
   },
   "https_timeout_diagnostics_candidate": {
     "source_head": "26517dd18756679a7cccd3b183e99b95556b0693",
     "integrated_commit": "01298f0f3ddde726b03d1734af6949c62a32aa73",
-    "state": "local_only_pending_exact_head_hosted_CI",
+    "state": "integrated_at_01298f0_and_hosted_at_558b; exact_558b_P2_Debian_and_Ubuntu_guests_passed; prior_ec38_timeout_not_reproduced_cause_unknown",
     "review": "Sol_6_1_Medium_implemented; QA_no_blocker",
     "validation": "12_focused_python_tests_shell_syntax_embedded_python_compile_and_diff_check_passed",
-    "scope": "sanitized curl timings and fixed Nginx/listener metadata only; no retry, timeout increase, body or logs"
+    "scope": "sanitized curl timings and fixed Nginx/listener metadata only; no retry, timeout increase, body or logs",
+    "exact_pr_ci": "558b8c885cb0b4708be157ab49dcaffccd7ecb98: all_13_workflows_and_21_checks_passed; both_guests_passed; diagnostics_recorded_tenant_timings"
   }
 }
