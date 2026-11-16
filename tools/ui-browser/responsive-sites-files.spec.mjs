@@ -460,6 +460,17 @@ test('component preview: Files view fits phone, tablet, and desktop widths with 
         await expect(page.locator('#files-preview')).toBeVisible();
         await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
         await expectResponsiveBounds(page, viewport, ['#files-preview-title', '#files-preview-close', '#files-preview-content']);
+        if (viewport.width === 320 && viewport.height === 640) {
+            const previewAxe = await new AxeBuilder({ page })
+                .include('#files-preview')
+                .withTags(['wcag2a', 'wcag2aa'])
+                .analyze();
+            expect(previewAxe.violations.map(({ id, impact, nodes }) => ({
+                id,
+                impact,
+                nodes: nodes.map(node => ({ target: node.target, reason: node.failureSummary })),
+            }))).toEqual([]);
+        }
         await page.locator('#files-preview-close').click();
         await expect(page.locator('#files-preview')).toBeHidden();
     }
