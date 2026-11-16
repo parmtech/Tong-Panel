@@ -149,8 +149,10 @@ async function openComponentPreview(page, records, nextFailures = { sites: null,
                     await heldPreview.released;
                     try {
                         await route.fulfill({ status: 200, contentType: 'application/octet-stream', body: 'Synthetic stale preview marker.' });
-                    } catch { /* Refresh may have canceled the request. */ }
-                    finally { heldPreview.markFinished(); }
+                        heldPreview.markFinished(true);
+                    } catch {
+                        heldPreview.markFinished(false);
+                    }
                     return;
                 }
                 await route.fulfill({
@@ -528,7 +530,7 @@ test('component preview: Files refresh suppresses a held stale preview and recov
         } finally {
             held.release();
         }
-        await finished;
+        expect(await finished, 'held stale response must be fulfilled for this regression').toBe(true);
         await expect(page.locator('#files-preview')).toBeHidden();
         await expect(page.locator('#files-preview-content')).toBeEmpty();
         await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
