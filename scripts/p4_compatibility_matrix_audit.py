@@ -26,7 +26,7 @@ REVIEW_DISPOSITIONS = {"accepted", "rejected", "pending"}
 # remains subject to owner/architecture review.
 P4_CASE_IDS = {str(number) for number in range(1, 11)}
 PLACEHOLDERS = {"", "*", "any", "latest", "tbd", "unknown", "unresolved"}
-ALTERNATIVE_RE = re.compile(r"\b(?:and/or|or)\b|\||\s/\s", re.IGNORECASE)
+ALTERNATIVE_RE = re.compile(r"\b(?:and/or|or|and)\b|\||\s/\s|,", re.IGNORECASE)
 
 
 class DuplicateJSONKey(ValueError):

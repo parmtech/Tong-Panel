@@ -12,7 +12,7 @@ This structural checker does not enforce that the matrix inventories all eight P
 
 ## Draft input contract
 
-The JSON document has integer `schema_version: 1`, a 40-character lowercase `candidate_commit`, a non-empty `profiles` array, and a non-empty `rows` array. Each profile has a unique `id`, exact `os`, `architecture`, and a non-empty `components` map whose values are pinned versions. `TBD`, `unknown`, `latest`, wildcard forms, common version ranges, clear alternatives such as `or`, `|`, or spaced `/`, and blank values are rejected. Two different profile IDs with the same OS/architecture/component tuple are ambiguous and rejected. This screening is not a canonical version parser; ecosystem-specific exact-version grammar remains an unresolved schema choice.
+The JSON document has integer `schema_version: 1`, a 40-character lowercase `candidate_commit`, a non-empty `profiles` array, and a non-empty `rows` array. Each profile has a unique `id`, exact `os`, `architecture`, and a non-empty `components` map whose values are pinned versions. `TBD`, `unknown`, `latest`, wildcard forms, common version ranges, clear alternatives such as `or`, `and`, comma-separated choices, `|`, or spaced `/`, and blank values are rejected. Two different profile IDs with the same OS/architecture/component tuple are ambiguous and rejected. This screening is not a canonical version parser; ecosystem-specific exact-version grammar remains an unresolved schema choice.
 
 Each row binds one `capability` to one declared `profile_id` and records:
 

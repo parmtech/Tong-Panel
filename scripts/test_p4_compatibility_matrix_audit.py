@@ -126,6 +126,8 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
     def test_alternative_os_and_component_versions_fail_closed(self):
         for os_value in (
             "Ubuntu 24.04 or Debian 12",
+            "Ubuntu 24.04 and Debian 12",
+            "Ubuntu 24.04, Debian 12",
             "Ubuntu 24.04 | Debian 12",
             "Ubuntu 24.04 / Debian 12",
         ):
@@ -134,7 +136,13 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
                 self.matrix["profiles"][0]["os"] = os_value
                 self.assert_error("profile_os_unpinned:synthetic-web-ubuntu-fixture")
 
-        for version in ("nginx 1.26 or 1.27", "1.26 || 1.27", "1.26 / 1.27"):
+        for version in (
+            "nginx 1.26 or 1.27",
+            "nginx 1.26 and 1.27",
+            "nginx 1.26, 1.27",
+            "1.26 || 1.27",
+            "1.26 / 1.27",
+        ):
             with self.subTest(version=version):
                 self.matrix = self.valid_matrix()
                 self.matrix["profiles"][0]["components"]["fixture-web"] = version
