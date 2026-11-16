@@ -10,6 +10,7 @@ v2=$2
 
 preflight_work="$(mktemp -d)"
 preflight_listener_pid=""
+package_phase=preflight
 finish() {
   status=$?
   if [[ -n "$preflight_listener_pid" ]]; then
@@ -18,8 +19,22 @@ finish() {
   fi
   rm -rf -- "$preflight_work"
   if [[ $status -ne 0 ]]; then
-    sudo systemctl status tong-panel-dev.service --no-pager || true
-    sudo journalctl -u tong-panel-dev.service -n 80 --no-pager || true
+    # Status/journal text can contain secrets. Discard all command output and
+    # report only a bounded exit-code classification and a fixed lab phase.
+    if timeout 3s sudo -n systemctl is-active --quiet tong-panel-dev.service >/dev/null 2>&1; then
+      service_state=active
+    else
+      case "$?" in
+        3) service_state=not_active ;;
+        4) service_state=unknown ;;
+        *) service_state=unavailable ;;
+      esac
+    fi
+    case "${package_phase:-}" in
+      preflight|install|service|upgrade|downgrade|remove) diagnostic_phase="$package_phase" ;;
+      *) diagnostic_phase=unknown ;;
+    esac
+    printf 'package_vm failure_status=%s phase=%s service=%s\n' "$status" "$diagnostic_phase" "$service_state"
   fi
   exit "$status"
 }
@@ -106,6 +121,7 @@ assert document["gate"]["allowed"] is True, document
 PY
 assert_package_absent
 
+package_phase=install
 sudo dpkg --install "$v1"
 [[ "$(dpkg-query -W -f='${Version}' tong-panel-dev)" == 0.0.0~dev.1 ]]
 if sudo systemctl is-active --quiet tong-panel-dev.service; then
@@ -166,6 +182,7 @@ assert_non_root_service() {
   printf 'service runs as uid %s\n' "$service_uid"
 }
 
+package_phase=service
 sudo systemctl start tong-panel-dev.service
 wait_for_service
 assert_default_deny
@@ -175,6 +192,7 @@ page="$(curl --silent --show-error --fail http://127.0.0.1:8090/)"
 [[ "$page" == *'Development preview'* ]]
 sudo sh -c 'printf "%s\n" "keep-through-package-rollback" > /var/lib/tong-panel-dev/package-lab-marker'
 
+package_phase=upgrade
 sudo dpkg --install "$v2"
 [[ "$(dpkg-query -W -f='${Version}' tong-panel-dev)" == 0.0.0~dev.2 ]]
 if sudo systemctl is-active --quiet tong-panel-dev.service; then
@@ -188,6 +206,7 @@ assert_loopback_only
 assert_non_root_service
 [[ "$(sudo cat /var/lib/tong-panel-dev/package-lab-marker)" == keep-through-package-rollback ]]
 
+package_phase=downgrade
 sudo dpkg --install "$v1"
 [[ "$(dpkg-query -W -f='${Version}' tong-panel-dev)" == 0.0.0~dev.1 ]]
 sudo systemctl start tong-panel-dev.service
@@ -196,6 +215,7 @@ assert_default_deny
 assert_loopback_only
 assert_non_root_service
 
+package_phase=remove
 sudo dpkg --remove tong-panel-dev
 if dpkg-query -W -f='${Status}' tong-panel-dev 2>/dev/null | grep -q 'installed$'; then
   echo "package removal left tong-panel-dev installed" >&2
