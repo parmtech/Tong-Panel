@@ -247,6 +247,31 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
                 self.assertRegex(result.stderr, r"\Aclean_guest failure_stage=fpm_identity line=[0-9]+ status=23\n\Z")
                 self.assertNotIn("secret", result.stderr)
 
+    def test_guest_phase_stages_precede_operations_in_order(self):
+        script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
+        guest = script.split("<<'GUEST'\n", 1)[1].split("\nGUEST\n", 1)[0]
+        phases = [
+            ("https_isolation", "if python3 /home/ci/probe_https_isolation.py; then"),
+            ("acme_challenge_runtime", '[[ "$(curl --silent --show-error --resolve tenant-a.example.test:80:127.0.0.1'),
+            ("hidden_path", 'hidden_status="$(curl --silent --show-error --insecure --resolve tenant-a.example.test:443:127.0.0.1'),
+            ("install_preflight", "if /home/ci/tong-p1-dev/bin/tongctl preflight "),
+            ("mariadb_isolation", "bash ./tong-p1-dev/tests/mariadb-isolation.sh"),
+            ("encrypted_backup_restore", "bash ./tong-p1-dev/tests/encrypted-backup-restore.sh"),
+            ("wordpress_backup_restore", "sudo env TONG_DISPOSABLE_WORDPRESS_RESTORE=1 bash ./smoke_wordpress_backup_source.sh"),
+            ("p1_smoke", "python3 /home/ci/smoke_p1.py"),
+            ("doctor", "/home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json"),
+            ("package_lifecycle", "bash ./p2_package_install_vm.sh"),
+        ]
+        marker_positions = []
+        for stage, operation in phases:
+            with self.subTest(stage=stage):
+                marker = f"smoke_stage={stage}\n"
+                self.assertEqual(guest.count(marker), 1)
+                marker_position = guest.index(marker)
+                self.assertTrue(guest.startswith(operation, marker_position + len(marker)))
+                marker_positions.append(marker_position)
+        self.assertEqual(marker_positions, sorted(marker_positions))
+
     def test_guest_failure_snapshot_prints_only_fixed_metadata(self):
         script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
         diagnostic = script.split("<<'PY_HTTPS_DIAGNOSTICS' || true\n", 1)[1].split("\nPY_HTTPS_DIAGNOSTICS\n", 1)[0]

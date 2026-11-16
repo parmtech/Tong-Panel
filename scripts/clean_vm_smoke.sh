@@ -626,14 +626,17 @@ PY_HTTPS_DIAGNOSTICS
   echo "HTTPS isolation probe failed; fixture diagnostics are metadata only" >&2
   exit "$probe_status"
 fi
+smoke_stage=acme_challenge_runtime
 [[ "$(curl --silent --show-error --resolve tenant-a.example.test:80:127.0.0.1 http://tenant-a.example.test/.well-known/acme-challenge/token)" == tenant-a-challenge ]]
 [[ "$(curl --silent --show-error --resolve tenant-b.example.test:80:127.0.0.1 http://tenant-b.example.test/.well-known/acme-challenge/token)" == tenant-b-challenge ]]
+smoke_stage=hidden_path
 hidden_status="$(curl --silent --show-error --insecure --resolve tenant-a.example.test:443:127.0.0.1 -o /dev/null -w '%{http_code}' https://tenant-a.example.test/.private.php)"
 [[ "$hidden_status" == 403 ]]
 printf '%s\n' 'two-tenant HTTPS smoke passed; HTTP redirects, ACME challenge path stays on HTTP, TLS sites remain isolated'
 # The preflight is read-only: this intentionally reports the ports occupied by
 # the disposable Nginx fixture as blockers and exits 3 rather than authorizing
 # any installation step. The command has no mutation implementation.
+smoke_stage=install_preflight
 if /home/ci/tong-p1-dev/bin/tongctl preflight --min-disk-bytes 1 --required-tcp-ports 80,443 > install-preflight.json; then
   preflight_status=0
 else
@@ -661,10 +664,15 @@ if failed:
     raise SystemExit("preflight missing required conditions: " + ", ".join(failed))
 print("clean-guest install preflight correctly blocked occupied web ports without host mutation")
 PY_PREFLIGHT
+smoke_stage=mariadb_isolation
 bash ./tong-p1-dev/tests/mariadb-isolation.sh
+smoke_stage=encrypted_backup_restore
 bash ./tong-p1-dev/tests/encrypted-backup-restore.sh
+smoke_stage=wordpress_backup_restore
 sudo env TONG_DISPOSABLE_WORDPRESS_RESTORE=1 bash ./smoke_wordpress_backup_source.sh "$wp_db_a" tenant_a_ "$wp_admin_a"
+smoke_stage=p1_smoke
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
+smoke_stage=doctor
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
 python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
 smoke_stage=package_lifecycle
