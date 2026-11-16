@@ -21,6 +21,25 @@ if bash scripts/build_deb.sh "$work/missing.deb" "0.0.0~dev.1" "$work/absent-ton
   exit 1
 fi
 
+mkdir -p "$work/fake-bin"
+cat >"$work/fake-bin/dpkg" <<'DPKG'
+#!/usr/bin/env bash
+set -eu
+if [[ "$#" -ne 1 || "$1" != "--print-architecture" ]]; then
+  exit 93
+fi
+printf '%s\n' arm64
+DPKG
+chmod 0755 "$work/fake-bin/dpkg"
+if PATH="$work/fake-bin:$PATH" bash scripts/build_deb.sh "$work/non-amd64.deb" "0.0.0~dev.1" "$tongd" "$tongctl" >"$work/non-amd64.stdout" 2>"$work/non-amd64.stderr"; then
+  echo "package builder accepted a non-amd64 architecture" >&2
+  exit 1
+else
+  architecture_status=$?
+fi
+[[ "$architecture_status" == 2 ]]
+[[ ! -e "$work/non-amd64.deb" ]]
+
 python3 -m unittest discover -s scripts -p 'test_verify_dev_deb.py' -v
 
 mkdir -p "$out"
