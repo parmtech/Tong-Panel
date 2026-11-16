@@ -804,7 +804,7 @@ function renderFilesEntries(entries) {
         filesList.append(empty);
     }
 }
-async function refreshFiles(history = ['']) {
+async function refreshFiles(history = [''], returnFocus = null) {
     if (!filesRefresh || !filesStatus || !filesList)
         return;
     clearFilePreview();
@@ -868,6 +868,13 @@ async function refreshFiles(history = ['']) {
             return;
         filesRefresh.disabled = false;
         filesRefresh.removeAttribute('aria-busy');
+        if (returnFocus && (document.activeElement === document.body || document.activeElement === returnFocus)) {
+            const focusTarget = returnFocus.disabled
+                ? (returnFocus === filesNext ? filesPrevious : filesNext)
+                : returnFocus;
+            if (focusTarget && !focusTarget.disabled)
+                focusTarget.focus();
+        }
     }
 }
 filesFilter?.addEventListener('submit', event => {
@@ -876,12 +883,14 @@ filesFilter?.addEventListener('submit', event => {
     void refreshFiles();
 });
 filesNext?.addEventListener('click', () => {
-    if (filesNextAfter && filesHistory.length < maxFilesPages)
-        void refreshFiles([...filesHistory, filesNextAfter]);
+    if (filesNextAfter && filesHistory.length < maxFilesPages) {
+        void refreshFiles([...filesHistory, filesNextAfter], document.activeElement === filesNext ? filesNext : null);
+    }
 });
 filesPrevious?.addEventListener('click', () => {
-    if (filesHistory.length > 1)
-        void refreshFiles(filesHistory.slice(0, -1));
+    if (filesHistory.length > 1) {
+        void refreshFiles(filesHistory.slice(0, -1), document.activeElement === filesPrevious ? filesPrevious : null);
+    }
 });
 function clearFilesOnDenial(error) {
     if (!(error instanceof FilesExplorerError) || (error.status !== 401 && error.status !== 403))

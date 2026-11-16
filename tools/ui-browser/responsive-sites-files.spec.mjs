@@ -889,9 +889,9 @@ test('component preview: Files pages are reachable by keyboard at phone sizes', 
         await expect(page.locator('#files-list')).not.toContainText('alpha.txt');
         await expect(page.locator('#files-previous')).toBeEnabled();
         await expect(page.locator('#files-next')).toBeDisabled();
-        expect(await page.locator('#files-breadcrumbs').textContent()).toBe(scope);
-        await tabUntilFocused(page, '#files-previous', viewport);
+        await expect(page.locator('#files-previous')).toBeFocused();
         await expectVisibleKeyboardFocus(page, '#files-previous', viewport);
+        expect(await page.locator('#files-breadcrumbs').textContent()).toBe(scope);
         await expectResponsiveBounds(page, viewport, ['#files-previous', '#files-status']);
         await expectVerticalReachability('#files-status', viewport);
         await expectVerticalReachability('#files-previous', viewport);
@@ -902,6 +902,8 @@ test('component preview: Files pages are reachable by keyboard at phone sizes', 
         await expect(page.locator('#files-list')).not.toContainText('beta.txt');
         await expect(page.locator('#files-previous')).toBeDisabled();
         await expect(page.locator('#files-next')).toBeEnabled();
+        await expect(page.locator('#files-next')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#files-next', viewport);
         expect(await page.locator('#files-breadcrumbs').textContent()).toBe(scope);
     }
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length * 3, previews: 0 }, phones.length);
