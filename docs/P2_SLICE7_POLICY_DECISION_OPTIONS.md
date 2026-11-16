@@ -4,7 +4,7 @@
 
 **Work item:** [P2 issue #151](https://github.com/parmtech/Tong-Panel/issues/151).
 
-**Gate:** no scheduler, endpoint, shell execution, privileged operation, or host-facing behavior may be implemented until the applicable P0 decisions and P1 entry gates are approved. Project safety rules exclude shell commands as browser/API authority; this brief does not propose relaxing that rule.
+**Gate:** no scheduler, endpoint, shell execution, privileged operation, host-facing behavior, dependency addition, or deployment is authorized until the applicable P0 decisions and P1 entry gates are approved. Project safety rules exclude shell commands as browser/API authority; this brief does not propose relaxing that rule.
 
 ## Invariants before selecting a schedule policy
 
@@ -19,10 +19,12 @@
 | Decision | Candidate choices | Trade-offs and required review |
 |---|---|---|
 | Scheduled task kinds | Small fixed set of P2 operations; or a reviewed registry that can grow by versioned handler | A fixed set narrows the initial product surface; a registry is extensible but needs schema/version compatibility and migration rules. Arbitrary shell is excluded. |
-| Schedule expression | Fixed intervals; constrained five-field cron; or another explicitly versioned grammar | Intervals are easy to validate and reason about but cannot express common calendar schedules. Cron is familiar but needs a parser, canonical form, bounds, and clear unsupported-field errors. |
+| Schedule expression | Fixed intervals; constrained five-field cron; or another explicitly versioned grammar | Intervals are easy to validate and reason about but cannot express common calendar schedules. Cron is familiar but needs a parser, canonical form, bounds, and clear unsupported-field errors. Select a maximum schedule horizon as well as the minimum interval; its value or per-kind range remains undecided. |
+| Persisted schedule format/schema | A versioned canonical expression plus grammar version, timezone identity, and policy version; normalized structured recurrence fields in a versioned record; or another explicitly versioned format | Compare lossless round-trip, validation, indexing, restart stability, and migration when grammar or policy changes. Define how existing queued occurrences retain meaning. No representation or migration policy is selected. |
 | Time basis | UTC instants/intervals; or local wall-clock schedules with an explicit IANA timezone | UTC is predictable across DST but may not match a user's intended local time. Wall-clock schedules match local intent but need persisted timezone identity and defined DST behavior. Display conversion must not silently change stored meaning. |
 | DST gap/fold | Skip a nonexistent wall time or move it forward; run once at the earlier or later instant for a repeated time; or another explicit policy | The policy must be stable across restarts and timezone database updates. Tests must prove no ambiguous schedule silently runs twice or disappears without an observable state. |
-| Overlap and missed runs | Skip while running; coalesce missed occurrences; or enqueue each occurrence within a strict backlog cap | Per-kind semantics may differ. The choice must bound queue growth, define which occurrence key is idempotent, and be visible to the user. |
+| Overlap, missed runs, and backlog-full behavior | Skip while running; coalesce missed occurrences; or enqueue each occurrence within a strict backlog cap. When that cap is full: mark the new occurrence skipped/rejected with visible state; coalesce it into an eligible queued occurrence; or retain one bounded missed-occurrence slot included in the cap. | Per-kind semantics may differ. Select an explicit full-cap response and recovery rule; define occurrence idempotency and visible status. Rejection can lose a run but is observable; coalescing preserves bounded work but merges occurrences; a reserved slot defers work within the cap. No behavior is selected. |
+| Simultaneous execution limits | One active run per task; bounded per-site or per-tenant limits; or a bounded host worker pool with scoped sub-limits | Choose active-run caps separately from the missed-occurrence backlog cap. Define which scopes share capacity and how saturation is surfaced; queue limits do not by themselves bound simultaneous execution. No cap is selected. |
 | Failure and retry | Bounded retries with backoff; or terminal failure requiring an authorized retry | Retry can repeat external effects, so handlers need idempotency or effect verification. Define crash-after-effect behavior, timeout, cancellation, and retry exhaustion. |
 | User controls | Create/edit/pause/run-now/inspect/delete permission matrix | Run-now must enqueue the same typed job and authorization checks, not execute inline. Edits create a new version; define what happens to an already queued occurrence. |
 | Execution history | Bounded per-run status and structured logs with retention; or status-only history | More detail improves support but increases sensitive-data and storage risk. Set byte/line limits, expiry, redaction, and cursor behavior before API/UI design. |
@@ -33,14 +35,16 @@ No candidate is selected here. Reviewers should record one outcome per row, owne
 
 Use an injected clock and pinned timezone data so tests do not rely on the host clock or ambient locale.
 
-1. Valid schedule inputs persist in one canonical form; malformed, oversized, unsupported, duplicate, and out-of-range values fail before creating a task or job.
-2. The accepted timezone and grammar are versioned. A stored schedule's meaning remains stable after process restart and explicit timezone database update.
+1. Valid schedule inputs persist in the selected versioned format; malformed, oversized, unsupported, duplicate, out-of-range, and beyond-horizon values fail before creating a task or job.
+2. The selected schema round-trips the canonical schedule, grammar version, timezone identity, and policy version. A stored schedule's meaning remains stable after process restart and explicit timezone database update; schema or grammar migration preserves queued-occurrence meaning.
 3. Cover DST gap and fold, leap day/month boundary, clock rollback/forward, restart immediately before/after due time, and a timezone change while a task is enabled.
 4. Two scheduler instances and duplicate wakeups create at most one job for the same logical occurrence; task edits/deletes and already queued jobs follow the selected version policy.
-5. Overlap, missed-run backlog, timeout, cancellation, retry exhaustion, handler crash, and crash after external effect produce the selected bounded and observable states.
-6. Tenant membership revocation, role downgrade, site disable/delete, and task-version change after enqueue but before claim deny or safely reconcile the run.
-7. Cross-tenant IDs, idempotency keys, task versions, cursors, and run-now requests cannot disclose or mutate another tenant's task or run.
-8. Logs expose neither shell/environment values nor secrets, are bounded under oversized output, and obey the selected retention and expiry rules.
+5. Overlap, missed-run policy, timeout, cancellation, retry exhaustion, handler crash, and crash after external effect produce the selected bounded and observable states.
+6. Fill the queued backlog to the selected cap, then trigger additional due and duplicate occurrences. The selected reject/coalesce/reserved-slot behavior is visible and idempotent; queued records never exceed the cap. Restart at capacity and free a slot to verify the selected recovery behavior without duplicate execution or silent loss.
+7. Under load, active runs never exceed the selected per-task/site/tenant/host concurrency caps; vary queued backlog independently to prove the active-run cap is separate.
+8. Tenant membership revocation, role downgrade, site disable/delete, and task-version change after enqueue but before claim deny or safely reconcile the run.
+9. Cross-tenant IDs, idempotency keys, task versions, cursors, and run-now requests cannot disclose or mutate another tenant's task or run.
+10. Logs expose neither shell/environment values nor secrets, are bounded under oversized output, and obey the selected retention and expiry rules.
 
 These tests are specifications until the policy is approved and the relevant contracts are implemented. Existing PR #60/#61/#65 renderers and PR #80's config rollback lab cover adjacent components, not schedule semantics.
 

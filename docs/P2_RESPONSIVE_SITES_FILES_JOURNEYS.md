@@ -4,10 +4,13 @@
 
 **Issue:** [#155 — P2 acceptance: define mobile/tablet site and Files journeys](https://github.com/parmtech/Tong-Panel/issues/155).
 
-## Current automation checkpoint — published db97; local diagnostics follow-up (17 November 2026)
+## Current automation checkpoint — published 5257 (17 November 2026)
 
-PR #171 is open/draft/unmerged at published head db97e1d1a67a24a85ff61d59f0dccc8ca4033de0; exact-head CI has 15/16 Actions successes and 24/25 check successes. Debian P2 step 18 failed with generic exit 1, and Ubuntu passed. The local diagnostics patch changes no responsive product behavior; it is uncommitted and has no hosted CI yet. The responsive journey plan remains design-only. Synthetic browser coverage does not establish authenticated tenant behavior, physical-device use or human accessibility/usability. Keep #155 open and preserve P0/P1 identity/session gates.
+PR #171 remains open/draft/unmerged at exact head `5257aa3bd3b217a5a28316812618009c6244c01f`. Exact-head CI passed 13/13 Actions runs and 22/22 check runs. In P2 run [#43922690907](https://github.com/parmtech/Tong-Panel/actions/runs/43922690907), both Ubuntu 24.04 and Debian 12 guest jobs passed step 18, post steps 35 and 36, and Complete step 37. These results do not satisfy issue #155: this plan remains design-only, and synthetic browser automation does not prove authenticated tenant journeys, physical-device use, or human accessibility/usability. Keep #155 open and preserve P0/P1 identity/session gates.
 
+### Historical automation checkpoint — published db97 (superseded 17 November 2026)
+
+At exact PR #171 head `db97e1d1a67a24a85ff61d59f0dccc8ca4033de0`, CI had 15/16 Actions successes and 24/25 check successes. P2 run #43900009729 failed Debian at step 18 with generic exit 1; Ubuntu passed. The cause was unknown. This is a historical result for db97 only and does not describe the current 5257 head.
 
 ### Historical automation checkpoint — unpublished 3490235 / published 2054 (superseded 17 November 2026)
 

@@ -29,7 +29,9 @@ mariadb-dump --defaults-extra-file=/run/private/tenant.cnf tenant_a |
     --output /srv/private-backups/tenant-a-2026-10-29.tpbk
 ```
 
-Restore to a new private SQL file, then inspect/validate before importing:
+Restore to a new private SQL file, inspect/validate it, and import only into a
+disposable synthetic test database. Never use a real, customer, or production
+database as the target:
 
 ```sh
 tongbackup decrypt --tenant tenant-a --key-file /run/private/backup.key \
@@ -52,6 +54,16 @@ the pristine distro image, and restores/verifies the MariaDB marker there. The
 runner staging is temporary CI storage, not an offsite backup provider or a
 retention service.
 
+At published source SHA `5257aa3bd3b217a5a28316812618009c6244c01f`, [clean-VM
+run #43922690907](https://github.com/parmtech/Tong-Panel/actions/runs/43922690907)
+passed guest-smoke step 18 in the [Ubuntu job
+#133493840911](https://github.com/parmtech/Tong-Panel/actions/runs/43922690907/job/133493840911)
+and [Debian job
+#133493841211](https://github.com/parmtech/Tong-Panel/actions/runs/43922690907/job/133493841211).
+This verifies the synthetic guest backup/restore smoke only. It does not execute
+the proposed scheduled/offsite target flow or satisfy the P2 offsite
+backup/restore acceptance gate.
+
 ## Not yet provided
 
 There is no production key custody or recovery policy, scheduled backup,
@@ -59,6 +71,37 @@ offsite provider integration, retention/deletion workflow, application-driven
 database export, job/audit wiring, restore preview, user authorization, or
 multi-account complete restore. ADR-007 and threat-model owner/security review
 remain pending. Do not treat this lab or CLI as a production backup service.
+
+## Provider-neutral P2 acceptance checks
+
+The following are proposed checks for disposable, non-privileged fixtures; they
+do not enable an offsite integration or select a provider or policy:
+
+- Parameterize the maximum transfer size and maximum attempt count from the
+  reviewed test contract. Assert that the fixture never sends more than the
+  selected byte bound or exceeds the selected attempt bound, and records a
+  clear terminal result when either limit or verification fails. On interrupted
+  or failed uploads, assert that a partial remote object is either cleaned up
+  and its removal verified, or left explicitly identified for safe
+  reconciliation; it must never be reported as a complete backup.
+- Use only synthetic test data, disposable test keys and opaque test key
+  references. Prove the matching tenant/artifact/key-reference combination for
+  each test tenant succeeds, and cross-tenant or mismatched-key/reference
+  combinations fail without publishing plaintext or mutating restore state.
+  Evidence may include the non-secret fixture reference, but never key material.
+- Put the same synthetic generation marker in each tenant's database and
+  selected files/settings. Under the quiescence or snapshot contract selected
+  for the test, assert that the restored markers agree. Restore into a private,
+  non-serving stage; validate the markers and artifact before making the test
+  instance available. A mismatch, interrupted restore or inconclusive
+  publication must remain non-serving with an explicit recoverable result.
+
+These checks define test assertions, not policy values or production behavior.
+Numeric transfer and retry limits, retention policy, provider guarantees, real
+key custody/rotation/recovery, database/service coordination, authorization,
+and production restore/rollback require owner, security and provider decisions.
+Until those decisions and the existing P0/P1 approvals are recorded, use only
+synthetic fixtures and do not connect a production target or service.
 
 ## Verify before restore
 

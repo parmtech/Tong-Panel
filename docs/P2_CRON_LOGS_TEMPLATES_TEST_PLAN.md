@@ -4,7 +4,7 @@
 
 **Phase:** P2 secure single-server hosting alpha. The roadmap and P2 plan require site-scoped cron, site logs, versioned server templates, and graceful service-failure handling. The current P2 gate report identifies this slice as lacking an integrated lifecycle design and evidence.
 
-**Entry gates:** do not implement host-facing behavior until the P0 ADR/threat review and P1 authentication, typed job/agent, installer/recovery, and secret-handling gates have authoritative approval and evidence. Until then, work may cover pure validation, mock-free contract tests, or isolated non-privileged prototypes only. In particular, this plan does not authorize a public endpoint, shell execution, privileged service changes, or a real-host test.
+**Entry gates:** do not implement host-facing behavior until the P0 ADR/threat review and P1 authentication, typed job/agent, installer/recovery, and secret-handling gates have authoritative approval and evidence. Until then, work may cover pure validation, mock-free contract tests, or isolated non-privileged prototypes using existing dependencies only. No new dependency may be added and no prototype may be deployed before approval. In particular, this plan does not authorize a public endpoint, shell execution, privileged service changes, deployment, or a real-host test.
 
 ## Goals and boundaries
 
@@ -57,10 +57,11 @@ These are requirements for a future reviewed interface, not approved architectur
 
 | Area | Required evidence | Negative and failure cases |
 |---|---|---|
-| Schedule validation | Table-driven tests for accepted syntax, canonical persistence, timezone, minimum interval, timeout, and overlap rules | Reject shell metacharacters in task kind/parameters, malformed schedule, oversized values, unknown timezone, duplicate/ambiguous fields, and unsupported task kinds |
+| Schedule validation | Table-driven tests for accepted syntax, canonical persistence format/schema, timezone, minimum interval, maximum horizon, timeout, and overlap rules | Reject shell metacharacters in task kind/parameters, malformed schedule, values beyond the selected horizon, oversized values, unknown timezone, duplicate/ambiguous fields, and unsupported task kinds |
 | Tenant authorization | Owner/Admin/Customer/Auditor behavior is specified and tested for each operation; site ownership is always server-derived | Cross-tenant IDs, stale membership/role, suspended tenant, disabled site, guessed job IDs, and replayed cursors are denied without existence leakage |
-| Durable execution | Repeated delivery is idempotent; task and job state transitions survive restart; bounded timeout and retry exhaustion are observable | Crash before claim, after claim, and during handler; duplicate wakeup; cancellation; site deletion; permission revocation between enqueue and claim |
-| Time behavior | Deterministic tests use an injected clock and fixed timezone database | DST gap/fold, leap day, clock rollback/forward, restart near due time, and concurrent scheduler instances cannot duplicate a logical run |
+| Durable execution | Repeated delivery is idempotent; task and job state transitions survive restart; bounded timeout, selected simultaneous-execution caps, and retry exhaustion are observable. Concurrency caps are tested independently from queue/backlog limits. | Crash before claim, after claim, and during handler; duplicate wakeup; cancellation; site deletion; permission revocation between enqueue and claim; bursts cannot exceed the selected per-task/site/tenant/host concurrency caps |
+| Backlog capacity/backpressure | Fill the queued backlog to the selected cap, trigger additional due and duplicate occurrences, and verify the selected reject/coalesce/reserved-slot response and visible state. The queued-record count never exceeds the cap; restart at capacity and later freeing a slot follow the selected recovery rule without duplicate execution or silent loss. | A burst at capacity cannot create an over-cap queue or silently discard occurrences; backpressure behavior remains separate from simultaneous-execution caps |
+| Time behavior | Deterministic tests use an injected clock and fixed timezone database; the selected persistence schema round-trips the canonical schedule and timezone policy across restart | DST gap/fold, leap day, clock rollback/forward, restart near due time, timezone database update, and concurrent scheduler instances cannot duplicate a logical run; schema-version migration preserves the selected schedule meaning |
 | Log isolation | Two-site fixture proves each authorized tenant sees only its own bounded access/error stream | Path traversal, symlink swap, cross-tenant ID/cursor, deleted/rotated file, oversized line, malformed encoding, partial write, and secret-bearing fixture |
 | Template-version selection | Existing PR #60/#61/#65 renderer tests remain the component baseline; add only checks that an immutable version is selected and recorded with the site/job state | Unknown/deprecated version, missing required facts, or a tenant-injected version selector cannot choose a different tenant's config or publish output |
 | Integrated config lifecycle | Reuse PR #80's isolated Nginx rollback lab; add the authenticated site/job-to-template-version path and verify the typed operation's terminal result against that lab | A version conflict, stale site, revoked authorization, failed validation/reload/health result, or job retry cannot silently mark the new version active; retain the prior known-good version |
@@ -77,7 +78,10 @@ These are requirements for a future reviewed interface, not approved architectur
 ## Open decisions before implementation
 
 - Which task kinds belong in P2, and what exact parameters may each accept?
-- Which cron grammar, timezone source, DST fold/gap rule, minimum interval, timeout, and overlap policy are supportable?
+- Which cron grammar, timezone source, DST fold/gap rule, minimum interval, maximum schedule horizon, timeout, and overlap policy are supportable?
+- What versioned persistence format/schema records the canonical schedule, timezone identity, and policy version, and how are later schema or grammar changes migrated without changing a task's meaning?
+- What simultaneous-execution caps apply per task, site, tenant, and host, separately from queue/backlog limits?
+- When the queued-backlog cap is reached, should a new occurrence be visibly rejected/skipped, coalesced into eligible queued work, or held in a reserved bounded slot; what recovery action follows when capacity frees?
 - Which actor roles may create, edit, pause, run-now, inspect, and delete a task?
 - What log retention, redaction, pagination, rotation, and maximum response limits apply?
 - Which configuration changes require a service reload, how is health verified, and what is the bounded rollback/retry policy?
