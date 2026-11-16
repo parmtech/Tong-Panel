@@ -31,8 +31,12 @@ if [[ -z "$output" || "$output" == */ ]]; then
   exit 2
 fi
 
-output_parent="$(dirname -- "$output")"
-output_name="$(basename -- "$output")"
+# Append a sentinel so command substitution preserves path newlines, then remove
+# exactly the utility's final newline and the sentinel.
+output_parent="$(dirname -- "$output" && printf .)"
+output_parent=${output_parent%$'\n'.}
+output_name="$(basename -- "$output" && printf .)"
+output_name=${output_name%$'\n'.}
 if [[ -z "$output_name" || "$output_name" == . || "$output_name" == .. ]]; then
   echo "package output must name a file: $output" >&2
   exit 2

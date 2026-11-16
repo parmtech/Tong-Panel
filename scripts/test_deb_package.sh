@@ -95,6 +95,14 @@ case "$mode:$1" in
     ;;
   success:--build)
     archive=${!#}
+    if [[ -n "${DPKG_DEB_EXPECT_PARENT:-}" ]]; then
+      stage_parent=${archive%/*}
+      [[ "${stage_parent%/*}" == "$DPKG_DEB_EXPECT_PARENT" ]] || {
+        echo 'archive was not staged in the exact output parent' >&2
+        exit 95
+      }
+      [[ "${archive##*/}" == "$DPKG_DEB_EXPECT_NAME" ]] || exit 96
+    fi
     printf '%s\n' 'synthetic archive' >"$archive"
     ;;
   success:--info)
@@ -239,6 +247,28 @@ if [[ "$check_mode_assertions" == true ]]; then
   [[ "$(stat -c '%a' "$special_target")" == 644 ]]
 fi
 assert_no_package_staging "$(dirname -- "$special_target")" "$work/private-tmp"
+
+# Both the intended parent and its newline-truncated sibling exist: success at
+# the requested target alone would not detect staging in the wrong directory.
+newline_sibling="$work/publication newline"
+newline_parent="$newline_sibling"$'\n\n'
+if mkdir -p -- "$newline_parent" 2>"$work/newline-path.stderr" && [[ -d "$newline_parent" ]]; then
+  mkdir -p -- "$newline_sibling"
+  newline_name=$'-synthetic package.deb\n\n'
+  newline_target="$newline_parent/$newline_name"
+  PATH="$work/publication-bin:$PATH" TMPDIR="$work/private-tmp" \
+    DPKG_DEB_TEST_MODE=success DPKG_DEB_EXPECT_PARENT="$newline_parent" \
+    DPKG_DEB_EXPECT_NAME="$newline_name" \
+    bash scripts/build_deb.sh "$newline_target" "0.0.0~dev.1" "$tongd" "$tongctl"
+  cmp "$special_expected" "$newline_target"
+  assert_no_package_staging "$newline_parent" "$work/private-tmp"
+  assert_no_package_staging "$newline_sibling" "$work/private-tmp"
+elif [[ "$test_platform" == Linux ]]; then
+  echo 'Linux failed to create the newline-ending package output parent' >&2
+  exit 1
+else
+  printf 'SKIP: newline-ending output parent; %s mount does not support the fixture.\n' "$test_platform" >&2
+fi
 
 if [[ "$publication_mode" == --publication-failures-only ]]; then
   printf 'Package publication failure, cleanup, and path checks passed; %s.\n' "$mode_check_summary"
