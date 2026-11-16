@@ -1,4 +1,4 @@
-> **CURRENT HANDOFF SNAPSHOT (GitHub read 16 November 2026, 19:23:42 UTC / 17 November 2026, 06:23:42 Australia/Sydney):** PR #171 is open/draft/unmerged at published head `5257aa3bd3b217a5a28316812618009c6244c01f` against main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`. Exact-head CI is terminal: all 13 Actions runs and all 22 check runs succeeded.
+> **CURRENT HANDOFF SNAPSHOT (GitHub read 16 November 2026, 19:51:27 UTC / 17 November 2026, 06:51:27 Australia/Sydney):** PR #171 is open/draft/unmerged at published head `5257aa3bd3b217a5a28316812618009c6244c01f` against main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`. Exact-head CI is terminal: all 13 Actions runs and all 22 check runs succeeded.
 
 > **P2 guest result:** Debian job #133493841211 and Ubuntu job #133493840911 both passed step 18, post-steps 35/36, and Complete step 37. No raw guest or serial output was read. The earlier db97 Debian failure cause remains unknown; this successful run does not explain it. The 2054 PID-file/umask hypothesis remains unconfirmed.
 
@@ -10,7 +10,9 @@
 >
 > **Parallel design-only documentation:** local plans/hand-offs were clarified for #150, #151, #152, #154 and #155, including issue-body clarifications for #150/#151/#152. All five issues remain open; no owner/security approval, code implementation or production authorization is implied.
 >
-> **Next:** verify fresh PR #171, issue #172 and remote integration-ref state; commit the reviewed handoff updates and publish the local P4 candidate by normal fast-forward; then inspect exact-head hosted CI. Use only fixed diagnostic metadata; never inspect raw guest serial output.
+> **Local #152 and #155 follow-ups:** the synthetic backup plan now bounds transfer size/duration, attempts/backoff and concurrency, and binds retries to immutable backup ID/generation/digest so a stale attempt cannot overwrite or delete a newer artifact. Test-only responsive UI commits through `9897f5c168e700a13608b3e1512be653d9aa359c` scan the populated Sites section, closed-preview Files explorer, and visible Files preview using selected axe rules (focused viewport tests 2/2); the Sites orientation state-retention test passed 1/1. These are local component/design evidence; hosted exact-head CI is pending and #152/#155 remain open.
+>
+> **Next:** complete the pending handoff-doc commit, verify the local branch and freshly re-read PR #171, issue #172 and the remote integration ref, then publish by normal fast-forward. The current candidate should trigger four PR workflows / eleven job checks; no P2 clean-VM run is expected from these paths. Inspect the actual exact-head checks, then refresh the PR/tracker snapshots without changing any DoD or approval field. Issue #172's opening text remains at db97 until that refresh. Use only fixed diagnostic metadata; never inspect raw guest serial output.
 
 > Keep P0-06, all 12 tracker DoD items, and all owner, security, production, restore, accessibility and release gates open; issue #172 remains at 12 unchecked items and nine false approval fields. No merge, live-server mutation or release is authorized.
 

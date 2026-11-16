@@ -26,7 +26,7 @@
     "tree_sha": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
     "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
     "pr_state": "open_draft_unmerged",
-    "observed_at_utc": "2026-11-16T19:23:42Z",
+    "observed_at_utc": "2026-11-16T19:51:27Z",
     "workflow_runs_total": 13,
     "workflow_success": 13,
     "workflow_failure": 0,
@@ -45,15 +45,18 @@
   "next": {
     "task_id": "VERIFY_REMOTE_AND_PUBLISH_LOCAL_P4_CANDIDATE",
     "priority": 1,
-    "action": "P4 schema-v2 source commit a5e1787832cf74754e45750f47b512ac9e81a721 (parent 5257aa3bd3b217a5a28316812618009c6244c01f) is committed locally and not pushed. The root verified 27/27 focused tests; offline-workflow path coverage is verified and no filter update is pending. Complete the handoff-doc refresh; verify fresh PR #171, issue #172 and remote integration-ref state; commit the reviewed handoff updates and publish the local P4 candidate by normal fast-forward; then inspect exact-head hosted CI. Hosted P4 CI remains pending. Preserve product_support_approval:false.",
+    "action": "P4 schema-v2 source commit a5e1787832cf74754e45750f47b512ac9e81a721 (parent 5257aa3bd3b217a5a28316812618009c6244c01f) is committed locally and not pushed; 27/27 focused tests passed. Local P1/P2/handoff documentation commits and test-only UI commits are also on branch, latest source/test commit 9897f5c168e700a13608b3e1512be653d9aa359c. Sites/Files viewport tests passed 2/2 including three selected axe scans; Sites orientation retention passed 1/1. Complete the remaining handoff refresh, verify local state and fresh PR #171/issue #172/remote ref, then publish by normal fast-forward. Path audit expects four workflows and eleven job checks; no P2 clean-VM run is expected. Inspect actual exact-head CI, then update PR #171 and issue #172 without changing DoD or approval fields. Issue #172's opening checkpoint still says db97. Preserve product_support_approval:false.",
     "required_evidence": [
       "local P4 source commit a5e1787832cf74754e45750f47b512ac9e81a721 has parent published 5257 and is not pushed",
       "root-verified focused P4 suite: 27/27 passed",
       "offline-model workflow path coverage for validator, tests and guide verified; no filter change pending",
+      "test-only UI commits through 9897f5c168e700a13608b3e1512be653d9aa359c; Sites/Files viewport tests 2/2 pass with three selected axe scans, Sites orientation test 1/1 passes; hosted browser CI pending",
+      "issue #152 synthetic backup contract covers transfer size/duration, attempt/backoff/concurrency bounds, immutable ID/generation/digest across restart and stale-attempt protection; values/provider policy remain undecided",
       "local design-only doc updates for #150/#151/#152/#154/#155 and issue-body clarifications for #150/#151/#152 recorded; all remain open with no approval or production authorization",
-      "fresh PR #171, issue #172 and remote-ref state verified before publication",
-      "reviewed handoff updates committed and local P4 candidate published by normal fast-forward",
-      "new exact-head Actions/check results inspected after publication",
+      "fresh PR #171, issue #172 and remote-ref state verified at 19:51:27 UTC before publication; PR remains 5257, issue #172 0/12 with nine false approvals",
+      "remaining handoff refresh committed; complete candidate published by normal fast-forward",
+      "four expected workflows and eleven exact-head job checks inspected after publication; no P2 guest rerun expected",
+      "PR #171 and issue #172 current sections updated after CI while preserving all 12 unchecked items and all nine false approvals",
       "product_support_approval remains false and no P4 acceptance is inferred"
     ],
     "gates_unchanged": true,
@@ -403,10 +406,11 @@
     "limitations": "At the 1f snapshot, candidate exact-head CI was pending and the integrated worktree lacked Playwright, TypeScript and Go; b411 later included 1f and passed exact-head CI. PHP-FPM comm names on pinned guests remain unverified. The HTTPS failure cause remains unknown. Synthetic UI evidence does not establish authenticated-tenant, physical-device or human accessibility acceptance; issue #155 remains open."
   },
   "local_candidate_head": "a5e1787832cf74754e45750f47b512ac9e81a721",
+  "local_latest_test_commit": "9897f5c168e700a13608b3e1512be653d9aa359c",
   "local_candidate_tree_sha": "38237347ef1fd6b63be69a76d1117d4fffadb0f8",
   "local_snapshot_head": "5257aa3bd3b217a5a28316812618009c6244c01f",
   "local_snapshot_tree": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
-  "snapshot_scope_note": "Published PR snapshot is 5257aa3: all 13 Actions runs and 22 checks succeeded; both P2 guest jobs passed step 18, post-steps 35/36, and Complete step 37. Earlier db97 failure remains historical with cause unknown; 5257 does not explain it. P4 schema-v2 candidate a5e1787832cf74754e45750f47b512ac9e81a721 is committed locally with parent 5257, not pushed; root verified 27/27 focused tests, workflow path coverage is verified, and hosted P4 CI is pending. P0-06, 0/12 issue #172 DoD items checked, all nine approvals and product_support_approval remain false/open. Design-only documentation updates for #150/#151/#152/#154/#155 and issue-body clarifications for #150/#151/#152 do not authorize implementation or production.",
+  "snapshot_scope_note": "Published PR snapshot is 5257aa3: all 13 Actions runs and 22 checks succeeded; both P2 guest jobs passed step 18, post-steps 35/36, and Complete step 37. Earlier db97 failure remains historical with cause unknown; 5257 does not explain it. P4 schema-v2 candidate a5e1787832cf74754e45750f47b512ac9e81a721 is committed locally with parent 5257, not pushed; root verified 27/27 focused tests and workflow path coverage is verified. Local UI commits 974db0990b509b335fd62f370b6d99daefc16673, d08344804a435a06ca73751dd496f9134af94096 and 9897f5c168e700a13608b3e1512be653d9aa359c add selected Sites axe at 1440x900, Files explorer axe at 1440x900, open Files preview axe at 320x640, and synthetic Sites orientation retention; Sites/Files tests passed 2/2 and orientation 1/1. Hosted browser CI is pending. Issue #152 design-only backup checks include bounded size/duration/retry/concurrency and immutable identity/generation/digest recovery; values/provider policy are undecided. P0-06, 0/12 issue #172 DoD items checked, all nine approvals and product_support_approval remain false/open. Design-only documentation updates for #150/#151/#152/#154/#155 and issue-body clarifications for #150/#151/#152 do not authorize production.",
   "published_pr_tree_at_snapshot": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
   "published_pr_ci_snapshot": {
     "head_sha": "db97e1d1a67a24a85ff61d59f0dccc8ca4033de0",
@@ -443,8 +447,8 @@
     "unchecked": 12,
     "approval_fields_false": 9
   },
-  "local_snapshot_note": "Published source base is 5257aa3bd3b217a5a28316812618009c6244c01f. P2 diagnostics and exact-head CI are published. P4 schema-v2 source commit a5e1787832cf74754e45750f47b512ac9e81a721 (parent 5257) is committed locally, not pushed; root verified 27/27 focused tests and workflow path coverage is verified. Parallel local design-only documentation updates cover #150/#151/#152/#154/#155; issue-body clarifications cover #150/#151/#152, all remain open with no approval or production authorization. Commit reviewed handoff updates after fresh PR/issue/ref verification, publish the local candidate by normal fast-forward, then inspect exact-head hosted CI.",
-  "snapshot_timestamp_utc": "2026-11-16T19:23:42Z",
+  "local_snapshot_note": "Published source base is 5257aa3bd3b217a5a28316812618009c6244c01f. P2 diagnostics and exact-head CI are published. P4 schema-v2 source commit a5e1787832cf74754e45750f47b512ac9e81a721 (parent 5257) is committed locally, not pushed; root verified 27/27 focused tests and workflow path coverage is verified. Local UI-test commits through 9897f5c168e700a13608b3e1512be653d9aa359c passed Sites/Files viewport tests 2/2 with three selected axe scans and orientation retention 1/1; the open Files preview scan is at 320x640. Exact-head browser CI is pending. Issue #152's synthetic backup retry contract now binds immutable ID/generation/digest and bounds duration, attempts/backoff, concurrency and size; policy values are not selected. Local docs for #150/#151/#152/#154/#155 and issue-body clarifications for #150/#151/#152 remain design-only, open and unapproved. Latest prepush read at 19:51:27 UTC confirmed PR/ref 5257 and issue #172 0/12 with nine false approvals; tracker opening snapshot still says db97. Complete handoff refresh, re-read before push, publish by normal fast-forward, inspect four expected workflows/eleven checks, then update PR/tracker without closing gates.",
+  "snapshot_timestamp_utc": "2026-11-16T19:51:27Z",
   "historical_pr_2054_ci_snapshot": {
     "head_sha": "2054a425108abd4db8df6e84b29c421dafe17dd0",
     "source_candidate_sha": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
@@ -509,7 +513,7 @@
     "source_fix_present": false,
     "source_fix_scope_note": "false on published head 2054; FPM follow-up is present only in unpublished local candidate 3490235 and does not confirm root cause"
   },
-  "snapshot_read_at_utc": "2026-11-16T19:23:42Z",
+  "snapshot_read_at_utc": "2026-11-16T19:51:27Z",
   "current_follow_up": {
     "status": "local_committed_unpushed_P4_schema_v2_candidate_after_published_5257",
     "published_diagnostics_head": "5257aa3bd3b217a5a28316812618009c6244c01f",
@@ -551,7 +555,23 @@
       "hosted_exact_head_ci": "pending",
       "workflow_path_coverage": "verified_no_filter_update_pending"
     },
-    "next": "verify_fresh_PR_171_issue_172_and_remote_ref; commit_reviewed_handoff_updates; publish_local_P4_commit_a5_by_normal_fast_forward; inspect_exact_head_hosted_CI; path_coverage_verified_no_filter_update_pending; hosted_P4_CI_pending",
+    "local_accessibility_candidate": {
+      "file": "tools/ui-browser/responsive-sites-files.spec.mjs",
+      "axe_commit": "974db0990b509b335fd62f370b6d99daefc16673",
+      "orientation_commit": "d08344804a435a06ca73751dd496f9134af94096",
+      "files_open_preview_commit": "9897f5c168e700a13608b3e1512be653d9aa359c",
+      "verification": "Sites_Files_viewport_tests_2_of_2_passed_with_three_selected_axe_scans; Sites_orientation_retention_1_of_1_passed",
+      "scans": "Sites_section_1440x900; Files_explorer_1440x900_preview_closed; visible_Files_preview_320x640",
+      "limitations": "selected_subtrees_and_viewports_only; no_full_WCAG_2_2_human_screen_reader_or_physical_device_acceptance",
+      "hosted_browser_ci": "pending",
+      "issue_155_open": true
+    },
+    "issue_152_backup_contract": {
+      "coverage": "synthetic_max_size_duration_attempts_backoff_concurrency; immutable_backup_ID_generation_digest_across_timeout_interruption_restart; stale_out_of_order_attempt_cannot_overwrite_or_delete_newer_artifact",
+      "provider_or_policy_selected": false,
+      "issue_152_open": true
+    },
+    "next": "complete_handoff_refresh; verify_local_candidate_and_fresh_PR_171_issue_172_remote_ref; publish_normal_fast_forward; inspect_four_workflows_eleven_job_checks; no_P2_guest_run_expected; update_PR_and_tracker_without_changing_DoD_or_approvals; hosted_P4_CI_pending",
     "gates": "all_existing_owner_security_production_restore_accessibility_merge_signing_deployment_and_release_gates_remain_false_or_open",
     "design_only_doc_updates": {
       "issues": [
