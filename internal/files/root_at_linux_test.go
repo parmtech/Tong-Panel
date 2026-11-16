@@ -80,6 +80,135 @@ func TestOpenRootAtRejectsUnsafeNamesAndSymlinks(t *testing.T) {
 	}
 }
 
+type openRootAtFixture struct {
+	parentPath string
+	childPath  string
+	parentFD   int
+	fd         int
+	before     unix.Stat_t
+}
+
+func newOpenRootAtFixture(t *testing.T) openRootAtFixture {
+	t.Helper()
+	parentPath := t.TempDir()
+	childPath := filepath.Join(parentPath, "child")
+	if err := os.Mkdir(childPath, 0700); err != nil {
+		t.Fatal(err)
+	}
+	parentFD, err := unix.Open(parentPath, unix.O_RDONLY|unix.O_DIRECTORY|unix.O_CLOEXEC|unix.O_NOFOLLOW, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = unix.Close(parentFD) })
+
+	var before unix.Stat_t
+	if err := unix.Fstatat(parentFD, "child", &before, unix.AT_SYMLINK_NOFOLLOW); err != nil {
+		t.Fatal(err)
+	}
+	fd, err := unix.Openat2(parentFD, "child", &unix.OpenHow{
+		Flags:   uint64(unix.O_PATH | unix.O_DIRECTORY | unix.O_CLOEXEC | unix.O_NOFOLLOW),
+		Resolve: uint64(unix.RESOLVE_BENEATH | unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_NO_MAGICLINKS | unix.RESOLVE_NO_XDEV),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		var st unix.Stat_t
+		if unix.Fstat(fd, &st) == nil {
+			_ = unix.Close(fd)
+		}
+	})
+	return openRootAtFixture{
+		parentPath: parentPath,
+		childPath:  childPath,
+		parentFD:   parentFD,
+		fd:         fd,
+		before:     before,
+	}
+}
+
+func assertOpenedRootAtRejectedAndDescriptors(t *testing.T, fixture openRootAtFixture, name string, before unix.Stat_t) {
+	t.Helper()
+	root, err := validateOpenedRootAt(fixture.parentFD, name, fixture.fd, before)
+	if !errors.Is(err, ErrInvalidRoot) || root != nil {
+		t.Fatalf("validateOpenedRootAt() = (%v, %v), want (nil, %v)", root, err, ErrInvalidRoot)
+	}
+	var st unix.Stat_t
+	if err := unix.Fstat(fixture.fd, &st); !errors.Is(err, unix.EBADF) {
+		t.Fatalf("child descriptor after rejection: Fstat() = %v, want %v", err, unix.EBADF)
+	}
+	if err := unix.Fstat(fixture.parentFD, &st); err != nil {
+		t.Fatalf("validation closed caller parent descriptor: %v", err)
+	}
+}
+
+func TestValidateOpenedRootAtClosesDescriptorAfterFinalFstatatFailure(t *testing.T) {
+	fixture := newOpenRootAtFixture(t)
+	if err := os.Rename(fixture.childPath, filepath.Join(fixture.parentPath, "moved")); err != nil {
+		t.Fatal(err)
+	}
+	assertOpenedRootAtRejectedAndDescriptors(t, fixture, "child", fixture.before)
+}
+
+func TestValidateOpenedRootAtClosesDescriptorOnBeforeOpenedIdentityMismatch(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		mutate func(*unix.Stat_t)
+	}{
+		{name: "device", mutate: func(st *unix.Stat_t) { st.Dev ^= 1 }},
+		{name: "inode", mutate: func(st *unix.Stat_t) { st.Ino ^= 1 }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fixture := newOpenRootAtFixture(t)
+			before := fixture.before
+			tc.mutate(&before)
+			assertOpenedRootAtRejectedAndDescriptors(t, fixture, "child", before)
+		})
+	}
+}
+
+func TestValidateOpenedRootAtClosesDescriptorAfterOpenedAfterIdentityMismatch(t *testing.T) {
+	fixture := newOpenRootAtFixture(t)
+	if err := os.Rename(fixture.childPath, filepath.Join(fixture.parentPath, "moved")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(fixture.childPath, 0700); err != nil {
+		t.Fatal(err)
+	}
+	assertOpenedRootAtRejectedAndDescriptors(t, fixture, "child", fixture.before)
+}
+
+func TestValidateOpenedRootAtTransfersDescriptorOwnershipOnSuccess(t *testing.T) {
+	fixture := newOpenRootAtFixture(t)
+	root, err := validateOpenedRootAt(fixture.parentFD, "child", fixture.fd, fixture.before)
+	if err != nil || root == nil {
+		t.Fatalf("validateOpenedRootAt() = (%v, %v), want non-nil root and nil error", root, err)
+	}
+	if root.fd != fixture.fd || !root.open {
+		t.Fatalf("returned root does not own opened descriptor: fd=%d open=%t, want fd=%d open=true", root.fd, root.open, fixture.fd)
+	}
+	var st unix.Stat_t
+	if err := unix.Fstat(fixture.fd, &st); err != nil {
+		t.Fatalf("successful validation closed transferred descriptor: %v", err)
+	}
+	if err := unix.Fstat(fixture.parentFD, &st); err != nil {
+		t.Fatalf("validation closed caller parent descriptor: %v", err)
+	}
+	if err := root.Close(); err != nil {
+		t.Fatalf("closing returned root: %v", err)
+	}
+	if err := unix.Fstat(fixture.fd, &st); !errors.Is(err, unix.EBADF) {
+		t.Fatalf("child descriptor after Root.Close(): Fstat() = %v, want %v", err, unix.EBADF)
+	}
+	if err := unix.Fstat(fixture.parentFD, &st); err != nil {
+		t.Fatalf("closing returned root closed caller parent descriptor: %v", err)
+	}
+}
+
+// The Fstat(fd) failure branch is not directly exercised: Openat2 returns a
+// valid descriptor in these tests, and syscall injection solely for that kernel
+// error path would broaden the seam without improving ownership coverage.
+
 func TestCheckOwnerPrivateDirectory0700(t *testing.T) {
 	specialBits := os.ModeSetuid | os.ModeSetgid | os.ModeSticky
 

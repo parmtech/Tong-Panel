@@ -27,16 +27,29 @@ func OpenRootAt(parentFD int, name string) (*Root, error) {
 	if err != nil {
 		return nil, ErrInvalidRoot
 	}
+	return validateOpenedRootAt(parentFD, name, fd, before)
+}
+
+// validateOpenedRootAt consumes fd. It closes the descriptor on every
+// validation failure and transfers ownership to the returned Root on success.
+func validateOpenedRootAt(parentFD int, name string, fd int, before unix.Stat_t) (*Root, error) {
+	transferred := false
+	defer func() {
+		if !transferred {
+			_ = unix.Close(fd)
+		}
+	}()
+
 	var opened, after unix.Stat_t
 	if err := unix.Fstat(fd, &opened); err != nil {
-		_ = unix.Close(fd)
 		return nil, ErrInvalidRoot
 	}
 	if err := unix.Fstatat(parentFD, name, &after, unix.AT_SYMLINK_NOFOLLOW); err != nil || opened.Mode&unix.S_IFMT != unix.S_IFDIR || after.Mode&unix.S_IFMT != unix.S_IFDIR || !sameInternalStage(before, opened) || !sameInternalStage(opened, after) {
-		_ = unix.Close(fd)
 		return nil, ErrInvalidRoot
 	}
-	return &Root{fd: fd, open: true}, nil
+	root := &Root{fd: fd, open: true}
+	transferred = true
+	return root, nil
 }
 
 // CheckOwnerPrivateDirectory0700 checks the mode and owner of the pinned root
