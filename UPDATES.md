@@ -1,4 +1,23 @@
-## CURRENT CHECKPOINT — remote head f804127; exact-head CI passed (17 November 2026, Australia/Sydney)
+## CURRENT CHECKPOINT — 10f666a exact-head CI passed (CI and PR/ref read 2026-11-16 21:46 UTC; issue #172 last audited 21:35:21 UTC / 17 November 2026, Australia/Sydney)
+
+**PR/ref and CI snapshot:** PR #171 was read open/draft/unmerged at exact source head `10f666a3db7ccf1f2e89d0a01d75f25820e24804` at 21:46:26 UTC. Exact-head CI, read at 21:46:26 UTC, completed with all 16 workflow runs and all 26 check runs successful, with zero failures. P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728.
+
+**Local snapshot:** the remote PR #171 head is 10f666a, which was clean at its commit snapshot. The current local branch is at unpushed source commit `d885a256f96bac36b5d96ff76d8e094b802d75f0` (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`), parent 10f666a. The 14 handoff documents are the only current worktree changes.
+
+**Included local evidence:** source commit `f3d02ac841655a5320f5dd3b602310ef3cc5757f` added focused synthetic UI tests (2/2 passed locally); `90becaf720556fe28cffadf18813dfc2d7e4682a` added the synthetic P2 backup-retry model/workflow (6/6 root-verified locally); `a2988b377d9a5c9656be310cab50fb58b5bbaed7` added a test-only SQLite job-kind allowlist regression, reviewed but not run locally because Go/gofmt were unavailable. The 10f666a exact-head CI completed successfully for the source candidate.
+
+**Post-10f666a local source candidate:** commit `d885a256f96bac36b5d96ff76d8e094b802d75f0` changes `prototypes/p2-backup-retry-model/model.py` to reject boolean attempt IDs that would alias integer ID 1 and adds `test_boolean_attempt_id_cannot_alias_integer_attempt`. The local model suite passed 7/7 with this regression. This unpushed commit is not in PR head 10f666a and is not covered by that head's completed CI; it needs its own exact-head CI after PR sync.
+
+**Tracker and next action:** issue #172 was last audited at 21:35:21 UTC and remains open with 0/12 DoD items checked, all nine named approvals false, and `product_support_approval:false`. The 10f666a exact-head workflows and both P2 guest jobs have passed. After a fresh PR/ref read, sync local source candidate d885a256 and inspect its own exact-head CI; retain the docs-only handoff changes for their separate review. Preserve the current DoD, approval booleans, pending decisions, P0-06, and all owner/security/production/restore/accessibility/signing/merge/release gates.
+
+### 2026-11-17 09:03:54 Australia/Sydney — P2 synthetic attempt-ID validation follow-up
+
+- **Branch/commit:** `codex/tong-panel-candidate-20261116`, source commit `d885a256f96bac36b5d96ff76d8e094b802d75f0` (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`), parent `10f666a3db7ccf1f2e89d0a01d75f25820e24804`; local and unpushed. PR #171 still points at 10f666a in the latest read.
+- **Change:** the synthetic P2 model now rejects non-integer attempt IDs before dict lookup so Python `True` cannot alias attempt ID 1. Added `test_boolean_attempt_id_cannot_alias_integer_attempt`; it checks all three attempt-ID entry points and verifies no artifact/state mutation.
+- **Validation:** `python -m unittest -v` in `prototypes/p2-backup-retry-model` passed 7/7. The 10f666a hosted result (16/16 workflows, 26/26 checks) predates and excludes d885a25. No production/runtime/API path, policy value, credential, or licence changed.
+- **Gates/next:** issue #172 remains 0/12 with nine approval fields and product-support approval false; all pending decisions remain open. After reviewing the handoff, re-read PR/ref and issue #172, publish d885a25 by normal fast-forward, and inspect its exact-head CI. Do not infer P2 policy or acceptance from the model.
+
+## HISTORICAL CHECKPOINT — remote head f804127; exact-head CI passed (17 November 2026, Australia/Sydney; superseded by 10f666a)
 
 **PR/ref snapshot:** GitHub read at 2026-11-16 20:29:23 UTC confirms PR #171 open/draft/unmerged at f804127fdef6b46fec16c27beeb357398e066cba against main 0aad68e81138a0f226e83e401f90bae4d0b6bddc. Issue #172 was read separately at 20:29:23 UTC: open, updated_at 2026-11-16T16:12:59Z, 0/12 checked and nine false approval fields. The timestamps are separate from the CI read.
 

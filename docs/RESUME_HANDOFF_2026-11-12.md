@@ -1,4 +1,12 @@
-## Current resume checkpoint — remote PR/ref f804127; exact-head CI passed (17 November 2026, Australia/Sydney)
+## Current resume checkpoint — 10f666a exact-head CI passed (17 November 2026, Australia/Sydney)
+
+PR #171 is open/draft/unmerged at exact source head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. All 16 workflow runs and 26 check runs passed with zero failures. P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728.
+
+The local branch is `codex/tong-panel-candidate-20261116` at unpushed source commit `d885a256f96bac36b5d96ff76d8e094b802d75f0` (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`), parent `10f666a3db7ccf1f2e89d0a01d75f25820e24804`; only handoff docs are uncommitted. Issue #172 is open with 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`. No DoD item, approval boolean, or pending decision changed. Retain all owner, security, production, restore, accessibility, signing, merge, and release gates.
+
+Since the 10f666a snapshot, local source commit `d885a256f96bac36b5d96ff76d8e094b802d75f0` rejects boolean attempt IDs that alias integer ID 1 and adds `test_boolean_attempt_id_cannot_alias_integer_attempt`; the local model suite passed 7/7. This unpushed commit is outside 10f666a and its completed CI, and needs exact-head CI after PR sync.
+
+## Historical verified resume checkpoint — remote PR/ref f804127; exact-head CI passed (17 November 2026; superseded by 10f666a)
 
 PR #171 is open/draft/unmerged at remote head f804127fdef6b46fec16c27beeb357398e066cba against main 0aad68e81138a0f226e83e401f90bae4d0b6bddc, per the PR/ref read at 2026-11-16 20:29:23 UTC. Exact-head CI was read separately at 2026-11-16 20:26:10 UTC: all 13 Actions runs and 22 check runs succeeded. Run IDs: Go #43945726529; govulncheck #43945726676; gosec #43945726585; unsigned package #43945727158; P1 developer smoke #43945726443; isolated prototypes #43945726402; UI #43945726533; SQLite #43945726799; offline models #43945726483; blocker inventory #43945726665; API contract #43945726530; Jobs browser #43945726491; P2 clean VM #43945726657. P2 Debian #133574748060 and Ubuntu #133574748605 passed step 18, post setup/checkout, and Complete. No raw guest/serial output was read; the earlier db97 cause remains unknown and 5257's success does not explain it.
 

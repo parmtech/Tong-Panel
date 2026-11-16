@@ -4,6 +4,12 @@ All durations are intentionally uncommitted; phases are gated by evidence rather
 
 ## Current execution checkpoint (17 November 2026)
 
+PR #171 is open/draft/unmerged at exact source head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. All 16 workflow runs and 26 checks succeeded, with zero failures; P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728. Issue #172 is open at 0/12 DoD checked, all nine approval fields false, and `product_support_approval:false`. This CI result does not change phase or approval decisions.
+
+The local branch now has source candidate `d885a256f96bac36b5d96ff76d8e094b802d75f0`, which includes the boolean-attempt-ID fix and regression test (7/7 local model tests passed). It is not in PR head 10f666a or its passing CI; after PR sync it needs its own exact-head CI. The current worktree has only uncommitted handoff docs. Preserve P0/P1/P2 gates and all pending owner/security/production/release decisions.
+
+### Historical verified f804 checkpoint (superseded by 10f666a)
+
 PR #171 is open/draft/unmerged at remote head f804127fdef6b46fec16c27beeb357398e066cba against main 0aad68e81138a0f226e83e401f90bae4d0b6bddc, per the PR/ref read at 2026-11-16 20:29:23 UTC. Exact-head CI read at 2026-11-16 20:26:10 UTC passed 13/13 Actions runs and 22/22 checks. P2 run #43945726657 passed Debian #133574748060 and Ubuntu #133574748605 through step 18, post setup/checkout, and Complete. No raw guest/serial logs were read. The earlier db97 Debian cause remains unknown; the successful 5257 and f804 runs do not explain it.
 
 P4 schema-v2 source commit a5e1787832cf74754e45750f47b512ac9e81a721 is included in f804127; the root verified 27/27 focused tests, the offline-model workflow path is covered, and its exact-head run passed. The validator remains structural inventory only; product_support_approval:false and no P4 acceptance or support is implied. Issue #172 was read at 2026-11-16 20:29:23 UTC: open, updated_at 2026-11-16T16:12:59Z, 0/12 DoD items checked and nine approvals false.

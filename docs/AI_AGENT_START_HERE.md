@@ -1,4 +1,13 @@
-## Latest resume checkpoint — remote PR/ref f804127; exact-head CI passed (17 November 2026)
+## Latest resume checkpoint — 10f666a exact-head CI passed (17 November 2026, Australia/Sydney)
+
+- **PR/source ref:** PR #171 is open/draft/unmerged at exact head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`.
+- **Exact-head CI:** all 16 workflow runs and 26 check runs succeeded, with zero failures. P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728.
+- **Local checkout:** branch `codex/tong-panel-candidate-20261116` is at local source commit `d885a256f96bac36b5d96ff76d8e094b802d75f0` (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`), parent `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. It is unpushed; the 14 handoff docs are the only current worktree changes.
+- **Local source candidate:** d885a256 rejects boolean attempt IDs that alias integer ID 1 and adds `test_boolean_attempt_id_cannot_alias_integer_attempt`; the local model suite passed 7/7. The source commit is outside PR head 10f666a and its completed CI, so it needs exact-head hosted CI after PR sync.
+- **Tracker:** issue #172 is open at 0/12 DoD checked; all nine named approval fields and `product_support_approval` are false. No DoD or approval state changed.
+- **Next:** after a fresh PR/ref read, sync source candidate d885a256 and inspect its own exact-head CI. The terminal 10f666a result is all green. Preserve all pending decisions and owner, security, production, restore, accessibility, signing, merge, and release gates.
+
+## Historical verified checkpoint — remote PR/ref f804127; exact-head CI passed (17 November 2026; superseded by 10f666a)
 
 - **PR/ref snapshot:** read 2026-11-16 20:29:23 UTC; PR #171 is open/draft/unmerged at exact remote head f804127fdef6b46fec16c27beeb357398e066cba against main 0aad68e81138a0f226e83e401f90bae4d0b6bddc.
 - **Exact-head CI:** read 2026-11-16 20:26:10 UTC; all 13 Actions runs and 22 check runs succeeded. P2 run #43945726657: Debian #133574748060 and Ubuntu #133574748605 both passed step 18, post setup/checkout, and Complete. No raw guest or serial logs were read.
