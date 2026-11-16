@@ -241,39 +241,71 @@ func TestTenantEncryptedRestoreBindsRegisteredRootAndEnvelope(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	key := bytes.Repeat([]byte{0x24}, 32)
-	archive := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("tenant-a private site")})
-	sealed := encryptedFixture(t, archive, "tenant-a", key)
-	source := &observedRestoreReader{data: bytes.NewReader(sealed)}
-	if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), "missing", "site", source, key, ArchiveLimits{}); !errors.Is(err, ErrTenantDenied) || source.reads != 0 {
+	// Keep tenant keys synthetic, in-memory, and distinct across the two roots.
+	keyA := bytes.Repeat([]byte{0x24}, 32)
+	keyB := bytes.Repeat([]byte{0x42}, 32)
+	archiveA := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("tenant-a private site")})
+	archiveB := gzipTarForTest(t, archiveTestEntry{header: tar.Header{Name: "index.html", Typeflag: tar.TypeReg}, data: []byte("tenant-b private site")})
+	sealedA := encryptedFixture(t, archiveA, "tenant-a", keyA)
+	sealedB := encryptedFixture(t, archiveB, "tenant-b", keyB)
+	source := &observedRestoreReader{data: bytes.NewReader(sealedA)}
+	if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), "missing", "site", source, keyA, ArchiveLimits{}); !errors.Is(err, ErrTenantDenied) || source.reads != 0 {
 		t.Fatalf("unknown tenant consumed input or accepted: reads=%d err=%v", source.reads, err)
 	}
-	if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), "tenant-b", "site", bytes.NewReader(sealed), key, ArchiveLimits{}); !errors.Is(err, backups.ErrInvalidBackup) {
-		t.Fatalf("cross-tenant backup accepted: %v", err)
-	}
-	for _, dir := range []string{dirA, dirB} {
-		entries, err := os.ReadDir(dir)
-		if err != nil || len(entries) != 0 {
-			t.Fatalf("failed operation changed root: %v %v", entries, err)
+	assertEmptyRoots := func(t *testing.T) {
+		t.Helper()
+		for _, dir := range []string{dirA, dirB} {
+			entries, err := os.ReadDir(dir)
+			if err != nil || len(entries) != 0 {
+				t.Fatalf("failed operation changed root %q: %v %v", dir, entries, err)
+			}
 		}
+	}
+	for _, tc := range []struct {
+		name, tenant, destination string
+		sealed, key               []byte
+	}{
+		{"tenant-a backup at tenant-b root", "tenant-b", "cross-a-to-b", sealedA, keyA},
+		{"tenant-b backup at tenant-a root", "tenant-a", "cross-b-to-a", sealedB, keyB},
+		{"tenant-a backup with tenant-b key", "tenant-a", "wrong-key-a", sealedA, keyB},
+		{"tenant-b backup with tenant-a key", "tenant-b", "wrong-key-b", sealedB, keyA},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), tc.tenant, tc.destination, bytes.NewReader(tc.sealed), tc.key, ArchiveLimits{}); !errors.Is(err, backups.ErrInvalidBackup) {
+				t.Fatalf("invalid tenant/key binding accepted: %v", err)
+			}
+			assertEmptyRoots(t)
+		})
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	source = &observedRestoreReader{data: bytes.NewReader(sealed)}
-	if err := roots.RestoreEncryptedGzipTarNewForTenant(ctx, "tenant-a", "site", source, key, ArchiveLimits{}); !errors.Is(err, context.Canceled) || source.reads != 0 {
+	source = &observedRestoreReader{data: bytes.NewReader(sealedA)}
+	if err := roots.RestoreEncryptedGzipTarNewForTenant(ctx, "tenant-a", "site-a", source, keyA, ArchiveLimits{}); !errors.Is(err, context.Canceled) || source.reads != 0 {
 		t.Fatalf("canceled operation consumed input: reads=%d err=%v", source.reads, err)
 	}
-	if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), "tenant-a", "site", bytes.NewReader(sealed), key, ArchiveLimits{}); err != nil {
-		t.Fatal(err)
+	assertEmptyRoots(t)
+	for _, tc := range []struct {
+		tenant, destination, dir string
+		sealed, key              []byte
+		want                     string
+	}{
+		{"tenant-a", "site-a", dirA, sealedA, keyA, "tenant-a private site"},
+		{"tenant-b", "site-b", dirB, sealedB, keyB, "tenant-b private site"},
+	} {
+		if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), tc.tenant, tc.destination, bytes.NewReader(tc.sealed), tc.key, ArchiveLimits{}); err != nil {
+			t.Fatalf("tenant %s restore: %v", tc.tenant, err)
+		}
+		got, err := os.ReadFile(filepath.Join(tc.dir, tc.destination, "index.html"))
+		if err != nil || string(got) != tc.want {
+			t.Fatalf("tenant %s restore: %q %v", tc.tenant, got, err)
+		}
 	}
-	got, err := os.ReadFile(filepath.Join(dirA, "site", "index.html"))
-	if err != nil || string(got) != "tenant-a private site" {
-		t.Fatalf("tenant A restore: %q %v", got, err)
+	for _, path := range []string{filepath.Join(dirA, "site-b"), filepath.Join(dirB, "site-a")} {
+		if _, err := os.Lstat(path); !os.IsNotExist(err) {
+			t.Fatalf("cross-root destination %q exists: %v", path, err)
+		}
 	}
-	if entries, err := os.ReadDir(dirB); err != nil || len(entries) != 0 {
-		t.Fatalf("tenant B changed: %v %v", entries, err)
-	}
-	if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), "tenant-a", "site", bytes.NewReader(sealed), key, ArchiveLimits{}); !errors.Is(err, ErrAlreadyExists) {
+	if err := roots.RestoreEncryptedGzipTarNewForTenant(context.Background(), "tenant-a", "site-a", bytes.NewReader(sealedA), keyA, ArchiveLimits{}); !errors.Is(err, ErrAlreadyExists) {
 		t.Fatalf("overwrote destination: %v", err)
 	}
 }
