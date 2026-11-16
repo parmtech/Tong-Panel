@@ -4,7 +4,7 @@
 **Publisher:** [ParmTech](https://parmtech.au)  
 **Project:** [Tong Panel](https://github.com/parmtech/Tong-Panel)  
 **License:** [GNU AGPL-3.0](LICENSE) for original Tong Panel code  
-**Current status:** Consolidated P0–P5 development code, QA and review material lives on `integration/pr-reconciliation-20261113` in draft PR #171. The default `main` remains documentation-only; no production install, P1 exit, security approval or signed release. **New AI agents: start at [the A–Z resume guide](docs/AI_AGENT_START_HERE.md).**
+**Current status:** Consolidated P0–P5 development code, QA and review material lives on the open/draft PR #171. Published source `98788613f7dd0aee0648c0f32d89fe7c5c21aab1` passed 13/13 workflows and 21/21 checks; local integrated candidate `1f138335c0a3b8dea5320c5e49f7cead3489a6f2` awaits exact-head CI. The default `main` remains documentation-only; no production install, P1 exit, security approval or signed release. **New AI agents: start at [the A–Z resume guide](docs/AI_AGENT_START_HERE.md).**
 
 ## Start here — current development and AI handoff
 
@@ -14,7 +14,7 @@
 - **[Most recent journal](UPDATES.md)** and **[chronological resume handoff](docs/RESUME_HANDOFF_2026-11-12.md)** — detailed evidence and source links.
 - **[PR #171](https://github.com/parmtech/Tong-Panel/pull/171)** (sole draft) and **[master issue #172](https://github.com/parmtech/Tong-Panel/issues/172)** — development and cross-workstream coordination.
 
-At the verified **pre-handoff executable-source** commit `83fe8931`, **13/13 GitHub workflows passed** ([full VM run #43343515245](https://github.com/parmtech/Tong-Panel/actions/runs/43343515245)), including both **Ubuntu 24.04 and Debian 12 full guest jobs**. The next safe engineering task is an isolated non-root synthetic dpkg crash/interruption test after refreshing live docs-head CI; this handoff commit changes branch SHA but not production capability. Green release-blocker CI does **not** approve release.
+At published executable-source head `98788613f7dd0aee0648c0f32d89fe7c5c21aab1`, **13/13 GitHub workflows and 21/21 checks passed**. P2 run [#43822023444](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444) passed both **Ubuntu 24.04** job [#133147055116](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444/job/133147055116) and **Debian 12** job [#133147055374](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444/job/133147055374) through guest smoke, cleanup and Complete. The local 1f1383 candidate is under review and has no exact-head CI yet. Next: finish review and handoff validation, publish by normal fast-forward, then inspect all exact-head checks and both guest outcomes. Green release-blocker CI does **not** approve release.
 
 ## What we are building
 A capable but easy-to-use hosting dashboard for self-managed supported Linux VPS and dedicated servers. Our design combines conventional hosting tools (web domains, PHP, mail, DNS, database, SSL, backups, resellers) with modern app deployment (Node.js, Python, Git-based apps, isolated containers), without copying proprietary cPanel designs or software.

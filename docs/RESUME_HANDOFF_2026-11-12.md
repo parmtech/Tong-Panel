@@ -1,10 +1,10 @@
 ## Current resume checkpoint — 16 November 2026 (Australia/Sydney)
 
-PR #171 remains open/draft at latest completed exact head 779203a3cbd3590215d18c2fe14f3727e03f3090. All 13 workflows and 21 checks passed, including Go race and browser, plus Debian/Ubuntu clean guests through smoke, cleanup and Complete. The previous ec38 Debian timeout did not recur; its cause remains unknown.
+PR #171 remains open/draft at published source `98788613f7dd0aee0648c0f32d89fe7c5c21aab1`. Exact-head CI passed 13/13 workflows and 21/21 checks. P2 run [#43822023444](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444) passed Ubuntu job [#133147055116](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444/job/133147055116) and Debian job [#133147055374](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444/job/133147055374) through guest smoke, cleanup and Complete.
 
-Local candidate e675cacabf972ac1b6a4eaf2dc176855f8177db5 adds synthetic Files preview cleanup/held-response suppression and keyboard recovery from an empty filter. QA found no blocker; Development reports focused Chrome 1/1 and suite 11/11. Hosted verification is pending.
+Local integrated candidate `1f138335c0a3b8dea5320c5e49f7cead3489a6f2` is based on 987 and awaits exact-head hosted CI. It adds bounded HTTPS failure-only metadata and invocation-count coverage, keyboard pagination/focus with denied-state fallback, and malformed/trailing encrypted-backup tests. Combined local checks passed 11 cleanup cases, 14 Python HTTPS tests, 51/51 web unit tests, shell/JavaScript syntax checks and `git diff --check`; component UI evidence includes focused pagination 1/1, denial 1/1, responsive browser 13/13 and TypeScript passed. The integrated worktree lacks Playwright, TypeScript and Go, and the backup Go runtime was unavailable locally.
 
-**Next:** validate handoffs, confirm remote 779203a, publish the candidate plus docs as a normal fast-forward, and inspect exact-head workflows and both clean guests through Complete. Keep issue #155, P0/P1, owner/security, production and release gates open.
+**Next:** finish independent review and handoff validation; confirm the remote branch remains at 987; publish the candidate by normal fast-forward; then inspect every exact-head workflow/check and both clean guests through Complete. The b107 HTTPS stall remains unexplained. Its raw diagnostic disclosure is fixed and verified on 987, but that does not establish the stall's cause. Keep issue #155, Gate 0, P0/P1, owner/security, production, restore, accessibility and release gates open.
 
 ---
 
@@ -58,13 +58,13 @@ Local candidate e675cacabf972ac1b6a4eaf2dc176855f8177db5 adds synthetic Files pr
 
 **Read [AI_AGENT_START_HERE.md](AI_AGENT_START_HERE.md) FIRST, plus [AI_AGENT_STATE.json](AI_AGENT_STATE.json).** They track P0–P6, current CI, security boundaries and the single next action. Older sections below are retained as audit history.
 
-- Repo: parmtech/Tong-Panel. Sole current review is open/draft PR #171 on integration/pr-reconciliation-20261113; master tracker is issue #172. main remains docs-only; 149 prior drafts remain closed unmerged.
-- **Latest completed published head:** 779203a3cbd3590215d18c2fe14f3727e03f3090. All 13 workflows and 21 checks passed. P2 run #43806992250 passed Debian #133099911318 and Ubuntu #133099911716 through guest smoke, cleanup and Complete.
-- **Unpublished local candidate:** e675cacabf972ac1b6a4eaf2dc176855f8177db5, based on 779203a. It adds simulated blur/visibility preview cleanup, held-response suppression, and keyboard no-match recovery. Development reports focused Chrome 1/1 and suite 11/11; QA found no blocker. Exact hosted CI is pending.
-- **ONE exact next action:** validate docs, verify remote 779203a, publish the reviewed candidate as a normal fast-forward, then inspect every exact-head workflow and both guests. Update PR #171 and issue #172 with observed results. Keep issue #155 open.
+- Repo: parmtech/Tong-Panel. Sole current review is open/draft PR #171; master tracker is issue #172. Published branch is `integration/pr-reconciliation-20261113`; local candidate branch is `codex/tong-panel-candidate-20261116`. `main` remains docs-only; 149 prior drafts remain closed unmerged.
+- **Latest completed published head:** `98788613f7dd0aee0648c0f32d89fe7c5c21aab1`. All 13 workflows and 21 checks passed. P2 run [#43822023444](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444) passed Debian job [#133147055374](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444/job/133147055374) and Ubuntu job [#133147055116](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444/job/133147055116) through guest smoke, cleanup and Complete.
+- **Local candidate awaiting hosted CI:** `1f138335c0a3b8dea5320c5e49f7cead3489a6f2`, based on 987. It adds bounded HTTPS failure-only metadata, pagination keyboard/focus handling including denial fallback, and malformed/trailing backup-tail coverage. Independent review found no blocker; combined local checks passed 11 cleanup cases, 14 Python HTTPS tests, 51/51 web unit tests, syntax checks and `git diff --check`; component UI runs and TypeScript also passed. Exact candidate hosted CI is pending.
+- **ONE exact next action:** finish documentation and independent-review checks, confirm remote 987, publish the candidate as a normal fast-forward, then inspect every exact-head workflow/check and both guest jobs through Complete. Update PR #171 and issue #172 with observed results. Keep issue #155 open.
 - **Gates:** formal P0/ADR-001–009, independent security approval, public login, root agent, CA/key custody, terminal T0, signed installer/rollback, real two-tenant restore and accessibility remain blocked.
 
-## Current continuation — Debian guest dpkg helper PATH (13 November 2026)
+## Historical continuation — Debian guest dpkg helper PATH (13 November 2026)
 
 The owner requested ongoing Tong Panel integration under [#172](https://github.com/parmtech/Tong-Panel/issues/172) and sole [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `07e9f4c9cd5c68653817ebe448ac3f381d5becc5` passed 12 non-VM workflows; [VM run #43341489570](https://github.com/parmtech/Tong-Panel/actions/runs/43341489570) **failed Debian 12** at its new rootless synthetic dpkg test, despite that test passing on the Ubuntu runner. It must not be relabelled green.
 
@@ -73,7 +73,7 @@ The **guest error was missing standard dpkg helpers**, not failed recovery asser
 **Next:** check the exact published commit's clean-VM workflow and logs for the runner + two guests, fix any real failure without weakening package-state assertions. No real installer, signed release, private signing key, host-agent action or P0/ADR/security approval is supplied by this fix. See [the dpkg QA document](P1_DPKG_FAILURE_RECOVERY_LAB.md), [P1 gates](P1_SECURITY_ACCEPTANCE_2026-11-13.md) and [PR #171](https://github.com/parmtech/Tong-Panel/pull/171).
 
 
-## Current continuation — hosted dpkg warning correction and disposable-only guard (13 November 2026)
+## Historical continuation — hosted dpkg warning correction and disposable-only guard (13 November 2026)
 
 Sole [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171) on [tracker #172](https://github.com/parmtech/Tong-Panel/issues/172), parent `a35df71ce50634a09041f5a5c3bc50298f2d5a53`. The first new [clean VM workflow #43340739617](https://github.com/parmtech/Tong-Panel/actions/runs/43340739617) **failed** both runner jobs before booting guests. Inspect actual logs; do not hide this result behind parent success.
 
@@ -82,7 +82,7 @@ Three of the four new rootless `dpkg` failure tests passed. The fourth observed 
 Locally, all four cases passed under the unprivileged account `nobody` with opt-in; without it all four fail as intended. [Detailed contract and hosted findings](P1_DPKG_FAILURE_RECOVERY_LAB.md). **Next action:** verify this precise new commit's runner/Ubuntu/Debian guest test and all CI outcomes, then return to independent signed installer/ADR-008 decisions. These tests are still synthetic; no actual signed release, host-agent privileges, power-loss journal, root installation or P1/P2 security approval exists.
 
 
-## Current continuation — rootless dpkg failure/recovery QA (13 November 2026)
+## Historical continuation — rootless dpkg failure/recovery QA (13 November 2026)
 
 The owner's single [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) remains coordinated on sole [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `a1feb1585dc284a86f75647de38d3c13a3f3e519` finished **13/13 GitHub workflows successfully**, including both disposable clean VMs. Its success does not verify the new QA script.
 
@@ -91,7 +91,7 @@ The [unprivileged dpkg failure lab](P1_DPKG_FAILURE_RECOVERY_LAB.md) uses only c
 **Next single action:** check exact published new head and its clean VM workflow including the new Ubuntu runner and guest test steps, resolve real failures, and record evidence in #171/#172. No production signed package, actual host install, power-loss recovery, key custody or P1/P2 security approval has been obtained. Owner/security ADR-007/008/009 and independent release gates remain pending.
 
 
-## Current continuation — signed-upgrade interruption and rollback advice (13 November 2026)
+## Historical continuation — signed-upgrade interruption and rollback advice (13 November 2026)
 
 The owner asked to continue Tong Panel in one workstream: [master #172](https://github.com/parmtech/Tong-Panel/issues/172), single draft [#171](https://github.com/parmtech/Tong-Panel/pull/171), parent `b9956c881ac0e4ff3c5a1e032a6f640eea4f5f64`. All twelve parent non-VM workflows passed, including Go 1.27.4 offline signed-release model tests; the longer disposable VM run was still in progress when last checked. Do not count parent results as verification of this continuation.
 
@@ -100,7 +100,7 @@ The isolated [ADR-008 model](../prototypes/p1-release-manifest-model/README.md) 
 **Next single action:** verify the newly published exact SHA and GitHub offline-model job, investigate any actual failure, record evidence in [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) and #172. Reconcile pending installer, backup and permission decisions under ADR-007/008/009 and the P1 acceptance packet before any real signer, root host operations, package installation or merge to main.
 
 
-## Current continuation — ADR-008 offline signed-release model (13 November 2026)
+## Historical continuation — ADR-008 offline signed-release model (13 November 2026)
 
 The owner is continuing [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) on single draft [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Latest parent `08608f971809a0ac80205df42e60d7c56ff4b77d` passed its package structural validation in both clean VMs; full guest smoke was still running at the last observation. Recheck current exact-head results rather than substituting parents.
 
@@ -109,7 +109,7 @@ Added the standalone [P1 release-verification lab](../prototypes/p1-release-mani
 **Next single action:** verify new-head hosted Go release-model CI and package/guest workflows, then continue bounded design/testing under [ADR-008](ADR_REGISTER.md) without a production signer or privileged installer. The nine release blockers still require recorded independent owner/security decisions and separate signed package, distro, restart and restore acceptance. Do not merge, deploy or claim a complete P1/P2 gate.
 
 
-## Current continuation — unsigned developer package structural verification (13 November 2026)
+## Historical continuation — unsigned developer package structural verification (13 November 2026)
 
 The owner requested continued integrated work on [master tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) and single [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `e9baa0b6dbc6a952203ba73a16aef26986b9712f` passed all thirteen hosted workflows including both clean VMs. This continuation changes the package test/helper, so its exact-head results must be checked independently.
 
@@ -118,7 +118,7 @@ The developer package's data listing missed control archive scripts; new `script
 **Next single action:** verify the exact published new head and clean-VM package test job; resolve real failures without weakening the negative checks. Even if all CI is green, the unsigned package is not a supported installer or a signoff for ADR-008, production authentication, TLS/private keys or host actions. Do not merge or deploy before owner/security decisions.
 
 
-## Current continuation — explicit P1 release blocker audit (13 November 2026)
+## Historical continuation — explicit P1 release blocker audit (13 November 2026)
 
 The owner's single coordinated workstream is [#172](https://github.com/parmtech/Tong-Panel/issues/172), executed on the sole development [PR #171](https://github.com/parmtech/Tong-Panel/pull/171). Parent `2096a4e95eed98ef06bc268167c2250704ad02c4` passed all 12 hosted workflows (including both clean Ubuntu/Debian VMs). New-head checks for this continuation are separate.
 
@@ -127,7 +127,7 @@ Added a development-only release-blocker audit: [contract](P1_GATE_BLOCKER_AUDIT
 **Next single action:** verify the PR's new exact commit, including the P1 blocker-audit workflow, then continue a safe tested foundation slice or review approved ADR decisions if the owner and independent reviewer have actually recorded them. Until then, P0/security, public login, root agent, SSL custody, terminal T0, signed installer, two-tenant restore and accessibility remain blocked. Do not merge to main, deploy, or bypass real approval.
 
 
-## Current continuation — complete draft PR reconciliation
+## Historical continuation — complete draft PR reconciliation
 
 **Branch:** `integration/pr-reconciliation-20261113`. **Implementation:** [`4aea031878ef39ad82319b0db402cec50ceee3c9`](https://github.com/parmtech/Tong-Panel/commit/4aea031878ef39ad82319b0db402cec50ceee3c9). Read the [integration draft](https://github.com/parmtech/Tong-Panel/pulls?q=is%3Apr+head%3Aintegration%2Fpr-reconciliation-20261113) for the exact published review head, later hosted results and superseded-PR closure state. This section supersedes the older continuations below.
 
@@ -149,7 +149,7 @@ This is a **draft checkpoint, not a release or phase-completion certificate**. T
 - P0 owner architecture decisions, threat model/security review and explicit phase gates remain open. Some private evidence remains local; public copies are redacted and are not byte-for-byte backups. Previously denied security-review material must not be published or retried through another route. Refer to the private task board/owner for access and the exact scope; do not infer missing details.
 - `docs/FEATURE_MATRIX.md` now follows the canonical P0–P6 numbering in `docs/ROADMAP.md`; its crosswalk explains the older matrix labels without approving phase completion. `docs/OPEN_SOURCE_RESEARCH_REPORT_2026-11-12.md` lists candidates, source URLs, licenses, integration ideas and risks. It is not exhaustive or approval to import.
 
-## Current continuation — 13 November 2026 (Sydney)
+## Historical continuation — 13 November 2026 (Sydney)
 
 Branch `feature/p1-session-expiry-writer-context`, implementation commit `d3e5c35b05e670c877c48015494bf2afadd59d22`, is stacked on PR #169 head `1351db454a54408af8d2ffd928e0e1d1a6676ec8`. It includes the test-only ACME recovery work described below and adds a distinct existing-authentication correctness fix. All three changed source/test files were compared byte-for-byte with their tested versions after stacking; the parent adds only isolated tests and documentation.
 

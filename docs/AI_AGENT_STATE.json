@@ -5,9 +5,9 @@
   "snapshot_kind": "not_live_monitor",
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
-  "working_branch": "integration/pr-reconciliation-20261113",
-  "source_head_before_handoff_commit": "e675cacabf972ac1b6a4eaf2dc176855f8177db5",
-  "source_tree_sha": "a1a5554d04490cf6dffd9cd3bd9e112e9a5a58de",
+  "working_branch": "codex/tong-panel-candidate-20261116",
+  "source_head_before_handoff_commit": "1f138335c0a3b8dea5320c5e49f7cead3489a6f2",
+  "source_tree_sha": "47de2f6eb4416099575a01627e582e6ab80152b9",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -22,7 +22,7 @@
     "no_head_workflows": 14
   },
   "source_head_ci": {
-    "head_sha": "779203a3cbd3590215d18c2fe14f3727e03f3090",
+    "head_sha": "98788613f7dd0aee0648c0f32d89fe7c5c21aab1",
     "total": 13,
     "check_run_total": 21,
     "success": 13,
@@ -30,77 +30,77 @@
     "check_run_success": 21,
     "check_run_failure": 0,
     "pending": [],
-    "vm_run": 43806992250,
+    "vm_run": 43822023444,
     "ubuntu_guest": "completed_success_smoke_cleanup_and_complete",
     "debian_guest": "completed_success_smoke_cleanup_and_complete",
-    "ubuntu_job_id": 133099911716,
-    "debian_job_id": 133099911318,
+    "ubuntu_job_id": 133147055116,
+    "debian_job_id": 133147055374,
     "vm_run_conclusion": "success",
-    "browser_run": 43806992151,
-    "go_run": 43806992027,
+    "browser_run": 43822023437,
+    "go_run": 43822023582,
     "gosec": "success",
     "workflow_runs": {
       "SQLite schema checks": {
-        "run_id": 43806992200,
+        "run_id": 43822023513,
         "conclusion": "success"
       },
       "P1 gate blocker inventory": {
-        "run_id": 43806992075,
+        "run_id": 43822023436,
         "conclusion": "success"
       },
       "UI checks": {
-        "run_id": 43806992039,
+        "run_id": 43822023527,
         "conclusion": "success"
       },
       "Offline model and fixture checks": {
-        "run_id": 43806992017,
+        "run_id": 43822023533,
         "conclusion": "success"
       },
       "Go vulnerability checks": {
-        "run_id": 43806992065,
+        "run_id": 43822023574,
         "conclusion": "success"
       },
       "Current API contract checks": {
-        "run_id": 43806992045,
+        "run_id": 43822023414,
         "conclusion": "success"
       },
       "P1 unsigned developer package lab": {
-        "run_id": 43806992049,
+        "run_id": 43822023484,
         "conclusion": "success"
       },
       "Isolated Go prototype checks": {
-        "run_id": 43806992092,
+        "run_id": 43822023626,
         "conclusion": "success"
       },
       "Go static security analysis": {
-        "run_id": 43806992036,
+        "run_id": 43822023471,
         "conclusion": "success"
       },
       "Jobs browser checks": {
-        "run_id": 43806992151,
+        "run_id": 43822023437,
         "conclusion": "success"
       },
       "P1 developer smoke (non-destructive)": {
-        "run_id": 43806992021,
+        "run_id": 43822023643,
         "conclusion": "success"
       },
       "Go checks": {
-        "run_id": 43806992027,
+        "run_id": 43822023582,
         "conclusion": "success"
       },
       "P2 clean disposable VM smoke": {
-        "run_id": 43806992250,
+        "run_id": 43822023444,
         "conclusion": "success"
       }
     }
   },
   "next": {
-    "task_id": "FILES-PREVIEW-FOCUS-CLEANUP-AND-EMPTY-STATE-EXACT-HEAD",
+    "task_id": "INTEGRATED-CANDIDATE-1F1383-EXACT-HEAD-CI",
     "priority": 2,
-    "action": "Confirm remote PR head remains at 779203a, publish the reviewed preview-cleanup and keyboard empty-state regressions plus refreshed handoffs as a normal fast-forward, then inspect all exact-head workflows and both guests through cleanup and Complete.",
+    "action": "Finish independent review and handoff validation for local candidate 1f138335c0a3b8dea5320c5e49f7cead3489a6f2; confirm the remote PR branch remains at 98788613f7dd0aee0648c0f32d89fe7c5c21aab1; publish only as a normal fast-forward; then inspect every exact-head workflow/check and both clean guests through cleanup and Complete.",
     "required_evidence": [
       "All exact-head workflows/check runs complete and individually inspected",
-      "Jobs browser workflow exercises blur/visibility cleanup, held-response suppression, and no-match keyboard recovery",
+      "Exact candidate CI exercises bounded failure-only diagnostics, keyboard pagination/focus and denial fallback, and malformed/trailing backup-tail coverage",
       "Go race checks pass",
       "Debian 12 and Ubuntu 24.04 guest smoke, cleanup and Complete pass",
       "Update PR #171 and tracker #172 with exact SHA/results; keep issue #155 open",
@@ -138,18 +138,18 @@
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
-    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43806992250",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43822023444",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "e675cacabf972ac1b6a4eaf2dc176855f8177db5",
-    "hosted_ci": "pending_exact_PR_head; parent 779203a passed all 13 workflows and 21 checks including Go/browser/both guests",
-    "evidence": "Adds synthetic Files blur/visibility cleanup, held-response suppression and keyboard no-match recovery. QA found no blocker. Development reports focused Chrome 1/1 and full suite 11/11. Exact hosted verification pending.",
-    "limitations": "Blur/visibility events are simulated DOM signals, not real background-tab transitions. No authenticated tenant, physical-device or human accessibility acceptance is implied; issue #155 remains open."
+    "sha": "1f138335c0a3b8dea5320c5e49f7cead3489a6f2",
+    "hosted_ci": "pending_exact_PR_head; base 98788613 passed 13 workflows and 21 checks including Go/browser/both guests",
+    "evidence": "Adds bounded HTTPS failure-only metadata and invocation-count coverage, keyboard pagination/focus and 401/403 denied-state fallback, and malformed/trailing encrypted-backup coverage. Combined local checks: 11 cleanup cases, 14 Python HTTPS tests, 51/51 web unit tests, shell/JavaScript syntax and diff check. Separate component evidence: focused pagination 1/1, denial 1/1, responsive browser 13/13, TypeScript passed. Independent integrated review found no blocker.",
+    "limitations": "Exact candidate hosted CI is pending. Integrated worktree lacks Playwright, TypeScript and Go; backup Go runtime was unavailable locally. PHP-FPM comm names on pinned images remain unverified. HTTPS failure cause remains unknown. Synthetic UI evidence does not establish authenticated-tenant, physical-device or human accessibility acceptance; issue #155 remains open."
   },
-  "published_pr_head_at_snapshot": "779203a3cbd3590215d18c2fe14f3727e03f3090",
-  "local_checkpoint_parent_at_snapshot": "779203a3cbd3590215d18c2fe14f3727e03f3090",
+  "published_pr_head_at_snapshot": "98788613f7dd0aee0648c0f32d89fe7c5c21aab1",
+  "local_checkpoint_parent_at_snapshot": "98788613f7dd0aee0648c0f32d89fe7c5c21aab1",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
@@ -163,18 +163,18 @@
     "branch": "codex/qa-root-at-final-20261116",
     "head": "43ff309760a629cbaca3651c3d1118cb9b5de57b",
     "base": "dff0a230f3c7840df118efec63fa00011435e9a4",
-    "state": "source_tests_integrated_at_ec38; later_558b_exact_PR_full_CI_and_both_guests_passed; preserve_ec38_Debian_HTTPS_failure",
+    "state": "source_tests_patch_equivalent_to_published_PR_commits_70a1fd8_and_02258ae; exact_987_full_CI_and_both_guests_passed; preserve_historical_HTTPS_failures",
     "linux_branch_run": 43770861328,
     "linux_job_id": 132986235012,
-    "exact_pr_ci": "Go_race_passed_at_ec38; later_558b_exact_head_all_13_workflows_and_21_checks_passed; ec38_Debian_HTTPS_failure_did_not_recur_but_cause_unknown",
-    "ubuntu_debian_guests": "ubuntu_passed_cleanup_complete; debian_failed_https_before_http_status_000_exit_28",
+    "exact_pr_ci": "98788613f7dd0aee0648c0f32d89fe7c5c21aab1_all_13_workflows_and_21_checks_passed; both_P2_guests_passed_cleanup_and_complete; historical_b107_HTTPS_cause_unknown",
+    "ubuntu_debian_guests": "both_passed_guest_smoke_cleanup_and_complete_on_98788613",
     "sol_review": "completed_no_concrete_blocker_for_nonroot_disposable_lab_scope",
     "qa_review": "completed_no_code_or_descriptor_cleanup_blocker",
     "limitations": "No production restore authorization, durable quota-release authority or cross-process fence; same-UID pre-observation replacement, ABA, mount aliases and ancestor replacement remain outside guarantees.",
-    "later_exact_pr_ci": "558b8c885cb0b4708be157ab49dcaffccd7ecb98: all_13_workflows_and_21_checks_passed; Ubuntu_and_Debian_guests_passed_smoke_cleanup_and_Complete"
+    "later_exact_pr_ci": "98788613f7dd0aee0648c0f32d89fe7c5c21aab1: all_13_workflows_and_21_checks_passed; Ubuntu_and_Debian_guests_passed_smoke_cleanup_and_Complete"
   },
-  "local_candidate_head": "e675cacabf972ac1b6a4eaf2dc176855f8177db5",
-  "local_candidate_tree_sha": "a1a5554d04490cf6dffd9cd3bd9e112e9a5a58de",
+  "local_candidate_head": "1f138335c0a3b8dea5320c5e49f7cead3489a6f2",
+  "local_candidate_tree_sha": "47de2f6eb4416099575a01627e582e6ab80152b9",
   "responsive_test_candidate": {
     "branch": "codex/p2-responsive-sites-files-retry-20261116",
     "head": "40b9ac2a664893803696ab72153d78c27177b344",
@@ -217,7 +217,7 @@
       ],
       "integrated_commit": "e675cacabf972ac1b6a4eaf2dc176855f8177db5",
       "base": "779203a3cbd3590215d18c2fe14f3727e03f3090",
-      "state": "local_only_pending_exact_head_hosted_CI",
+      "state": "published_in_PR_171_by_98788613; exact_head_all_13_workflows_and_21_checks_passed",
       "review": "Development_and_QA_no_blocker",
       "validation": "development_reported_focused_Chrome_1_of_1_and_suite_11_of_11; not independently_rerun",
       "scope": "simulated blur/hidden visibility clears loaded and pending previews without resurrection; keyboard no-match recovery at 320x640 and 390x360; synthetic GET-only fixture"
@@ -273,8 +273,8 @@
     "test_runtime": "PR and push Go race checks passed on exact head 9a, including Linux-tagged Files runtime",
     "scope": "injected reservation Release failure after duplicate create conflict returns_quota_unavailable_preserves_file_and_retains_reserved_bytes"
   },
-  "local_snapshot_head": "e675cacabf972ac1b6a4eaf2dc176855f8177db5",
-  "local_snapshot_tree": "a1a5554d04490cf6dffd9cd3bd9e112e9a5a58de",
+  "local_snapshot_head": "1f138335c0a3b8dea5320c5e49f7cead3489a6f2",
+  "local_snapshot_tree": "47de2f6eb4416099575a01627e582e6ab80152b9",
   "files_media_type_candidate": {
     "branch": "codex/api-contract-gap-scan-20261116",
     "head": "8a622a0400e6b6f13e9f526664bfa53e397d78f1",

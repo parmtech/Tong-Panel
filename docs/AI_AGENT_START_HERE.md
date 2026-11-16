@@ -1,10 +1,10 @@
 ## Latest resume checkpoint — 16 November 2026 (Australia/Sydney)
 
-- **Latest completed exact PR #171 head:** 779203a3cbd3590215d18c2fe14f3727e03f3090. All 13 workflow runs and 21 check runs succeeded; Go race, gosec and Jobs browser passed. P2 run #43806992250 passed Debian job #133099911318 and Ubuntu job #133099911716 through guest smoke, cleanup and Complete.
-- **Local candidate:** e675cacabf972ac1b6a4eaf2dc176855f8177db5, based on 779203a. It tests Files preview cleanup on blur/visibility loss, suppression of held stale responses, and keyboard recovery from a no-match filter. QA found no blocker; Development reports focused Chrome 1/1 and responsive suite 11/11. Hosted verification is pending.
-- **Limits:** blur and hidden-visibility events are simulated; no actual background-tab transition is claimed. Tests use synthetic API data and do not establish authentication, real tenant behavior, physical-device use or human accessibility acceptance. Keep #155 open.
-- **Next:** refresh/validate handoffs, confirm remote 779203a, publish as a normal fast-forward, then inspect every exact-head workflow and both clean guests. Update PR #171 and tracker #172 with observed results.
-- **Gates:** P0/ADR decisions, P1 exit/P2 entry, owner/security signoff, production identity/key custody, privileged host operations, signed installer, real two-tenant restore, accessibility and release approval remain blocked.
+- **Latest published PR #171 head:** `98788613f7dd0aee0648c0f32d89fe7c5c21aab1`, open and draft. Exact-head CI passed all 13 workflows and 21 checks. P2 run [#43822023444](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444) passed Ubuntu job [#133147055116](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444/job/133147055116) and Debian job [#133147055374](https://github.com/parmtech/Tong-Panel/actions/runs/43822023444/job/133147055374) through guest smoke, cleanup and Complete.
+- **Local integrated candidate:** `1f138335c0a3b8dea5320c5e49f7cead3489a6f2`, based on 987. It adds bounded HTTPS failure-only metadata and invocation-count coverage, keyboard pagination/focus including denied-state fallback, and malformed/trailing encrypted-backup tests. Exact candidate hosted CI is pending. Combined local checks passed 11 cleanup cases, 14 Python HTTPS tests, 51/51 web unit tests, shell/JavaScript syntax checks and `git diff --check`; the component UI work also reports focused pagination 1/1, denial 1/1, responsive browser 13/13 and TypeScript passed. The integrated worktree lacks Playwright, TypeScript and Go, and the backup Go runtime was unavailable locally.
+- **Limits:** HTTPS failure cause remains unknown; raw serial/systemd/journal output is withheld and redaction is verified on published 987. PHP-FPM `comm` values on pinned guests remain unverified. UI/API data is synthetic and viewport-emulated; this is not authenticated-tenant, physical-device or human accessibility acceptance. Keep issue #155 open.
+- **Next:** complete the candidate and docs reviews, confirm the remote branch remains at 987, then publish by normal fast-forward and inspect all exact-head workflow/check results plus both guests through cleanup and Complete. Update PR #171 and issue #172 with observed results.
+- **Gates:** Keep Gate 0, P0/P1, owner/security, production authentication/key custody, privileged host operations, signed installer, restore authorization, accessibility and release approval open.
 
 ---
 
@@ -128,7 +128,9 @@ The source inventory and verification table below describe the prior 13 November
 - Hosted run [#43341489570](https://github.com/parmtech/Tong-Panel/actions/runs/43341489570) failed inside Debian 12 guest because non-root account PATH omitted `/usr/sbin` and dpkg could not find `ldconfig` / `start-stop-daemon`. Fixed deterministic subprocess PATH and added a fifth restricted-PATH regression.
 - Latest executable-source `83fe893`: **13/13 workflows successful**, including both full Ubuntu and Debian guest jobs in [VM run #43343515245](https://github.com/parmtech/Tong-Panel/actions/runs/43343515245). Original negative tests passed runner-side; guest execution completed.
 
-## 5. Exact NEXT RESUME POINT — publish preview cleanup and empty-state coverage
+## 5. Historical resume point — 779 checkpoint (superseded)
+
+The following 779/e675 instructions are retained as historical handoff context. The current resume point is the 987/1f1383 checkpoint at the top of this document.
 
 Latest completed PR #171 head 779203a3cbd3590215d18c2fe14f3727e03f3090 passed all 13 workflows and 21 checks. Go race, gosec and Jobs browser passed. P2 run #43806992250 passed Debian #133099911318 and Ubuntu #133099911716 through guest smoke, cleanup and Complete. The earlier ec38 Debian HTTPS timeout did not recur; its cause remains unknown.
 
@@ -200,7 +202,7 @@ Never invent approvers, permission, credentials, signing keys, test results or c
 - Do not put secret values, signing private keys, customer data or private local paths in a public repo. Work within explicit permissions; no implied “ongoing in background.”
 - Verify the pushed commit is visible, the one PR remains open and unmerged, `main` unchanged, and the reported exact-head test status is real.
 
-**One-line next action:** confirm PR #171
+**One-line next action:** finish review of local candidate `1f138335c0a3b8dea5320c5e49f7cead3489a6f2`, confirm remote PR source remains `98788613f7dd0aee0648c0f32d89fe7c5c21aab1`, publish by normal fast-forward, then verify exact-head CI and both guests.
 
 ## 9. Historical source-head verification — 13 passing workflows on 83fe893
 

@@ -1,11 +1,11 @@
 # Tong Panel — Development Roadmap
-**Original roadmap:** 2026-10-28 | **Status reconciled:** 2026-11-13. P0 owner/independent security decisions are pending; P1 prototypes and disposable P2 QA may continue, but P1 exit and P2 entry are not approved. [A–Z next-agent handoff](AI_AGENT_START_HERE.md).
+**Original roadmap:** 2026-10-28 | **Status reconciled:** 2026-11-16. P0 owner/independent security decisions are pending; P1 prototypes and disposable P2 QA may continue, but P1 exit and P2 entry are not approved. [A–Z next-agent handoff](AI_AGENT_START_HERE.md).
 All durations are intentionally uncommitted; phases are gated by evidence rather than time estimates.
 
 ## Canonical execution checkpoint and ordering
 
 - **Code/review:** [PR #171](https://github.com/parmtech/Tong-Panel/pull/171) is the sole open draft; the 149 original drafts are closed unmerged and their source commits retained. [Tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) is the integrated first-release backlog. `main` remains documentation-only.
-- **Agent resume:** read [A–Z handoff](AI_AGENT_START_HERE.md), [machine state](AI_AGENT_STATE.json) and the journal. The verified executable-source SHA `83fe8931` completed **13/13 successful workflows**, including both full clean guests. Next safe slice: isolated synthetic rootless dpkg crash/interruption and state-reconciliation tests, after checking newer docs-head CI.
+- **Agent resume:** read [A–Z handoff](AI_AGENT_START_HERE.md), [machine state](AI_AGENT_STATE.json) and the journal. The latest published PR #171 source `98788613f7dd0aee0648c0f32d89fe7c5c21aab1` completed **13/13 workflows and 21/21 checks**, including both clean guests. Local integrated candidate `1f138335c0a3b8dea5320c5e49f7cead3489a6f2` is based on 987 and awaits exact-head CI; its bounded diagnostic, keyboard-focus and malformed-backup-tail changes are under review. Next: finish review and handoff validation, confirm the remote branch remains at 987, publish by normal fast-forward, then inspect exact-head CI and both guests.
 - **Gate policy:** P0 ADR-001–009, independent security acceptance, production auth/secret custody, privileged agent, signed installer, real two-tenant restore and accessibility are **blocked**. A green blocker-inventory test does *not* unblock them. Safe nonprivileged design/model/negative-test work may continue without implying phase acceptance.
 - **Evidence first:** every task has issue, source SHA, test result or pending/failure, and next action. Keep first-release broad feature goals without advertising incomplete P3–P5 models as shipped service integrations.
 
@@ -76,6 +76,6 @@ Multiple agents may work in independent branches. Use CODEOWNERS later; never si
 
 The current combined-source and CI evidence is tracked in the [PR reconciliation report](PR_RECONCILIATION_2026-11-13.md) and [resume handoff](RESUME_HANDOFF_2026-11-12.md); the dated inventory above is historical.
 
-## Next concrete action — owner/security review required
+## Open P0 owner/security prerequisite — blocking gate
 
 Record Accepted, Rejected or Needs revision for ADR-001 through ADR-009 and the threat model in the ADR register and owner issues. Then rebaseline the P1 exit gate against the actual unmerged prototypes. Do not expose public login, create privileged installer/service actions or claim P2 alpha completion before those trust and lifecycle decisions receive review. See UPDATES.md and AGENTS.md for the detailed current checkpoint.
