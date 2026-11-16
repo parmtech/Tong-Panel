@@ -11,6 +11,10 @@ on:
       - 'prototypes/p5-placement-gate-model/**'
       - 'prototypes/p5-plugin-capability-model/**'
       - 'testdata/p3-fixtures/**'
+      - 'scripts/p4_compatibility_matrix_audit.py'
+      - 'scripts/test_p4_compatibility_matrix_audit.py'
+      - 'docs/P4_COMPATIBILITY_MATRIX_VALIDATOR.md'
+      - 'docs/phases/P4-DESIGN-ACCEPTANCE.md'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/offline-model-checks.yml'
@@ -24,6 +28,10 @@ on:
       - 'prototypes/p5-placement-gate-model/**'
       - 'prototypes/p5-plugin-capability-model/**'
       - 'testdata/p3-fixtures/**'
+      - 'scripts/p4_compatibility_matrix_audit.py'
+      - 'scripts/test_p4_compatibility_matrix_audit.py'
+      - 'docs/P4_COMPATIBILITY_MATRIX_VALIDATOR.md'
+      - 'docs/phases/P4-DESIGN-ACCEPTANCE.md'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/offline-model-checks.yml'
@@ -110,3 +118,16 @@ jobs:
         run: timeout --signal=TERM --kill-after=5s 60s node --test testdata/p3-fixtures/node/server.test.cjs
       - name: Test synthetic Python ASGI fixture in process
         run: timeout --signal=TERM --kill-after=5s 60s python3 -m unittest discover -s testdata/p3-fixtures/python -v
+
+  p4-compatibility-matrix:
+    name: P4 compatibility matrix (synthetic only; not support approval)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check draft compatibility matrix validation fixtures
+        run: python3 -m unittest discover -s scripts -p 'test_p4_compatibility_matrix_audit.py' -v
