@@ -69,6 +69,17 @@ PY
 }
 assert_package_absent
 
+# An incomplete policy must be rejected before it can produce an allowed gate or mutate the guest.
+if "$preflightctl" preflight --min-disk-bytes 1 > "$preflight_work/missing-policy.json" 2> "$preflight_work/missing-policy.stderr"; then
+  missing_policy_status=0
+else
+  missing_policy_status=$?
+fi
+[[ "$missing_policy_status" == 2 ]]
+grep -Fq -- 'preflight --min-disk-bytes BYTES --required-tcp-ports PORT[,PORT...]' "$preflight_work/missing-policy.stderr"
+[[ ! -s "$preflight_work/missing-policy.json" ]]
+assert_package_absent
+
 # A policy threshold above any possible disk size must block before dpkg mutates the guest.
 if "$preflightctl" preflight --min-disk-bytes 18446744073709551615 --required-tcp-ports 8090 > "$preflight_work/low-disk.json"; then
   low_disk_status=0
