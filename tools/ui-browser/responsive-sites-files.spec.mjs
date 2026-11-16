@@ -92,6 +92,9 @@ async function openComponentPreview(page, records, nextFailures = { sites: null,
             const summary = {
                 path: url.pathname,
                 prefix: url.searchParams.get('prefix') ?? '',
+                after: url.searchParams.get('after') ?? '',
+                filesPath: url.searchParams.get('path') ?? '',
+                page: url.searchParams.get('page'),
                 method: request.method(),
                 hasCookie: Boolean(request.headers().cookie),
                 hasAuthorization: Boolean(request.headers().authorization),
@@ -124,6 +127,18 @@ async function openComponentPreview(page, records, nextFailures = { sites: null,
                     failure.markStarted();
                     await failure.released;
                     await route.abort('failed');
+                    return;
+                }
+                if (nextFailures.paginatedFiles) {
+                    const pages = {
+                        '': { entries: [{ name: 'alpha.txt', kind: 'file', size: 5 }], next_after: 'alpha.txt' },
+                        'alpha.txt': { entries: [{ name: 'beta.txt', kind: 'file', size: 4 }], next_after: '' },
+                    };
+                    if (!Object.hasOwn(pages, summary.after)) {
+                        await route.fulfill({ status: 400, body: '' });
+                        return;
+                    }
+                    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pages[summary.after]) });
                     return;
                 }
                 const entries = [
@@ -830,4 +845,67 @@ test('component preview: Files no-match filter recovers by keyboard at phone siz
     }
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length * 3, previews: phones.length }, phones.length);
     expect(records.files.map(request => request.prefix)).toEqual(phones.flatMap(() => ['', 'no-such-entry', 'responsive']));
+});
+
+
+test('component preview: Files pages are reachable by keyboard at phone sizes', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const controls = { sites: null, files: null, paginatedFiles: true };
+    const phones = [{ width: 320, height: 640 }, { width: 390, height: 360 }];
+    await openComponentPreview(page, records, controls);
+    async function expectVerticalReachability(selector, viewport) {
+        const element = page.locator(selector);
+        await element.scrollIntoViewIfNeeded();
+        const box = await element.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
+    }
+    for (const [index, viewport] of phones.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+        await tabUntilFocused(page, '#files-refresh', viewport);
+        await expectVisibleKeyboardFocus(page, '#files-refresh', viewport);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-status')).toContainText('Page 1: 1 item.');
+        await expect(page.locator('#files-list')).toContainText('alpha.txt');
+        await expect(page.locator('#files-list')).not.toContainText('beta.txt');
+        await expect(page.locator('#files-previous')).toBeDisabled();
+        await expect(page.locator('#files-next')).toBeEnabled();
+        const scope = await page.locator('#files-breadcrumbs').textContent();
+        await tabUntilFocused(page, '#files-next', viewport);
+        await expectVisibleKeyboardFocus(page, '#files-next', viewport);
+        await expectResponsiveBounds(page, viewport, ['#files-next', '#files-status']);
+        await expectVerticalReachability('#files-status', viewport);
+        await expectVerticalReachability('#files-next', viewport);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-status')).toContainText('Page 2: 1 item.');
+        await expect(page.locator('#files-list')).toContainText('beta.txt');
+        await expect(page.locator('#files-list')).not.toContainText('alpha.txt');
+        await expect(page.locator('#files-previous')).toBeEnabled();
+        await expect(page.locator('#files-next')).toBeDisabled();
+        expect(await page.locator('#files-breadcrumbs').textContent()).toBe(scope);
+        await tabUntilFocused(page, '#files-previous', viewport);
+        await expectVisibleKeyboardFocus(page, '#files-previous', viewport);
+        await expectResponsiveBounds(page, viewport, ['#files-previous', '#files-status']);
+        await expectVerticalReachability('#files-status', viewport);
+        await expectVerticalReachability('#files-previous', viewport);
+        await page.keyboard.press(keyboardActivation(index + 1));
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-status')).toContainText('Page 1: 1 item.');
+        await expect(page.locator('#files-list')).toContainText('alpha.txt');
+        await expect(page.locator('#files-list')).not.toContainText('beta.txt');
+        await expect(page.locator('#files-previous')).toBeDisabled();
+        await expect(page.locator('#files-next')).toBeEnabled();
+        expect(await page.locator('#files-breadcrumbs').textContent()).toBe(scope);
+    }
+    expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length * 3, previews: 0 }, phones.length);
+    expect(records.files.map(({ filesPath, after, prefix, page }) => ({ filesPath, after, prefix, page }))).toEqual(
+        phones.flatMap(() => ['', 'alpha.txt', ''].map(after => ({ filesPath: '', after, prefix: '', page: '1' }))),
+    );
 });
