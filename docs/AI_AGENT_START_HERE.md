@@ -1,11 +1,11 @@
 ## Latest resume checkpoint — 16 November 2026 (Australia/Sydney)
 
-- **Published PR #171:** open/draft at `b292c89e3d37d48c78a3e555d6e2cb02810da00d`, based on `dff0a230f3c7840df118efec63fa00011435e9a4`. All 13 checks passed on that exact head, including Ubuntu and Debian clean guests ([run #43773412630](https://github.com/parmtech/Tong-Panel/actions/runs/43773412630)). This does not cover local changes below.
-- **Local reviewed candidate:** `integration/pr-reconciliation-20261113` is at `c8ead119fb7b1a2555474d129a8f3c046b376c28`, not yet pushed. The candidate adds synthetic responsive Sites/Files pointer and keyboard previews across seven sizes, and returns focus to the originating Files Preview button on explicit Close. Independent QA found no blocker.
-- **Local checks:** focused Playwright `responsive-sites-files.spec.mjs` passed 4/4; both changed JavaScript files passed `node --check`; `git diff --check` passed. A local full browser-suite attempt reached all four responsive passes but stopped at the first existing Jobs test because `TONG_UI_FIXTURE_BINARY` was not set; this machine has no Go compiler to build it. The hosted browser workflow builds and provides the fixture. Exact PR-head verification is still pending.
+- **Published PR #171:** open/draft at `bf9ccbe7f6ca7cd8f83a92200fb79cb4aadcbcb0`, based on `dff0a230f3c7840df118efec63fa00011435e9a4`. On this exact head, 12/13 unique workflows passed and Jobs browser failed TypeScript/embedded-JavaScript parity. P2 clean-VM run #43779379237 passed guest smoke and cleanup on Ubuntu 24.04 job #133012865844 and Debian 12 job #133012865550.
+- **Local reviewed source/test commit:** `integration/pr-reconciliation-20261113` is at `40b9ac2a664893803696ab72153d78c27177b344`, not yet pushed. It includes the TS/embedded-JS parity correction plus synthetic Sites/Files failure-and-retry browser coverage at 320×640 and 390×360. TypeScript 5.9.3 compilation and byte parity pass; focused responsive Playwright is 5/5, Files unit tests 15/15. Independent QA found no blocker. Retry coverage simulates route aborts and does not cover stale-data recovery or vertical clipping.
+- **Local checks:** focused responsive Playwright passed 5/5 across seven sizes; Files unit tests passed 15/15; JS syntax and diff checks passed. A local full browser-suite attempt stopped at an existing Jobs test because `TONG_UI_FIXTURE_BINARY` was not set; this machine has no Go compiler to build it. The hosted workflow builds the fixture. Exact PR-head CI for the correction and retry test is pending.
 - **P2 issue #155:** the journey plan remains design-only and the new tests remain synthetic component evidence. No authenticated tenant flow, live handler/Nginx operation, human accessibility review, or issue acceptance is claimed. Keep #155 open.
 - **OpenRootAt:** branch `codex/root-at-dff0a23` at `487c4c1` remains separate; branch-only run [#43770861328](https://github.com/parmtech/Tong-Panel/actions/runs/43770861328) is not PR/guest evidence. Sol 6.1 Medium review remains pending and has not been claimed.
-- **Next action:** refresh the handoff files and tracker, verify the remote branch is still `b292c89`, push the reviewed candidate without force, then inspect all 13 exact-head workflows including Jobs browser and both clean guests. After that, continue with a small synthetic Sites/Files failure-and-retry preview test. Preserve P0/P1, owner/security, production and release gates.
+- **Next action:** refresh the handoff files and tracker, verify the remote branch is still `bf9ccbe`, push the reviewed source/tests without force, then inspect all 13 exact-head workflows including the full Jobs browser suite and both clean guests. Preserve P0/P1, owner/security, production and release gates.
 
 ---
 
@@ -129,15 +129,15 @@ The source inventory and verification table below describe the prior 13 November
 - Hosted run [#43341489570](https://github.com/parmtech/Tong-Panel/actions/runs/43341489570) failed inside Debian 12 guest because non-root account PATH omitted `/usr/sbin` and dpkg could not find `ldconfig` / `start-stop-daemon`. Fixed deterministic subprocess PATH and added a fifth restricted-PATH regression.
 - Latest executable-source `83fe893`: **13/13 workflows successful**, including both full Ubuntu and Debian guest jobs in [VM run #43343515245](https://github.com/parmtech/Tong-Panel/actions/runs/43343515245). Original negative tests passed runner-side; guest execution completed.
 
-## 5. Exact NEXT RESUME POINT — publish responsive candidate and verify PR CI
+## 5. Exact NEXT RESUME POINT — publish parity correction and verify PR CI
 
-The independent QA-reviewed component candidate is locally integrated at `c8ead119fb7b1a2555474d129a8f3c046b376c28`. The published PR #171 branch was confirmed at `b292c89e3d37d48c78a3e555d6e2cb02810da00d` immediately before this local handoff; verify it again before pushing.
+The independently QA-reviewed parity correction and retry test are locally integrated at `40b9ac2a664893803696ab72153d78c27177b344`. The published PR #171 branch is at `bf9ccbe7f6ca7cd8f83a92200fb79cb4aadcbcb0`; verify it again before pushing.
 
-1. Finish the current handoff update, then fetch `origin/integration/pr-reconciliation-20261113` and confirm it remains at `b292c89`. Push the integration branch normally; never force-push or overwrite concurrent work.
-2. Inspect every exact-head workflow on the new published PR SHA, including the Jobs browser suite and both Ubuntu 24.04/Debian 12 clean guests. The browser workflow must build `TONG_UI_FIXTURE_BINARY` and run all 36 discovered tests, including the four responsive cases.
-3. Update PR #171 and tracker #172 with the new exact SHA and actual run/job results. Add a concise progress comment to issue #155 and leave it open.
+1. Finish this handoff update, fetch `origin/integration/pr-reconciliation-20261113`, and confirm it remains at `bf9ccbe`. Push the integrated source/tests normally; never force-push or overwrite concurrent work.
+2. Inspect every exact-head workflow on the newly published PR SHA, including TypeScript-to-embedded-JavaScript parity, the Jobs browser suite and both Ubuntu 24.04/Debian 12 clean guests. The browser workflow must build `TONG_UI_FIXTURE_BINARY` and run all discovered tests, including five responsive cases.
+3. Preserve the prior browser failure as historical evidence. Update PR #171 and tracker #172 with the new exact SHA and actual run/job results. Add a concise progress comment to issue #155 and leave it open.
 4. Keep `codex/root-at-dff0a23` at `487c4c1` separate until Sol 6.1 Medium independently reviews the code using [`OPENROOTAT_SECURITY_REVIEW_HANDOFF.md`](OPENROOTAT_SECURITY_REVIEW_HANDOFF.md). No security signoff is claimed.
-5. After the exact-head checks pass, continue with a local synthetic network-failure/retry case for Sites and Files at 320×640 and 390×360. Keep unauthenticated mocks isolated and avoid claiming tenant end-to-end or human accessibility acceptance.
+5. After the exact-head checks pass, choose the next bounded blueprint task that can proceed without unresolved owner/security gates. Keep synthetic fixtures isolated and avoid claiming tenant end-to-end or human accessibility acceptance.
 6. Preserve issue #155’s remaining first-run/login recovery, human screen-reader/contrast/reduced-motion/touch review and real tenant task evidence. Keep owner/security, P0/P1, production and release gates open until actual decisions and acceptance evidence exist.
 
 **Safe local development checks:**
@@ -200,7 +200,7 @@ Never invent approvers, permission, credentials, signing keys, test results or c
 - Do not put secret values, signing private keys, customer data or private local paths in a public repo. Work within explicit permissions; no implied “ongoing in background.”
 - Verify the pushed commit is visible, the one PR remains open and unmerged, `main` unchanged, and the reported exact-head test status is real.
 
-**One-line next action:** confirm PR #171’s remote branch is still `b292c89`, publish the QA-reviewed local `c8ead11` responsive candidate with refreshed handoffs, and inspect every exact-head workflow including the browser suite and both clean guests. Keep OpenRootAt separate pending independent Sol review.
+**One-line next action:** confirm PR #171
 
 ## 9. Historical source-head verification — 13 passing workflows on 83fe893
 

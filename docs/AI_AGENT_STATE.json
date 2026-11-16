@@ -6,8 +6,8 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "integration/pr-reconciliation-20261113",
-  "source_head_before_handoff_commit": "dff0a230f3c7840df118efec63fa00011435e9a4",
-  "source_tree_sha": "db5231c19f402987063c109bc11f253e4e60df7b",
+  "source_head_before_handoff_commit": "40b9ac2a664893803696ab72153d78c27177b344",
+  "source_tree_sha": "cc8dc01e93708c494a46d920d08a72202787bf52",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -22,68 +22,68 @@
     "no_head_workflows": 14
   },
   "source_head_ci": {
-    "head_sha": "b292c89e3d37d48c78a3e555d6e2cb02810da00d",
+    "head_sha": "bf9ccbe7f6ca7cd8f83a92200fb79cb4aadcbcb0",
     "total": 13,
-    "success": 13,
-    "completed_failure": 0,
+    "success": 12,
+    "completed_failure": 1,
     "pending": [],
-    "vm_run": 43773412630,
-    "ubuntu_guest": "completed_success",
-    "debian_guest": "completed_success",
-    "ubuntu_job_id": 132994152097,
-    "debian_job_id": 132994152889,
+    "vm_run": 43779379237,
+    "ubuntu_guest": "completed_success_all_steps_and_cleanup",
+    "debian_guest": "completed_success_all_steps_and_cleanup",
+    "ubuntu_job_id": 133012865844,
+    "debian_job_id": 133012865550,
     "vm_run_conclusion": "success",
     "workflow_runs": {
       "Current API contract checks": {
-        "run_id": 43773412651,
+        "run_id": 43779379233,
         "conclusion": "success"
       },
       "Go checks": {
-        "run_id": 43773412818,
+        "run_id": 43779379330,
         "conclusion": "success"
       },
       "Go static security analysis": {
-        "run_id": 43773412586,
+        "run_id": 43779379186,
         "conclusion": "success"
       },
       "Go vulnerability checks": {
-        "run_id": 43773412727,
+        "run_id": 43779379163,
         "conclusion": "success"
       },
       "Isolated Go prototype checks": {
-        "run_id": 43773412579,
+        "run_id": 43779379182,
         "conclusion": "success"
       },
       "Jobs browser checks": {
-        "run_id": 43773412622,
-        "conclusion": "success"
+        "run_id": 43779379206,
+        "conclusion": "failure"
       },
       "Offline model and fixture checks": {
-        "run_id": 43773412653,
+        "run_id": 43779379324,
         "conclusion": "success"
       },
       "P1 developer smoke (non-destructive)": {
-        "run_id": 43773412552,
+        "run_id": 43779379173,
         "conclusion": "success"
       },
       "P1 gate blocker inventory": {
-        "run_id": 43773412592,
+        "run_id": 43779379174,
         "conclusion": "success"
       },
       "P1 unsigned developer package lab": {
-        "run_id": 43773412549,
+        "run_id": 43779379393,
         "conclusion": "success"
       },
       "P2 clean disposable VM smoke": {
-        "run_id": 43773412630,
+        "run_id": 43779379237,
         "conclusion": "success"
       },
       "SQLite schema checks": {
-        "run_id": 43773412759,
+        "run_id": 43779379350,
         "conclusion": "success"
       },
       "UI checks": {
-        "run_id": 43773412567,
+        "run_id": 43779379348,
         "conclusion": "success"
       }
     }
@@ -91,11 +91,11 @@
   "next": {
     "task_id": "P2-RESPONSIVE-CANDIDATE-PUBLISH-AND-VERIFY",
     "priority": 2,
-    "action": "Refresh canonical handoffs and the master tracker, confirm the remote PR branch remains at b292c89, publish the locally reviewed c8ead119 candidate without force, then inspect every exact-head workflow including the browser suite and both clean guests.",
+    "action": "Refresh canonical handoffs and tracker, confirm the remote PR branch remains at bf9ccbe, publish the locally reviewed 40b9ac2 source/test candidate without force, and inspect all 13 exact-head workflows including the full browser suite and both clean guests.",
     "required_evidence": [
-      "confirm remote branch still equals b292c89 before push",
+      "confirm remote branch still equals bf9ccbe before push",
       "all 13 exact-head PR workflows complete on the newly published head",
-      "Jobs browser workflow builds TONG_UI_FIXTURE_BINARY and runs all discovered tests including four responsive cases",
+      "Jobs browser workflow builds TONG_UI_FIXTURE_BINARY and runs all discovered tests including five responsive cases",
       "inspect Ubuntu 24.04 and Debian 12 clean guest jobs, including cleanup",
       "update PR #171 and issue #172 with exact SHA and real outcomes; leave issue #155 open",
       "keep P0/P1, owner/security, production authentication, signing, restore, accessibility, and release approvals blocked until actually resolved"
@@ -131,25 +131,25 @@
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
-    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43773412630",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43779379237",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "c8ead119fb7b1a2555474d129a8f3c046b376c28",
-    "hosted_ci": "pending_exact_PR_171_verification_after_publication",
-    "evidence": "Independent QA found no blocker; focused local responsive Playwright passed 4/4 across seven viewports; node --check for app.js/spec and git diff --check passed. A full local browser run could not initialize the existing Jobs test because the local machine has no Go compiler to build TONG_UI_FIXTURE_BINARY.",
-    "limitations": "Synthetic GET-only component preview; not authentication, tenant authorization, live handler/Nginx, physical-device, human accessibility, or P2 acceptance. Issue #155 remains open."
+    "sha": "40b9ac2a664893803696ab72153d78c27177b344",
+    "hosted_ci": "pending_publication_after_prior_bf9ccbe_browser_parity_failure",
+    "evidence": "Independent QA found no blocker; TypeScript 5.9.3 compilation and generated-JavaScript byte parity pass; focused local responsive Playwright passed 5/5 across seven viewport sizes; Files unit tests passed 15/15; node syntax and git diff --check passed. A full local browser run could not initialize the existing Jobs test because the local machine has no Go compiler to build TONG_UI_FIXTURE_BINARY.",
+    "limitations": "Synthetic intercepted GET component preview only. Retry uses Playwright route aborts at two phone sizes; no authentication, tenant authorization, live handler/Nginx, human accessibility, vertical clipping or stale-data recovery is exercised. Issue #155 remains open."
   },
-  "published_pr_head_at_snapshot": "b292c89e3d37d48c78a3e555d6e2cb02810da00d",
-  "local_checkpoint_parent_at_snapshot": "c8ead119fb7b1a2555474d129a8f3c046b376c28",
+  "published_pr_head_at_snapshot": "bf9ccbe7f6ca7cd8f83a92200fb79cb4aadcbcb0",
+  "local_checkpoint_parent_at_snapshot": "40b9ac2a664893803696ab72153d78c27177b344",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
     "state": "design_only_qa_reviewed_not_accepted",
     "branch": "integration/pr-reconciliation-20261113",
     "local_merge": "f1c3879af9b32fc3cc680f9496a7406429da0a8c",
-    "remote_push": "published_in_PR_171_at_b292c89",
+    "remote_push": "published_in_PR_171_at_bf9ccbe_initial_candidate",
     "qa_findings": "Three factual corrections verified; plan remains design-only and all P0/P1 and human-acceptance dependencies remain."
   },
   "openrootat_candidate": {
@@ -162,17 +162,17 @@
     "ubuntu_debian_guests": "pending",
     "sol_review": "pending_not_claimed"
   },
-  "local_candidate_head": "c8ead119fb7b1a2555474d129a8f3c046b376c28",
-  "local_candidate_tree_sha": "db5231c19f402987063c109bc11f253e4e60df7b",
+  "local_candidate_head": "40b9ac2a664893803696ab72153d78c27177b344",
+  "local_candidate_tree_sha": "cc8dc01e93708c494a46d920d08a72202787bf52",
   "responsive_test_candidate": {
-    "branch": "codex/p2-responsive-sites-files-keyboard-20261116",
-    "head": "c8ead119fb7b1a2555474d129a8f3c046b376c28",
+    "branch": "codex/p2-responsive-sites-files-retry-20261116",
+    "head": "40b9ac2a664893803696ab72153d78c27177b344",
     "state": "locally_integrated_QA_reviewed_not_pushed",
-    "focused_playwright": "4_of_4_passed_across_7_viewports",
-    "exact_pr_ci": "pending",
+    "focused_playwright": "5_of_5_passed_across_7_viewports_with_retry_at_2_phone_sizes",
+    "exact_pr_ci": "pending_publication",
     "independent_review": "no_concrete_blocker",
     "scope": "synthetic_component_preview_only"
   },
-  "local_snapshot_head": "c8ead119fb7b1a2555474d129a8f3c046b376c28",
-  "local_snapshot_tree": "db5231c19f402987063c109bc11f253e4e60df7b"
+  "local_snapshot_head": "40b9ac2a664893803696ab72153d78c27177b344",
+  "local_snapshot_tree": "cc8dc01e93708c494a46d920d08a72202787bf52"
 }
