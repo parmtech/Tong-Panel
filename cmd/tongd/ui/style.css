@@ -87,3 +87,7 @@
 .jobs-pagination[hidden]{display:none}.jobs-pagination button:disabled{opacity:.55;cursor:not-allowed}
 .jobs-status:focus{outline:3px solid var(--accent);outline-offset:3px}
 #files-preview-content{max-height:24rem;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* Keep the primary Sites and Files actions usable at phone widths. */
+#sites-load,#sites-filter button,#sites-prefix,#sites-list button[aria-label^="Use "],#sites-previous,#sites-next,
+#files-refresh,#files-filter button,#files-prefix,#files-list button[aria-label^="Preview text "],#files-preview-close,#files-previous,#files-next{min-width:44px;min-height:44px}

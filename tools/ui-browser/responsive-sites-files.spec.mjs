@@ -109,6 +109,22 @@ async function openComponentPreview(page, records, nextFailures = { sites: null,
                     await route.abort('failed');
                     return;
                 }
+                if (nextFailures.paginatedSites) {
+                    const firstPageSites = Array.from({ length: 50 }, (_, index) => {
+                        const siteID = `site-${String(index + 1).padStart(3, '0')}`;
+                        return { site_id: siteID, primary_domain: `${siteID}.example.test`, ownership_state: 'pending' };
+                    });
+                    const pages = {
+                        '': { sites: firstPageSites, next_after: 'site-050' },
+                        'site-050': { sites: [{ site_id: 'site-051', primary_domain: 'site-051.example.test', ownership_state: 'pending' }], next_after: '' },
+                    };
+                    if (!Object.hasOwn(pages, summary.after)) {
+                        await route.fulfill({ status: 400, body: '' });
+                        return;
+                    }
+                    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pages[summary.after]) });
+                    return;
+                }
                 await route.fulfill({
                     status: 200,
                     contentType: 'application/json',
@@ -1129,4 +1145,93 @@ test('component preview: denied Files pagination returns keyboard focus to refre
     expect(records.files.map(({ filesPath, after, prefix, page }) => ({ filesPath, after, prefix, page }))).toEqual(
         denials.flatMap(() => ['', 'alpha.txt'].map(after => ({ filesPath: '', after, prefix: '', page: '1' }))),
     );
+});
+
+test('component preview: phone Sites and Files pointer targets meet project sizes', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const controls = { sites: null, files: null, paginatedSites: true, paginatedFiles: true };
+    const phones = [{ width: 320, height: 640 }, { width: 390, height: 844 }];
+
+    async function expectTarget(selector, minimum, viewport) {
+        const target = page.locator(selector);
+        await expect(target, selector + ' should be visible at ' + viewport.width + 'px').toBeVisible();
+        await target.scrollIntoViewIfNeeded();
+        const bounds = await target.boundingBox();
+        expect(bounds, selector + ' should have a target box at ' + viewport.width + 'px').toBeTruthy();
+        expect(bounds.width, selector + ' target width at ' + viewport.width + 'px').toBeGreaterThanOrEqual(minimum);
+        expect(bounds.height, selector + ' target height at ' + viewport.width + 'px').toBeGreaterThanOrEqual(minimum);
+        const geometry = await target.evaluate(element => {
+            const rect = element.getBoundingClientRect();
+            const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom,
+                hit: hit === element || element.contains(hit) };
+        });
+        expect(geometry.left, selector + ' left edge at ' + viewport.width + 'px').toBeGreaterThanOrEqual(0);
+        expect(geometry.right, selector + ' right edge at ' + viewport.width + 'px').toBeLessThanOrEqual(viewport.width + 1);
+        expect(geometry.top, selector + ' top edge at ' + viewport.width + 'px').toBeGreaterThanOrEqual(0);
+        expect(geometry.bottom, selector + ' bottom edge at ' + viewport.width + 'px').toBeLessThanOrEqual(viewport.height + 1);
+        expect(geometry.hit, selector + ' should receive a center pointer hit at ' + viewport.width + 'px').toBe(true);
+    }
+
+    await page.setViewportSize(phones[0]);
+    await openComponentPreview(page, records, controls);
+
+    for (const [index, viewport] of phones.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+
+        await expectTarget('#sites-load', 44, viewport);
+        await page.locator('#sites-load').click();
+        await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+        await expectTarget('#sites-prefix', 44, viewport);
+        await expectTarget('#sites-filter button', 44, viewport);
+        await expectTarget('#sites-list button[aria-label="View details for site-001"]', 24, viewport);
+        await expectTarget('#sites-list button[aria-label="Use site-001 for preview"]', 44, viewport);
+        await page.locator('#sites-prefix').fill('');
+        await page.locator('#sites-filter button').click();
+        await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+        await page.locator('#sites-list button[aria-label="Use site-001 for preview"]').click();
+        await expect(page.locator('#site-preview-id')).toHaveValue('site-001');
+
+        await expectTarget('#sites-next', 44, viewport);
+        await page.locator('#sites-next').click();
+        await expect(page.locator('#sites-page')).toHaveText('Page 2');
+        await expect(page.locator('#sites-list')).toContainText('site-051');
+        await expectTarget('#sites-previous', 44, viewport);
+        await page.locator('#sites-previous').click();
+        await expect(page.locator('#sites-page')).toHaveText('Page 1');
+
+        await expectTarget('#files-refresh', 44, viewport);
+        await page.locator('#files-refresh').click();
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expectTarget('#files-prefix', 44, viewport);
+        await expectTarget('#files-filter button', 44, viewport);
+        await page.locator('#files-prefix').fill('');
+        await page.locator('#files-filter button').click();
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expectTarget('button[aria-label="Download alpha.txt"]', 24, viewport);
+        await expectTarget('button[aria-label="Preview text alpha.txt"]', 44, viewport);
+        await page.locator('button[aria-label="Preview text alpha.txt"]').click();
+        await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+        await expectTarget('#files-preview-close', 44, viewport);
+        await page.locator('#files-preview-close').click();
+        await expect(page.locator('#files-preview')).toBeHidden();
+
+        await expectTarget('#files-next', 44, viewport);
+        await page.locator('#files-next').click();
+        await expect(page.locator('#files-status')).toContainText('Page 2: 1 item.');
+        await expectTarget('#files-previous', 44, viewport);
+        await page.locator('#files-previous').click();
+        await expect(page.locator('#files-status')).toContainText('Page 1: 1 item.');
+        await expectResponsiveBounds(page, viewport, ['#sites-load', '#sites-filter button', '#files-refresh', '#files-filter button']);
+    }
+
+    expectSyntheticReadOnlyRequests(records, {
+        sites: phones.length * 4,
+        files: phones.length * 4,
+        previews: phones.length,
+    }, phones.length);
 });
