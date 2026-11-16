@@ -293,11 +293,12 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
         self.assertNotIn("tenant-b", branch)
         bash = shutil.which("bash")
         if bash:
-            command = ("python3() { return 17; }\n"
-                       "timeout() { cat >/dev/null; return 124; }\n"
+            command = ("python3() { printf 'probe-call\\n'; return 17; }\n"
+                       "timeout() { printf 'diagnostic-call\\n'; cat >/dev/null; return 124; }\n"
                        "if python3 /home/ci/probe_https_isolation.py; then" + branch + "\nfi\n")
             result = subprocess.run([bash, "-c", command], capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 17)
+            self.assertEqual(result.stdout.splitlines(), ["probe-call", "diagnostic-call"])
 
 
 if __name__ == "__main__":
