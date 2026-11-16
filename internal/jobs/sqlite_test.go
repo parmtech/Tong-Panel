@@ -120,6 +120,32 @@ func TestSQLiteCreateIdempotencyScopeAndTransactions(t *testing.T) {
 	}
 }
 
+func TestSQLiteCreateRejectsCommandLikeKindsBeforeStoreAccess(t *testing.T) {
+	// A nil database makes any store access fail; invalid kinds must be rejected
+	// by the allowlist before reaching SQLite.
+	store := &SQLiteStore{}
+	cases := []struct {
+		name string
+		kind string
+	}{
+		{name: "command-shaped", kind: "sh -c noop"},
+		{name: "semicolon", kind: "validation.noop;noop"},
+		{name: "pipe", kind: "validation.noop|noop"},
+		{name: "substitution", kind: "validation.noop$(noop)"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := store.CreateForContext(context.Background(), "tenant-a", "user-a", tc.kind, "shell-kind-0001")
+			if err == nil || err.Error() != "invalid job" {
+				t.Fatalf("CreateForContext(kind=%q) error = %v, want invalid job before store access", tc.kind, err)
+			}
+		})
+	}
+	if store.db != nil || store.ctx != nil || store.now != nil || store.maxAttempts != 0 {
+		t.Fatal("invalid kind changed the uninitialized store")
+	}
+}
+
 func TestSQLiteConcurrentIdempotentCreate(t *testing.T) {
 	store, _ := openTestSQLiteStore(t)
 	const workers = 24
