@@ -1,6 +1,6 @@
 # Security review handoff: fd-relative restore-lab root opening
 
-**Status:** Sol 6.1 Medium independently reviewed the exact candidate at `43ff309760a629cbaca3651c3d1118cb9b5de57b` and found no concrete blocker for the explicitly opted-in, non-root disposable restore-lab/inventory scope. Development and QA also reviewed the candidate without a code or descriptor-cleanup blocker. The source/tests have been forward-ported locally onto PR #171 after exact verified head `1f0c5a7`; source commit `02258ae38caad7462f74c8f02bc474c306f6ca28` is not yet published or hosted-verified. Exact PR-head Linux CI and both clean guests remain required. This review grants no production restore authorization, quota-release authority, cross-process fence or owner/security approval.
+**Status:** Sol 6.1 Medium independently reviewed exact candidate 43ff309760a629cbaca3651c3d1118cb9b5de57b and found no concrete blocker for the explicitly opted-in, non-root disposable restore-lab/inventory scope. Development and QA also reviewed it without a code or descriptor-cleanup blocker. The source/tests were forward-ported to PR #171 at ec38c897b5f08e03c40bb8b3192759f21ed452a8. Both exact-head Go race runs and runner-side restore/inventory steps passed; Ubuntu completed the clean guest. Debian failed later at the unrelated tenant-a HTTPS isolation probe before an HTTP response. The current local candidate adds HTTPS diagnostics but has not run hosted CI. This review grants no production restore authorization, quota-release authority, cross-process fence or owner/security approval.
 
 ## Scope
 
@@ -35,9 +35,9 @@ The identity observations do **not** prove continuity against same-UID replaceme
 
 ## Evidence and remaining verification
 
-- Exact branch-only Ubuntu run [#43770861328](https://github.com/parmtech/Tong-Panel/actions/runs/43770861328), job #132986235012, passed at candidate head `43ff309`, including the explicit umask regression, affected Linux race suites, restore/inventory CLI process suites, cleanup and Complete. This is runner-only evidence, not PR-head or clean-guest evidence.
-- QA independently reviewed the exact candidate and confirmed the run steps and documented caveats. Sol did not rerun Go locally because Go was unavailable on the review environment; the branch-only Linux run remains the runtime evidence.
-- Parent PR #171 source `1f0c5a7` passed its own 13 workflows and 24 checks before this forward-port. That result does not verify the new OpenRootAt or ASCII-key changes.
-- The current local forward-port must be published only after handoff review; then inspect its exact PR-head Go/Linux tests and both Ubuntu/Debian clean guests through cleanup.
+- Exact branch-only Ubuntu run [#43770861328](https://github.com/parmtech/Tong-Panel/actions/runs/43770861328), job #132986235012, passed the explicit umask regression, affected Linux race suites, restore/inventory CLI process suites, cleanup and Complete.
+- At exact PR head ec38c897, both Go race runs passed, including the forward-ported OpenRootAt tests. P2 runner restore/inventory steps passed. Ubuntu guest job #133077560043 completed smoke, cleanup and Complete. Debian job #133077560375 failed later at the HTTPS isolation probe with status 000, curl exit 28 and zero bytes; this does not identify an OpenRootAt failure.
+- Local follow-up b398ae76 adds timing and fixed metadata diagnostics for the separate Debian HTTPS failure. It has not run at an exact PR head. Review does not validate those new diagnostics.
+- The OpenRootAt identity observations do not prove continuity against same-UID replacement before the first observation, ABA swaps or subsequent mutation. Ancestor replacement during earlier pathname validation and mount aliases remain outside this mechanism; stable-parent and topology preconditions remain required.
 
-Do not expand this review into production restore authorization, durable quota release, cross-process fencing or release approval.
+The next exact-head run must inspect both guest workflows through cleanup and Complete. Do not expand this review into production restore authorization, durable quota release, cross-process fencing or release approval.

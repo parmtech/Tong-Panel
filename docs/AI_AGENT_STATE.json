@@ -6,8 +6,8 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "integration/pr-reconciliation-20261113",
-  "source_head_before_handoff_commit": "02258ae38caad7462f74c8f02bc474c306f6ca28",
-  "source_tree_sha": "cf2940bd8869ad8886330094727ba2ce95a63e62",
+  "source_head_before_handoff_commit": "b398ae76b12af2b28cee013b449720b0c54e1fbc",
+  "source_tree_sha": "710522dccb5bb8bac10db7c72a72d3313b70e34b",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -22,88 +22,90 @@
     "no_head_workflows": 14
   },
   "source_head_ci": {
-    "head_sha": "1f0c5a7b825c4771c59726dd3eeabe29b04d9c54",
+    "head_sha": "ec38c897b5f08e03c40bb8b3192759f21ed452a8",
     "total": 13,
     "check_run_total": 24,
-    "success": 13,
-    "completed_failure": 0,
+    "success": 12,
+    "completed_failure": 1,
+    "check_run_success": 23,
+    "check_run_failure": 1,
     "pending": [],
-    "vm_run": 43796001806,
+    "vm_run": 43799964054,
     "ubuntu_guest": "completed_success_smoke_cleanup_and_complete",
-    "debian_guest": "completed_success_smoke_cleanup_and_complete",
-    "ubuntu_job_id": 133064839173,
-    "debian_job_id": 133064839656,
-    "vm_run_conclusion": "success",
-    "browser_run": 43796001828,
-    "go_run": 43796002108,
-    "go_push_run": 43795996316,
+    "debian_guest": "failed_https_isolation_probe_before_http_status_000_transport_exit_28_zero_bytes",
+    "ubuntu_job_id": 133077560043,
+    "debian_job_id": 133077560375,
+    "vm_run_conclusion": "failure",
+    "go_run": 43799964182,
+    "go_push_run": 43799958667,
+    "https_failure_cause": "not_established; later_apparmor_and_best_effort_pid_diagnostic_are_not_causal_evidence",
     "workflow_runs": {
-      "Current API contract checks": {
-        "run_id": 43796001800,
+      "Jobs browser checks": {
+        "run_id": 43799964041,
         "conclusion": "success"
       },
       "Go checks": {
-        "run_id": 43796002108,
-        "conclusion": "success"
-      },
-      "Go static security analysis": {
-        "run_id": 43796001815,
-        "conclusion": "success"
-      },
-      "Go vulnerability checks": {
-        "run_id": 43796001789,
-        "conclusion": "success"
-      },
-      "Isolated Go prototype checks": {
-        "run_id": 43796001877,
-        "conclusion": "success"
-      },
-      "Jobs browser checks": {
-        "run_id": 43796001828,
-        "conclusion": "success"
-      },
-      "Offline model and fixture checks": {
-        "run_id": 43796001882,
-        "conclusion": "success"
-      },
-      "P1 developer smoke (non-destructive)": {
-        "run_id": 43796002381,
-        "conclusion": "success"
-      },
-      "P1 gate blocker inventory": {
-        "run_id": 43796001799,
-        "conclusion": "success"
-      },
-      "P1 unsigned developer package lab": {
-        "run_id": 43796001901,
-        "conclusion": "success"
-      },
-      "P2 clean disposable VM smoke": {
-        "run_id": 43796001806,
-        "conclusion": "success"
-      },
-      "SQLite schema checks": {
-        "run_id": 43796001898,
+        "run_id": 43799964182,
         "conclusion": "success"
       },
       "UI checks": {
-        "run_id": 43796002447,
+        "run_id": 43799964095,
         "conclusion": "success"
+      },
+      "SQLite schema checks": {
+        "run_id": 43799964126,
+        "conclusion": "success"
+      },
+      "P1 gate blocker inventory": {
+        "run_id": 43799964115,
+        "conclusion": "success"
+      },
+      "Offline model and fixture checks": {
+        "run_id": 43799964073,
+        "conclusion": "success"
+      },
+      "Go vulnerability checks": {
+        "run_id": 43799964097,
+        "conclusion": "success"
+      },
+      "P1 developer smoke (non-destructive)": {
+        "run_id": 43799964006,
+        "conclusion": "success"
+      },
+      "P1 unsigned developer package lab": {
+        "run_id": 43799964144,
+        "conclusion": "success"
+      },
+      "Isolated Go prototype checks": {
+        "run_id": 43799964111,
+        "conclusion": "success"
+      },
+      "Current API contract checks": {
+        "run_id": 43799964063,
+        "conclusion": "success"
+      },
+      "Go static security analysis": {
+        "run_id": 43799963976,
+        "conclusion": "success"
+      },
+      "P2 clean disposable VM smoke": {
+        "run_id": 43799964054,
+        "conclusion": "failure"
       }
-    }
+    },
+    "browser_run": 43799964041
   },
   "next": {
-    "task_id": "ASCII-IDEMPOTENCY-AND-OPENROOTAT-EXACT-HEAD-VERIFY",
+    "task_id": "HTTPS-DIAGNOSTICS-AND-RESPONSIVE-STALE-PREVIEW-EXACT-HEAD",
     "priority": 2,
-    "action": "Confirm the remote PR branch remains at 1f0c5a7b825c4771c59726dd3eeabe29b04d9c54, review and publish the three source commits and refreshed canonical handoffs as a normal fast-forward, then inspect every workflow, Linux regression and clean guest on the new exact head.",
+    "action": "Confirm remote remains at ec38c897, publish the reviewed local source and refreshed handoffs as a normal fast-forward, then inspect every check and both clean guests through cleanup and Complete.",
     "required_evidence": [
-      "confirm remote branch still equals 1f0c5a7b825c4771c59726dd3eeabe29b04d9c54 before publication",
-      "all 13 exact-head workflows and 24 check runs complete successfully",
-      "Go Linux race checks execute ASCII Idempotency-Key boundary/multibyte tests, OpenRootAt descriptor tests and restrictive-umask subprocess regression",
-      "P2 runner jobs pass restore/inventory CLI process suites; separately inspect both clean guests through smoke, cleanup and Complete",
-      "inspect Ubuntu 24.04 and Debian 12 guest smoke, cleanup and Complete",
-      "update PR #171 and issue #172 with the exact published SHA and observed outcomes; leave issue #155 open",
-      "keep P0/P1, owner/security, authentication, signing, restore authorization, accessibility and release gates open until actually resolved"
+      "All exact-head workflow runs and check runs completed and individually inspected",
+      "Both Go race jobs pass; P2 restore/inventory runner steps pass",
+      "Ubuntu 24.04 and Debian 12 clean guests inspected through smoke, cleanup and Complete",
+      "If the Debian HTTPS probe fails, use only sanitized connect/TLS/first-response/total timings and fixed Nginx/listener counts; do not weaken tenant isolation assertions or retry",
+      "Update PR #171 and tracker #172 with exact SHA and observed results; leave issue #155 open",
+      "Preserve P0/P1, owner/security, authentication, signing, restore authorization, accessibility and release gates"
     ]
   },
   "approvals": {
@@ -131,23 +133,24 @@
     "docs/ROADMAP.md",
     "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
     "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
-    "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md"
+    "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+    "docs/P2_ACCEPTANCE_TRACEABILITY.md"
   ],
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
-    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43793072330",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43799964054",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "02258ae38caad7462f74c8f02bc474c306f6ca28",
-    "hosted_ci": "pending_exact_PR_head; parent 1f0c5a7 passed all 13 workflows and 24 checks, including Linux Files regressions and both clean guests",
-    "evidence": "Three local source commits add shared 8–128 ASCII-byte Idempotency-Key validation for in-memory and SQLite stores, fd-relative restore-lab root permission checks and restrictive-umask regression, and restore-to-inventory process coverage. QA found no blocker for the key fix; Windows Jobs/API tests and vet and Linux-targeted vet/test-binary cross-compilation passed. Sol 6.1 Medium and QA found no OpenRootAt blocker for the explicitly opted-in non-root disposable scope; isolated branch-only Linux run 43770861328 passed affected tests.",
-    "limitations": "New source has not run at an exact PR head or on clean guests. OpenRootAt identity checks do not guarantee continuity against same-UID replacement before the first observation, ABA changes, mount aliases, ancestor replacement or cross-process changes. No production restore authorization, durable quota release, owner/security approval or release is implied."
+    "sha": "b398ae76b12af2b28cee013b449720b0c54e1fbc",
+    "hosted_ci": "pending_exact_PR_head; parent ec38 completed with 23_of_24_check_runs_successful, Go race runs and Ubuntu guest passed; Debian HTTPS guest failure preserved",
+    "evidence": "Candidate adds a synthetic stale-preview recovery regression and bounded HTTPS timeout diagnostics. Development and QA found no blocker for the browser test; focused Chrome passed 1/1 and responsive suite 6/6. Sol's diagnostic candidate passed 12 focused Python tests, shell syntax, embedded Python compilation and diff checks; QA found no blocker. Exact-head hosted verification remains pending.",
+    "limitations": "HTTPS timeout root cause remains unknown. New instrumentation does not retry or increase timeout and reports sanitized timing/fixed metadata only. Responsive evidence is synthetic. No P0/P1, owner/security, production, accessibility or release approval is implied."
   },
-  "published_pr_head_at_snapshot": "1f0c5a7b825c4771c59726dd3eeabe29b04d9c54",
-  "local_checkpoint_parent_at_snapshot": "1f0c5a7b825c4771c59726dd3eeabe29b04d9c54",
+  "published_pr_head_at_snapshot": "ec38c897b5f08e03c40bb8b3192759f21ed452a8",
+  "local_checkpoint_parent_at_snapshot": "ec38c897b5f08e03c40bb8b3192759f21ed452a8",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
@@ -161,17 +164,17 @@
     "branch": "codex/qa-root-at-final-20261116",
     "head": "43ff309760a629cbaca3651c3d1118cb9b5de57b",
     "base": "dff0a230f3c7840df118efec63fa00011435e9a4",
-    "state": "source_and_tests_forward_ported_locally_on_02258ae; exact_PR_and_guest_CI_pending",
+    "state": "source_tests_integrated_at_ec38_exact_pr_Go_race_and_runner_restore_inventory_passed_Ubuntu_guest_passed_Debian_failed_later_at_HTTPS",
     "linux_branch_run": 43770861328,
     "linux_job_id": 132986235012,
-    "exact_pr_ci": "pending_forward_port_verification",
-    "ubuntu_debian_guests": "pending_forward_port_verification",
+    "exact_pr_ci": "Go_race_passed_at_ec38; full_workflow_debian_guest_failure_is_unrelated_unproven_HTTPS_transport_timeout",
+    "ubuntu_debian_guests": "ubuntu_passed_cleanup_complete; debian_failed_https_before_http_status_000_exit_28",
     "sol_review": "completed_no_concrete_blocker_for_nonroot_disposable_lab_scope",
     "qa_review": "completed_no_code_or_descriptor_cleanup_blocker",
     "limitations": "No production restore authorization, durable quota-release authority or cross-process fence; same-UID pre-observation replacement, ABA, mount aliases and ancestor replacement remain outside guarantees."
   },
-  "local_candidate_head": "02258ae38caad7462f74c8f02bc474c306f6ca28",
-  "local_candidate_tree_sha": "cf2940bd8869ad8886330094727ba2ce95a63e62",
+  "local_candidate_head": "b398ae76b12af2b28cee013b449720b0c54e1fbc",
+  "local_candidate_tree_sha": "710522dccb5bb8bac10db7c72a72d3313b70e34b",
   "responsive_test_candidate": {
     "branch": "codex/p2-responsive-sites-files-retry-20261116",
     "head": "40b9ac2a664893803696ab72153d78c27177b344",
@@ -179,7 +182,15 @@
     "focused_playwright": "5_of_5_passed_across_7_viewports_with_retry_at_2_phone_sizes",
     "exact_pr_ci": "passed_on_PR_head_3ce_all_13_workflows",
     "independent_review": "no_concrete_blocker",
-    "scope": "synthetic_component_preview_only"
+    "scope": "synthetic_component_preview_only",
+    "stale_preview_followup": {
+      "source_head": "83ed539f0633cfbe6d2c9e6ce22f12352a59ed4d",
+      "integrated_commit": "83e8d0b9d1a6371eba55040250395a25c336c487",
+      "state": "local_only_pending_exact_head_hosted_CI",
+      "review": "Development_and_QA_no_blocker",
+      "validation": "focused_Chrome_1_of_1_and_responsive_suite_6_of_6_passed_locally",
+      "scope": "synthetic held response after view invalidation; no authenticated tenant flow or human accessibility acceptance"
+    }
   },
   "domain_dns_retry_candidate": {
     "branch": "codex/p2-domain-dns-retry-api-20261116",
@@ -231,8 +242,8 @@
     "test_runtime": "PR and push Go race checks passed on exact head 9a, including Linux-tagged Files runtime",
     "scope": "injected reservation Release failure after duplicate create conflict returns_quota_unavailable_preserves_file_and_retains_reserved_bytes"
   },
-  "local_snapshot_head": "02258ae38caad7462f74c8f02bc474c306f6ca28",
-  "local_snapshot_tree": "cf2940bd8869ad8886330094727ba2ce95a63e62",
+  "local_snapshot_head": "b398ae76b12af2b28cee013b449720b0c54e1fbc",
+  "local_snapshot_tree": "710522dccb5bb8bac10db7c72a72d3313b70e34b",
   "files_media_type_candidate": {
     "branch": "codex/api-contract-gap-scan-20261116",
     "head": "8a622a0400e6b6f13e9f526664bfa53e397d78f1",
@@ -256,9 +267,17 @@
     "head": "f89e2512f345dcd445fb3618401eefad983c4a08",
     "source_commit": "721c7620be962b8710f4deda167e5c828d8292ce",
     "integrated_commit": "debc9a0e4530b4f012d1f467319fb5ae9b049d4e",
-    "state": "locally_integrated_pending_exact_head_hosted_CI",
+    "state": "integrated_at_ec38_exact_pr_Go_checks_passed_full_P2_failed_on_Debian_HTTPS_probe",
     "validation": "Windows Jobs/API tests and vet passed; Linux-targeted vet and test-binary cross-compilation passed; hosted Linux runtime pending",
     "independent_review": "QA found no blocker",
     "scope": "shared 8–128 ASCII-byte validation across in-memory and SQLite job stores; rejects Unicode multibyte values even when UTF-8 byte length is within limits"
+  },
+  "https_timeout_diagnostics_candidate": {
+    "source_head": "26517dd18756679a7cccd3b183e99b95556b0693",
+    "integrated_commit": "b398ae76b12af2b28cee013b449720b0c54e1fbc",
+    "state": "local_only_pending_exact_head_hosted_CI",
+    "review": "Sol_6_1_Medium_implemented; QA_no_blocker",
+    "validation": "12_focused_python_tests_shell_syntax_embedded_python_compile_and_diff_check_passed",
+    "scope": "sanitized curl timings and fixed Nginx/listener metadata only; no retry, timeout increase, body or logs"
   }
 }
