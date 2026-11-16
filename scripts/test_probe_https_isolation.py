@@ -236,20 +236,111 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
         script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
         guest = script.split("<<'GUEST'\n", 1)[1].split("\nGUEST\n", 1)[0]
         self.assertNotIn("$BASH_COMMAND", guest)
+        reporter = re.search(r"(?ms)^report_guest_failure\(\) \{\n.*?^\}\n", guest)
+        self.assertIsNotNone(reporter)
         trap = next(line for line in guest.splitlines() if line.startswith("trap ") and line.endswith(" ERR"))
         for failure in ["(exit 23) <<'EOF'\nliteral-secret-canary\nEOF\n",
                         "printf '%s' 'literal-secret-canary' | (exit 23)\n"]:
             with self.subTest(failure=failure):
-                command = "set -Eeuo pipefail\nsmoke_stage=fpm_identity\n" + trap + "\n" + failure
+                command = "set -Eeuo pipefail\nsmoke_stage=fpm_identity\n" + reporter.group(0) + trap + "\n" + failure
                 result = subprocess.run([bash, "-c", command], capture_output=True, text=True, timeout=10)
                 self.assertEqual(result.returncode, 23)
                 self.assertEqual(result.stdout, "")
-                self.assertRegex(result.stderr, r"\Aclean_guest failure_stage=fpm_identity line=[0-9]+ status=23\n\Z")
+                self.assertRegex(result.stderr, r"\A::error::clean_guest failure_stage=fpm_identity line=[0-9]+ status=23\n\Z")
                 self.assertNotIn("secret", result.stderr)
+
+    def test_source_and_restore_guest_heredocs_pass_bash_syntax_check(self):
+        bash = shutil.which("bash")
+        if not bash:
+            self.skipTest("Bash is required for nested guest syntax checks")
+        script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
+        guests = {
+            "source": script.split("<<'GUEST'\n", 1)[1].split("\nGUEST\n", 1)[0],
+            "restore": script.split("<<'RESTORE'\n", 1)[1].split("\nRESTORE\n", 1)[0],
+        }
+        for name, guest in guests.items():
+            with self.subTest(guest=name):
+                result = subprocess.run([bash, "-n"], input=guest, capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_restore_guest_err_trap_and_expected_denial_report_safely(self):
+        bash = shutil.which("bash")
+        if not bash:
+            self.skipTest("Bash is required for the restore guest ERR trap regression")
+        script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
+        restore = script.split("<<'RESTORE'\n", 1)[1].split("\nRESTORE\n", 1)[0]
+        reporter = re.search(r"(?ms)^report_restore_failure\(\) \{\n.*?^\}\n", restore)
+        self.assertIsNotNone(reporter)
+        failer = re.search(r"(?ms)^fail_restore\(\) \{\n.*?^\}\n", restore)
+        self.assertIsNotNone(failer)
+        trap = next(line for line in restore.splitlines() if line.startswith("trap ") and line.endswith(" ERR"))
+        command = ("set -Eeuo pipefail\nrestore_stage=restore_tenant_denial\n" + reporter.group(0) + failer.group(0) +
+                   trap + "\n(exit 23)\n")
+        result = subprocess.run([bash, "-c", command], capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 23)
+        self.assertEqual(result.stdout, "")
+        self.assertRegex(result.stderr, r"\A::error::clean_restore_guest failure_stage=restore_tenant_denial line=[0-9]+ status=23\n\Z")
+        self.assertNotIn("secret", result.stderr)
+
+        denial = re.search(r"(?ms)^if \./tongbackup decrypt --tenant tenant-b.*?^fi\n", restore)
+        self.assertIsNotNone(denial)
+        self.assertEqual(denial.group(0).count('fail_restore 1 "$LINENO"'), 1)
+        artifact_assertion = re.search(r"(?m)^\[\[ ! -e /home/ci/should-not-exist\.sql \]\]$", restore)
+        self.assertIsNotNone(artifact_assertion)
+        with tempfile.TemporaryDirectory() as directory:
+            stub = Path(directory) / "tongbackup"
+            output_file = Path(directory) / "should-not-exist.sql"
+            (Path(directory) / "tenant-a.backup.tpbk").write_text("synthetic ciphertext fixture\n")
+            denial_command = denial.group(0).replace("/home/ci/tenant-a.backup.tpbk", "tenant-a.backup.tpbk")
+            artifact_check = artifact_assertion.group(0).replace("/home/ci/should-not-exist.sql", "should-not-exist.sql")
+            cases = [
+                (23, False, 0, None),  # Expected tenant denial, with no output file.
+                (0, False, 1, "accepted the wrong tenant"),  # Unexpected acceptance.
+                (23, True, 1, "failure_stage=restore_tenant_denial"),  # Rejection left an artifact.
+            ]
+            for decrypt_status, leaves_output, expected_status, expected_report in cases:
+                output_file.unlink(missing_ok=True)
+                stub_source = "#!/usr/bin/env bash\n"
+                if leaves_output:
+                    stub_source += "printf '%s\\n' 'synthetic-secret-canary' > should-not-exist.sql\n"
+                stub_source += f"exit {decrypt_status}\n"
+                stub.write_text(stub_source)
+                stub.chmod(0o700)
+                command = ("set -Eeuo pipefail\nrestore_stage=restore_tenant_denial\n" + reporter.group(0) +
+                           failer.group(0) + trap + "\n" + denial_command + "\n" + artifact_check +
+                           "\nprintf 'branch-completed\\n'\n")
+                result = subprocess.run([bash, "-c", command], cwd=directory, capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, expected_status)
+                self.assertNotIn("secret", result.stderr)
+                self.assertNotIn("should-not-exist.sql", result.stderr)
+                if expected_report is None:
+                    self.assertEqual(result.stdout, "branch-completed\n")
+                    self.assertEqual(result.stderr, "")
+                    self.assertFalse(output_file.exists())
+                elif decrypt_status == 0:
+                    self.assertEqual(result.stdout, "")
+                    self.assertIn(expected_report, result.stderr)
+                    self.assertRegex(result.stderr, r"\Afresh-host restore accepted the wrong tenant\n::error::clean_restore_guest failure_stage=restore_tenant_denial line=[0-9]+ status=1\n\Z")
+                    self.assertFalse(output_file.exists())
+                else:
+                    self.assertEqual(result.stdout, "")
+                    self.assertRegex(result.stderr, r"\A::error::clean_restore_guest failure_stage=restore_tenant_denial line=[0-9]+ status=1\n\Z")
+                    self.assertTrue(output_file.exists())
 
     def test_guest_phase_stages_precede_operations_in_order(self):
         script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
         guest = script.split("<<'GUEST'\n", 1)[1].split("\nGUEST\n", 1)[0]
+        self.assertLess(script.index("vm_stage=source_guest_setup"), script.index("vm_stage=source_guest_tests"))
+        self.assertLess(script.index("vm_stage=source_guest_setup"), script.index('retry_guest_ssh "cloud-init status --wait"'))
+        self.assertLess(script.index("vm_stage=restore_guest_boot"), script.index("vm_stage=restore_guest_setup"))
+        self.assertLess(script.index("vm_stage=restore_guest_setup"), script.index("vm_stage=restore_guest_restore"))
+        restore_setup = script.index("vm_stage=restore_guest_setup")
+        restore_execution = script.index("vm_stage=restore_guest_restore")
+        self.assertIn('retry_guest_ssh "cloud-init status --wait"', script[restore_setup:restore_execution])
+        self.assertIn("printf '%s\\n' 'tenant-a-challenge'", guest)
+        self.assertIn("printf '%s\\n' 'tenant-b-challenge'", guest)
+        self.assertNotIn("printf '%s\\r\\n' 'tenant-a-challenge'", guest)
+        self.assertNotIn("printf '%s\\r\\n' 'tenant-b-challenge'", guest)
         phases = [
             ("https_isolation", "if python3 /home/ci/probe_https_isolation.py; then"),
             ("acme_challenge_runtime", '[[ "$(curl --silent --show-error --resolve tenant-a.example.test:80:127.0.0.1'),
@@ -396,18 +487,25 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
         branch = script.split("if python3 /home/ci/probe_https_isolation.py; then", 1)[1].split("\nfi\n", 1)[0]
         self.assertIn("probe_status=$?", branch)
         self.assertIn("timeout --kill-after=1s 3s python3", branch)
-        self.assertIn("exit \"$probe_status\"", branch)
+        self.assertIn("fail_guest \"$probe_status\" \"$LINENO\"", branch)
         self.assertNotIn("curl", branch)
         self.assertNotIn("probe_https_isolation.py", branch)
         self.assertNotIn("tenant-b", branch)
         bash = shutil.which("bash")
         if bash:
-            command = ("python3() { printf 'probe-call\\n'; return 17; }\n"
+            guest = script.split("<<'GUEST'\n", 1)[1].split("\nGUEST\n", 1)[0]
+            reporter = re.search(r"(?ms)^report_guest_failure\(\) \{\n.*?^\}\n", guest)
+            failer = re.search(r"(?ms)^fail_guest\(\) \{\n.*?^\}\n", guest)
+            self.assertIsNotNone(reporter)
+            self.assertIsNotNone(failer)
+            command = ("set -Eeuo pipefail\nsmoke_stage=https_isolation\n" + reporter.group(0) + failer.group(0) +
+                       "python3() { printf 'probe-call\\n'; return 17; }\n"
                        "timeout() { printf 'diagnostic-call\\n'; cat >/dev/null; return 124; }\n"
                        "if python3 /home/ci/probe_https_isolation.py; then" + branch + "\nfi\n")
             result = subprocess.run([bash, "-c", command], capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 17)
             self.assertEqual(result.stdout.splitlines(), ["probe-call", "diagnostic-call"])
+            self.assertRegex(result.stderr, r"\AHTTPS isolation probe failed; fixture diagnostics are metadata only\n::error::clean_guest failure_stage=https_isolation line=[0-9]+ status=17\n\Z")
 
 
 if __name__ == "__main__":

@@ -7,50 +7,108 @@ set -Eeuo pipefail
 : "${VM_EXPECTED_ID:?}"
 : "${VM_EXPECTED_VERSION:?}"
 : "${VM_RUNNER_TEMP:?}"
-work="$(mktemp -d "$VM_RUNNER_TEMP/tong-clean-vm.XXXXXX")"
+# Before traps exist, bound native diagnostics and preserve mktemp's status.
+preflight_line=$((LINENO + 1))
+if work="$(mktemp -d "$VM_RUNNER_TEMP/tong-clean-vm.XXXXXX" 2>/dev/null)"; then
+  :
+else
+  status=$?
+  printf '::error::clean_vm failure_stage=runner_preflight line=%d status=%d serial_console=withheld\n' \
+    "$preflight_line" "$status" || true
+  exit "$status"
+fi
 port=2222
 pidfile="$work/qemu.pid"
 serial="$work/serial.log"
+vm_stage=runner_preflight
+vm_failure_line=0
+host_fail() {
+  local status="$1" line="$2"
+  vm_failure_line="$line"
+  exit "$status"
+}
 cleanup() {
   status=$?
-  trap - EXIT
+  cleanup_status=0
+  trap - EXIT ERR
+  cleanup_line=0
   if [[ -f "$pidfile" ]]; then
-    pid="$(cat "$pidfile")"
-    kill "$pid" 2>/dev/null || true
-    for _ in {1..20}; do kill -0 "$pid" 2>/dev/null || break; sleep 0.25; done
+    cleanup_line=$((LINENO + 1))
+    if pid="$(cat "$pidfile" 2>/dev/null)"; then
+      kill "$pid" 2>/dev/null || true
+      for _ in {1..20}; do
+        kill -0 "$pid" 2>/dev/null || break
+        sleep_line=$((LINENO + 1))
+        if sleep 0.25 2>/dev/null; then :; else
+          cleanup_status=$?
+          cleanup_line=$sleep_line
+          break
+        fi
+      done
+    else
+      cleanup_status=$?
+    fi
   fi
   if [[ $status -ne 0 ]]; then
+    failure_stage="${vm_stage:-unknown}"
+    case "$failure_stage" in
+      runner_preflight|source_guest_boot|source_guest_setup|source_guest_tests|ciphertext_staging|source_guest_shutdown|restore_guest_boot|restore_guest_setup|restore_guest_restore|cleanup) ;;
+      *) failure_stage=unknown ;;
+    esac
+    failure_line="${vm_failure_line:-0}"
+    [[ "$failure_line" =~ ^[0-9]+$ ]] || failure_line=0
     # Cloud images can write host private keys and other secrets to their
     # console. Never copy any serial content to CI, even a filtered tail:
     # a tail can begin inside a key block and arbitrary lines can hold secrets.
-    # Guest checks already emit bounded, allowlisted diagnostics over SSH.
-    printf 'clean_vm failure_status=%s serial_console=withheld\n' "$status"
+    # Only fixed phase labels and numeric shell metadata are reported.
+    printf '::error::clean_vm failure_stage=%s line=%d status=%d serial_console=withheld\n' \
+      "$failure_stage" "$failure_line" "$status" || true
   fi
-  rm -rf "$work"
-  exit "$status"
+  remove_line=$((LINENO + 1))
+  if rm -rf "$work" 2>/dev/null; then
+    :
+  else
+    remove_status=$?
+    if [[ $cleanup_status -eq 0 ]]; then
+      cleanup_status=$remove_status
+      cleanup_line=$remove_line
+    fi
+  fi
+  if [[ $status -eq 0 && $cleanup_status -ne 0 ]]; then
+    printf '::error::clean_vm failure_stage=cleanup line=%d status=%d serial_console=withheld\n' \
+      "$cleanup_line" "$cleanup_status" || true
+  fi
+  if [[ $status -ne 0 ]]; then exit "$status"; fi
+  exit "$cleanup_status"
 }
 trap cleanup EXIT
-# Validate the generated guest script before starting QEMU. Keeping this
+trap 'status=$?; vm_failure_line=$LINENO; trap - ERR; exit "$status"' ERR
+extract_guest_scripts() {
+  awk '
+    /^cat > .*guest-check\.sh.*<<.GUEST.$/ { if (inside) exit 1; inside=1; delimiter="GUEST"; starts++; next }
+    /^cat > .*restore-check\.sh.*<<.RESTORE.$/ { if (inside) exit 1; inside=1; delimiter="RESTORE"; starts++; next }
+    inside && $0 == delimiter { inside=0; closed++; print ""; next }
+    inside { print }
+    END { if (inside || starts != 2 || closed != 2) exit 1 }
+  ' "$1"
+}
+# Validate both generated guest scripts before starting QEMU. Keeping this
 # preflight here catches quoting or heredoc damage in this nested Bash program
 # without paying for a full VM boot.
-awk '
-  /^cat > .*guest-check\.sh.*<<.GUEST.$/ { inside=1; starts++; next }
-  inside && /^GUEST$/ { inside=0; closed++; exit }
-  inside { print }
-  END { if (starts != 1 || closed != 1) exit 1 }
-' "$0" > "$work/guest-check.syntax.sh"
-bash -n "$work/guest-check.syntax.sh"
+extract_guest_scripts "$0" 2>/dev/null > "$work/guest-scripts.syntax.sh"
+bash -n "$work/guest-scripts.syntax.sh" 2>/dev/null
+vm_stage=runner_preflight
 if ! update_output="$(sudo apt-get update 2>&1)"; then
   printf '%s\n' "$update_output" >&2
   if ! grep -Fq 'Failed to fetch https://packages.microsoft.com/' <<<"$update_output" ||
      grep -E '^(Err:|E: Failed to fetch)' <<<"$update_output" | grep -v 'packages.microsoft.com' >/dev/null; then
     echo "apt update failed outside the optional Microsoft package feed" >&2
-    exit 1
+    host_fail 1 "$LINENO"
   fi
   mapfile -t microsoft_sources < <(sudo grep -RIlF -- 'packages.microsoft.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null || true)
   if [[ "${#microsoft_sources[@]}" -eq 0 ]]; then
     echo "Microsoft package feed failed but its source file could not be identified" >&2
-    exit 1
+    host_fail 1 "$LINENO"
   fi
   for source in "${microsoft_sources[@]}"; do
     sudo mv "$source" "$source.disabled-for-clean-vm"
@@ -85,6 +143,7 @@ cat > "$work/meta-data" <<EOF
 instance-id: tong-$VM_DISTRO-$(date +%s)
 local-hostname: tong-$VM_DISTRO
 EOF
+vm_stage=source_guest_boot
 cloud-localds "$seed" "$work/user-data" "$work/meta-data"
 qemu-img create -q -f qcow2 -F qcow2 -b "$base" "$disk" 8G
 qemu-system-x86_64 -machine accel=tcg -cpu max -m 2048 -smp 2 -daemonize -pidfile "$pidfile" -serial "file:$serial" -monitor none -display none -drive "file=$disk,if=virtio,format=qcow2" -drive "file=$seed,if=virtio,format=raw,readonly=on" -netdev "user,id=net0,hostfwd=tcp:127.0.0.1:$port-:22" -device virtio-net-pci,netdev=net0
@@ -94,10 +153,11 @@ guest="ci@127.0.0.1"
 ready=false
 for _ in {1..60}; do
   if ssh "${ssh_opts[@]}" "$guest" true >/dev/null 2>&1; then ready=true; break; fi
-  if ! kill -0 "$(cat "$pidfile")" 2>/dev/null; then echo "QEMU exited before SSH"; exit 1; fi
+  if ! kill -0 "$(cat "$pidfile")" 2>/dev/null; then echo "QEMU exited before SSH"; host_fail 1 "$LINENO"; fi
   sleep 5
 done
-[[ "$ready" == true ]] || { echo "Timed out waiting for clean VM SSH"; exit 1; }
+[[ "$ready" == true ]] || { echo "Timed out waiting for clean VM SSH"; host_fail 1 "$LINENO"; }
+vm_stage=source_guest_setup
 # shellcheck source=scripts/vm_startup_transport.sh
 source scripts/vm_startup_transport.sh
 retry_guest_scp() {
@@ -131,8 +191,21 @@ cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 smoke_stage=guest_setup
+report_guest_failure() {
+  local status="$1" line="$2" stage="${smoke_stage:-unknown}"
+  case "$stage" in
+    guest_setup|fpm_identity|site_runtime|https_isolation|acme_challenge_runtime|hidden_path|install_preflight|mariadb_isolation|encrypted_backup_restore|wordpress_backup_restore|p1_smoke|doctor|package_lifecycle) ;;
+    *) stage=unknown ;;
+  esac
+  printf '::error::clean_guest failure_stage=%s line=%d status=%d\n' "$stage" "$line" "$status" >&2 || true
+}
+fail_guest() {
+  local status="$1" line="$2"
+  report_guest_failure "$status" "$line"
+  exit "$status"
+}
 # Never print command source: it can include complete credential heredocs.
-trap 'status=$?; printf "clean_guest failure_stage=%s line=%d status=%d\n" "$smoke_stage" "$LINENO" "$status" >&2; exit "$status"' ERR
+trap 'guest_status=$?; guest_line=$LINENO; trap - ERR; report_guest_failure "$guest_status" "$guest_line"; exit "$guest_status"' ERR
 test "$(id -u)" -ne 0
 test "$(uname -m)" = x86_64
 . /etc/os-release
@@ -289,11 +362,11 @@ done
 sudo chmod 0600 /srv/tong/tenants/tenant-a/sites/site-a/public/wordpress/wp-config.php /srv/tong/tenants/tenant-b/sites/site-b/public/wordpress/wp-config.php
 if mariadb --defaults-extra-file=/home/ci/wp-tenant-a.cnf "$wp_db_b" -e 'SELECT value FROM tong_lab_marker' >/dev/null 2>&1; then
   echo 'WordPress tenant A database user unexpectedly read tenant B data' >&2
-  exit 1
+  fail_guest 1 "$LINENO"
 fi
 if mariadb --defaults-extra-file=/home/ci/wp-tenant-b.cnf "$wp_db_a" -e 'SELECT value FROM tong_lab_marker' >/dev/null 2>&1; then
   echo 'WordPress tenant B database user unexpectedly read tenant A data' >&2
-  exit 1
+  fail_guest 1 "$LINENO"
 fi
 sudo tee /srv/tong/tenants/tenant-a/sites/site-a/public/index.php >/dev/null <<'PHP'
 <?php
@@ -470,7 +543,7 @@ for tenant in a b; do
   logfile="/home/ci/wp-install-$tenant.log"
   if ! timeout 90s sudo -u "$pool_user" php -d display_errors=0 -d log_errors=0 "$runner" "$credentials" >"$logfile" 2>&1; then
     echo "isolated WordPress install failed for tenant $tenant; private diagnostic is withheld" >&2
-    exit 1
+    fail_guest 1 "$LINENO"
   fi
   sudo rm -f "$credentials" "$runner"
   rm -f "$logfile"
@@ -487,12 +560,12 @@ for tenant in a b; do
   else database="$wp_db_b"; other_database="$wp_db_a"; prefix=tenant_a_; config=/home/ci/wp-tenant-b.cnf; fi
   if mariadb --defaults-extra-file="$config" "$database" --batch --skip-column-names -e "SELECT option_value FROM \`${other_database}\`.${prefix}options WHERE option_name='blogname'" >/dev/null 2>&1; then
     echo "tenant $tenant database user unexpectedly read the other installed WordPress database" >&2
-    exit 1
+    fail_guest 1 "$LINENO"
   fi
 done
 if [[ "$wp_db_a" == "$wp_db_b" || "$wp_admin_a" == "$wp_admin_b" ]]; then
   echo 'tenant WordPress fixtures unexpectedly share database or admin identity' >&2
-  exit 1
+  fail_guest 1 "$LINENO"
 fi
 printf '%s\n' 'full WordPress install passed for both tenants; distinct titles/admin rows persisted, published homepages served, lab cron execution/mail/external HTTP suppressed'
 sudo nginx -s quit -p /etc/nginx/ -c /home/ci/nginx-e2e.conf
@@ -624,7 +697,7 @@ for family in ("tcp", "tcp6"):
         print(f"https_fixture family={family} listeners=unavailable")
 PY_HTTPS_DIAGNOSTICS
   echo "HTTPS isolation probe failed; fixture diagnostics are metadata only" >&2
-  exit "$probe_status"
+  fail_guest "$probe_status" "$LINENO"
 fi
 smoke_stage=acme_challenge_runtime
 [[ "$(curl --silent --show-error --resolve tenant-a.example.test:80:127.0.0.1 http://tenant-a.example.test/.well-known/acme-challenge/token)" == tenant-a-challenge ]]
@@ -679,27 +752,48 @@ smoke_stage=package_lifecycle
 bash ./p2_package_install_vm.sh ./tong-panel-dev-v1.deb ./tong-panel-dev-v2.deb
 GUEST
 scp "${scp_opts[@]}" "$work/guest-check.sh" "$guest:/home/ci/guest-check.sh"
+vm_stage=source_guest_tests
 ssh "${ssh_opts[@]}" "$guest" bash /home/ci/guest-check.sh "$VM_EXPECTED_ID" "$VM_EXPECTED_VERSION"
 
 # Copy only the ciphertext and its externally held, restrictive-permission
 # test key to the runner, destroy the source VM disk, and restore on a new
 # overlay from the pristine cloud image. The runner temp directory is transient
 # test staging; this is not a real offsite provider or durable backup service.
+vm_stage=ciphertext_staging
 retry_guest_scp "$guest:/home/ci/tenant-a.backup.tpbk" "$guest:/home/ci/wrapping.key" "$work/"
 retry_guest_scp "$guest:/home/ci/tenant-a-wordpress.backup.tpbk" "$work/"
 chmod 600 "$work/tenant-a.backup.tpbk" "$work/tenant-a-wordpress.backup.tpbk" "$work/wrapping.key"
-if grep -aFq 'private-tenant-restore-fixture-v1' "$work/tenant-a.backup.tpbk"; then
-  echo "runner staging received plaintext instead of an encrypted backup" >&2
-  exit 1
-fi
-if [[ "$(stat -c '%s' "$work/tenant-a-wordpress.backup.tpbk")" -gt $((32 * 1024 * 1024)) ]] ||
-   grep -aFq 'private-wp-restore-db-v1' "$work/tenant-a-wordpress.backup.tpbk" ||
-   grep -aFq 'private-wp-restore-upload-v1' "$work/tenant-a-wordpress.backup.tpbk" ||
-   grep -aFq 'Tong Tenant Alpha Lab' "$work/tenant-a-wordpress.backup.tpbk"; then
-  echo "runner staging received an oversized or plaintext WordPress backup" >&2
-  exit 1
-fi
+# Conditional commands suppress ERR, so distinguish absence from command failure
+# explicitly. Native diagnostics may contain private staging paths.
+require_no_plaintext() {
+  local check_line=$((LINENO + 1)) check_status
+  if grep -aFq -- "$1" "$2" 2>/dev/null; then
+    host_fail 1 "$check_line"
+  else
+    check_status=$?
+    [[ $check_status -eq 1 ]] || host_fail "$check_status" "$check_line"
+  fi
+}
+require_ciphertext_size() {
+  local size check_status check_line
+  check_line=$((LINENO + 1))
+  if size="$(stat -c '%s' "$1" 2>/dev/null)"; then
+    check_line=$((LINENO + 1))
+    [[ "$size" =~ ^[0-9]+$ ]] || host_fail 1 "$check_line"
+    check_line=$((LINENO + 1))
+    [[ "$size" -le $((32 * 1024 * 1024)) ]] || host_fail 1 "$check_line"
+  else
+    check_status=$?
+    host_fail "$check_status" "$check_line"
+  fi
+}
+require_no_plaintext 'private-tenant-restore-fixture-v1' "$work/tenant-a.backup.tpbk"
+require_ciphertext_size "$work/tenant-a-wordpress.backup.tpbk"
+require_no_plaintext 'private-wp-restore-db-v1' "$work/tenant-a-wordpress.backup.tpbk"
+require_no_plaintext 'private-wp-restore-upload-v1' "$work/tenant-a-wordpress.backup.tpbk"
+require_no_plaintext 'Tong Tenant Alpha Lab' "$work/tenant-a-wordpress.backup.tpbk"
 source_vm_pid="$(cat "$pidfile")"
+vm_stage=source_guest_shutdown
 ssh "${ssh_opts[@]}" "$guest" sudo poweroff >/dev/null 2>&1 || true
 for _ in {1..30}; do
   kill -0 "$source_vm_pid" 2>/dev/null || break
@@ -710,6 +804,7 @@ if kill -0 "$source_vm_pid" 2>/dev/null; then
 fi
 rm -f -- "$pidfile" "$disk"
 
+vm_stage=restore_guest_boot
 cat > "$work/restore-user-data" <<EOF
 #cloud-config
 users:
@@ -734,10 +829,11 @@ qemu-system-x86_64 -machine accel=tcg -cpu max -m 2048 -smp 2 -daemonize -pidfil
 ready=false
 for _ in {1..60}; do
   if ssh "${ssh_opts[@]}" "$guest" true >/dev/null 2>&1; then ready=true; break; fi
-  if ! kill -0 "$(cat "$pidfile")" 2>/dev/null; then echo "restore QEMU exited before SSH"; exit 1; fi
+  if ! kill -0 "$(cat "$pidfile")" 2>/dev/null; then echo "restore QEMU exited before SSH"; host_fail 1 "$LINENO"; fi
   sleep 5
 done
-[[ "$ready" == true ]] || { echo "Timed out waiting for fresh restore VM SSH"; exit 1; }
+[[ "$ready" == true ]] || { echo "Timed out waiting for fresh restore VM SSH"; host_fail 1 "$LINENO"; }
+vm_stage=restore_guest_setup
 retry_guest_ssh "cloud-init status --wait"
 retry_guest_scp "$work/tenant-a.backup.tpbk" "$work/wrapping.key" "$guest:/home/ci/"
 retry_guest_scp "$work/tenant-a-wordpress.backup.tpbk" "$guest:/home/ci/"
@@ -747,22 +843,42 @@ retry_guest_scp scripts/smoke_wordpress_restore_target.sh "$guest:/home/ci/smoke
 cat > "$work/restore-check.sh" <<'RESTORE'
 #!/usr/bin/env bash
 set -Eeuo pipefail
+restore_stage=restore_database_setup
+report_restore_failure() {
+  local status="$1" line="$2" stage="${restore_stage:-unknown}"
+  case "$stage" in
+    restore_database_setup|restore_database_restore|restore_tenant_denial|wordpress_restore|restore_cleanup) ;;
+    *) stage=unknown ;;
+  esac
+  printf '::error::clean_restore_guest failure_stage=%s line=%d status=%d\n' "$stage" "$line" "$status" >&2 || true
+}
+fail_restore() {
+  local status="$1" line="$2"
+  report_restore_failure "$status" "$line"
+  exit "$status"
+}
+trap 'restore_status=$?; restore_line=$LINENO; trap - ERR; report_restore_failure "$restore_status" "$restore_line"; exit "$restore_status"' ERR
 sudo apt-get update
 sudo apt-get install -y --no-install-recommends mariadb-server
 sudo systemctl start mariadb
+restore_stage=restore_database_restore
 sudo mariadb --protocol=socket -uroot -e 'CREATE DATABASE tp_backup_source'
 ./tongbackup decrypt --tenant tenant-a --key-file /home/ci/wrapping.key --output /home/ci/restore.sql < /home/ci/tenant-a.backup.tpbk
 sudo mariadb --protocol=socket -uroot tp_backup_source < /home/ci/restore.sql
 restored="$(sudo mariadb --protocol=socket -uroot --batch --skip-column-names tp_backup_source -e 'SELECT value FROM restore_marker')"
 [[ "$restored" == private-tenant-restore-fixture-v1 ]]
+restore_stage=restore_tenant_denial
 if ./tongbackup decrypt --tenant tenant-b --key-file /home/ci/wrapping.key --output /home/ci/should-not-exist.sql < /home/ci/tenant-a.backup.tpbk >/dev/null 2>&1; then
   echo 'fresh-host restore accepted the wrong tenant' >&2
-  exit 1
+  fail_restore 1 "$LINENO"
 fi
 [[ ! -e /home/ci/should-not-exist.sql ]]
 printf '%s\n' 'PASS: encrypted MariaDB backup restored on a fresh VM from a pristine distro image'
+restore_stage=wordpress_restore
 TONG_DISPOSABLE_WORDPRESS_RESTORE=1 bash /home/ci/smoke_wordpress_restore_target.sh
+restore_stage=restore_cleanup
 rm -f -- /home/ci/restore.sql /home/ci/tenant-a.backup.tpbk
 RESTORE
 retry_guest_scp "$work/restore-check.sh" "$guest:/home/ci/restore-check.sh"
+vm_stage=restore_guest_restore
 ssh "${ssh_opts[@]}" "$guest" bash /home/ci/restore-check.sh

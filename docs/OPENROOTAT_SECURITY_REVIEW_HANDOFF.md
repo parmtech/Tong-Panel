@@ -1,6 +1,7 @@
 # Security review handoff: fd-relative restore-lab root opening
 
-**Current checkpoint (17 November 2026):** PR #171 remains open/draft/unmerged at exact b02 head `b02a95726c1317f176f162978b7d1ba035deb796`. Its Go race job [133341089163](https://github.com/parmtech/Tong-Panel/actions/runs/43879446845/job/133341089163) passed, including the candidate-added OpenRootAt descriptor-ownership and SQLite completion-crash tests. The local integration candidate is now `47d95a6fad17053c888a178d0afaecd928226f7d`, but has no exact-head CI; b02 results do not substitute for checks on a later PR head. This scoped review is not P0-06 acceptance or production restore authorization. Keep issue #172 at 12 unchecked DoD items and all nine approval fields false.
+**Current checkpoint (17 November 2026):** PR #171 remains open/draft/unmerged at exact head db97e1d1a67a24a85ff61d59f0dccc8ca4033de0. Exact Go race/fuzz/vet workflow #43900009544 passed, including source-present OpenRootAt descriptor ownership and SQLite completion-crash tests. Overall exact-head CI still has one Debian P2 step-18 failure; this review is scoped component evidence, not P0-06 acceptance or production restore authorization. Local P2 diagnostics changes are uncommitted and have not run hosted. Keep issue #172 at 12 unchecked DoD items and all nine approval fields false.
+
 
 ## Historical review snapshot — published 2054 / local 3490235 (superseded 17 November 2026)
 

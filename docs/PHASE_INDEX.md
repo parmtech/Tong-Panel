@@ -1,7 +1,7 @@
 # Tong Panel — Phase Index / Single Operational Plan
 **Updated:** 2026-11-17. The combined development review preserves all original draft work. P0 decisions and phase acceptance remain open; P1 prototypes and disposable P2 QA may continue, but P1 exit and P2 entry are not approved. Read the current handoff for executed evidence.
 
-Current PR #171 is open/draft/unmerged at exact b02 head `b02a95726c1317f176f162978b7d1ba035deb796`; 16/16 Actions runs and 24/24 checks passed on that head. The local code candidate is `47d95a6fad17053c888a178d0afaecd928226f7d`, with no exact-head hosted CI yet. P4 focused Python is 23/23 after the exclusion fix; the paired CLI process test passed syntax compilation only. Go/gofmt/WSL are unavailable locally. Issue #172 remains at 12 unchecked DoD items and nine false approvals. See the current A–Z handoff and machine state for next steps and exact scope.
+Current PR #171 is open/draft/unmerged at exact head db97e1d1a67a24a85ff61d59f0dccc8ca4033de0. Exact-head results: 15/16 Actions and 24/25 checks passed; the Debian P2 guest failed step 18 with generic exit 1, while Ubuntu passed. The local, uncommitted diagnostic patch has focused results of 21/21 HTTPS isolation tests, 30/30 cleanup scenarios (15 new), both Bash syntax checks and git diff --check; hosted verification is pending. Issue #172 remains open with 12 unchecked DoD items and nine false approvals. See the A–Z handoff for scope and next steps.
 
 | Phase | Goal | Prerequisite | Gate | Detailed plan |
 |---|---|---|---|---|
@@ -15,7 +15,8 @@ Current PR #171 is open/draft/unmerged at exact b02 head `b02a95726c1317f176f162
 
 ## For a new AI agent
 
-**Current snapshot (17 November 2026):** PR #171 is still at b02 open/draft/unmerged; candidate `47d95a6` is local only and its changes are unverified by hosted CI. Focused P4/API/P3/#152 reviews found no blocker within their stated scope. Cumulative source review is complete; only handoff consistency review remains. Commit handoffs, publish by fast-forward, and verify every exact-head workflow and both guests. Preserve all gates and the 12/12 unchecked issue #172 DoD state.
+**Current snapshot (17 November 2026):** PR #171 is at db97 open/draft/unmerged. Its exact-head P2 workflow has one Debian step-18 failure with generic exit 1 and one passing Ubuntu guest; no raw guest logs were read and cause is unknown. Three local diagnostic files are uncommitted and pass focused tests, but their exact-head hosted CI is pending. Finish handoff review, commit and push normally after rechecking PR/issue/branch, then inspect the new exact-head workflows and both guests. Preserve all 12 unchecked issue #172 DoD items, nine false approvals and all P0–P6 gates.
+
 
 ### Historical resume snapshot — 16 November 2026 (superseded)
 
