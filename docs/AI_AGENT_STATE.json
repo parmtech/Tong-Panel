@@ -127,21 +127,23 @@
         "conclusion": "success",
         "event": "push"
       }
-    }
+    },
+    "status": "historical_verified_base_checkpoint"
   },
   "next": {
     "task_id": "PACKAGE-PUBLICATION-AND-EXACT-HEAD-CI",
     "priority": 1,
-    "action": "Complete the final handoff and workflow-trigger audits; verify PR #171 still points to b411; publish the reviewed candidate by normal fast-forward; then inspect every PR workflow/check associated with the exact PR head and both clean guests through runner/job completion.",
+    "action": "Investigate the repeated generic Debian step 18 guest-smoke failure on exact SHA 2054 using available evidence. Attempt 1 and attempt 2 both failed Debian while Ubuntu passed both times. The PID-file/umask proposal is only an unconfirmed static hypothesis and does not explain the Ubuntu passes. No source fix is in place. After any source or documentation commit creates a new PR head, inspect its exact-head workflows/checks separately.",
     "required_evidence": [
       "Responsive browser suite passes 17/17, including 15 focus selectors tested in both themes (30 selector/theme pairs), forced-colors navigation focus, and existing Sites/Files journeys",
-      "PHP-FPM diagnostic unit suite passes; guest output contains only an allowlisted comm name and exact Ubuntu/Debian values are recorded from the PR run",
-      "Linux Go CI executes the new OpenRootAt permission tests, gofmt check, go test -race ./..., and go vet ./...",
-      "PR head equals the reviewed candidate; all associated exact-head workflows/checks complete, including P1 binary/package regressions and P2 guests",
+      "PHP-FPM diagnostic unit suite passes; guest output contains only an allowlisted comm name and exact Ubuntu/Debian values are recorded from a completed PR run",
+      "Exact-head Go race/vet and security checks passed on PR head 2054; local Windows environment did not run Go/WSL tests",
+      "P2 attempt 1 and attempt 2 both failed Debian step 18 guest smoke with generic exit 1; Ubuntu passed both attempts; package fixture step 17 passed on both OSes in both attempts",
+      "Determine the Debian guest-smoke failure cause from available evidence; do not state the PID-file/umask hypothesis as confirmed and do not claim a source fix exists",
+      "After a later source or docs commit changes the PR head, inspect all associated workflows/checks for that new exact head",
       "Update PR #171 and issue #172 only with observed exact-SHA results; keep issue #155 open",
       "Preserve every P0/P1, owner/security, authentication, signing, restore authorization, accessibility and release gate",
-      "P2 is pull-request/dispatch-triggered and path-filters both Debian builder scripts; in each Ubuntu runner matrix leg, the package fixture step passes without a SKIP for the newline case and ends with the Debian structure summary",
-      "Both clean guest jobs pass the package install/upgrade/downgrade/removal lifecycle and overall job; inspect exit-trap cleanup evidence. Do not require a literal Complete workflow step or count P1 unsigned archive CI as Debian-builder evidence.",
+      "P2 is pull-request/dispatch-triggered and path-filters both Debian builder scripts; package fixture step 17 passed in both attempts",
       "Package publication shims prove failure preservation, target-type rejection, cleanup and newline-safe exact-parent path handling; hosted Linux CI runs mode/symlink assertions and real dpkg-deb fixtures"
     ]
   },
@@ -178,15 +180,20 @@
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
     "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43832980490",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
-    "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
+    "auth": "https://github.com/parmtech/Tong-Panel/issues/6",
+    "current_p2_run": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615",
+    "current_p2_debian_attempt1_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133278119673",
+    "current_p2_ubuntu_attempt1_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133278120084",
+    "current_p2_debian_attempt2_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133289204879",
+    "current_p2_ubuntu_attempt2_job": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133289208279"
   },
   "latest_source_checkpoint": {
     "sha": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
-    "hosted_ci": "local_unpushed_candidate_based_on_b411; exact_PR_head_CI_pending",
+    "hosted_ci": "published_in_PR_171_at_2054; terminal_snapshot_2026-11-16T12:22Z; 16_of_17_workflows_success_1_failed_P2; checks_24_success_1_failed_0_pending; both_Debian_attempts_failed_step18_Ubuntu_passed_both",
     "evidence": "Includes natural daemon lease-expiry/restart coverage in the P1 smoke; forced-colors and reduced-motion keyboard journeys; amd64 package guard; already-expired lease unit case; phone Sites/Files targets; theme-aware focus tokens; a sampled contrast regression for 15 focus selectors in each theme (30 selector/theme pairs); forced-colors navigation focus; bounded allowlisted PHP-FPM comm diagnostics with path/allowlist drift tests; atomic unsigned-package publication under a trusted output-parent assumption without a crash-durability claim; test-only Linux OpenRootAt permission coverage (nil/closed roots, exact 0700 acceptance, and rejection of group/other plus setuid/setgid/sticky bits after verifying the requested mode); and newline-preserving package output-parent/name capture with exact-parent staging regression. Local responsive browser suite passed 17/17; PHP-FPM diagnostic suite passed 16/16; package publication failure/path shim passed on Git Bash, with the newline regression failing against the old builder (exit 95). Windows symlink and mode checks are explicitly skipped.",
-    "limitations": "Candidate exact-head hosted CI is pending. Go/WSL are unavailable locally, so Linux-tagged OpenRootAt tests, full Go race suite and vet were not run. Real dpkg-deb package validation, Linux symlink/mode shim assertions, P1 real-binary smoke, and actual Ubuntu/Debian PHP-FPM comm values require hosted Linux CI. Package publication assumes trusted, stable output-parent components and filesystem rename atomicity; it does not defend against hostile parent swaps or promise crash durability. Earlier b107 HTTPS stall cause remains unknown. Synthetic UI evidence is not overall WCAG conformance, authenticated-tenant acceptance, physical-device testing or human accessibility acceptance; issue #155 remains open. Preserve all owner, security, production, restore, accessibility and release gates."
+    "limitations": "On exact PR head 2054, hosted Go race/vet and security checks passed. P2 package fixture step 17 passed for both OSes in both attempts. Debian guest smoke failed at step 18 with generic exit 1 in both attempts; Ubuntu passed both. Cause remains unknown. A static PID-file/umask hypothesis is unconfirmed and does not explain Ubuntu success; no source fix is in place. Real guest PHP-FPM comm values remain unverified. Go/WSL and dpkg-deb are unavailable locally, so Linux-tagged OpenRootAt tests, full Go race suite, vet and real package validation did not run locally; hosted Go race/vet did execute on 2054. Windows package shims explicitly skip true symlink/mode checks. Package publication assumes trusted, stable output-parent components and filesystem rename atomicity; it does not defend against hostile parent swaps or promise crash durability. Earlier b107 HTTPS stall cause remains unknown. Synthetic UI evidence is not overall WCAG conformance, authenticated-tenant acceptance, physical-device testing or human accessibility acceptance; issue #155 remains open. Preserve all owner, security, production, restore, accessibility and release gates."
   },
-  "published_pr_head_at_snapshot": "b411b4960748129e4c59e4fa1ce6a0644d816249",
+  "published_pr_head_at_snapshot": "2054a425108abd4db8df6e84b29c421dafe17dd0",
   "local_checkpoint_parent_at_snapshot": "b411b4960748129e4c59e4fa1ce6a0644d816249",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
@@ -427,6 +434,74 @@
   },
   "local_candidate_head": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
   "local_candidate_tree_sha": "019c3f734a1743f91e1bdb3203013cbc154bec2c",
-  "local_snapshot_head": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
-  "local_snapshot_tree": "019c3f734a1743f91e1bdb3203013cbc154bec2c"
+  "local_snapshot_head": "2054a425108abd4db8df6e84b29c421dafe17dd0",
+  "local_snapshot_tree": "7a2dde32facb1b4df46b8961eeb6616e22013d10",
+  "snapshot_scope_note": "Terminal CI snapshot for published PR head 2054 only; any later source or documentation commit creates a new head whose CI must be checked separately.",
+  "published_pr_tree_at_snapshot": "7a2dde32facb1b4df46b8961eeb6616e22013d10",
+  "published_pr_ci_snapshot": {
+    "head_sha": "2054a425108abd4db8df6e84b29c421dafe17dd0",
+    "source_candidate_sha": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
+    "source_candidate_tree": "019c3f734a1743f91e1bdb3203013cbc154bec2c",
+    "workflow_runs_total": 17,
+    "workflow_success": 16,
+    "workflow_in_progress": 0,
+    "workflow_concluded_failure": 1,
+    "check_runs_total": 25,
+    "check_success": 24,
+    "check_failure": 1,
+    "check_running": 0,
+    "check_pending": 0,
+    "p2_run_id": 43861183615,
+    "p2_run_url": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615",
+    "attempt_1": {
+      "debian_job_id": 133278119673,
+      "debian_job_url": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133278119673",
+      "debian_step_18": "guest_smoke_failed_generic_exit_1_cause_unavailable",
+      "ubuntu_job_id": 133278120084,
+      "ubuntu_job_url": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133278120084",
+      "ubuntu_status": "passed",
+      "package_fixture_step_17": "success_on_both_guest_jobs"
+    },
+    "attempt_2": {
+      "type": "rerun_failed_jobs",
+      "same_head_sha": "2054a425108abd4db8df6e84b29c421dafe17dd0",
+      "debian_job_id": 133289204879,
+      "debian_job_url": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133289204879",
+      "debian_step_18": "guest_smoke_failed_generic_exit_1_cause_unavailable",
+      "ubuntu_job_id": 133289208279,
+      "ubuntu_job_url": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183615/job/133289208279",
+      "ubuntu_status": "passed",
+      "package_fixture_step_17": "success_on_both_guest_jobs",
+      "status": "completed_failure"
+    },
+    "pr_state": "open_draft_unmerged",
+    "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+    "later_docs_commit_requires_new_exact_head_ci": true,
+    "go_evidence": {
+      "go_pull_request_run_id": 43861183817,
+      "go_pull_request_job_id": 133278121383,
+      "go_pull_request_job_url": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183817/job/133278121383",
+      "go_push_run_id": 43861176115,
+      "go_push_job_id": 133278092854,
+      "go_push_job_url": "https://github.com/parmtech/Tong-Panel/actions/runs/43861176115/job/133278092854",
+      "gosec_run_id": 43861232605,
+      "gosec_job_id": 133278287232,
+      "gosec_job_url": "https://github.com/parmtech/Tong-Panel/actions/runs/43861232605/job/133278287232",
+      "govulncheck_run_id": 43861183979,
+      "govulncheck_job_id": 133278120826,
+      "govulncheck_job_url": "https://github.com/parmtech/Tong-Panel/actions/runs/43861183979/job/133278120826",
+      "status": "all_success_at_head_2054"
+    },
+    "collected_at_utc": "2026-11-16T12:22:00Z",
+    "failure_cause": "unknown_generic_exit_1",
+    "static_pid_file_umask_hypothesis": "unconfirmed_does_not_explain_Ubuntu_passes",
+    "source_fix_present": false
+  },
+  "tracker_dod_at_snapshot": {
+    "total": 12,
+    "checked": 0,
+    "unchecked": 12
+  },
+  "local_snapshot_note": "local_snapshot_head/tree identify the clean branch base before this docs-only refresh; this refresh produces a later head that needs separate exact-head CI.",
+  "snapshot_timestamp_utc": "2026-11-16T12:22:00Z"
 }
