@@ -55,6 +55,22 @@ func (q *recordingRemoveQuota) RemoveUsed(tenantID string, bytes int64) error {
 	return q.testFileQuota.RemoveUsed(tenantID, bytes)
 }
 
+type trackingResponseWriter struct {
+	http.ResponseWriter
+	wroteHeader bool
+	wroteBody   bool
+}
+
+func (w *trackingResponseWriter) WriteHeader(code int) {
+	w.wroteHeader = true
+	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *trackingResponseWriter) Write(body []byte) (int, error) {
+	w.wroteBody = true
+	return w.ResponseWriter.Write(body)
+}
+
 // This proves the API forwards request cancellation through the context-aware
 // adapter and the adapter honors an already-canceled request before removal.
 // It does not inject cancellation during the root's quarantine/unlink sequence.
@@ -95,9 +111,10 @@ func TestFilesDeletePassesCancellationToContextService(t *testing.T) {
 	req.Header.Set("X-CSRF-Token", csrf)
 	req.Header.Set("Origin", "https://panel.test")
 	rec := httptest.NewRecorder()
+	trackedResponse := &trackingResponseWriter{ResponseWriter: rec}
 	done := make(chan struct{})
 	go func() {
-		h.ServeHTTP(rec, req)
+		h.ServeHTTP(trackedResponse, req)
 		close(done)
 	}()
 	var releaseOnce sync.Once
@@ -147,6 +164,9 @@ func TestFilesDeletePassesCancellationToContextService(t *testing.T) {
 	}
 	if rec.Body.Len() != 0 {
 		t.Fatalf("canceled DELETE wrote a response: %s", rec.Body.String())
+	}
+	if trackedResponse.wroteHeader || trackedResponse.wroteBody {
+		t.Fatalf("canceled DELETE wrote response: header=%t body=%t", trackedResponse.wroteHeader, trackedResponse.wroteBody)
 	}
 	if content, err := os.ReadFile(filepath.Join(rootA, path)); err != nil || string(content) != "delete" {
 		t.Fatalf("canceled DELETE changed file: content=%q err=%v", content, err)
