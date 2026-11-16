@@ -67,8 +67,36 @@ func TestPublicAndProtectedEndpoints(t *testing.T) {
 	if r := call(h, "POST", "/api/v1/jobs", secret, "req-001122", "{\"kind\":\"system.exec\"}"); r.Code != 400 {
 		t.Fatal("arbitrary command accepted")
 	}
-	if r := call(h, "POST", "/api/v1/jobs", secret, "req-001122", "{\"kind\":\"validation.noop\",\"command\":\"rm -rf /\"}"); r.Code != 400 {
-		t.Fatal("extra field accepted")
+	for _, tc := range []struct {
+		name  string
+		field string
+	}{
+		{name: "command", field: `"command":"rm -rf /"`},
+		{name: "executable", field: `"executable":"/bin/sh"`},
+		{name: "environment", field: `"environment":{"PATH":"/tmp"}`},
+		{name: "user_id", field: `"user_id":"root"`},
+		{name: "working_directory", field: `"working_directory":"/"`},
+		{name: "tenant_id", field: `"tenant_id":"tenant-B"`},
+	} {
+		t.Run("rejects "+tc.name+" authority field", func(t *testing.T) {
+			body := `{"kind":"validation.noop",` + tc.field + `}`
+			if r := call(h, "POST", "/api/v1/jobs", secret, "req-001122", body); r.Code != 400 {
+				t.Fatalf("authority field %q accepted: status %d body=%s", tc.name, r.Code, r.Body.String())
+			}
+		})
+	}
+	listed := call(h, "GET", "/api/v1/jobs", secret, "", "")
+	if listed.Code != 200 {
+		t.Fatalf("job list status %d: %s", listed.Code, listed.Body.String())
+	}
+	var existing struct {
+		Jobs []jobs.Job `json:"jobs"`
+	}
+	if err := json.Unmarshal(listed.Body.Bytes(), &existing); err != nil {
+		t.Fatal(err)
+	}
+	if len(existing.Jobs) != 0 {
+		t.Fatalf("rejected authority fields enqueued %d jobs", len(existing.Jobs))
 	}
 	r := call(h, "POST", "/api/v1/jobs", secret, "req-001122", "{\"kind\":\"validation.noop\"}")
 	if r.Code != 202 {
