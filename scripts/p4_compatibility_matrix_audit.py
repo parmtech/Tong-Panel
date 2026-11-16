@@ -15,7 +15,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 MAX_MATRIX_BYTES = 1_048_576
 SHA256_RE = re.compile(r"^[0-9a-f]{40}$")
 STATUSES = {"supported", "unsupported", "experimental", "unverified"}
@@ -25,6 +25,7 @@ REVIEW_DISPOSITIONS = {"accepted", "rejected", "pending"}
 # This draft validator treats those numbers as identifiers; that schema choice
 # remains subject to owner/architecture review.
 P4_CASE_IDS = {str(number) for number in range(1, 11)}
+P4_SLICE_ORDINALS = set(range(1, 9))
 PLACEHOLDERS = {"", "*", "any", "latest", "tbd", "unknown", "unresolved"}
 ALTERNATIVE_RE = re.compile(r"\b(?:and/or|or|and)\b|\||\s/\s|,", re.IGNORECASE)
 
@@ -229,6 +230,7 @@ def audit_matrix(matrix: Any, root: Path, expected_source_commit: str) -> list[s
         errors.append("matrix_rows_missing:root")
         rows_value = []
     row_keys: set[tuple[str, str]] = set()
+    covered_slice_ordinals: set[int] = set()
     for index, row in enumerate(rows_value):
         location = f"rows[{index}]"
         if not isinstance(row, dict):
@@ -243,6 +245,7 @@ def audit_matrix(matrix: Any, root: Path, expected_source_commit: str) -> list[s
                 "available",
                 "prerequisite_gates",
                 "acceptance_case_ids",
+                "blueprint_slice_ordinals",
                 "tested_commit",
                 "evidence",
                 "known_limits",
@@ -278,6 +281,22 @@ def audit_matrix(matrix: Any, root: Path, expected_source_commit: str) -> list[s
             errors.append(f"supported_not_available:{location}")
         elif isinstance(status, str) and status in {"unsupported", "experimental", "unverified"} and available:
             errors.append(f"non_supported_marked_available:{location}")
+
+        slice_ordinals = row.get("blueprint_slice_ordinals")
+        if not isinstance(slice_ordinals, list) or not slice_ordinals:
+            errors.append(f"blueprint_slices_missing:{location}")
+            slice_ordinals = []
+        seen_slice_ordinals: set[int] = set()
+        for slice_index, slice_ordinal in enumerate(slice_ordinals):
+            slice_location = f"{location}.blueprint_slice_ordinals[{slice_index}]"
+            if type(slice_ordinal) is not int or slice_ordinal not in P4_SLICE_ORDINALS:
+                errors.append(f"blueprint_slice_ordinal_unresolved:{slice_location}")
+                continue
+            if slice_ordinal in seen_slice_ordinals:
+                errors.append(f"blueprint_slice_ordinal_ambiguous:{slice_location}")
+                continue
+            seen_slice_ordinals.add(slice_ordinal)
+            covered_slice_ordinals.add(slice_ordinal)
 
         gates = row.get("prerequisite_gates")
         if not isinstance(gates, list) or not gates:
@@ -387,6 +406,9 @@ def audit_matrix(matrix: Any, root: Path, expected_source_commit: str) -> list[s
             for evidence_index, evidence in enumerate(evidence_value):
                 if isinstance(evidence, dict) and evidence.get("result") != "passed":
                     errors.append(f"supported_evidence_not_passed:{location}.evidence[{evidence_index}]")
+
+    if covered_slice_ordinals != P4_SLICE_ORDINALS:
+        errors.append("blueprint_slice_coverage_incomplete:root")
 
     return sorted(set(errors))
 

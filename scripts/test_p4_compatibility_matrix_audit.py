@@ -49,7 +49,7 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
         }
         fingerprint = profile_fingerprint(profile)
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "candidate_commit": SYNTHETIC_COMMIT,
             "profiles": [profile],
             "rows": [
@@ -62,6 +62,7 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
                         {"id": "synthetic-p0", "reference": "docs/phases/P0-PLANNING.md"}
                     ],
                     "acceptance_case_ids": ["1", "10"],
+                    "blueprint_slice_ordinals": [1, 2, 3, 4, 5, 6, 7, 8],
                     "tested_commit": SYNTHETIC_COMMIT,
                     "evidence": [
                         {
@@ -97,6 +98,68 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
 
     def test_valid_synthetic_supported_fixture_is_only_structurally_valid(self):
         self.assertEqual([], audit_matrix(self.matrix, self.root, SYNTHETIC_COMMIT))
+
+    def test_schema_v1_matrix_is_rejected_after_v2_bump(self):
+        self.matrix["schema_version"] = 1
+        self.assert_error("schema_version_unsupported:root")
+
+    def test_blueprint_slice_ordinals_are_required_nonempty_lists(self):
+        self.matrix = self.valid_matrix()
+        del self.matrix["rows"][0]["blueprint_slice_ordinals"]
+        self.assert_error("blueprint_slices_missing:rows[0]")
+
+        for invalid in (None, "1", 1, {}):
+            with self.subTest(value=invalid):
+                self.matrix = self.valid_matrix()
+                self.matrix["rows"][0]["blueprint_slice_ordinals"] = invalid
+                self.assert_error("blueprint_slices_missing:rows[0]")
+
+        self.matrix = self.valid_matrix()
+        self.matrix["rows"][0]["blueprint_slice_ordinals"] = []
+        self.assert_error("blueprint_slices_missing:rows[0]")
+
+    def test_blueprint_slice_ordinals_require_unique_exact_in_range_integers(self):
+        for invalid in (True, False, 1.0, "1", 0, 9):
+            with self.subTest(value=invalid):
+                self.matrix = self.valid_matrix()
+                self.matrix["rows"][0]["blueprint_slice_ordinals"] = [invalid]
+                self.assert_error(
+                    "blueprint_slice_ordinal_unresolved:rows[0].blueprint_slice_ordinals[0]"
+                )
+
+        self.matrix = self.valid_matrix()
+        self.matrix["rows"][0]["blueprint_slice_ordinals"] = [1, 1]
+        self.assert_error(
+            "blueprint_slice_ordinal_ambiguous:rows[0].blueprint_slice_ordinals[1]"
+        )
+
+    def test_blueprint_slice_coverage_is_matrix_wide_across_profiles_and_statuses(self):
+        supported_row = self.matrix["rows"][0]
+        supported_row["blueprint_slice_ordinals"] = [1, 2, 3, 4, 5, 6, 7]
+
+        other_profile = dict(self.matrix["profiles"][0])
+        other_profile.update(id="synthetic-web-arm64-fixture", architecture="synthetic-arm64")
+        self.matrix["profiles"].append(other_profile)
+
+        unverified_row = dict(supported_row)
+        unverified_row.update(
+            capability="synthetic-unverified-capability",
+            profile_id=other_profile["id"],
+            status="unverified",
+            available=False,
+            blueprint_slice_ordinals=[8],
+            tested_commit=None,
+            evidence=[],
+            reviewer_decision={"disposition": "pending", "reviewer": ""},
+        )
+        self.matrix["rows"].append(unverified_row)
+
+        # Neither row nor profile lists every slice. The unverified, unavailable
+        # row with no evidence contributes the sole occurrence of slice 8.
+        self.assertEqual([], audit_matrix(self.matrix, self.root, SYNTHETIC_COMMIT))
+
+        unverified_row["blueprint_slice_ordinals"] = [7]
+        self.assert_error("blueprint_slice_coverage_incomplete:root")
 
     def test_unverified_profile_can_be_explicitly_unavailable_without_evidence(self):
         row = self.matrix["rows"][0]
@@ -283,7 +346,7 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
 
     def test_duplicate_json_keys_are_rejected(self):
         with self.assertRaises(DuplicateJSONKey):
-            json.loads('{"schema_version":1,"schema_version":1}', object_pairs_hook=_unique_object)
+            json.loads('{"schema_version":2,"schema_version":2}', object_pairs_hook=_unique_object)
 
     def test_oversized_matrix_is_bounded(self):
         oversized = self.root / "oversized.json"
@@ -292,7 +355,7 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
             _read_matrix(oversized)
 
     def test_malformed_types_and_unknown_fields_fail_closed(self):
-        self.matrix["schema_version"] = 1.0
+        self.matrix["schema_version"] = 2.0
         self.matrix["rows"][0]["status"] = []
         self.matrix["rows"][0]["unexpected"] = "ignored-by-no-one"
         self.matrix["rows"][0]["reviewer_decision"]["disposition"] = []
