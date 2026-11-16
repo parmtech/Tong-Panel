@@ -7,9 +7,7 @@
 
 ## Current implementation reality and next agent entrypoint (17 November 2026)
 
-**Latest PR/CI/tracker snapshot (17 November 2026, Australia/Sydney):** PR #171 is open/draft/unmerged at exact source head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. All 16 workflow runs and 26 checks succeeded, with zero failures; P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728. Issue #172 is open at 0/12 DoD checked, with all nine approvals and `product_support_approval` false. No phase or approval decision changed.
-
-The current local branch includes unpushed source candidate `d885a256f96bac36b5d96ff76d8e094b802d75f0`, which rejects boolean attempt IDs that alias integer ID 1 and adds its regression test; the local suite passed 7/7. This change is outside 10f666a and its completed CI and needs exact-head CI after PR sync. Only handoff docs remain uncommitted.
+**Latest PR/CI/tracker snapshot (read 2026-11-16 22:50:07 UTC; 17 November 2026, Australia/Sydney):** PR #171 is open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c` (tree `c47a5f859d9dcd2a818ef2a146f34ffc47851ed9`, parent d885a256). 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. Issue #172 remains open at 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`; its body was updated at 22:53:04 UTC after the state was reverified unchanged. The d885a256 boolean-attempt-ID fix and regression test (7/7 local synthetic model tests) are included in 570 and covered by its successful CI. The current branch is at 570 and only the 14 local handoff-doc edits are pending. This does not change phase or approval decisions.
 
 ### Historical verified CI snapshot — f804 (superseded by 10f666a)
 

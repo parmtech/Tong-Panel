@@ -1,10 +1,10 @@
-## Current resume checkpoint — 10f666a exact-head CI passed (17 November 2026, Australia/Sydney)
+## Current resume checkpoint - PR head 5703066 exact-head CI passed (17 November 2026; read 22:50:07 UTC)
 
-PR #171 is open/draft/unmerged at exact source head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. All 16 workflow runs and 26 check runs passed with zero failures. P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728.
+PR #171 remains open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c`. 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed.
 
-The local branch is `codex/tong-panel-candidate-20261116` at unpushed source commit `d885a256f96bac36b5d96ff76d8e094b802d75f0` (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`), parent `10f666a3db7ccf1f2e89d0a01d75f25820e24804`; only handoff docs are uncommitted. Issue #172 is open with 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`. No DoD item, approval boolean, or pending decision changed. Retain all owner, security, production, restore, accessibility, signing, merge, and release gates.
+The local branch is `codex/tong-panel-candidate-20261116` at 570 (tree `c47a5f859d9dcd2a818ef2a146f34ffc47851ed9`, parent `d885a256f96bac36b5d96ff76d8e094b802d75f0`). The 570 commit snapshot was clean; only these 14 handoff docs are pending in the worktree. d885 adds the boolean attempt-ID fix and regression; the local model suite passed 7/7, and d885 is included in 570's successful exact-head CI.
 
-Since the 10f666a snapshot, local source commit `d885a256f96bac36b5d96ff76d8e094b802d75f0` rejects boolean attempt IDs that alias integer ID 1 and adds `test_boolean_attempt_id_cannot_alias_integer_attempt`; the local model suite passed 7/7. This unpushed commit is outside 10f666a and its completed CI, and needs exact-head CI after PR sync.
+Issue #172 is open at 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`. Its body was updated at 22:53:04 UTC; the DoD/approval state audited at 21:35:21 UTC was reverified unchanged before that update. No DoD item, approval boolean, or pending decision changed. Retain all owner, security, production, restore, accessibility, signing, merge, and release gates.
 
 ## Historical verified resume checkpoint — remote PR/ref f804127; exact-head CI passed (17 November 2026; superseded by 10f666a)
 

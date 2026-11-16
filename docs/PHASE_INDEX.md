@@ -1,13 +1,7 @@
 # Tong Panel — Phase Index / Single Operational Plan
 **Updated:** 2026-11-17. The combined development review preserves all original draft work. P0 decisions and phase acceptance remain open; P1 prototypes and disposable P2 QA may continue, but P1 exit and P2 entry are not approved. Read the current handoff for executed evidence.
 
-**Latest PR/CI snapshot (17 November 2026, Australia/Sydney):** PR #171 is open/draft/unmerged at exact source head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. All 16 workflow runs and 26 check runs succeeded, with zero failures. P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728. The local branch is now at unpushed source candidate `d885a256f96bac36b5d96ff76d8e094b802d75f0` (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`, parent 10f666a); only handoff docs are uncommitted.
-
-The source commits now included in the PR head are `f3d02ac841655a5320f5dd3b602310ef3cc5757f` (focused synthetic UI tests, locally passed 2/2), `90becaf720556fe28cffadf18813dfc2d7e4682a` (synthetic P2 backup-retry model/workflow, 6/6 root-verified locally), and `a2988b377d9a5c9656be310cab50fb58b5bbaed7` (test-only SQLite job-kind allowlist regression, reviewed but not run locally because Go/gofmt were unavailable). Their exact-head hosted verification passed in the 10f666a CI snapshot.
-
-Local source candidate `d885a256f96bac36b5d96ff76d8e094b802d75f0` rejects boolean attempt IDs that alias integer ID 1 and adds `test_boolean_attempt_id_cannot_alias_integer_attempt`; the updated local model suite passed 7/7. This commit is not in PR head 10f666a or its passed CI; it needs a separate exact-head run after PR sync. The handoff docs remain uncommitted.
-
-Issue #172 is open at 0/12 DoD items checked, all nine named approvals false, and `product_support_approval:false`. After a fresh PR/ref read, sync d885a256 and inspect its exact-head CI. Preserve P0-06 unchecked, all pending decisions, and every owner/security/production/restore/accessibility/signing/merge/release gate.
+**Latest PR/CI snapshot (read 16 November 2026 22:50:07 UTC):** PR #171 is open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c` (tree `c47a5f859d9dcd2a818ef2a146f34ffc47851ed9`, parent d885a256). 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. The d885 boolean-attempt-ID change and regression passed 7/7 locally and are included in this tested head. Only the 14 handoff docs are pending locally; issue #172 remains 0/12 with nine approvals and product support false. Preserve all P0-P6 gates and pending decisions.
 
 **Historical verified baseline:** f804127fdef6b46fec16c27beeb357398e066cba passed 13/13 Actions runs and 22/22 checks at the 2026-11-16 20:26:10 UTC read; both P2 guests passed. This result applies to f804 only. The db97 Debian failure cause remains unknown.
 
@@ -23,7 +17,7 @@ Issue #172 is open at 0/12 DoD items checked, all nine named approvals false, an
 
 ## For a new AI agent
 
-**Current snapshot (17 November 2026):** PR #171 is open/draft/unmerged at exact source head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. All 16 workflow runs and 26 checks succeeded, including P2 clean-VM run #43960459442 and Debian/Ubuntu jobs #133626151956/#133626151728. The local branch is at unpushed source candidate `d885a256f96bac36b5d96ff76d8e094b802d75f0` (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`, parent 10f666a); only the handoff docs are uncommitted. Issue #172 is open with 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`. After a fresh PR/ref read, sync d885a256 and inspect its own exact-head CI; preserve all P0–P6 gates and pending decisions.
+**Current snapshot (17 November 2026):** PR #171 remains open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c`. 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. The source parent d885a256 (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`) includes the boolean-ID fix and 7/7 local synthetic model test result. The worktree has only 14 pending handoff docs. Issue #172 is open with 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`. Preserve all P0-P6 gates and pending decisions.
 
 ### Historical resume snapshot — 16 November 2026 (superseded)
 

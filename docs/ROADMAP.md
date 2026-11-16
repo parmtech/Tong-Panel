@@ -2,11 +2,9 @@
 **Original roadmap:** 2026-10-28 | **Status reconciled:** 2026-11-17. P0 owner/independent security decisions are pending; P1 prototypes and disposable P2 QA may continue, but P1 exit and P2 entry are not approved. [A–Z next-agent handoff](AI_AGENT_START_HERE.md).
 All durations are intentionally uncommitted; phases are gated by evidence rather than time estimates.
 
-## Current execution checkpoint (17 November 2026)
+## Current execution checkpoint (17 November 2026; PR/ref and CI read 16 November 22:50:07 UTC)
 
-PR #171 is open/draft/unmerged at exact source head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. All 16 workflow runs and 26 checks succeeded, with zero failures; P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728. Issue #172 is open at 0/12 DoD checked, all nine approval fields false, and `product_support_approval:false`. This CI result does not change phase or approval decisions.
-
-The local branch now has source candidate `d885a256f96bac36b5d96ff76d8e094b802d75f0`, which includes the boolean-attempt-ID fix and regression test (7/7 local model tests passed). It is not in PR head 10f666a or its passing CI; after PR sync it needs its own exact-head CI. The current worktree has only uncommitted handoff docs. Preserve P0/P1/P2 gates and all pending owner/security/production/release decisions.
+PR #171 remains open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c` (tree `c47a5f859d9dcd2a818ef2a146f34ffc47851ed9`, parent d885a256). 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. Issue #172 remains open at 0/12 DoD checked, all nine approval fields false, and `product_support_approval:false`. The d885 boolean-ID fix is included in 570; its synthetic local suite passed 7/7 and hosted model check #133660331307 passed. The local worktree has only the 14 pending handoff-doc edits. CI does not change phase or approval decisions. Preserve P0/P1/P2 gates and all pending owner/security/production/release decisions.
 
 ### Historical verified f804 checkpoint (superseded by 10f666a)
 

@@ -1,11 +1,11 @@
-## Latest resume checkpoint — 10f666a exact-head CI passed (17 November 2026, Australia/Sydney)
+## Latest resume checkpoint - PR head 5703066 exact-head CI passed (17 November 2026; PR/ref and CI read 22:50:07 UTC)
 
-- **PR/source ref:** PR #171 is open/draft/unmerged at exact head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`.
-- **Exact-head CI:** all 16 workflow runs and 26 check runs succeeded, with zero failures. P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728.
-- **Local checkout:** branch `codex/tong-panel-candidate-20261116` is at local source commit `d885a256f96bac36b5d96ff76d8e094b802d75f0` (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`), parent `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. It is unpushed; the 14 handoff docs are the only current worktree changes.
-- **Local source candidate:** d885a256 rejects boolean attempt IDs that alias integer ID 1 and adds `test_boolean_attempt_id_cannot_alias_integer_attempt`; the local model suite passed 7/7. The source commit is outside PR head 10f666a and its completed CI, so it needs exact-head hosted CI after PR sync.
-- **Tracker:** issue #172 is open at 0/12 DoD checked; all nine named approval fields and `product_support_approval` are false. No DoD or approval state changed.
-- **Next:** after a fresh PR/ref read, sync source candidate d885a256 and inspect its own exact-head CI. The terminal 10f666a result is all green. Preserve all pending decisions and owner, security, production, restore, accessibility, signing, merge, and release gates.
+- **PR/source ref:** PR #171 remains open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c` (tree `c47a5f859d9dcd2a818ef2a146f34ffc47851ed9`, parent d885a256). The PR body was updated at 22:52:59 UTC.
+- **Exact-head CI:** 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. The exact-head run includes source commit d885a256.
+- **Included source:** d885a256 adds the boolean-attempt-ID rejection and regression test; the local synthetic model suite passed 7/7. Hosted synthetic model check #133660331307 passed on head 570. This is not P2 acceptance or production policy evidence.
+- **Local checkout:** branch `codex/tong-panel-candidate-20261116` is at 570; its commit snapshot was clean and the current worktree has only the 14 pending handoff-doc edits.
+- **Tracker:** issue #172 is open at 0/12 DoD checked; all nine named approval fields and `product_support_approval` are false. Its body was refreshed at 22:53:04 UTC; DoD/approval state was audited at 21:35:21 UTC and reverified unchanged before the refresh.
+- **Next:** review the pending 14-doc refresh. Preserve all pending decisions and owner, security, production, restore, accessibility, signing, merge, and release gates.
 
 ## Historical verified checkpoint — remote PR/ref f804127; exact-head CI passed (17 November 2026; superseded by 10f666a)
 

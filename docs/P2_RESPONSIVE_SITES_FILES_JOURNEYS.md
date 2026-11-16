@@ -4,9 +4,9 @@
 
 **Issue:** [#155 — P2 acceptance: define mobile/tablet site and Files journeys](https://github.com/parmtech/Tong-Panel/issues/155).
 
-## Current automation checkpoint — 10f666a CI passed (17 November 2026, Australia/Sydney)
+## Current automation checkpoint - PR head 5703066 CI passed (17 November 2026; PR/ref and CI read 22:50:07 UTC)
 
-PR #171 is open/draft/unmerged at exact source head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. All 16 workflow runs and 26 checks passed with zero failures; P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728. Issue #155 remains open; this checkpoint does not establish human accessibility, authenticated-tenant journeys, or phase acceptance. Preserve P0/P1 identity and session gates.
+PR #171 remains open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c`. 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. Issue #155 remains open; this checkpoint does not establish human accessibility, authenticated-tenant journeys, or phase acceptance. Preserve P0/P1 identity and session gates. The current worktree has only the 14 handoff-doc edits.
 
 ### Historical automation checkpoint — f804 (superseded by 10f666a)
 

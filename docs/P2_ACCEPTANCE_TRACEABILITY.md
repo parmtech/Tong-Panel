@@ -4,9 +4,7 @@
 
 **Work item:** [P2 issue #157](https://github.com/parmtech/Tong-Panel/issues/157).
 
-**Current PR/ref and CI snapshot (17 November 2026, Australia/Sydney):** PR #171 is open/draft/unmerged at exact source head `10f666a3db7ccf1f2e89d0a01d75f25820e24804`. All 16 workflow runs and 26 checks succeeded, with zero failures; P2 clean-VM run #43960459442 passed Debian job #133626151956 and Ubuntu job #133626151728. Issue #172 is open at 0/12 DoD checked; all nine approval fields and `product_support_approval` are false. This traceability map does not change phase acceptance.
-
-Local source candidate `d885a256f96bac36b5d96ff76d8e094b802d75f0` rejects boolean attempt IDs so `true` cannot alias integer ID 1, with regression `test_boolean_attempt_id_cannot_alias_integer_attempt`; the updated local suite passed 7/7. This unpushed commit is outside 10f666a and its completed CI and needs separate exact-head CI after PR sync. No production policy or acceptance decision changed.
+**Current PR/ref and CI snapshot (read 2026-11-16 22:50:07 UTC):** PR #171 remains open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c`. 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. Issue #172 remains open at 0/12 DoD checked, all nine approval fields and `product_support_approval` false. d885a256 is included in the tested head; its synthetic boolean-attempt-ID change passed 7/7 locally and model check #133660331307 hosted. This traceability map does not change phase acceptance.
 
 **Historical PR/ref and CI snapshot (f804, superseded by 10f666a):** PR #171 was open/draft/unmerged at remote exact head `f804127fdef6b46fec16c27beeb357398e066cba` against main `0aad68e81138a0f226e83e401f90bae4d0b6bddc` at the last GitHub read, 2026-11-16 20:29:23 UTC. Exact-head CI read at 20:26:10 UTC passed 13 Actions and 22 checks; P2 #43945726657 and both guests #133574748060/#133574748605 passed step 18, post setup/checkout, and Complete. The db97 failure cause remains unknown.
 
