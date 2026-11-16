@@ -11,6 +11,7 @@ from model import (
     InvalidIdentity,
     Model,
     StaleAttempt,
+    UnknownAttempt,
     identity_for_content,
 )
 
@@ -92,6 +93,23 @@ class BackupRetryModelTests(unittest.TestCase):
         self.assertEqual(attempt.identity, identity)
         self.assertEqual(attempt.state, AttemptState.VERIFIED)
         self.assertEqual(model.current(identity.backup_id).identity, identity)
+
+    def test_boolean_attempt_id_cannot_alias_integer_attempt(self):
+        model = Model()
+        content = b"strict synthetic attempt id"
+        identity = identity_for_content("tenant-a-weekly", 4, content)
+        attempt_id = model.begin_attempt(identity)
+        self.assertEqual(attempt_id, 1)
+
+        with self.assertRaises(UnknownAttempt):
+            model.attempt(True)
+        with self.assertRaises(UnknownAttempt):
+            model.verify_and_publish(True, content)
+        with self.assertRaises(UnknownAttempt):
+            model.reject_stale_delete(True)
+
+        self.assertEqual(model.attempt(attempt_id).state, AttemptState.ACTIVE)
+        self.assertIsNone(model.current(identity.backup_id))
 
     def test_same_generation_cannot_change_digest(self):
         model = Model()

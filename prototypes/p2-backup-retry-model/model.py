@@ -180,6 +180,8 @@ class Model:
         return ArtifactSnapshot(value.identity, value.published_by)
 
     def _get_attempt(self, attempt_id: int) -> _Attempt:
+        if type(attempt_id) is not int:
+            raise UnknownAttempt(f"unknown attempt {attempt_id!r}")
         try:
             return self._attempts[attempt_id]
         except KeyError as exc:
