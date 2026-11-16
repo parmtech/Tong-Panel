@@ -77,7 +77,7 @@ test.afterAll(async () => {
     if (server?.listening) await new Promise((resolveClose, rejectClose) => server.close(error => error ? rejectClose(error) : resolveClose()));
 });
 
-async function openComponentPreview(page, records) {
+async function openComponentPreview(page, records, nextFailures = { sites: null, files: null }) {
     const origin = new URL(baseURL).origin;
     await page.route('**/*', async route => {
         const request = route.request();
@@ -98,6 +98,14 @@ async function openComponentPreview(page, records) {
             };
             if (url.pathname === '/api/v1/sites') {
                 records.sites.push(summary);
+                const failure = nextFailures.sites;
+                if (failure) {
+                    nextFailures.sites = null;
+                    failure.markStarted();
+                    await failure.released;
+                    await route.abort('failed');
+                    return;
+                }
                 await route.fulfill({
                     status: 200,
                     contentType: 'application/json',
@@ -110,6 +118,14 @@ async function openComponentPreview(page, records) {
             }
             if (url.pathname === '/api/v1/files') {
                 records.files.push(summary);
+                const failure = nextFailures.files;
+                if (failure) {
+                    nextFailures.files = null;
+                    failure.markStarted();
+                    await failure.released;
+                    await route.abort('failed');
+                    return;
+                }
                 const entries = [
                     { name: 'documents', kind: 'directory', size: 0 },
                     { name: 'responsive-layout-notes.txt', kind: 'file', size: 38 },
@@ -146,6 +162,19 @@ async function openComponentPreview(page, records) {
     // fulfilled or denied by the route above; no login or backend is used.
     await page.goto(baseURL);
     await expect(page.locator('#jobs-panel')).toBeVisible();
+}
+
+function createHeldNetworkFailure() {
+    let markStarted;
+    let releaseFailure;
+    const started = new Promise(resolve => { markStarted = resolve; });
+    const released = new Promise(resolve => { releaseFailure = resolve; });
+    return {
+        started,
+        released,
+        markStarted: () => markStarted(),
+        release: () => releaseFailure(),
+    };
 }
 
 async function expectResponsiveBounds(page, viewport, selectors) {
@@ -373,4 +402,80 @@ test('component preview: Files controls work by keyboard at phone, tablet, and d
 
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: viewports.length * 2, previews: viewports.length }, viewports.length);
     expect(records.files.map(request => request.prefix)).toEqual(viewports.flatMap(() => ['', 'responsive']));
+});
+
+test('component preview: Sites and Files retry synthetic network failures at phone sizes', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const nextFailures = { sites: null, files: null };
+    const retryViewports = viewports.filter(viewport =>
+        (viewport.width === 320 && viewport.height === 640)
+        || (viewport.width === 390 && viewport.height === 360));
+    await openComponentPreview(page, records, nextFailures);
+
+    for (const [index, viewport] of retryViewports.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+
+        const filesFailure = createHeldNetworkFailure();
+        nextFailures.files = filesFailure;
+        await tabUntilFocused(page, '#files-refresh', viewport);
+        await expectVisibleKeyboardFocus(page, '#files-refresh', viewport);
+        await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-refresh', '#files-status']);
+        await page.keyboard.press(keyboardActivation(index));
+        try {
+            await filesFailure.started;
+            await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'loading');
+            await expect(page.locator('#files-refresh')).toBeDisabled();
+            await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-refresh', '#files-status']);
+        } finally {
+            filesFailure.release();
+        }
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
+        await expect(page.locator('#files-status')).toHaveText('Files could not be reached. Check your connection and try again.');
+        await expect(page.locator('#files-list li')).toHaveCount(0);
+        await expect(page.locator('#files-refresh')).toBeEnabled();
+        await tabUntilFocused(page, '#files-refresh', viewport);
+        await expectVisibleKeyboardFocus(page, '#files-refresh', viewport);
+        await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-refresh', '#files-status']);
+        await page.keyboard.press(keyboardActivation(index + 1));
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
+        await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-refresh', '#files-status']);
+
+        const sitesFailure = createHeldNetworkFailure();
+        nextFailures.sites = sitesFailure;
+        await tabUntilFocused(page, '#sites-load', viewport);
+        await expectVisibleKeyboardFocus(page, '#sites-load', viewport);
+        await expectResponsiveBounds(page, viewport, ['#sites-title', '#sites-load', '#sites-status']);
+        await page.keyboard.press(keyboardActivation(index + 1));
+        try {
+            await sitesFailure.started;
+            await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'loading');
+            await expectResponsiveBounds(page, viewport, ['#sites-title', '#sites-load', '#sites-status']);
+        } finally {
+            sitesFailure.release();
+        }
+        await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'unavailable');
+        await expect(page.locator('#sites-status')).toHaveText('Sites could not be loaded. Try again.');
+        await expect(page.locator('#sites-list li')).toHaveCount(0);
+        await expect(page.locator('#sites-load')).toBeEnabled();
+        await expect(page.locator('#sites-load')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#sites-load', viewport);
+        await expectResponsiveBounds(page, viewport, ['#sites-title', '#sites-load', '#sites-status']);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#sites-list')).toContainText('responsive.example.test');
+        await expectResponsiveBounds(page, viewport, ['#sites-title', '#sites-load', '#sites-status']);
+    }
+
+    expectSyntheticReadOnlyRequests(records, {
+        sites: retryViewports.length * 2,
+        files: retryViewports.length * 2,
+        previews: 0,
+    }, retryViewports.length);
+    expect(records.sites.map(request => request.prefix)).toEqual(retryViewports.flatMap(() => ['', '']));
+    expect(records.files.map(request => request.prefix)).toEqual(retryViewports.flatMap(() => ['', '']));
 });
