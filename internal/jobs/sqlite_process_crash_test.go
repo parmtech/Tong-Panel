@@ -181,12 +181,14 @@ func TestSQLiteCompletionCommitProcessCrashBeforeAck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	child := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestSQLiteCrashProcessHelper$")
+	childCtx, cancelChild := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancelChild()
+	child := exec.CommandContext(childCtx, os.Args[0], "-test.run=^TestSQLiteCrashProcessHelper$")
 	child.Env = crashHelperEnvironment("complete-kill", path)
 	err = child.Run()
-	if ctx.Err() != nil {
+	childTimedOut := errors.Is(childCtx.Err(), context.DeadlineExceeded)
+	cancelChild()
+	if childTimedOut {
 		t.Fatal("completion helper timed out")
 	}
 	var exit *exec.ExitError
@@ -198,7 +200,9 @@ func TestSQLiteCompletionCommitProcessCrashBeforeAck(t *testing.T) {
 		t.Fatal("completion helper termination was not SIGKILL")
 	}
 
-	db, err := database.Open(ctx, path)
+	verifyCtx, cancelVerify := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelVerify()
+	db, err := database.Open(verifyCtx, path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,20 +211,21 @@ func TestSQLiteCompletionCommitProcessCrashBeforeAck(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	store.ctx = verifyCtx
 	current, err := store.Get("tenant-a", job.ID)
 	if err != nil || current.State != Done {
 		t.Fatal("completed job state was not durable after process death")
 	}
 	var attempts, completed int
-	if err := db.QueryRowContext(ctx, "SELECT count(*),sum(status='completed') FROM job_attempts WHERE job_id=?", job.ID).Scan(&attempts, &completed); err != nil || attempts != 1 || completed != 1 {
+	if err := db.QueryRowContext(verifyCtx, "SELECT count(*),sum(status='completed') FROM job_attempts WHERE job_id=?", job.ID).Scan(&attempts, &completed); err != nil || attempts != 1 || completed != 1 {
 		t.Fatal("unexpected durable completion attempt ledger")
 	}
 	var cleared int
-	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM jobs WHERE id=? AND state=? AND attempt_count=1 AND lease_until IS NULL AND lease_owner IS NULL AND lease_token_sha256 IS NULL", job.ID, Done).Scan(&cleared); err != nil || cleared != 1 {
+	if err := db.QueryRowContext(verifyCtx, "SELECT count(*) FROM jobs WHERE id=? AND state=? AND attempt_count=1 AND lease_until IS NULL AND lease_owner IS NULL AND lease_token_sha256 IS NULL", job.ID, Done).Scan(&cleared); err != nil || cleared != 1 {
 		t.Fatal("completed job retained lease authority or lost its terminal state")
 	}
 	var completionAudits int
-	if err := db.QueryRowContext(ctx, "SELECT count(*) FROM audit_events WHERE subject_id=? AND action='job.completed' AND actor_kind='worker' AND COALESCE(actor_identity_id,actor_ref)='process-complete-test'", job.ID).Scan(&completionAudits); err != nil || completionAudits != 1 {
+	if err := db.QueryRowContext(verifyCtx, "SELECT count(*) FROM audit_events WHERE subject_id=? AND action='job.completed' AND actor_kind='worker' AND COALESCE(actor_identity_id,actor_ref)='process-complete-test'", job.ID).Scan(&completionAudits); err != nil || completionAudits != 1 {
 		t.Fatal("unexpected durable completion audit")
 	}
 	retry, err := store.CreateFor("tenant-a", "user-a", KindNoop, "process-completion-crash-0001")
