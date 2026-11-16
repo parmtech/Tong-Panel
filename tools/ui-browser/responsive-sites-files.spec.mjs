@@ -136,6 +136,27 @@ async function openComponentPreview(page, records, nextFailures = { sites: null,
                 });
                 return;
             }
+            const siteDetailsMatch = url.pathname.match(/^\/api\/v1\/sites\/([A-Za-z0-9_-]+)$/);
+            if (siteDetailsMatch) {
+                const siteID = siteDetailsMatch[1];
+                records.siteDetails?.push(summary);
+                if (siteID !== 'responsive-site') {
+                    await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+                    return;
+                }
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                        SiteID: 'responsive-site',
+                        TenantID: 'synthetic-tenant',
+                        DocumentRoot: 'sites/responsive-site/public',
+                        CreatedAt: 1,
+                        Domains: [{ Name: 'responsive.example.test', Kind: 'primary', OwnershipState: 'pending' }],
+                    }),
+                });
+                return;
+            }
             if (url.pathname === '/api/v1/files') {
                 records.files.push(summary);
                 const failure = nextFailures.files;
@@ -169,7 +190,12 @@ async function openComponentPreview(page, records, nextFailures = { sites: null,
                     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pages[summary.after]) });
                     return;
                 }
+                if (nextFailures.emptyFolderJourney && summary.filesPath === 'empty-folder') {
+                    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: [], next_after: '' }) });
+                    return;
+                }
                 const entries = [
+                    ...(nextFailures.emptyFolderJourney ? [{ name: 'empty-folder', kind: 'directory', size: 0 }] : []),
                     { name: 'documents', kind: 'directory', size: 0 },
                     { name: 'responsive-layout-notes.txt', kind: 'file', size: 38 },
                 ].filter(entry => entry.name.startsWith(summary.prefix));
@@ -251,7 +277,8 @@ function expectSyntheticReadOnlyRequests(records, expected, pageLoads = 1) {
     expect(records.otherAPI.map(request => request.path).sort()).toEqual(
         Array.from({ length: pageLoads }, () => ['/api/v1/version', '/healthz']).flat().sort(),
     );
-    for (const request of [...records.sites, ...records.files, ...records.previews, ...records.otherAPI]) {
+    const siteDetails = records.siteDetails ?? [];
+    for (const request of [...records.sites, ...siteDetails, ...records.files, ...records.previews, ...records.otherAPI]) {
         expect(request.method).toBe('GET');
         expect(request.hasCookie).toBe(false);
         expect(request.hasAuthorization).toBe(false);
@@ -438,6 +465,47 @@ test('component preview: Sites view fits phone, tablet, and desktop widths with 
     expectSyntheticReadOnlyRequests(records, { sites: viewports.length * 2, files: 0, previews: 0 });
     expect(records.sites.map(request => request.prefix)).toEqual(['', ...Array(viewports.length * 2 - 1).fill('res')]);
 });
+
+test('component preview: Sites details are keyboard reachable and fit a phone with synthetic data', async ({ page }) => {
+    const records = { sites: [], siteDetails: [], files: [], previews: [], otherAPI: [], external: [] };
+    const viewport = { width: 390, height: 844 };
+    await page.setViewportSize(viewport);
+    await openComponentPreview(page, records);
+    await page.locator('#sites-load').click();
+    await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+    await expect(page.locator('#sites-list')).toContainText('responsive.example.test');
+
+    const detailsButton = 'button[aria-label="View details for responsive-site"]';
+    await tabUntilFocused(page, detailsButton, viewport);
+    await expectVisibleKeyboardFocus(page, detailsButton, viewport);
+    await expectResponsiveBounds(page, viewport, ['#sites-title', '#sites-load', detailsButton]);
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#site-details')).toBeVisible();
+    await expect(page.locator('#site-details-title')).toHaveText('Site details: responsive-site');
+    await expect(page.locator('#site-details-title')).toBeFocused();
+    await expect(page.locator('#site-details-fields')).toContainText('sites/responsive-site/public');
+    await expect(page.locator('#site-details-domains')).toContainText('responsive.example.test');
+    await expect(page.locator('#site-details-domains')).toContainText('pending');
+    await expect(page.locator('#site-details-status')).toHaveAttribute('role', 'status');
+    await expect(page.locator('#site-details-status')).toContainText('Catalog metadata only');
+    await expectResponsiveBounds(page, viewport, ['#site-details-title', '#site-details-status', '#site-details-domains', '#site-details-close']);
+
+    const detailsAxe = await new AxeBuilder({ page })
+        .include('#site-details')
+        .withTags(['wcag2a', 'wcag2aa'])
+        .analyze();
+    expect(detailsAxe.violations.map(({ id, impact, nodes }) => ({
+        id,
+        impact,
+        nodes: nodes.map(node => ({ target: node.target, reason: node.failureSummary })),
+    }))).toEqual([]);
+
+    expectSyntheticReadOnlyRequests(records, { sites: 1, files: 0, previews: 0 });
+    expect(records.siteDetails).toHaveLength(1);
+    expect(records.siteDetails[0].path).toBe('/api/v1/sites/responsive-site');
+});
+
 
 test('component preview: Files view fits phone, tablet, and desktop widths with synthetic data', async ({ page }) => {
     const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
@@ -1127,6 +1195,52 @@ test('component preview: simulated focus loss suppresses pending Files previews 
         }
     }
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length, previews: phones.length * 4 }, phones.length);
+});
+
+
+test('component preview: empty Files folder returns to root by keyboard at phone size with synthetic data', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const fixture = { emptyFolderJourney: true };
+    const viewport = { width: 320, height: 640 };
+    await page.setViewportSize(viewport);
+    await openComponentPreview(page, records, fixture);
+
+    await tabUntilFocused(page, '#files-refresh', viewport);
+    await expectVisibleKeyboardFocus(page, '#files-refresh', viewport);
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+    const openEmptyFolder = 'button[aria-label="Open folder empty-folder"]';
+    await expect(page.locator('#files-list')).toContainText('empty-folder');
+    await tabUntilFocused(page, openEmptyFolder, viewport);
+    await expectVisibleKeyboardFocus(page, openEmptyFolder, viewport);
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#files-breadcrumbs button[aria-current="location"]')).toHaveText('empty-folder');
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+    await expect(page.locator('#files-status')).toContainText('Page 1: 0 items.');
+    await expect(page.locator('#files-list')).toHaveText('No items on this page.');
+    await expect(page.locator('#files-previous')).toBeDisabled();
+    await expect(page.locator('#files-next')).toBeDisabled();
+    await expect(page.locator('#files-refresh')).toBeEnabled();
+    await expect(page.locator('#files-prefix')).toBeEnabled();
+    await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-breadcrumbs', '#files-status', '#files-refresh', '#files-prefix', '#files-filter button']);
+
+    const rootBreadcrumb = '#files-breadcrumbs button[aria-current="false"]';
+    await tabUntilFocused(page, rootBreadcrumb, viewport);
+    await expectVisibleKeyboardFocus(page, rootBreadcrumb, viewport);
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#files-breadcrumbs button[aria-current="location"]')).toHaveText('Files');
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+    await expect(page.locator('#files-status')).toContainText('Page 1: 3 items.');
+    await expect(page.locator('#files-list')).toContainText('empty-folder');
+    await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-breadcrumbs', '#files-status', '#files-refresh']);
+
+    expectSyntheticReadOnlyRequests(records, { sites: 0, files: 3, previews: 0 });
+    expect(records.files.map(({ filesPath, prefix }) => ({ filesPath, prefix }))).toEqual([
+        { filesPath: '', prefix: '' },
+        { filesPath: 'empty-folder', prefix: '' },
+        { filesPath: '', prefix: '' },
+    ]);
 });
 
 
