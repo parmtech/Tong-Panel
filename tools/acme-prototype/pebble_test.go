@@ -117,3 +117,38 @@ func TestPebbleHTTP01(t *testing.T) {
 		})
 	}
 }
+
+func TestPebbleTenantSANIsolation(t *testing.T) {
+	for _, tenant := range []struct {
+		name, domain, otherDomain string
+	}{
+		{name: "tenant-a", domain: "tenant-a.acme.test", otherDomain: "tenant-b.acme.test"},
+		{name: "tenant-b", domain: "tenant-b.acme.test", otherDomain: "tenant-a.acme.test"},
+	} {
+		t.Run(tenant.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			fixture := newPebbleFixture(t, ctx, tenant.domain, pebbleFixtureOptions{})
+			client, _ := fixture.newClient(t, context.Background(), 10*time.Second, nil)
+			resource, err := client.Certificate.Obtain(certificate.ObtainRequest{Domains: []string{tenant.domain}, Bundle: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			leaf, err := fixture.verifyCertificate(resource.Certificate, resource.PrivateKey)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(leaf.DNSNames) != 1 || leaf.DNSNames[0] != tenant.domain || len(leaf.IPAddresses) != 0 || len(leaf.EmailAddresses) != 0 || len(leaf.URIs) != 0 {
+				t.Fatalf("certificate SANs = DNS %v, IP %v, email %v, URI %v; want only DNS %q", leaf.DNSNames, leaf.IPAddresses, leaf.EmailAddresses, leaf.URIs, tenant.domain)
+			}
+			if err := leaf.VerifyHostname(tenant.domain); err != nil {
+				t.Fatalf("certificate does not verify for its own domain %q: %v", tenant.domain, err)
+			}
+			if err := leaf.VerifyHostname(tenant.otherDomain); err == nil {
+				t.Fatalf("certificate unexpectedly verifies for other tenant domain %q", tenant.otherDomain)
+			}
+		})
+	}
+}
