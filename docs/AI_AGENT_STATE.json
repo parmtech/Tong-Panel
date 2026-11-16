@@ -6,8 +6,8 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "integration/pr-reconciliation-20261113",
-  "source_head_before_handoff_commit": "40b9ac2a664893803696ab72153d78c27177b344",
-  "source_tree_sha": "cc8dc01e93708c494a46d920d08a72202787bf52",
+  "source_head_before_handoff_commit": "bf87538e2d318da6a0503fffb80f0be105c56176",
+  "source_tree_sha": "563c8fb7d55452a02d901a2d656f5b636524e9e7",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -22,80 +22,44 @@
     "no_head_workflows": 14
   },
   "source_head_ci": {
-    "head_sha": "bf9ccbe7f6ca7cd8f83a92200fb79cb4aadcbcb0",
+    "head_sha": "3ce7c545feae1152666fa7c268de8bff312b8130",
     "total": 13,
-    "success": 12,
-    "completed_failure": 1,
+    "check_run_total": 23,
+    "success": 13,
+    "completed_failure": 0,
     "pending": [],
-    "vm_run": 43779379237,
-    "ubuntu_guest": "completed_success_all_steps_and_cleanup",
-    "debian_guest": "completed_success_all_steps_and_cleanup",
-    "ubuntu_job_id": 133012865844,
-    "debian_job_id": 133012865550,
+    "vm_run": 43783250239,
+    "ubuntu_guest": "completed_success_smoke_cleanup_and_complete",
+    "debian_guest": "completed_success_smoke_cleanup_and_complete",
+    "ubuntu_job_id": 133025056308,
+    "debian_job_id": 133025056738,
     "vm_run_conclusion": "success",
+    "browser_run": 43783250384,
+    "go_run": 43783250241,
     "workflow_runs": {
-      "Current API contract checks": {
-        "run_id": 43779379233,
-        "conclusion": "success"
-      },
-      "Go checks": {
-        "run_id": 43779379330,
-        "conclusion": "success"
-      },
-      "Go static security analysis": {
-        "run_id": 43779379186,
-        "conclusion": "success"
-      },
-      "Go vulnerability checks": {
-        "run_id": 43779379163,
-        "conclusion": "success"
-      },
-      "Isolated Go prototype checks": {
-        "run_id": 43779379182,
-        "conclusion": "success"
-      },
-      "Jobs browser checks": {
-        "run_id": 43779379206,
-        "conclusion": "failure"
-      },
-      "Offline model and fixture checks": {
-        "run_id": 43779379324,
-        "conclusion": "success"
-      },
-      "P1 developer smoke (non-destructive)": {
-        "run_id": 43779379173,
-        "conclusion": "success"
-      },
-      "P1 gate blocker inventory": {
-        "run_id": 43779379174,
-        "conclusion": "success"
-      },
-      "P1 unsigned developer package lab": {
-        "run_id": 43779379393,
-        "conclusion": "success"
-      },
-      "P2 clean disposable VM smoke": {
-        "run_id": 43779379237,
-        "conclusion": "success"
-      },
-      "SQLite schema checks": {
-        "run_id": 43779379350,
-        "conclusion": "success"
-      },
-      "UI checks": {
-        "run_id": 43779379348,
-        "conclusion": "success"
-      }
+      "Current API contract checks": { "run_id": 43783250281, "conclusion": "success" },
+      "Go checks": { "run_id": 43783250241, "conclusion": "success" },
+      "Go static security analysis": { "run_id": 43783250240, "conclusion": "success" },
+      "Go vulnerability checks": { "run_id": 43783250254, "conclusion": "success" },
+      "Isolated Go prototype checks": { "run_id": 43783250335, "conclusion": "success" },
+      "Jobs browser checks": { "run_id": 43783250384, "conclusion": "success" },
+      "Offline model and fixture checks": { "run_id": 43783250487, "conclusion": "success" },
+      "P1 developer smoke (non-destructive)": { "run_id": 43783250266, "conclusion": "success" },
+      "P1 gate blocker inventory": { "run_id": 43783250330, "conclusion": "success" },
+      "P1 unsigned developer package lab": { "run_id": 43783250227, "conclusion": "success" },
+      "P2 clean disposable VM smoke": { "run_id": 43783250239, "conclusion": "success" },
+      "SQLite schema checks": { "run_id": 43783250349, "conclusion": "success" },
+      "UI checks": { "run_id": 43783250248, "conclusion": "success" }
     }
   },
   "next": {
-    "task_id": "P2-RESPONSIVE-CANDIDATE-PUBLISH-AND-VERIFY",
+    "task_id": "API-DOMAIN-DNS-RETRY-REGRESSION-PUBLISH-AND-VERIFY",
     "priority": 2,
-    "action": "Refresh canonical handoffs and tracker, confirm the remote PR branch remains at bf9ccbe, publish the locally reviewed 40b9ac2 source/test candidate without force, and inspect all 13 exact-head workflows including the full browser suite and both clean guests.",
+    "action": "Refresh handoffs and tracker, confirm the remote PR branch remains at 3ce7c545feae1152666fa7c268de8bff312b8130, publish reviewed API tests 44cbb52 and bf87538 with docs without force, then inspect all 13 exact-head workflows including hosted Linux execution of both regressions and both clean guests.",
     "required_evidence": [
-      "confirm remote branch still equals bf9ccbe before push",
+      "confirm remote branch still equals 3ce7c545feae1152666fa7c268de8bff312b8130 before push",
       "all 13 exact-head PR workflows complete on the newly published head",
-      "Jobs browser workflow builds TONG_UI_FIXTURE_BINARY and runs all discovered tests including five responsive cases",
+      "Go checks execute the DNS retry and active worker-lease redaction API regressions successfully on Linux",
       "inspect Ubuntu 24.04 and Debian 12 clean guest jobs, including cleanup",
       "update PR #171 and issue #172 with exact SHA and real outcomes; leave issue #155 open",
       "keep P0/P1, owner/security, production authentication, signing, restore, accessibility, and release approvals blocked until actually resolved"
@@ -131,25 +95,25 @@
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
-    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43779379237",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43783250239",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "40b9ac2a664893803696ab72153d78c27177b344",
-    "hosted_ci": "pending_publication_after_prior_bf9ccbe_browser_parity_failure",
-    "evidence": "Independent QA found no blocker; TypeScript 5.9.3 compilation and generated-JavaScript byte parity pass; focused local responsive Playwright passed 5/5 across seven viewport sizes; Files unit tests passed 15/15; node syntax and git diff --check passed. A full local browser run could not initialize the existing Jobs test because the local machine has no Go compiler to build TONG_UI_FIXTURE_BINARY.",
-    "limitations": "Synthetic intercepted GET component preview only. Retry uses Playwright route aborts at two phone sizes; no authentication, tenant authorization, live handler/Nginx, human accessibility, vertical clipping or stale-data recovery is exercised. Issue #155 remains open."
+    "sha": "bf87538e2d318da6a0503fffb80f0be105c56176",
+    "hosted_ci": "pending_publication_exact_PR_head",
+    "evidence": "Two test-only API regressions are independently reviewed with no blocker. DNS retry gofmt/diff checks pass and its focused test compiled, but Windows Application Control blocked execution; internal/sites passed locally. Worker-lease redaction focused test, full internal/api suite and go vet ./internal/api passed locally. Hosted Linux exact-head execution is required for both.",
+    "limitations": "Synthetic resolver/SQLite and synthetic worker lease only. No public DNS, external provider, production authentication policy, host operation or live tenant is exercised. No production behavior changed."
   },
-  "published_pr_head_at_snapshot": "bf9ccbe7f6ca7cd8f83a92200fb79cb4aadcbcb0",
-  "local_checkpoint_parent_at_snapshot": "40b9ac2a664893803696ab72153d78c27177b344",
+  "published_pr_head_at_snapshot": "3ce7c545feae1152666fa7c268de8bff312b8130",
+  "local_checkpoint_parent_at_snapshot": "3ce7c545feae1152666fa7c268de8bff312b8130",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
     "state": "design_only_qa_reviewed_not_accepted",
     "branch": "integration/pr-reconciliation-20261113",
     "local_merge": "f1c3879af9b32fc3cc680f9496a7406429da0a8c",
-    "remote_push": "published_in_PR_171_at_bf9ccbe_initial_candidate",
+    "remote_push": "published_in_PR_171_at_3ce_with_all_13_workflows_successful",
     "qa_findings": "Three factual corrections verified; plan remains design-only and all P0/P1 and human-acceptance dependencies remain."
   },
   "openrootat_candidate": {
@@ -162,17 +126,34 @@
     "ubuntu_debian_guests": "pending",
     "sol_review": "pending_not_claimed"
   },
-  "local_candidate_head": "40b9ac2a664893803696ab72153d78c27177b344",
-  "local_candidate_tree_sha": "cc8dc01e93708c494a46d920d08a72202787bf52",
+  "local_candidate_head": "bf87538e2d318da6a0503fffb80f0be105c56176",
+  "local_candidate_tree_sha": "563c8fb7d55452a02d901a2d656f5b636524e9e7",
   "responsive_test_candidate": {
     "branch": "codex/p2-responsive-sites-files-retry-20261116",
     "head": "40b9ac2a664893803696ab72153d78c27177b344",
-    "state": "locally_integrated_QA_reviewed_not_pushed",
+    "state": "published_in_PR_171_at_3ce_exact_head_CI_passed",
     "focused_playwright": "5_of_5_passed_across_7_viewports_with_retry_at_2_phone_sizes",
-    "exact_pr_ci": "pending_publication",
+    "exact_pr_ci": "passed_on_PR_head_3ce_all_13_workflows",
     "independent_review": "no_concrete_blocker",
     "scope": "synthetic_component_preview_only"
   },
-  "local_snapshot_head": "40b9ac2a664893803696ab72153d78c27177b344",
-  "local_snapshot_tree": "cc8dc01e93708c494a46d920d08a72202787bf52"
+  "domain_dns_retry_candidate": {
+    "branch": "codex/p2-domain-dns-retry-api-20261116",
+    "head": "44cbb52deba12a1eeac9b5233996eb2d22e9dca9",
+    "state": "locally_integrated_QA_reviewed_not_pushed",
+    "test_runtime": "compiled_but_Windows_Application_Control_blocked_execution; exact_PR_Linux_CI_pending",
+    "independent_review": "no_code_blocker",
+    "scope": "synthetic_resolver_failure_retry_API_regression_only"
+  },
+  "job_lease_redaction_candidate": {
+    "branch": "codex/p1-job-lease-api-redaction-20261116",
+    "head": "c35fb1cf3856159cf076f0f9c233fa3486f06743",
+    "integrated_commit": "bf87538e2d318da6a0503fffb80f0be105c56176",
+    "state": "locally_integrated_QA_reviewed_not_pushed",
+    "test_runtime": "focused_regression_and_full_internal_api_passed; go_vet_internal_api_passed; exact_PR_Linux_CI_pending",
+    "independent_review": "no_blocker",
+    "scope": "synthetic_active_SQLite_lease_metadata_redaction_API_regression"
+  },
+  "local_snapshot_head": "bf87538e2d318da6a0503fffb80f0be105c56176",
+  "local_snapshot_tree": "563c8fb7d55452a02d901a2d656f5b636524e9e7"
 }
