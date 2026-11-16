@@ -43,7 +43,8 @@ func call(h http.Handler, method, path, token, key, body string) *httptest.Respo
 	return rec
 }
 func TestPublicAndProtectedEndpoints(t *testing.T) {
-	h := setup(t).Handler()
+	server := setup(t)
+	h := server.Handler()
 	for _, path := range []string{"/healthz", "/api/v1/version"} {
 		r := call(h, "GET", path, "", "", "")
 		if r.Code != 200 {
@@ -97,6 +98,9 @@ func TestPublicAndProtectedEndpoints(t *testing.T) {
 	}
 	if len(existing.Jobs) != 0 {
 		t.Fatalf("rejected authority fields enqueued %d jobs", len(existing.Jobs))
+	}
+	if forgedTenantJobs := server.Jobs.List("tenant-B"); len(forgedTenantJobs) != 0 {
+		t.Fatalf("rejected tenant_id authority field enqueued %d jobs for tenant-B", len(forgedTenantJobs))
 	}
 	r := call(h, "POST", "/api/v1/jobs", secret, "req-001122", "{\"kind\":\"validation.noop\"}")
 	if r.Code != 202 {
