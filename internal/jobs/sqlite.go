@@ -38,7 +38,7 @@ func (s *SQLiteStore) CreateFor(tenant, requester, kind, key string) (Job, error
 // HTTP handlers should pass the request context so abandoned requests stop
 // waiting for a pooled connection or SQLite writer reservation.
 func (s *SQLiteStore) CreateForContext(ctx context.Context, tenant, requester, kind, key string) (Job, error) {
-	if tenant == "" || len(tenant) > 128 || requester == "" || len(requester) > 128 || kind != KindNoop || len(key) < 8 || len(key) > 128 {
+	if tenant == "" || len(tenant) > 128 || requester == "" || len(requester) > 128 || kind != KindNoop || !validIdempotencyKey(key) {
 		return Job{}, errors.New("invalid job")
 	}
 	var raw [16]byte

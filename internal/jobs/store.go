@@ -101,7 +101,7 @@ func (s *Store) save(items []Job) error {
 func (s *Store) Create(tenant, kind, key string) (Job, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if tenant == "" || len(tenant) > 128 || kind != KindNoop || len(key) < 8 || len(key) > 128 {
+	if tenant == "" || len(tenant) > 128 || kind != KindNoop || !validIdempotencyKey(key) {
 		return Job{}, errors.New("invalid job")
 	}
 	for _, j := range s.items {
