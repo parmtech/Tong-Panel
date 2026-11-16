@@ -80,15 +80,24 @@ func TestOpenRootAtRejectsUnsafeNamesAndSymlinks(t *testing.T) {
 	}
 }
 
+type openRootAtFDState uint8
+
+const (
+	openRootAtFDReleased openRootAtFDState = iota
+	openRootAtFixtureOwnsFD
+	openRootAtRootOwnsFD
+)
+
 type openRootAtFixture struct {
 	parentPath string
 	childPath  string
 	parentFD   int
 	fd         int
 	before     unix.Stat_t
+	fdState    openRootAtFDState
 }
 
-func newOpenRootAtFixture(t *testing.T) openRootAtFixture {
+func newOpenRootAtFixture(t *testing.T) *openRootAtFixture {
 	t.Helper()
 	parentPath := t.TempDir()
 	childPath := filepath.Join(parentPath, "child")
@@ -112,31 +121,55 @@ func newOpenRootAtFixture(t *testing.T) openRootAtFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		var st unix.Stat_t
-		if unix.Fstat(fd, &st) == nil {
-			_ = unix.Close(fd)
-		}
-	})
-	return openRootAtFixture{
+	fixture := &openRootAtFixture{
 		parentPath: parentPath,
 		childPath:  childPath,
 		parentFD:   parentFD,
 		fd:         fd,
 		before:     before,
+		fdState:    openRootAtFixtureOwnsFD,
 	}
+	t.Cleanup(func() {
+		if fixture.fdState == openRootAtFixtureOwnsFD {
+			_ = unix.Close(fixture.fd)
+		}
+	})
+	return fixture
 }
 
-func assertOpenedRootAtRejectedAndDescriptors(t *testing.T, fixture openRootAtFixture, name string, before unix.Stat_t) {
-	t.Helper()
+func (fixture *openRootAtFixture) validate(name string, before unix.Stat_t) (*Root, error) {
 	root, err := validateOpenedRootAt(fixture.parentFD, name, fixture.fd, before)
+	if root != nil {
+		fixture.fdState = openRootAtRootOwnsFD
+	} else {
+		fixture.fdState = openRootAtFDReleased
+	}
+	return root, err
+}
+
+func assertOpenedRootAtRejectedAndDescriptors(t *testing.T, fixture *openRootAtFixture, name string, before unix.Stat_t) {
+	t.Helper()
+	root, err := fixture.validate(name, before)
+	var childStat unix.Stat_t
+	childErr := unix.Fstat(fixture.fd, &childStat)
+	if childErr == nil {
+		// No fd-allocating syscall occurs between validate and this Fstat, so an
+		// open descriptor here is an unexpected helper leak (or returned Root).
+		fixture.fdState = openRootAtFDReleased
+		if root != nil {
+			_ = root.Close()
+		} else {
+			_ = unix.Close(fixture.fd)
+		}
+		t.Fatalf("child descriptor after rejection is still open (helper error %v)", err)
+	}
 	if !errors.Is(err, ErrInvalidRoot) || root != nil {
 		t.Fatalf("validateOpenedRootAt() = (%v, %v), want (nil, %v)", root, err, ErrInvalidRoot)
 	}
-	var st unix.Stat_t
-	if err := unix.Fstat(fixture.fd, &st); !errors.Is(err, unix.EBADF) {
-		t.Fatalf("child descriptor after rejection: Fstat() = %v, want %v", err, unix.EBADF)
+	if !errors.Is(childErr, unix.EBADF) {
+		t.Fatalf("child descriptor after rejection: Fstat() = %v, want %v", childErr, unix.EBADF)
 	}
+	var st unix.Stat_t
 	if err := unix.Fstat(fixture.parentFD, &st); err != nil {
 		t.Fatalf("validation closed caller parent descriptor: %v", err)
 	}
@@ -180,8 +213,17 @@ func TestValidateOpenedRootAtClosesDescriptorAfterOpenedAfterIdentityMismatch(t 
 
 func TestValidateOpenedRootAtTransfersDescriptorOwnershipOnSuccess(t *testing.T) {
 	fixture := newOpenRootAtFixture(t)
-	root, err := validateOpenedRootAt(fixture.parentFD, "child", fixture.fd, fixture.before)
+	root, err := fixture.validate("child", fixture.before)
 	if err != nil || root == nil {
+		var st unix.Stat_t
+		if unix.Fstat(fixture.fd, &st) == nil {
+			fixture.fdState = openRootAtFDReleased
+			if root != nil {
+				_ = root.Close()
+			} else {
+				_ = unix.Close(fixture.fd)
+			}
+		}
 		t.Fatalf("validateOpenedRootAt() = (%v, %v), want non-nil root and nil error", root, err)
 	}
 	if root.fd != fixture.fd || !root.open {
@@ -194,6 +236,8 @@ func TestValidateOpenedRootAtTransfersDescriptorOwnershipOnSuccess(t *testing.T)
 	if err := unix.Fstat(fixture.parentFD, &st); err != nil {
 		t.Fatalf("validation closed caller parent descriptor: %v", err)
 	}
+	// Stop fixture cleanup from revisiting this numeric fd after Root.Close.
+	fixture.fdState = openRootAtFDReleased
 	if err := root.Close(); err != nil {
 		t.Fatalf("closing returned root: %v", err)
 	}
