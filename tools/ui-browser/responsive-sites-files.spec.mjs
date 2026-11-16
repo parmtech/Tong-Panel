@@ -288,6 +288,70 @@ async function expectVisibleKeyboardFocus(page, selector, viewport) {
     expect(focus.right, `${selector} focus should stay inside the viewport`).toBeLessThanOrEqual(viewport.width + 1);
 }
 
+
+function cssRgbChannels(color) {
+    const channels = color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+    expect(channels, 'expected a rendered RGB color, got ' + color).toHaveLength(3);
+    return channels;
+}
+
+function relativeLuminance([red, green, blue]) {
+    const linear = [red, green, blue].map(channel => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+}
+
+function contrastRatio(first, second) {
+    const lighter = Math.max(relativeLuminance(first), relativeLuminance(second));
+    const darker = Math.min(relativeLuminance(first), relativeLuminance(second));
+    return (lighter + 0.05) / (darker + 0.05);
+}
+
+function gradientSamples(stops) {
+    if (stops.length < 2) return stops;
+    const samples = [];
+    for (let index = 0; index < stops.length - 1; index++) {
+        for (let step = 0; step <= 20; step++) {
+            const amount = step / 20;
+            samples.push(stops[index].map((channel, channelIndex) =>
+                channel + (stops[index + 1][channelIndex] - channel) * amount));
+        }
+    }
+    return samples;
+}
+
+async function expectFocusIndicatorContrast(page, selector, surfaceSelector, focusState) {
+    const rendered = await page.locator(selector).evaluate((element, adjacentSelector) => {
+        const outline = getComputedStyle(element);
+        const surface = getComputedStyle(document.querySelector(adjacentSelector));
+        const gradientStops = Array.from(surface.backgroundImage.matchAll(/rgba?\(([^)]+)\)/g), match =>
+            match[1].split(',').slice(0, 3).map(Number));
+        return {
+            focused: element.matches(':focus'),
+            focusVisible: element.matches(':focus-visible'),
+            outlineColor: outline.outlineColor,
+            outlineStyle: outline.outlineStyle,
+            outlineWidth: outline.outlineWidth,
+            backgroundColor: surface.backgroundColor,
+            gradientStops,
+        };
+    }, surfaceSelector);
+    expect(rendered.focused, selector + ' should be focused').toBe(true);
+    if (focusState === 'keyboard') expect(rendered.focusVisible, selector + ' should use keyboard-visible focus').toBe(true);
+    expect(rendered.outlineStyle, selector + ' should render its focus indicator').not.toBe('none');
+    expect(Number.parseFloat(rendered.outlineWidth), selector + ' should have a nonzero focus indicator').toBeGreaterThan(0);
+
+    const surfaceColors = rendered.gradientStops.length
+        ? gradientSamples(rendered.gradientStops)
+        : [cssRgbChannels(rendered.backgroundColor)];
+    const outlineColor = cssRgbChannels(rendered.outlineColor);
+    const minimumContrast = Math.min(...surfaceColors.map(color => contrastRatio(outlineColor, color)));
+    const theme = await page.locator('html').getAttribute('data-theme');
+    expect(minimumContrast, selector + ' outline ' + rendered.outlineColor + ' against ' + surfaceSelector + ' in ' + theme + ' theme').toBeGreaterThanOrEqual(3);
+}
+
 async function expectVisibleForcedColorFocus(page, selector, viewport) {
     const focus = await page.locator(selector).evaluate(element => {
         const style = getComputedStyle(element);
@@ -1245,4 +1309,61 @@ test('component preview: phone Sites and Files pointer targets meet project size
         previews: phones.length,
     }, phones.length);
     expect(records.files.filter(request => request.filesPath === 'documents')).toHaveLength(phones.length);
+});
+
+test('component preview: sampled focus states meet 3:1 against adjacent surfaces in light and dark themes', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const viewport = { width: 1440, height: 900 };
+    const cases = [
+        { selector: '.sidebar nav a[aria-label="Home"]', surface: '.sidebar' },
+        { selector: '#theme', surface: 'body' },
+        { selector: '.notice a', surface: '.notice' },
+        { selector: '#refresh-status', surface: '.panel-status' },
+        { selector: '#jobs-refresh', surface: '#jobs-panel' },
+        { selector: '#jobs-status', surface: '#jobs-panel', state: 'jobs-status' },
+        { selector: '#sites-load', surface: '.jobs-panel[aria-labelledby="sites-title"]' },
+        { selector: '#sites-prefix', surface: '.jobs-panel[aria-labelledby="sites-title"]' },
+        { selector: '#sites-filter button', surface: '.jobs-panel[aria-labelledby="sites-title"]' },
+        { selector: '#files-refresh', surface: '.files-explorer' },
+        { selector: '#files-prefix', surface: '.files-explorer' },
+        { selector: '#files-filter button', surface: '.files-explorer' },
+        { selector: 'button[aria-label="Preview text responsive-layout-notes.txt"]', surface: '.files-explorer', state: 'file-entry' },
+        { selector: '#job-detail-title', surface: '.job-detail', state: 'job-detail' },
+        { selector: '#search', surface: '.search' },
+    ];
+
+    await page.setViewportSize(viewport);
+    await openComponentPreview(page, records);
+
+    for (const theme of ['light', 'dark']) {
+        for (const focusCase of cases) {
+            await page.goto(baseURL);
+            await page.evaluate(themeName => { document.documentElement.dataset.theme = themeName; }, theme);
+
+            if (focusCase.state === 'jobs-status') {
+                await page.locator('#jobs-status').evaluate(element => element.focus());
+                await expect(page.locator('#jobs-status')).toBeFocused();
+                await expectFocusIndicatorContrast(page, focusCase.selector, focusCase.surface, 'programmatic');
+                continue;
+            }
+            if (focusCase.state === 'job-detail') {
+                await page.evaluate(() => {
+                    document.querySelector('#job-detail').hidden = false;
+                    document.querySelector('#job-detail-title').focus();
+                });
+                await expect(page.locator('#job-detail-title')).toBeFocused();
+                await expectFocusIndicatorContrast(page, focusCase.selector, focusCase.surface, 'programmatic');
+                continue;
+            }
+            if (focusCase.state === 'file-entry') {
+                await tabUntilFocused(page, '#files-refresh', viewport);
+                await page.keyboard.press('Enter');
+                await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
+            }
+
+            await tabUntilFocused(page, focusCase.selector, viewport);
+            await expectVisibleKeyboardFocus(page, focusCase.selector, viewport);
+            await expectFocusIndicatorContrast(page, focusCase.selector, focusCase.surface, 'keyboard');
+        }
+    }
 });
