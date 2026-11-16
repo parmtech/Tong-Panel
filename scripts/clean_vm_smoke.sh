@@ -323,7 +323,9 @@ for _ in {1..30}; do
 done
 test -S /run/tong/php/tenant-a/site-a.sock
 test -S /run/tong/php/tenant-b/site-b.sock
-python3 /home/ci/probe_https_isolation.py --check-fpm-master
+# The root-owned PID file may be 0600 under the credential-protecting umask.
+# Elevate only this fixed, read-only fixture check; HTTPS probes stay unprivileged.
+sudo python3 -I /home/ci/probe_https_isolation.py --check-fpm-master
 sudo systemctl stop nginx || true
 cat > /home/ci/nginx-e2e.conf <<'NGINX'
 user www-data;

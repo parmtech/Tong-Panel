@@ -183,25 +183,41 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
                         comm_file.write_bytes((comm + "\n").encode("ascii"))
                         output = io.StringIO()
                         self.assertEqual(main(["--check-fpm-master"], output=output), 0)
-                        self.assertEqual(output.getvalue(), f"https_fixture fpm_master_comm={comm}\n")
+                        self.assertEqual(output.getvalue(), f"https_fixture fpm_master_comm={comm} classification=pass\n")
 
-                for pid_contents, comm_contents in [
-                    (b"124\n", b"php-fpm-secret-canary\n"),
-                    (b"124\nsecret-pid-canary", b"php-fpm8.2\n"),
-                    (b"1" * 33, b"php-fpm8.2\n"),
-                    (b"124\n", b"x" * 65),
+                for pid_contents, comm_contents, classification in [
+                    (b"124\n", b"php-fpm-secret-canary\n", "comm_not_allowed"),
+                    (b"124\nsecret-pid-canary", b"php-fpm8.2\n", "pid_invalid"),
+                    (b"1" * 33, b"php-fpm8.2\n", "pid_invalid"),
+                    (b"124\n", b"x" * 65, "comm_invalid"),
+                    (b"\xff", b"php-fpm8.2\n", "pid_invalid"),
+                    (b"124\n", b"\xff", "comm_invalid"),
                 ]:
                     with self.subTest(pid_contents=pid_contents[:12], comm_contents=comm_contents[:12]):
                         pid_file.write_bytes(pid_contents)
                         comm_file.write_bytes(comm_contents)
                         output = io.StringIO()
                         self.assertEqual(main(["--check-fpm-master"], output=output), 1)
-                        self.assertEqual(output.getvalue(), "https_fixture fpm_master_comm=unavailable\n")
+                        self.assertEqual(output.getvalue(), "https_fixture fpm_master_comm=unavailable classification=" + classification + "\n")
                         self.assertNotIn("secret", output.getvalue())
+
+    def test_fpm_read_failures_are_classified_without_exception_text(self):
+        for error, reason in [(PermissionError("secret-path-canary"), "permission_denied"),
+                              (FileNotFoundError("secret-path-canary"), "unavailable")]:
+            for stage in ("pid", "comm"):
+                with self.subTest(error=type(error).__name__, stage=stage):
+                    pid_stream = io.BytesIO(b"124\n")
+                    effects = [error] if stage == "pid" else [pid_stream, error]
+                    output = io.StringIO()
+                    with patch("pathlib.Path.open", side_effect=effects):
+                        self.assertEqual(main(["--check-fpm-master"], output=output), 1)
+                    self.assertEqual(output.getvalue(),
+                                     "https_fixture fpm_master_comm=unavailable classification=" + stage + "_" + reason + "\n")
+                    self.assertNotIn("secret", output.getvalue())
 
     def test_fpm_success_check_is_wired_before_https_probe_and_shares_allowlist(self):
         script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
-        command = "python3 /home/ci/probe_https_isolation.py --check-fpm-master"
+        command = "sudo python3 -I /home/ci/probe_https_isolation.py --check-fpm-master"
         probe_command = "if python3 /home/ci/probe_https_isolation.py; then"
         self.assertEqual(script.count(command), 1)
         self.assertLess(script.index("test -S /run/tong/php/tenant-b/site-b.sock"), script.index(command))

@@ -55,8 +55,8 @@ def probe(host, runner=subprocess.run):
         return ProbeResult(host, "000", -1, 0, "probe_unavailable")
 
 
-def php_fpm_master_comm(pid_file=None, proc_root=None):
-    """Return the disposable PHP-FPM master's bounded, allowlisted comm name."""
+def php_fpm_master_identity(pid_file=None, proc_root=None):
+    """Return only an allowlisted comm name and a fixed failure classification."""
     if pid_file is None:
         pid_file = PHP_FPM_PID_FILE
     if proc_root is None:
@@ -65,18 +65,29 @@ def php_fpm_master_comm(pid_file=None, proc_root=None):
         with Path(pid_file).open("rb") as source:
             pid_bytes = source.read(33)
         if len(pid_bytes) > 32:
-            return None
+            return None, "pid_invalid"
         pid = pid_bytes.decode("ascii", "strict").strip()
         if not re.fullmatch(r"[1-9][0-9]{0,9}", pid):
-            return None
+            return None, "pid_invalid"
+    except PermissionError:
+        return None, "pid_permission_denied"
+    except OSError:
+        return None, "pid_unavailable"
+    except (ValueError, UnicodeError):
+        return None, "pid_invalid"
+    try:
         with (Path(proc_root) / pid / "comm").open("rb") as source:
             comm_bytes = source.read(65)
         if len(comm_bytes) > 64:
-            return None
+            return None, "comm_invalid"
         comm = comm_bytes.decode("ascii", "strict").removesuffix("\n")
-        return comm if comm in PHP_FPM_COMM_NAMES else None
-    except (OSError, ValueError, UnicodeError):
-        return None
+        return (comm, "pass") if comm in PHP_FPM_COMM_NAMES else (None, "comm_not_allowed")
+    except PermissionError:
+        return None, "comm_permission_denied"
+    except OSError:
+        return None, "comm_unavailable"
+    except (ValueError, UnicodeError):
+        return None, "comm_invalid"
 
 
 def _probe_once(host, runner):
@@ -147,9 +158,10 @@ def main(arguments=None, runner=subprocess.run, output=None):
     if arguments == ["--check-fpm-master"]:
         if output is None:
             output = sys.stdout
-        comm = php_fpm_master_comm()
+        comm, classification = php_fpm_master_identity()
         try:
-            print("https_fixture fpm_master_comm=" + (comm or "unavailable"), file=output)
+            print("https_fixture fpm_master_comm=" + (comm or "unavailable") +
+                  " classification=" + classification, file=output)
         except OSError:
             return 1
         return 0 if comm is not None else 1
