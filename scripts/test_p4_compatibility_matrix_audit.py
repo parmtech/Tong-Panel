@@ -168,8 +168,8 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
             for value in (
                 "1.x", "1.2.x", "1.X", "v1.2.X", "x", "X",
                 "Ubuntu 24.x", "Ubuntu >= 24.04", "Ubuntu>=24.04",
-                "<=24.04", ">24.04", "<24.04", "^24.04", "~24.04",
-                "~=24.04", "Ubuntu 22.04 - 24.04", "24.*", "24.?",
+                "!=24.04", "!= 1.2.3", "<=24.04", ">24.04", "<24.04",
+                "^24.04", "~24.04", "~=24.04", "Ubuntu 22.04 - 24.04", "24.*", "24.?",
             ):
                 with self.subTest(field=field, value=value):
                     self.matrix = self.valid_matrix()

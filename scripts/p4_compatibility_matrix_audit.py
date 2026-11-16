@@ -82,7 +82,7 @@ def _pinned_version(value: Any) -> bool:
     # Reject common range syntax while allowing exact package versions such as
     # Debian's ``1.2~rc1``. The final schema still needs an owner-approved
     # version grammar for each component ecosystem.
-    if re.search(r"[<>^]|~=|(^|\s)~\s*\S", normalized):
+    if re.search(r"!=|[<>^]|~=|(^|\s)~\s*\S", normalized):
         return False
     if re.search(r"\s+-\s+|\|\|", normalized):
         return False
