@@ -123,6 +123,34 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
                 self.matrix["profiles"][0]["components"]["fixture-web"] = unpinned
                 self.assert_error("profile_component_unpinned:synthetic-web-ubuntu-fixture")
 
+    def test_alternative_os_and_component_versions_fail_closed(self):
+        for os_value in (
+            "Ubuntu 24.04 or Debian 12",
+            "Ubuntu 24.04 | Debian 12",
+            "Ubuntu 24.04 / Debian 12",
+        ):
+            with self.subTest(os=os_value):
+                self.matrix = self.valid_matrix()
+                self.matrix["profiles"][0]["os"] = os_value
+                self.assert_error("profile_os_unpinned:synthetic-web-ubuntu-fixture")
+
+        for version in ("nginx 1.26 or 1.27", "1.26 || 1.27", "1.26 / 1.27"):
+            with self.subTest(version=version):
+                self.matrix = self.valid_matrix()
+                self.matrix["profiles"][0]["components"]["fixture-web"] = version
+                self.assert_error("profile_component_unpinned:synthetic-web-ubuntu-fixture")
+
+    def test_legitimate_single_version_formats_remain_pinned(self):
+        for version in ("1:1.26.3-1ubuntu1.2", "1.2~rc1", "v1.2.3+build.7"):
+            with self.subTest(version=version):
+                self.matrix = self.valid_matrix()
+                profile = self.matrix["profiles"][0]
+                profile["components"]["fixture-web"] = version
+                fingerprint = profile_fingerprint(profile)
+                for evidence in self.matrix["rows"][0]["evidence"]:
+                    evidence["profile_fingerprint"] = fingerprint
+                self.assertEqual([], audit_matrix(self.matrix, self.root, SYNTHETIC_COMMIT))
+
     def test_duplicate_profile_id_and_duplicate_profile_identity_are_ambiguous(self):
         self.matrix["profiles"].append(dict(self.matrix["profiles"][0]))
         self.assert_error("profile_id_ambiguous:synthetic-web-ubuntu-fixture")

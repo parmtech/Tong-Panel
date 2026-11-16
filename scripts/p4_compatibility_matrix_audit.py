@@ -26,6 +26,7 @@ REVIEW_DISPOSITIONS = {"accepted", "rejected", "pending"}
 # remains subject to owner/architecture review.
 P4_CASE_IDS = {str(number) for number in range(1, 11)}
 PLACEHOLDERS = {"", "*", "any", "latest", "tbd", "unknown", "unresolved"}
+ALTERNATIVE_RE = re.compile(r"\b(?:and/or|or)\b|\||\s/\s", re.IGNORECASE)
 
 
 class DuplicateJSONKey(ValueError):
@@ -66,6 +67,7 @@ def _pinned_text(value: Any) -> bool:
         normalized not in PLACEHOLDERS
         and not re.search(r"\b(?:any|latest|tbd|unknown|unresolved)\b", normalized)
         and not any(character in value for character in "*?")
+        and not ALTERNATIVE_RE.search(normalized)
     )
 
 

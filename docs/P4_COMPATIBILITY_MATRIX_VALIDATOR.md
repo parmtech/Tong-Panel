@@ -8,9 +8,11 @@
 
 The matrix format and case identifiers below are **prototype choices**, not an approved API or support policy. The tool checks only local structure and paths. It does not contact GitHub, verify a workflow conclusion, authenticate a reviewer, inspect artifact contents, verify signatures, or decide whether evidence is sufficient for a real support claim. The caller supplies the exact source commit under review; evidence must match it. A successful result means only that the synthetic/proposed input passed these mechanical checks.
 
+This structural checker does not enforce that the matrix inventories all eight P4 blueprint slices and every advertised optional combination, and it does not derive which acceptance cases are required for each row. It is not an acceptance oracle until the complete inventory and per-row case applicability are reviewed and supplied as inputs.
+
 ## Draft input contract
 
-The JSON document has integer `schema_version: 1`, a 40-character lowercase `candidate_commit`, a non-empty `profiles` array, and a non-empty `rows` array. Each profile has a unique `id`, exact `os`, `architecture`, and a non-empty `components` map whose values are pinned versions. `TBD`, `unknown`, `latest`, wildcard forms, common version ranges, and blank values are rejected. Two different profile IDs with the same OS/architecture/component tuple are ambiguous and rejected.
+The JSON document has integer `schema_version: 1`, a 40-character lowercase `candidate_commit`, a non-empty `profiles` array, and a non-empty `rows` array. Each profile has a unique `id`, exact `os`, `architecture`, and a non-empty `components` map whose values are pinned versions. `TBD`, `unknown`, `latest`, wildcard forms, common version ranges, clear alternatives such as `or`, `|`, or spaced `/`, and blank values are rejected. Two different profile IDs with the same OS/architecture/component tuple are ambiguous and rejected. This screening is not a canonical version parser; ecosystem-specific exact-version grammar remains an unresolved schema choice.
 
 Each row binds one `capability` to one declared `profile_id` and records:
 
