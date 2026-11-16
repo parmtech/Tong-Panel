@@ -6,14 +6,14 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "codex/tong-panel-candidate-20261116",
-  "source_head_before_handoff_commit": "1f138335c0a3b8dea5320c5e49f7cead3489a6f2",
-  "source_tree_sha": "47de2f6eb4416099575a01627e582e6ab80152b9",
+  "source_head_before_handoff_commit": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
+  "source_tree_sha": "019c3f734a1743f91e1bdb3203013cbc154bec2c",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
   "pr_state_at_snapshot": "open_draft_unmerged",
   "master_issue": 172,
-  "tracked_files_at_snapshot": 530,
+  "tracked_files_at_snapshot": 531,
   "prior_prs": {
     "closed_unmerged": 149,
     "all_observed_checks_successful": 129,
@@ -22,89 +22,127 @@
     "no_head_workflows": 14
   },
   "source_head_ci": {
-    "head_sha": "98788613f7dd0aee0648c0f32d89fe7c5c21aab1",
-    "total": 13,
-    "check_run_total": 21,
-    "success": 13,
+    "head_sha": "b411b4960748129e4c59e4fa1ce6a0644d816249",
+    "total": 17,
+    "pull_request_workflows": 13,
+    "push_workflows": 4,
+    "check_run_total": 25,
+    "success": 17,
     "completed_failure": 0,
-    "check_run_success": 21,
+    "check_run_success": 25,
     "check_run_failure": 0,
     "pending": [],
-    "vm_run": 43822023444,
+    "vm_run": 43832980490,
     "ubuntu_guest": "completed_success_smoke_cleanup_and_complete",
     "debian_guest": "completed_success_smoke_cleanup_and_complete",
-    "ubuntu_job_id": 133147055116,
-    "debian_job_id": 133147055374,
+    "ubuntu_job_id": 133182537635,
+    "debian_job_id": 133182537181,
     "vm_run_conclusion": "success",
-    "browser_run": 43822023437,
-    "go_run": 43822023582,
+    "browser_run": 43832980329,
+    "go_run": 43832980314,
     "gosec": "success",
     "workflow_runs": {
-      "SQLite schema checks": {
-        "run_id": 43822023513,
-        "conclusion": "success"
+      "Go checks": {
+        "run_id": 43832980314,
+        "conclusion": "success",
+        "event": "pull_request"
       },
       "P1 gate blocker inventory": {
-        "run_id": 43822023436,
-        "conclusion": "success"
+        "run_id": 43832980517,
+        "conclusion": "success",
+        "event": "pull_request"
       },
-      "UI checks": {
-        "run_id": 43822023527,
-        "conclusion": "success"
-      },
-      "Offline model and fixture checks": {
-        "run_id": 43822023533,
-        "conclusion": "success"
-      },
-      "Go vulnerability checks": {
-        "run_id": 43822023574,
-        "conclusion": "success"
-      },
-      "Current API contract checks": {
-        "run_id": 43822023414,
-        "conclusion": "success"
-      },
-      "P1 unsigned developer package lab": {
-        "run_id": 43822023484,
-        "conclusion": "success"
-      },
-      "Isolated Go prototype checks": {
-        "run_id": 43822023626,
-        "conclusion": "success"
-      },
-      "Go static security analysis": {
-        "run_id": 43822023471,
-        "conclusion": "success"
-      },
-      "Jobs browser checks": {
-        "run_id": 43822023437,
-        "conclusion": "success"
-      },
-      "P1 developer smoke (non-destructive)": {
-        "run_id": 43822023643,
-        "conclusion": "success"
-      },
-      "Go checks": {
-        "run_id": 43822023582,
-        "conclusion": "success"
+      "SQLite schema checks": {
+        "run_id": 43832980326,
+        "conclusion": "success",
+        "event": "pull_request"
       },
       "P2 clean disposable VM smoke": {
-        "run_id": 43822023444,
-        "conclusion": "success"
+        "run_id": 43832980490,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "UI checks": {
+        "run_id": 43832980364,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Offline model and fixture checks": {
+        "run_id": 43832980571,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Go vulnerability checks": {
+        "run_id": 43832980403,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "P1 unsigned developer package lab": {
+        "run_id": 43832980642,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Isolated Go prototype checks": {
+        "run_id": 43832980523,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Current API contract checks": {
+        "run_id": 43832980434,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Jobs browser checks": {
+        "run_id": 43832980329,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "P1 developer smoke (non-destructive)": {
+        "run_id": 43832980520,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Go static security analysis": {
+        "run_id": 43832980377,
+        "conclusion": "success",
+        "event": "pull_request"
+      },
+      "Push UI checks": {
+        "run_id": 43832973778,
+        "conclusion": "success",
+        "event": "push"
+      },
+      "Push P1 unsigned developer package lab": {
+        "run_id": 43832973556,
+        "conclusion": "success",
+        "event": "push"
+      },
+      "Push P1 developer smoke (non-destructive)": {
+        "run_id": 43832973896,
+        "conclusion": "success",
+        "event": "push"
+      },
+      "Push Go checks": {
+        "run_id": 43832973765,
+        "conclusion": "success",
+        "event": "push"
       }
     }
   },
   "next": {
-    "task_id": "INTEGRATED-CANDIDATE-1F1383-EXACT-HEAD-CI",
-    "priority": 2,
-    "action": "Finish independent review and handoff validation for local candidate 1f138335c0a3b8dea5320c5e49f7cead3489a6f2; confirm the remote PR branch remains at 98788613f7dd0aee0648c0f32d89fe7c5c21aab1; publish only as a normal fast-forward; then inspect every exact-head workflow/check and both clean guests through cleanup and Complete.",
+    "task_id": "PACKAGE-PUBLICATION-AND-EXACT-HEAD-CI",
+    "priority": 1,
+    "action": "Complete the final handoff and workflow-trigger audits; verify PR #171 still points to b411; publish the reviewed candidate by normal fast-forward; then inspect every PR workflow/check associated with the exact PR head and both clean guests through runner/job completion.",
     "required_evidence": [
-      "All exact-head workflows/check runs complete and individually inspected",
-      "Exact candidate CI exercises bounded failure-only diagnostics, keyboard pagination/focus and denial fallback, and malformed/trailing backup-tail coverage",
-      "Go race checks pass",
-      "Debian 12 and Ubuntu 24.04 guest smoke, cleanup and Complete pass",
-      "Update PR #171 and tracker #172 with exact SHA/results; keep issue #155 open",
-      "Preserve P0/P1, owner/security, authentication, signing, restore authorization, accessibility and release gates"
+      "Responsive browser suite passes 17/17, including 15 focus selectors tested in both themes (30 selector/theme pairs), forced-colors navigation focus, and existing Sites/Files journeys",
+      "PHP-FPM diagnostic unit suite passes; guest output contains only an allowlisted comm name and exact Ubuntu/Debian values are recorded from the PR run",
+      "Linux Go CI executes the new OpenRootAt permission tests, gofmt check, go test -race ./..., and go vet ./...",
+      "PR head equals the reviewed candidate; all associated exact-head workflows/checks complete, including P1 binary/package regressions and P2 guests",
+      "Update PR #171 and issue #172 only with observed exact-SHA results; keep issue #155 open",
+      "Preserve every P0/P1, owner/security, authentication, signing, restore authorization, accessibility and release gate",
+      "P2 is pull-request/dispatch-triggered and path-filters both Debian builder scripts; in each Ubuntu runner matrix leg, the package fixture step passes without a SKIP for the newline case and ends with the Debian structure summary",
+      "Both clean guest jobs pass the package install/upgrade/downgrade/removal lifecycle and overall job; inspect exit-trap cleanup evidence. Do not require a literal Complete workflow step or count P1 unsigned archive CI as Debian-builder evidence.",
+      "Package publication shims prove failure preservation, target-type rejection, cleanup and newline-safe exact-parent path handling; hosted Linux CI runs mode/symlink assertions and real dpkg-deb fixtures"
     ]
   },
   "approvals": {
@@ -138,18 +176,18 @@
   "urls": {
     "pr": "https://github.com/parmtech/Tong-Panel/pull/171",
     "tracker": "https://github.com/parmtech/Tong-Panel/issues/172",
-    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43822023444",
+    "vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43832980490",
     "p0": "https://github.com/parmtech/Tong-Panel/issues/1",
     "auth": "https://github.com/parmtech/Tong-Panel/issues/6"
   },
   "latest_source_checkpoint": {
-    "sha": "1f138335c0a3b8dea5320c5e49f7cead3489a6f2",
-    "hosted_ci": "pending_exact_PR_head; base 98788613 passed 13 workflows and 21 checks including Go/browser/both guests",
-    "evidence": "Adds bounded HTTPS failure-only metadata and invocation-count coverage, keyboard pagination/focus and 401/403 denied-state fallback, and malformed/trailing encrypted-backup coverage. Combined local checks: 11 cleanup cases, 14 Python HTTPS tests, 51/51 web unit tests, shell/JavaScript syntax and diff check. Separate component evidence: focused pagination 1/1, denial 1/1, responsive browser 13/13, TypeScript passed. Independent integrated review found no blocker.",
-    "limitations": "Exact candidate hosted CI is pending. Integrated worktree lacks Playwright, TypeScript and Go; backup Go runtime was unavailable locally. PHP-FPM comm names on pinned images remain unverified. HTTPS failure cause remains unknown. Synthetic UI evidence does not establish authenticated-tenant, physical-device or human accessibility acceptance; issue #155 remains open."
+    "sha": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
+    "hosted_ci": "local_unpushed_candidate_based_on_b411; exact_PR_head_CI_pending",
+    "evidence": "Includes natural daemon lease-expiry/restart coverage in the P1 smoke; forced-colors and reduced-motion keyboard journeys; amd64 package guard; already-expired lease unit case; phone Sites/Files targets; theme-aware focus tokens; a sampled contrast regression for 15 focus selectors in each theme (30 selector/theme pairs); forced-colors navigation focus; bounded allowlisted PHP-FPM comm diagnostics with path/allowlist drift tests; atomic unsigned-package publication under a trusted output-parent assumption without a crash-durability claim; test-only Linux OpenRootAt permission coverage (nil/closed roots, exact 0700 acceptance, and rejection of group/other plus setuid/setgid/sticky bits after verifying the requested mode); and newline-preserving package output-parent/name capture with exact-parent staging regression. Local responsive browser suite passed 17/17; PHP-FPM diagnostic suite passed 16/16; package publication failure/path shim passed on Git Bash, with the newline regression failing against the old builder (exit 95). Windows symlink and mode checks are explicitly skipped.",
+    "limitations": "Candidate exact-head hosted CI is pending. Go/WSL are unavailable locally, so Linux-tagged OpenRootAt tests, full Go race suite and vet were not run. Real dpkg-deb package validation, Linux symlink/mode shim assertions, P1 real-binary smoke, and actual Ubuntu/Debian PHP-FPM comm values require hosted Linux CI. Package publication assumes trusted, stable output-parent components and filesystem rename atomicity; it does not defend against hostile parent swaps or promise crash durability. Earlier b107 HTTPS stall cause remains unknown. Synthetic UI evidence is not overall WCAG conformance, authenticated-tenant acceptance, physical-device testing or human accessibility acceptance; issue #155 remains open. Preserve all owner, security, production, restore, accessibility and release gates."
   },
-  "published_pr_head_at_snapshot": "98788613f7dd0aee0648c0f32d89fe7c5c21aab1",
-  "local_checkpoint_parent_at_snapshot": "98788613f7dd0aee0648c0f32d89fe7c5c21aab1",
+  "published_pr_head_at_snapshot": "b411b4960748129e4c59e4fa1ce6a0644d816249",
+  "local_checkpoint_parent_at_snapshot": "b411b4960748129e4c59e4fa1ce6a0644d816249",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
@@ -171,10 +209,8 @@
     "sol_review": "completed_no_concrete_blocker_for_nonroot_disposable_lab_scope",
     "qa_review": "completed_no_code_or_descriptor_cleanup_blocker",
     "limitations": "No production restore authorization, durable quota-release authority or cross-process fence; same-UID pre-observation replacement, ABA, mount aliases and ancestor replacement remain outside guarantees.",
-    "later_exact_pr_ci": "98788613f7dd0aee0648c0f32d89fe7c5c21aab1: all_13_workflows_and_21_checks_passed; Ubuntu_and_Debian_guests_passed_smoke_cleanup_and_Complete"
+    "later_exact_pr_ci": "b411b4960748129e4c59e4fa1ce6a0644d816249: 17_of_17_workflow_runs_and_25_of_25_check_runs_passed; Ubuntu_and_Debian_guests_passed_smoke_cleanup_and_Complete"
   },
-  "local_candidate_head": "1f138335c0a3b8dea5320c5e49f7cead3489a6f2",
-  "local_candidate_tree_sha": "47de2f6eb4416099575a01627e582e6ab80152b9",
   "responsive_test_candidate": {
     "branch": "codex/p2-responsive-sites-files-retry-20261116",
     "head": "40b9ac2a664893803696ab72153d78c27177b344",
@@ -273,8 +309,6 @@
     "test_runtime": "PR and push Go race checks passed on exact head 9a, including Linux-tagged Files runtime",
     "scope": "injected reservation Release failure after duplicate create conflict returns_quota_unavailable_preserves_file_and_retains_reserved_bytes"
   },
-  "local_snapshot_head": "1f138335c0a3b8dea5320c5e49f7cead3489a6f2",
-  "local_snapshot_tree": "47de2f6eb4416099575a01627e582e6ab80152b9",
   "files_media_type_candidate": {
     "branch": "codex/api-contract-gap-scan-20261116",
     "head": "8a622a0400e6b6f13e9f526664bfa53e397d78f1",
@@ -311,5 +345,88 @@
     "validation": "12_focused_python_tests_shell_syntax_embedded_python_compile_and_diff_check_passed",
     "scope": "sanitized curl timings and fixed Nginx/listener metadata only; no retry, timeout increase, body or logs",
     "exact_pr_ci": "558b8c885cb0b4708be157ab49dcaffccd7ecb98: all_13_workflows_and_21_checks_passed; both_guests_passed; diagnostics_recorded_tenant_timings"
-  }
+  },
+  "previous_verified_source_ci": {
+    "head_sha": "98788613f7dd0aee0648c0f32d89fe7c5c21aab1",
+    "total": 13,
+    "check_run_total": 21,
+    "success": 13,
+    "completed_failure": 0,
+    "check_run_success": 21,
+    "check_run_failure": 0,
+    "pending": [],
+    "vm_run": 43822023444,
+    "ubuntu_guest": "completed_success_smoke_cleanup_and_complete",
+    "debian_guest": "completed_success_smoke_cleanup_and_complete",
+    "ubuntu_job_id": 133147055116,
+    "debian_job_id": 133147055374,
+    "vm_run_conclusion": "success",
+    "browser_run": 43822023437,
+    "go_run": 43822023582,
+    "gosec": "success",
+    "workflow_runs": {
+      "SQLite schema checks": {
+        "run_id": 43822023513,
+        "conclusion": "success"
+      },
+      "P1 gate blocker inventory": {
+        "run_id": 43822023436,
+        "conclusion": "success"
+      },
+      "UI checks": {
+        "run_id": 43822023527,
+        "conclusion": "success"
+      },
+      "Offline model and fixture checks": {
+        "run_id": 43822023533,
+        "conclusion": "success"
+      },
+      "Go vulnerability checks": {
+        "run_id": 43822023574,
+        "conclusion": "success"
+      },
+      "Current API contract checks": {
+        "run_id": 43822023414,
+        "conclusion": "success"
+      },
+      "P1 unsigned developer package lab": {
+        "run_id": 43822023484,
+        "conclusion": "success"
+      },
+      "Isolated Go prototype checks": {
+        "run_id": 43822023626,
+        "conclusion": "success"
+      },
+      "Go static security analysis": {
+        "run_id": 43822023471,
+        "conclusion": "success"
+      },
+      "Jobs browser checks": {
+        "run_id": 43822023437,
+        "conclusion": "success"
+      },
+      "P1 developer smoke (non-destructive)": {
+        "run_id": 43822023643,
+        "conclusion": "success"
+      },
+      "Go checks": {
+        "run_id": 43822023582,
+        "conclusion": "success"
+      },
+      "P2 clean disposable VM smoke": {
+        "run_id": 43822023444,
+        "conclusion": "success"
+      }
+    }
+  },
+  "previous_local_source_checkpoint": {
+    "sha": "1f138335c0a3b8dea5320c5e49f7cead3489a6f2",
+    "hosted_ci": "historical_1f_snapshot: exact_current_PR_head_CI_was_pending_at_that_time; b411_later_included_1f_and_passed_17_workflow_runs_and_25_check_runs_with_both_guests",
+    "evidence": "Adds bounded HTTPS failure-only metadata and invocation-count coverage, keyboard pagination/focus and 401/403 denied-state fallback, and malformed/trailing encrypted-backup coverage. Combined local checks: 11 cleanup cases, 14 Python HTTPS tests, 51/51 web unit tests, shell/JavaScript syntax and diff check. Separate component evidence: focused pagination 1/1, denial 1/1, responsive browser 13/13, TypeScript passed. Independent integrated review found no blocker.",
+    "limitations": "At the 1f snapshot, candidate exact-head CI was pending and the integrated worktree lacked Playwright, TypeScript and Go; b411 later included 1f and passed exact-head CI. PHP-FPM comm names on pinned guests remain unverified. The HTTPS failure cause remains unknown. Synthetic UI evidence does not establish authenticated-tenant, physical-device or human accessibility acceptance; issue #155 remains open."
+  },
+  "local_candidate_head": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
+  "local_candidate_tree_sha": "019c3f734a1743f91e1bdb3203013cbc154bec2c",
+  "local_snapshot_head": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
+  "local_snapshot_tree": "019c3f734a1743f91e1bdb3203013cbc154bec2c"
 }

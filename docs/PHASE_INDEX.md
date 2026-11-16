@@ -1,5 +1,5 @@
 # Tong Panel — Phase Index / Single Operational Plan
-**Updated:** 2026-11-13. The [combined development review](PR_RECONCILIATION_2026-11-13.md) preserves all original draft work. P0 decisions and phase acceptance remain open; use the [current handoff](RESUME_HANDOFF_2026-11-12.md) for executed evidence.
+**Updated:** 2026-11-16. The combined development review preserves all original draft work. P0 decisions and phase acceptance remain open; P1 prototypes and disposable P2 QA may continue, but P1 exit and P2 entry are not approved. Read the current handoff for executed evidence.
 
 | Phase | Goal | Prerequisite | Gate | Detailed plan |
 |---|---|---|---|---|
@@ -13,7 +13,7 @@
 
 ## For a new AI agent
 
-**Start with [AI_AGENT_START_HERE.md](AI_AGENT_START_HERE.md), [machine state](AI_AGENT_STATE.json), [AGENTS.md](../AGENTS.md) and live [PR #171](https://github.com/parmtech/Tong-Panel/pull/171).** [Tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) coordinates phases. The executable-source SHA `83fe8931` passed **13/13 workflows, including both full Ubuntu/Debian guest jobs**. Newer documentation-commit SHA needs separate CI verification. Next isolated test: synthetic rootless dpkg crash/reconciliation. No phase approval is inferred.
+**Start with [AI_AGENT_START_HERE.md](AI_AGENT_START_HERE.md), [machine state](AI_AGENT_STATE.json), [AGENTS.md](../AGENTS.md) and live [PR #171](https://github.com/parmtech/Tong-Panel/pull/171).** [Tracker #172](https://github.com/parmtech/Tong-Panel/issues/172) coordinates phases. Published head `b411b4960748129e4c59e4fa1ce6a0644d816249` passed 17/17 workflows and 25/25 checks, including both P2 guests. Local candidate `61fdb4b8faf520ec277cb5aeef82d4ac3510fe88` is 16 commits after b411; its exact-head CI is pending. Next: complete the final handoff/workflow-trigger audit, verify the live PR still points to b411, publish by normal fast-forward, and inspect exact-head CI. Require the P2 newline fixture to run without a skip, package structure validation and successful Ubuntu/Debian guest lifecycle jobs. No phase approval is inferred.
 
 ## Work sequence and parallelism
 Security, installer and UX can be planned concurrently during P0. P1 starts in isolated code branches with **non-privileged prototypes** while risky architecture decisions are reviewed, but root daemon and installer changes stay gated. P2 follows verified identity/jobs/agent boundary; P3 and optional mail/DNS design can start in parallel *after* P2 contracts stabilise. P5 must not arrive before reliable single-server recovery. P6 reviews and validates already-implemented scope rather than inventing missing features.
