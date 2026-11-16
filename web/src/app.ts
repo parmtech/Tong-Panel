@@ -441,15 +441,20 @@ const filesPreviewTitle = document.querySelector<HTMLElement>('#files-preview-ti
 const filesPreviewContent = document.querySelector<HTMLElement>('#files-preview-content');
 const filesPreviewClose = document.querySelector<HTMLButtonElement>('#files-preview-close');
 let filesPreviewRequestID = 0;
-function clearFilePreview(): void {
+let filesPreviewReturnFocus: HTMLButtonElement | null = null;
+function clearFilePreview({ restoreFocus = false }: { restoreFocus?: boolean } = {}): void {
     filesPreviewRequestID++;
     if (filesPreview) filesPreview.hidden = true;
     if (filesPreviewContent) filesPreviewContent.textContent = '';
     if (filesPreviewTitle) filesPreviewTitle.textContent = 'Text preview';
+    const returnFocus = restoreFocus ? filesPreviewReturnFocus : null;
+    filesPreviewReturnFocus = null;
+    if (returnFocus?.isConnected && !returnFocus.disabled) returnFocus.focus();
 }
-filesPreviewClose?.addEventListener('click', clearFilePreview);
+// Focus returns only after an explicit close, never after blur/visibility cleanup.
+filesPreviewClose?.addEventListener('click', () => clearFilePreview({ restoreFocus: true }));
 document.addEventListener('visibilitychange', () => { if (document.hidden) clearFilePreview(); });
-window.addEventListener('blur', clearFilePreview);
+window.addEventListener('blur', () => clearFilePreview());
 const filesFilter = document.querySelector<HTMLFormElement>('#files-filter');
 const filesPrefixInput = document.querySelector<HTMLInputElement>('#files-prefix');
 let filesPrefix = '';
@@ -540,7 +545,7 @@ function renderFilesEntries(entries: FileEntry[]): void {
             preview.textContent = 'Preview text';
             preview.setAttribute('aria-label', `Preview text ${entry.name}`);
             preview.disabled = entry.size > 256 * 1024;
-            preview.addEventListener('click', () => { if (rowActive()) void showFilePreview(entry.name, rowPath); });
+            preview.addEventListener('click', () => { if (rowActive()) void showFilePreview(entry.name, rowPath, preview); });
             item.append(preview);
         }
         filesList.append(item);
@@ -633,8 +638,9 @@ function clearFilesOnDenial(error: unknown): void {
     if (filesPrevious) filesPrevious.disabled = true;
     if (filesNext) filesNext.disabled = true;
 }
-async function showFilePreview(name: string, rowPath: string): Promise<void> {
+async function showFilePreview(name: string, rowPath: string, returnFocus: HTMLButtonElement): Promise<void> {
     clearFilePreview();
+    filesPreviewReturnFocus = returnFocus;
     const requestID = filesPreviewRequestID;
     if (filesStatus) { filesStatus.dataset.state = 'loading'; filesStatus.textContent = 'Loading text preview…'; }
     try {

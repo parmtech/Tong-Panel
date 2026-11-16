@@ -696,7 +696,7 @@ function clearFilePreview({ restoreFocus = false } = {}) {
 filesPreviewClose?.addEventListener('click', () => clearFilePreview({ restoreFocus: true }));
 document.addEventListener('visibilitychange', () => { if (document.hidden)
     clearFilePreview(); });
-window.addEventListener('blur', clearFilePreview);
+window.addEventListener('blur', () => clearFilePreview());
 const filesFilter = document.querySelector('#files-filter');
 const filesPrefixInput = document.querySelector('#files-prefix');
 let filesPrefix = '';
