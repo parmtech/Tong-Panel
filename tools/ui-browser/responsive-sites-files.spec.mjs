@@ -267,6 +267,36 @@ async function expectVisibleKeyboardFocus(page, selector, viewport) {
     expect(focus.right, `${selector} focus should stay inside the viewport`).toBeLessThanOrEqual(viewport.width + 1);
 }
 
+async function expectVisibleForcedColorFocus(page, selector, viewport) {
+    const focus = await page.locator(selector).evaluate(element => {
+        const style = getComputedStyle(element);
+        const reference = document.createElement('span');
+        reference.style.color = 'Highlight';
+        reference.setAttribute('aria-hidden', 'true');
+        document.body.append(reference);
+        const highlightColor = getComputedStyle(reference).color;
+        reference.remove();
+        const bounds = element.getBoundingClientRect();
+        return {
+            forcedColors: matchMedia('(forced-colors: active)').matches,
+            focusVisible: element.matches(':focus-visible'),
+            outlineColor: style.outlineColor,
+            outlineStyle: style.outlineStyle,
+            outlineWidth: style.outlineWidth,
+            highlightColor,
+            left: bounds.left,
+            right: bounds.right,
+        };
+    });
+    expect(focus.forcedColors, selector + ' should be checked in forced-colors mode').toBe(true);
+    expect(focus.focusVisible, selector + ' should use keyboard-visible focus').toBe(true);
+    expect(focus.outlineStyle, selector + ' should show a focus outline').not.toBe('none');
+    expect(Number.parseFloat(focus.outlineWidth), selector + ' should have a nonzero focus outline').toBeGreaterThan(0);
+    expect(focus.outlineColor, selector + ' focus should use the system highlight color').toBe(focus.highlightColor);
+    expect(focus.left, selector + ' focus should stay inside the viewport').toBeGreaterThanOrEqual(0);
+    expect(focus.right, selector + ' focus should stay inside the viewport').toBeLessThanOrEqual(viewport.width + 1);
+}
+
 async function expectReverseTabAndReturn(page, selector, previousSelector) {
     const target = page.locator(selector);
     await page.keyboard.press('Shift+Tab');
@@ -436,6 +466,66 @@ test('component preview: Files controls work by keyboard at phone, tablet, and d
 
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: viewports.length * 2, previews: viewports.length }, viewports.length);
     expect(records.files.map(request => request.prefix)).toEqual(viewports.flatMap(() => ['', 'responsive']));
+});
+
+test('component preview: Sites and Files keyboard focus follows forced colors at responsive widths', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    await page.emulateMedia({ forcedColors: 'active' });
+    await openComponentPreview(page, records);
+
+    for (const [index, viewport] of viewports.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+
+        await tabUntilFocused(page, '#sites-load', viewport);
+        await expectVisibleForcedColorFocus(page, '#sites-load', viewport);
+        await expectResponsiveBounds(page, viewport, ['#sites-title', '#sites-load']);
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#sites-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#sites-list')).toContainText('responsive.example.test');
+
+        await tabUntilFocused(page, '#files-refresh', viewport);
+        await expectVisibleForcedColorFocus(page, '#files-refresh', viewport);
+        await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-refresh']);
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
+
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-prefix')).toBeFocused();
+        await expectVisibleForcedColorFocus(page, '#files-prefix', viewport);
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-filter button')).toBeFocused();
+        await expectVisibleForcedColorFocus(page, '#files-filter button', viewport);
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+
+        const preview = 'button[aria-label="Preview text responsive-layout-notes.txt"]';
+        await tabUntilFocused(page, preview, viewport);
+        await expectVisibleForcedColorFocus(page, preview, viewport);
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#files-preview')).toBeVisible();
+        await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-preview-close')).toBeFocused();
+        await expectVisibleForcedColorFocus(page, '#files-preview-close', viewport);
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#files-preview')).toBeHidden();
+        await expect(page.locator(preview)).toBeFocused();
+        await expectVisibleForcedColorFocus(page, preview, viewport);
+        await expectResponsiveBounds(page, viewport, [preview]);
+    }
+
+    expectSyntheticReadOnlyRequests(records, {
+        sites: viewports.length,
+        files: viewports.length * 2,
+        previews: viewports.length,
+    }, viewports.length);
+    expect(records.files.map(request => request.prefix)).toEqual(viewports.flatMap(() => ['', '']));
 });
 
 test('component preview: Sites and Files retry synthetic network failures at phone sizes', async ({ page }) => {
