@@ -130,6 +130,12 @@ async function openComponentPreview(page, records, nextFailures = { sites: null,
                     return;
                 }
                 if (nextFailures.paginatedFiles) {
+                    if (summary.after === 'alpha.txt' && nextFailures.deniedPageStatus) {
+                        const status = nextFailures.deniedPageStatus;
+                        nextFailures.deniedPageStatus = null;
+                        await route.fulfill({ status, contentType: 'application/json', body: '{}' });
+                        return;
+                    }
                     const pages = {
                         '': { entries: [{ name: 'alpha.txt', kind: 'file', size: 5 }], next_after: 'alpha.txt' },
                         'alpha.txt': { entries: [{ name: 'beta.txt', kind: 'file', size: 4 }], next_after: '' },
@@ -909,5 +915,50 @@ test('component preview: Files pages are reachable by keyboard at phone sizes', 
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length * 3, previews: 0 }, phones.length);
     expect(records.files.map(({ filesPath, after, prefix, page }) => ({ filesPath, after, prefix, page }))).toEqual(
         phones.flatMap(() => ['', 'alpha.txt', ''].map(after => ({ filesPath: '', after, prefix: '', page: '1' }))),
+    );
+});
+
+test('component preview: denied Files pagination returns keyboard focus to refresh', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const controls = { sites: null, files: null, paginatedFiles: true, deniedPageStatus: null };
+    const denials = [
+        { status: 401, message: 'Sign in with a secure browser session to browse files.' },
+        { status: 403, message: 'Your account cannot access these files.' },
+    ];
+    const phones = [{ width: 320, height: 640 }, { width: 390, height: 360 }];
+    await openComponentPreview(page, records, controls);
+
+    for (const [index, denial] of denials.entries()) {
+        const viewport = phones[index];
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+
+        await tabUntilFocused(page, '#files-refresh', viewport);
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-list')).toContainText('alpha.txt');
+        await expect(page.locator('#files-next')).toBeEnabled();
+
+        await tabUntilFocused(page, '#files-next', viewport);
+        await expectVisibleKeyboardFocus(page, '#files-next', viewport);
+        controls.deniedPageStatus = denial.status;
+        await page.keyboard.press('Enter');
+
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
+        await expect(page.locator('#files-status')).toHaveText(denial.message);
+        await expect(page.locator('#files-list')).toBeEmpty();
+        await expect(page.locator('#files-previous')).toBeDisabled();
+        await expect(page.locator('#files-next')).toBeDisabled();
+        await expect(page.locator('#files-refresh')).toBeEnabled();
+        await expect(page.locator('#files-refresh')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#files-refresh', viewport);
+    }
+
+    expectSyntheticReadOnlyRequests(records, { sites: 0, files: denials.length * 2, previews: 0 }, phones.length);
+    expect(records.files.map(({ filesPath, after, prefix, page }) => ({ filesPath, after, prefix, page }))).toEqual(
+        denials.flatMap(() => ['', 'alpha.txt'].map(after => ({ filesPath: '', after, prefix: '', page: '1' }))),
     );
 });

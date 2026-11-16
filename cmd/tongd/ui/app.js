@@ -869,11 +869,13 @@ async function refreshFiles(history = [''], returnFocus = null) {
         filesRefresh.disabled = false;
         filesRefresh.removeAttribute('aria-busy');
         if (returnFocus && (document.activeElement === document.body || document.activeElement === returnFocus)) {
-            const focusTarget = returnFocus.disabled
-                ? (returnFocus === filesNext ? filesPrevious : filesNext)
-                : returnFocus;
-            if (focusTarget && !focusTarget.disabled)
-                focusTarget.focus();
+            const oppositePager = returnFocus === filesNext ? filesPrevious : filesNext;
+            if (!returnFocus.disabled)
+                returnFocus.focus();
+            else if (oppositePager && !oppositePager.disabled)
+                oppositePager.focus();
+            else if (oppositePager?.disabled && !filesRefresh.disabled)
+                filesRefresh.focus();
         }
     }
 }
