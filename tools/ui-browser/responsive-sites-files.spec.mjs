@@ -597,3 +597,54 @@ test('component preview: Sites and Files controls remain vertically reachable on
     }
     expectSyntheticReadOnlyRequests(records, { sites: shortViewports.length, files: shortViewports.length, previews: shortViewports.length }, shortViewports.length);
 });
+
+
+test('component preview: Files task survives portrait and landscape resizing without requests', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const requests = [];
+    page.on('request', request => requests.push({ url: request.url(), method: request.method() }));
+    const portrait = { width: 390, height: 844 };
+    const landscape = { width: 844, height: 390 };
+    await page.setViewportSize(portrait);
+    await openComponentPreview(page, records);
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+    await page.locator('#files-prefix').fill('responsive');
+    await page.locator('#files-filter button').click();
+    await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+    await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
+    await expect(page.locator('#files-list')).not.toContainText('documents');
+    const preview = 'button[aria-label="Preview text responsive-layout-notes.txt"]';
+    await page.locator(preview).click();
+    await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+    await expect(page.locator('#files-preview')).toBeVisible();
+    const listBefore = await page.locator('#files-list').textContent();
+    const scopeBefore = await page.locator('#files-breadcrumbs').textContent();
+    const urlBefore = page.url();
+    const requestsBefore = requests.slice();
+
+    for (const viewport of [landscape, portrait]) {
+        await page.setViewportSize(viewport);
+        await expect(page.locator('#files-prefix')).toHaveValue('responsive');
+        expect(await page.locator('#files-list').textContent()).toBe(listBefore);
+        expect(await page.locator('#files-breadcrumbs').textContent()).toBe(scopeBefore);
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expect(page.locator('#files-preview')).toBeVisible();
+        await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+        expect(page.url()).toBe(urlBefore);
+        expect(requests).toEqual(requestsBefore);
+        await page.locator('#files-preview-close').scrollIntoViewIfNeeded();
+        const bounds = await page.locator('#files-preview-close').boundingBox();
+        expect(bounds.y).toBeGreaterThanOrEqual(0);
+        expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height + 1);
+        await expectResponsiveBounds(page, viewport, ['#files-preview-close']);
+    }
+    await tabUntilFocused(page, '#files-preview-close', portrait);
+    await expectVisibleKeyboardFocus(page, '#files-preview-close', portrait);
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#files-preview')).toBeHidden();
+    await expect(page.locator(preview)).toBeFocused();
+    expect(requests).toEqual(requestsBefore);
+    expectSyntheticReadOnlyRequests(records, { sites: 0, files: 2, previews: 1 });
+    expect(records.files.map(request => request.prefix)).toEqual(['', 'responsive']);
+});
