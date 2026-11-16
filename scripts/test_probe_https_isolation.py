@@ -229,6 +229,24 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
         self.assertEqual(match.group(1), PHP_FPM_PID_FILE)
         self.assertEqual(ast.literal_eval(match.group(2)), set(PHP_FPM_COMM_NAMES))
 
+    def test_guest_err_trap_withholds_heredoc_source_and_preserves_status(self):
+        bash = shutil.which("bash")
+        if not bash:
+            self.skipTest("Bash is required for the guest ERR trap regression")
+        script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
+        guest = script.split("<<'GUEST'\n", 1)[1].split("\nGUEST\n", 1)[0]
+        self.assertNotIn("$BASH_COMMAND", guest)
+        trap = next(line for line in guest.splitlines() if line.startswith("trap ") and line.endswith(" ERR"))
+        for failure in ["(exit 23) <<'EOF'\nliteral-secret-canary\nEOF\n",
+                        "printf '%s' 'literal-secret-canary' | (exit 23)\n"]:
+            with self.subTest(failure=failure):
+                command = "set -Eeuo pipefail\nsmoke_stage=fpm_identity\n" + trap + "\n" + failure
+                result = subprocess.run([bash, "-c", command], capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 23)
+                self.assertEqual(result.stdout, "")
+                self.assertRegex(result.stderr, r"\Aclean_guest failure_stage=fpm_identity line=[0-9]+ status=23\n\Z")
+                self.assertNotIn("secret", result.stderr)
+
     def test_guest_failure_snapshot_prints_only_fixed_metadata(self):
         script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
         diagnostic = script.split("<<'PY_HTTPS_DIAGNOSTICS' || true\n", 1)[1].split("\nPY_HTTPS_DIAGNOSTICS\n", 1)[0]

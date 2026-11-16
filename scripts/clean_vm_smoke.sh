@@ -130,7 +130,9 @@ retry_guest_scp scripts/smoke_wordpress_backup_source.sh "$guest:/home/ci/smoke_
 cat > "$work/guest-check.sh" <<'GUEST'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-trap 'status=$?; echo "clean guest smoke failed (status=$status) at: $BASH_COMMAND" >&2' ERR
+smoke_stage=guest_setup
+# Never print command source: it can include complete credential heredocs.
+trap 'status=$?; printf "clean_guest failure_stage=%s line=%d status=%d\n" "$smoke_stage" "$LINENO" "$status" >&2; exit "$status"' ERR
 test "$(id -u)" -ne 0
 test "$(uname -m)" = x86_64
 . /etc/os-release
@@ -325,7 +327,9 @@ test -S /run/tong/php/tenant-a/site-a.sock
 test -S /run/tong/php/tenant-b/site-b.sock
 # The root-owned PID file may be 0600 under the credential-protecting umask.
 # Elevate only this fixed, read-only fixture check; HTTPS probes stay unprivileged.
+smoke_stage=fpm_identity
 sudo python3 -I /home/ci/probe_https_isolation.py --check-fpm-master
+smoke_stage=site_runtime
 sudo systemctl stop nginx || true
 cat > /home/ci/nginx-e2e.conf <<'NGINX'
 user www-data;
@@ -523,6 +527,7 @@ for host in tenant-a.example.test tenant-b.example.test; do
 done
 # Require exact markers with bounded transport/status diagnostics. Never print
 # response bodies or retry a wrong-tenant response until it happens to pass.
+smoke_stage=https_isolation
 if python3 /home/ci/probe_https_isolation.py; then
   :
 else
@@ -662,6 +667,7 @@ sudo env TONG_DISPOSABLE_WORDPRESS_RESTORE=1 bash ./smoke_wordpress_backup_sourc
 python3 /home/ci/smoke_p1.py /home/ci/tong-p1-dev/bin/tongd
 /home/ci/tong-p1-dev/bin/tongctl doctor > doctor.json
 python3 -c 'import json; d=json.load(open("doctor.json")); assert len(d["checks"]) == 4; print("clean-guest doctor JSON parsed; support remains uncertified")'
+smoke_stage=package_lifecycle
 bash ./p2_package_install_vm.sh ./tong-panel-dev-v1.deb ./tong-panel-dev-v2.deb
 GUEST
 scp "${scp_opts[@]}" "$work/guest-check.sh" "$guest:/home/ci/guest-check.sh"
