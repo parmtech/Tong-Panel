@@ -142,6 +142,17 @@ async function openComponentPreview(page, records, nextFailures = { sites: null,
             }
             if (url.pathname === '/api/v1/files/content') {
                 records.previews.push(summary);
+                const heldPreview = nextFailures.preview;
+                if (heldPreview) {
+                    nextFailures.preview = null;
+                    heldPreview.markStarted();
+                    await heldPreview.released;
+                    try {
+                        await route.fulfill({ status: 200, contentType: 'application/octet-stream', body: 'Synthetic stale preview marker.' });
+                    } catch { /* Refresh may have canceled the request. */ }
+                    finally { heldPreview.markFinished(); }
+                    return;
+                }
                 await route.fulfill({
                     status: 200,
                     contentType: 'application/octet-stream',
@@ -478,4 +489,57 @@ test('component preview: Sites and Files retry synthetic network failures at pho
     }, retryViewports.length);
     expect(records.sites.map(request => request.prefix)).toEqual(retryViewports.flatMap(() => ['', '']));
     expect(records.files.map(request => request.prefix)).toEqual(retryViewports.flatMap(() => ['', '']));
+});
+
+
+test('component preview: Files refresh suppresses a held stale preview and recovers at phone sizes', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    const controls = { sites: null, files: null, preview: null };
+    const phones = viewports.filter(viewport =>
+        (viewport.width === 320 && viewport.height === 640)
+        || (viewport.width === 390 && viewport.height === 360));
+    await openComponentPreview(page, records, controls);
+
+    for (const [index, viewport] of phones.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+        }
+        await tabUntilFocused(page, '#files-refresh', viewport);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        const preview = page.getByRole('button', { name: 'Preview text responsive-layout-notes.txt' });
+        await expect(preview).toBeVisible();
+
+        let markFinished;
+        const finished = new Promise(resolve => { markFinished = resolve; });
+        const held = createHeldNetworkFailure();
+        held.markFinished = markFinished;
+        controls.preview = held;
+        await preview.click();
+        try {
+            await held.started;
+            await tabUntilFocused(page, '#files-refresh', viewport);
+            await expectVisibleKeyboardFocus(page, '#files-refresh', viewport);
+            await page.keyboard.press(keyboardActivation(index + 1));
+            await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+            await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
+        } finally {
+            held.release();
+        }
+        await finished;
+        await expect(page.locator('#files-preview')).toBeHidden();
+        await expect(page.locator('#files-preview-content')).toBeEmpty();
+        await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
+        await expectResponsiveBounds(page, viewport, ['#files-explorer-title', '#files-refresh', '#files-status']);
+        await tabUntilFocused(page, 'button[aria-label="Preview text responsive-layout-notes.txt"]', viewport);
+        await expectVisibleKeyboardFocus(page, 'button[aria-label="Preview text responsive-layout-notes.txt"]', viewport);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-preview')).toBeVisible();
+        await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+        await expect(page.locator('#files-preview-content')).not.toContainText('Synthetic stale preview marker.');
+        await expectResponsiveBounds(page, viewport, ['#files-preview-title', '#files-preview-close', '#files-preview-content']);
+    }
+    expectSyntheticReadOnlyRequests(records, { sites: 0, files: phones.length * 2, previews: phones.length * 2 }, phones.length);
 });
