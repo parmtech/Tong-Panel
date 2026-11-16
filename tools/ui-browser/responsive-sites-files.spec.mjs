@@ -297,6 +297,15 @@ async function expectVisibleForcedColorFocus(page, selector, viewport) {
     expect(focus.right, selector + ' focus should stay inside the viewport').toBeLessThanOrEqual(viewport.width + 1);
 }
 
+async function expectLiveStatus(page, selector, state, message) {
+    const status = page.locator(selector);
+    await expect(status).toHaveAttribute('role', 'status');
+    await expect(status).toHaveAttribute('aria-live', 'polite');
+    await expect(status).toHaveAttribute('aria-atomic', 'true');
+    await expect(status).toHaveAttribute('data-state', state);
+    await expect(status).toContainText(message);
+}
+
 async function expectReverseTabAndReturn(page, selector, previousSelector) {
     const target = page.locator(selector);
     await page.keyboard.press('Shift+Tab');
@@ -526,6 +535,73 @@ test('component preview: Sites and Files keyboard focus follows forced colors at
         previews: viewports.length,
     }, viewports.length);
     expect(records.files.map(request => request.prefix)).toEqual(viewports.flatMap(() => ['', '']));
+});
+
+test('component preview: reduced motion preserves keyboard Sites and Files status updates', async ({ page }) => {
+    const records = { sites: [], files: [], previews: [], otherAPI: [], external: [] };
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openComponentPreview(page, records);
+    expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
+
+    for (const [index, viewport] of viewports.entries()) {
+        await page.setViewportSize(viewport);
+        if (index > 0) {
+            await page.goto(baseURL);
+            await expect(page.locator('#jobs-panel')).toBeVisible();
+            expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
+        }
+
+        await tabUntilFocused(page, '#sites-load', viewport);
+        await expectVisibleKeyboardFocus(page, '#sites-load', viewport);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#sites-load')).toBeFocused();
+        await expectLiveStatus(page, '#sites-status', 'available', 'Page 1: 1 catalog sites.');
+        await expect(page.locator('#sites-list')).toContainText('responsive.example.test');
+
+        await tabUntilFocused(page, '#files-refresh', viewport);
+        await expectVisibleKeyboardFocus(page, '#files-refresh', viewport);
+        await page.keyboard.press(keyboardActivation(index + 1));
+        await expectLiveStatus(page, '#files-status', 'available', 'Page 1: 2 items.');
+        await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
+
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-prefix')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#files-prefix', viewport);
+        await page.keyboard.type('responsive');
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-filter button')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#files-filter button', viewport);
+        await page.keyboard.press(keyboardActivation(index));
+        await expect(page.locator('#files-filter button')).toBeFocused();
+        await expectLiveStatus(page, '#files-status', 'available', 'Page 1: 1 item.');
+        await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
+        await expect(page.locator('#files-list')).not.toContainText('documents');
+
+        const preview = 'button[aria-label="Preview text responsive-layout-notes.txt"]';
+        await tabUntilFocused(page, preview, viewport);
+        await expectVisibleKeyboardFocus(page, preview, viewport);
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#files-preview')).toBeVisible();
+        await expect(page.locator('#files-preview-content')).toHaveText('Synthetic preview for responsive layout checks.');
+        await expectLiveStatus(page, '#files-status', 'available', 'Text preview loaded.');
+
+        await page.keyboard.press('Tab');
+        await expect(page.locator('#files-preview-close')).toBeFocused();
+        await expectVisibleKeyboardFocus(page, '#files-preview-close', viewport);
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#files-preview')).toBeHidden();
+        await expect(page.locator(preview)).toBeFocused();
+        await expectVisibleKeyboardFocus(page, preview, viewport);
+        await expectLiveStatus(page, '#files-status', 'available', 'Text preview loaded.');
+    }
+
+    expectSyntheticReadOnlyRequests(records, {
+        sites: viewports.length,
+        files: viewports.length * 2,
+        previews: viewports.length,
+    }, viewports.length);
+    expect(records.sites.map(request => request.prefix)).toEqual(viewports.map(() => ''));
+    expect(records.files.map(request => request.prefix)).toEqual(viewports.flatMap(() => ['', 'responsive']));
 });
 
 test('component preview: Sites and Files retry synthetic network failures at phone sizes', async ({ page }) => {
