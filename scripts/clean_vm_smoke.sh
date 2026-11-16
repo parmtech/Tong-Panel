@@ -323,6 +323,7 @@ for _ in {1..30}; do
 done
 test -S /run/tong/php/tenant-a/site-a.sock
 test -S /run/tong/php/tenant-b/site-b.sock
+python3 /home/ci/probe_https_isolation.py --check-fpm-master
 sudo systemctl stop nginx || true
 cat > /home/ci/nginx-e2e.conf <<'NGINX'
 user www-data;

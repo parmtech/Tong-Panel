@@ -1,6 +1,8 @@
+import ast
 import contextlib
 import io
 import os
+import re
 import shutil
 import stat
 from types import SimpleNamespace
@@ -10,7 +12,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from probe_https_isolation import BODY_LIMIT, EXPECTED, TIMING_NAMES, WRITE_OUT, main, probe
+from probe_https_isolation import BODY_LIMIT, EXPECTED, PHP_FPM_COMM_NAMES, TIMING_NAMES, WRITE_OUT, main, probe
 
 
 class HTTPSIsolationProbeTests(unittest.TestCase):
@@ -162,6 +164,53 @@ class HTTPSIsolationProbeTests(unittest.TestCase):
         self.assertEqual(result.classification, "probe_unavailable")
         self.assertEqual(len(self.calls), 0)
         self.assertNotIn("secret-directory-canary", result.diagnostic())
+
+    def test_fpm_master_check_is_bounded_allowlisted_and_redacted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pid_file = root / "run/tong/php-fpm-e2e.pid"
+            proc_root = root / "proc"
+            pid_file.parent.mkdir(parents=True)
+            process = proc_root / "124"
+            process.mkdir(parents=True)
+            comm_file = process / "comm"
+
+            with patch("probe_https_isolation.PHP_FPM_PID_FILE", str(pid_file)), \
+                 patch("probe_https_isolation.PROC_ROOT", str(proc_root)):
+                for comm in sorted(PHP_FPM_COMM_NAMES):
+                    with self.subTest(comm=comm):
+                        pid_file.write_bytes(b"124\n")
+                        comm_file.write_bytes((comm + "\n").encode("ascii"))
+                        output = io.StringIO()
+                        self.assertEqual(main(["--check-fpm-master"], output=output), 0)
+                        self.assertEqual(output.getvalue(), f"https_fixture fpm_master_comm={comm}\n")
+
+                for pid_contents, comm_contents in [
+                    (b"124\n", b"php-fpm-secret-canary\n"),
+                    (b"124\nsecret-pid-canary", b"php-fpm8.2\n"),
+                    (b"1" * 33, b"php-fpm8.2\n"),
+                    (b"124\n", b"x" * 65),
+                ]:
+                    with self.subTest(pid_contents=pid_contents[:12], comm_contents=comm_contents[:12]):
+                        pid_file.write_bytes(pid_contents)
+                        comm_file.write_bytes(comm_contents)
+                        output = io.StringIO()
+                        self.assertEqual(main(["--check-fpm-master"], output=output), 1)
+                        self.assertEqual(output.getvalue(), "https_fixture fpm_master_comm=unavailable\n")
+                        self.assertNotIn("secret", output.getvalue())
+
+    def test_fpm_success_check_is_wired_before_https_probe_and_shares_allowlist(self):
+        script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()
+        command = "python3 /home/ci/probe_https_isolation.py --check-fpm-master"
+        probe_command = "if python3 /home/ci/probe_https_isolation.py; then"
+        self.assertEqual(script.count(command), 1)
+        self.assertLess(script.index("test -S /run/tong/php/tenant-b/site-b.sock"), script.index(command))
+        self.assertLess(script.index(command), script.index(probe_command))
+
+        diagnostic = script.split("<<'PY_HTTPS_DIAGNOSTICS' || true\n", 1)[1].split("\nPY_HTTPS_DIAGNOSTICS\n", 1)[0]
+        match = re.search(r'fpm_pid, fpm_state = master_info\("/run/tong/php-fpm-e2e\.pid", (\{[^}]+\})\)', diagnostic)
+        self.assertIsNotNone(match, "failure snapshot must keep an explicit FPM comm allowlist")
+        self.assertEqual(ast.literal_eval(match.group(1)), set(PHP_FPM_COMM_NAMES))
 
     def test_guest_failure_snapshot_prints_only_fixed_metadata(self):
         script = Path(__file__).with_name("clean_vm_smoke.sh").read_text()

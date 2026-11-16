@@ -18,6 +18,9 @@ EXPECTED = {
 BODY_LIMIT = 4096
 TIMING_NAMES = ("time_connect", "time_appconnect", "time_starttransfer", "time_total")
 WRITE_OUT = "%{http_code}" + "".join("|%{" + name + "}" for name in TIMING_NAMES)
+PHP_FPM_COMM_NAMES = frozenset({"php-fpm", "php-fpm8.2", "php-fpm8.3"})
+PHP_FPM_PID_FILE = "/run/tong/php-fpm-e2e.pid"
+PROC_ROOT = "/proc"
 
 
 @dataclass(frozen=True)
@@ -50,6 +53,30 @@ def probe(host, runner=subprocess.run):
         # Temporary-file creation or cleanup can fail too; never expose an
         # underlying path/message through a Python traceback in the CI log.
         return ProbeResult(host, "000", -1, 0, "probe_unavailable")
+
+
+def php_fpm_master_comm(pid_file=None, proc_root=None):
+    """Return the disposable PHP-FPM master's bounded, allowlisted comm name."""
+    if pid_file is None:
+        pid_file = PHP_FPM_PID_FILE
+    if proc_root is None:
+        proc_root = PROC_ROOT
+    try:
+        with Path(pid_file).open("rb") as source:
+            pid_bytes = source.read(33)
+        if len(pid_bytes) > 32:
+            return None
+        pid = pid_bytes.decode("ascii", "strict").strip()
+        if not re.fullmatch(r"[1-9][0-9]{0,9}", pid):
+            return None
+        with (Path(proc_root) / pid / "comm").open("rb") as source:
+            comm_bytes = source.read(65)
+        if len(comm_bytes) > 64:
+            return None
+        comm = comm_bytes.decode("ascii", "strict").removesuffix("\n")
+        return comm if comm in PHP_FPM_COMM_NAMES else None
+    except (OSError, ValueError, UnicodeError):
+        return None
 
 
 def _probe_once(host, runner):
@@ -117,8 +144,17 @@ def _probe_once(host, runner):
 def main(arguments=None, runner=subprocess.run, output=None):
     if arguments is None:
         arguments = sys.argv[1:]
+    if arguments == ["--check-fpm-master"]:
+        if output is None:
+            output = sys.stdout
+        comm = php_fpm_master_comm()
+        try:
+            print("https_fixture fpm_master_comm=" + (comm or "unavailable"), file=output)
+        except OSError:
+            return 1
+        return 0 if comm is not None else 1
     if arguments:
-        print("usage: probe_https_isolation.py", file=sys.stderr)
+        print("usage: probe_https_isolation.py [--check-fpm-master]", file=sys.stderr)
         return 2
     if output is None:
         output = sys.stdout
