@@ -26,12 +26,17 @@ func (a *localAccount) GetRegistration() *registration.Resource { return a.regis
 
 type observedProvider struct {
 	*Provider
-	presented, cleaned atomic.Int32
-	afterPresent       func()
+	presented, cleaned                atomic.Int32
+	presentAttempts, closedRejections atomic.Int32
+	afterPresent                      func()
 }
 
 func (p *observedProvider) Present(domain, token, keyAuth string) error {
+	p.presentAttempts.Add(1)
 	if err := p.Provider.Present(domain, token, keyAuth); err != nil {
+		if errors.Is(err, ErrClosed) {
+			p.closedRejections.Add(1)
+		}
 		return err
 	}
 	p.presented.Add(1)
@@ -94,6 +99,13 @@ func TestPebbleHTTP01(t *testing.T) {
 			if scenario.preCanceled {
 				if err == nil || resource != nil {
 					t.Fatal("pre-canceled provider unexpectedly issued a certificate")
+				}
+				if fixture.newOrders.Load() == 0 {
+					t.Fatal("pre-canceled Obtain did not reach a local ACME new order")
+				}
+				attempts := fixture.provider.presentAttempts.Load()
+				if attempts == 0 || fixture.provider.closedRejections.Load() != attempts {
+					t.Fatalf("pre-canceled provider rejected %d of %d Present attempts with ErrClosed", fixture.provider.closedRejections.Load(), attempts)
 				}
 				if fixture.provider.presented.Load() != 0 || fixture.challengeRequests.Load() != 0 {
 					t.Fatal("pre-canceled provider published or served an HTTP challenge")
