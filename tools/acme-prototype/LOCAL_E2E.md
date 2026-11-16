@@ -16,13 +16,14 @@ The official Go module github.com/letsencrypt/pebble/v2 v2.10.3 resolves to tag 
 
 Each subtest starts ephemeral IPv4-loopback DNS, HTTP challenge and HTTPS ACME fixtures. The private TCP DNS responder returns loopback only for the selected reserved .test name and never forwards queries. The lego transport permits only the exact test ACME endpoint, has no proxy, and verifies TLS against the test server certificate. It never sets InsecureSkipVerify. Redirects outside that endpoint are rejected. No system resolver, hosts file or system CA trust is changed.
 
-PEBBLE_VA_ALWAYS_VALID is explicitly false: Pebble performs actual HTTP-01 validation. Random sleeps and nonce rejection are disabled solely for deterministic timing. `TestPebbleHTTP01` runs these three cases, with no external email address/account:
+PEBBLE_VA_ALWAYS_VALID is explicitly false: Pebble performs actual HTTP-01 validation. Random sleeps and nonce rejection are disabled solely for deterministic timing. `TestPebbleHTTP01` runs these four cases, with no external email address/account:
 
 | Subtest | Reserved domain | Assertions |
 |---|---|---|
 | `valid` | `valid.acme.test` | Real validation HTTP requests; exactly one successful `Present`/`CleanUp` pair; exact certificate SAN, chain to the in-memory Pebble root and matching private key; empty challenge state afterward |
 | `invalid-challenge` | `invalid.acme.test` | Fixture forces a real HTTP 404; `Obtain` returns an error and no certificate; presentation and cleanup both occur; empty challenge state afterward |
 | `canceled-attempt` | `canceled.acme.test` | Cancels the provider's attempt context immediately after the observed successful `Present`; the provider returns a real HTTP 404 during validation; `Obtain` returns an error and no certificate; cleanup occurs and token/key authorization/expiry are cleared; provider remains closed with no cancellation registration |
+| `pre-canceled` | `pre-canceled.acme.test` | Constructs the local client/account first, then cancels only the provider attempt immediately before `Obtain`; `Obtain` returns an error and no certificate; no successful presentation or HTTP challenge request occurs; provider is closed with empty challenge state. This checks the local pre-publication boundary only, not whole-order cancellation or production operation status |
 
 `TestPebbleTenantSANIsolation` adds two serial cases, `tenant-a.acme.test` and `tenant-b.acme.test`. Each uses a fresh loopback DNS/HTTP/ACME fixture, account key and generated certificate key. The test verifies each issued certificate against that fixture's in-memory Pebble root and matching private key, requires its SAN set to contain only its own name, accepts its own hostname, and rejects the other name. This checks certificate name scoping only; it does not establish tenant authorization, account policy, certificate lookup isolation or host serving behavior.
 

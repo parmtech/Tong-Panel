@@ -62,12 +62,13 @@ func (p *observedProvider) CleanUp(domain, token, keyAuth string) error {
 // listeners, real challenge validation and verified local TLS. Keys stay in RAM.
 func TestPebbleHTTP01(t *testing.T) {
 	for _, scenario := range []struct {
-		name, domain       string
-		force404, canceled bool
+		name, domain                     string
+		force404, canceled, preCanceled bool
 	}{
 		{name: "valid", domain: "valid.acme.test"},
 		{name: "invalid-challenge", domain: "invalid.acme.test", force404: true},
 		{name: "canceled-attempt", domain: "canceled.acme.test", canceled: true},
+		{name: "pre-canceled", domain: "pre-canceled.acme.test", preCanceled: true},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			domain := scenario.domain
@@ -81,11 +82,23 @@ func TestPebbleHTTP01(t *testing.T) {
 				options.afterPresent = cancel
 			}
 			fixture := newPebbleFixture(t, ctx, domain, options)
-			// Keep the original provider-only cancellation scenario: its HTTP
-			// client has an independent context and observes actual validation.
+			// Keep client issuance independent from provider cancellation: the
+			// pre-canceled case reaches Obtain, while canceled-attempt observes
+			// actual validation after its first successful Present.
 			client, _ := fixture.newClient(t, context.Background(), 10*time.Second, nil)
+			if scenario.preCanceled {
+				cancel()
+				waitForClosedAttempt(t, fixture.provider.Provider)
+			}
 			resource, err := client.Certificate.Obtain(certificate.ObtainRequest{Domains: []string{domain}, Bundle: true})
-			if scenario.force404 || scenario.canceled {
+			if scenario.preCanceled {
+				if err == nil || resource != nil {
+					t.Fatal("pre-canceled provider unexpectedly issued a certificate")
+				}
+				if fixture.provider.presented.Load() != 0 || fixture.challengeRequests.Load() != 0 {
+					t.Fatal("pre-canceled provider published or served an HTTP challenge")
+				}
+			} else if scenario.force404 || scenario.canceled {
 				if err == nil || resource != nil {
 					t.Fatal("failed or canceled challenge unexpectedly issued a certificate")
 				}
@@ -100,7 +113,7 @@ func TestPebbleHTTP01(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if fixture.provider.presented.Load() != 1 || fixture.provider.cleaned.Load() != 1 || fixture.challengeRequests.Load() == 0 {
+			if !scenario.preCanceled && (fixture.provider.presented.Load() != 1 || fixture.provider.cleaned.Load() != 1 || fixture.challengeRequests.Load() == 0) {
 				t.Fatal("presentation, actual validation or cleanup missing")
 			}
 			provider := fixture.provider.Provider
@@ -111,7 +124,7 @@ func TestPebbleHTTP01(t *testing.T) {
 			if !empty {
 				t.Fatal("challenge remained after order completion/failure")
 			}
-			if scenario.canceled && (!errors.Is(ctx.Err(), context.Canceled) || !closed) {
+			if (scenario.canceled || scenario.preCanceled) && (!errors.Is(ctx.Err(), context.Canceled) || !closed) {
 				t.Fatal("canceled provider attempt did not close permanently")
 			}
 		})
