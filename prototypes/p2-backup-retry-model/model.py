@@ -474,7 +474,7 @@ class TransferSimulator:
             or attempt.transferred_bytes != operation.expected_size_bytes
         ):
             self._settle_failure(attempt, TransferFailureReason.INCOMPLETE, cleanup_verified, now)
-        elif hashlib.sha256(content).hexdigest() != attempt.identity.expected_sha256:
+        elif hashlib.sha256(content).hexdigest() != operation.identity.expected_sha256:
             self._settle_failure(
                 attempt, TransferFailureReason.DIGEST_MISMATCH, cleanup_verified, now
             )

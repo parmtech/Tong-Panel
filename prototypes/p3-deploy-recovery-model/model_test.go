@@ -332,7 +332,7 @@ func TestUnrecognizedRouteRemainsUncertainAfterSerializedRestart(t *testing.T) {
 		t.Fatalf("unknown route recovery after switch restart = state %q outcome %q actual=%q observed=%q", restarted.State, restarted.Outcome, restarted.ActualRoute, restarted.ObservedRoute)
 	}
 
-	uncertainRestart := restartModel(t, restarted)
+	uncertainRestart := restartModel(t, &restarted)
 	if uncertainRestart.State != StateUncertain || uncertainRestart.Outcome != "uncertain" || uncertainRestart.ActualRoute != routeBefore || uncertainRestart.ObservedRoute != observedRoute {
 		t.Fatalf("uncertain state after restart = state %q outcome %q actual=%q observed=%q", uncertainRestart.State, uncertainRestart.Outcome, uncertainRestart.ActualRoute, uncertainRestart.ObservedRoute)
 	}

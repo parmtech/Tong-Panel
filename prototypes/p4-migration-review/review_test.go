@@ -234,24 +234,32 @@ func TestRecordReviewRejectsAmbiguousPlan(t *testing.T) {
 		"self dependency":              func(p *Plan) { p.Actions[0].DependsOn = []string{"step-1"} },
 		"duplicate dependency":         func(p *Plan) { p.Actions[1].DependsOn = []string{"step-1", "step-1"} },
 		"dependency cycle":             func(p *Plan) { p.Actions[0].DependsOn = []string{"step-2"} },
-		"three-action cycle":           func(p *Plan) {
-			p.Actions[0].DependsOn = []string{"step-3"}
-			p.Actions = append(p.Actions, Action{Ref: "step-3", Kind: "create_db", ObjectRef: "db-opaque-1", DependsOn: []string{"step-2"}})
-		},
 		"missing destination revision": func(p *Plan) { p.InventoryRevision = " " },
 	}
 	for name, mutate := range tests {
 		t.Run(name, func(t *testing.T) {
 			plan := samplePlan()
 			mutate(&plan)
-			_, err := RecordReview(plan, "operator-opaque-1", "policy-3")
-			if !errors.Is(err, ErrInvalidPlan) {
+			if _, err := RecordReview(plan, "operator-opaque-1", "policy-3"); !errors.Is(err, ErrInvalidPlan) {
 				t.Fatalf("RecordReview() error = %v, want ErrInvalidPlan", err)
 			}
-			if name == "three-action cycle" && !strings.Contains(err.Error(), "action dependencies contain a cycle") {
-				t.Fatalf("RecordReview() error = %v, want cycle-specific error", err)
-			}
 		})
+	}
+}
+
+func TestRecordReviewRejectsThreeActionDependencyCycle(t *testing.T) {
+	plan := samplePlan()
+	plan.Actions[0].DependsOn = []string{"step-3"}
+	plan.Actions = append(plan.Actions, Action{
+		Ref:       "step-3",
+		Kind:      "create_db",
+		ObjectRef: "db-opaque-1",
+		DependsOn: []string{"step-2"},
+	})
+
+	_, err := RecordReview(plan, "operator-opaque-1", "policy-3")
+	if !errors.Is(err, ErrInvalidPlan) || !strings.Contains(err.Error(), "action dependencies contain a cycle") {
+		t.Fatalf("RecordReview() error = %v, want cycle-specific ErrInvalidPlan", err)
 	}
 }
 
