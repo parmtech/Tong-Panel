@@ -124,6 +124,81 @@ func TestDeveloperSQLiteJobsAPIActorScopeIdempotencyAndCancel(t *testing.T) {
 	}
 }
 
+func TestDeveloperSQLiteUnauthenticatedJobMutationsFailClosed(t *testing.T) {
+	s, q, path := setupSQLAPI(t)
+	h := s.Handler()
+
+	seeded, err := q.CreateFor("tenant-a", "u1", jobs.KindNoop, "anonymous-denial-seed-0001")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	db, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	countJobsAndAudits := func() (int, int) {
+		t.Helper()
+		var jobCount, auditCount int
+		if err := db.QueryRow("SELECT count(*) FROM jobs").Scan(&jobCount); err != nil {
+			t.Fatal(err)
+		}
+		if err := db.QueryRow("SELECT count(*) FROM audit_events").Scan(&auditCount); err != nil {
+			t.Fatal(err)
+		}
+		return jobCount, auditCount
+	}
+	beforeJobs, beforeAudits := countJobsAndAudits()
+	if beforeJobs != 1 || beforeAudits != 1 {
+		t.Fatalf("unexpected seeded state: jobs=%d audits=%d", beforeJobs, beforeAudits)
+	}
+
+	for _, target := range []string{"/api/v1/jobs", "/api/v1/jobs/" + seeded.ID} {
+		response := call(h, "GET", target, "", "", "")
+		if response.Code != http.StatusUnauthorized {
+			t.Fatalf("unauthenticated SQL read %s=%d", target, response.Code)
+		}
+		for _, privateValue := range []string{seeded.ID, "tenant-a", "u1", "requested_by"} {
+			if strings.Contains(response.Body.String(), privateValue) {
+				t.Fatalf("unauthenticated SQL read %s disclosed protected metadata", target)
+			}
+		}
+	}
+
+	created := call(h, "POST", "/api/v1/jobs", "", "anonymous-create-0001", `{"kind":"validation.noop"}`)
+	if created.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated SQL create=%d", created.Code)
+	}
+	for _, privateValue := range []string{seeded.ID, "tenant-a", "u1", "requested_by"} {
+		if strings.Contains(created.Body.String(), privateValue) {
+			t.Fatalf("unauthenticated SQL create disclosed protected metadata")
+		}
+	}
+	if jobsAfter, auditsAfter := countJobsAndAudits(); jobsAfter != beforeJobs || auditsAfter != beforeAudits {
+		t.Fatalf("unauthenticated SQL create changed state: jobs=%d audits=%d", jobsAfter, auditsAfter)
+	}
+
+	cancelled := call(h, "DELETE", "/api/v1/jobs/"+seeded.ID, "", "", "")
+	if cancelled.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated SQL cancellation=%d", cancelled.Code)
+	}
+	for _, privateValue := range []string{seeded.ID, "tenant-a", "u1", "requested_by"} {
+		if strings.Contains(cancelled.Body.String(), privateValue) {
+			t.Fatalf("unauthenticated SQL cancellation disclosed protected metadata")
+		}
+	}
+	var state string
+	var attempts int
+	if err := db.QueryRow("SELECT state,attempt_count FROM jobs WHERE id=?", seeded.ID).Scan(&state, &attempts); err != nil || state != jobs.Queued || attempts != 0 {
+		t.Fatalf("unauthenticated SQL cancellation changed seeded job: state=%q attempts=%d err=%v", state, attempts, err)
+	}
+	if jobsAfter, auditsAfter := countJobsAndAudits(); jobsAfter != beforeJobs || auditsAfter != beforeAudits {
+		t.Fatalf("unauthenticated SQL cancellation changed state: jobs=%d audits=%d", jobsAfter, auditsAfter)
+	}
+}
+
 func TestDeveloperSQLiteJobMutationsStopWhenRequestContextExpires(t *testing.T) {
 	for _, operation := range []string{"create", "cancel"} {
 		t.Run(operation, func(t *testing.T) {
