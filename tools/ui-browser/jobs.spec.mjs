@@ -603,6 +603,41 @@ test('manual refresh announces observed same-user job state changes and supports
     expect(axe.violations.map(({ id }) => id)).toEqual([]);
 });
 
+test('keyboard dismissal keeps focus on another notice or the Jobs refresh control', async ({ page }) => {
+    await open(page);
+    const jobs = [
+        {
+            id: 'e'.repeat(32), tenant_id: 'tenant-a', requested_by: 'alice', kind: 'validation.noop', state: 'queued',
+            idempotency_key: 'synthetic-notification-focus-0001', created_at: '2026-10-28T01:00:00Z', updated_at: '2026-10-28T01:00:00Z',
+        },
+        {
+            id: 'f'.repeat(32), tenant_id: 'tenant-a', requested_by: 'alice', kind: 'validation.noop', state: 'queued',
+            idempotency_key: 'synthetic-notification-focus-0002', created_at: '2026-10-28T01:00:00Z', updated_at: '2026-10-28T01:00:00Z',
+        },
+    ];
+    const states = new Map(jobs.map(job => [job.id, job.state]));
+    await page.route(url => url.pathname === '/api/v1/jobs' && url.searchParams.has('limit'), route => route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ jobs: jobs.map(job => ({ ...job, state: states.get(job.id) })), next_after: '' }),
+    }));
+
+    await load(page);
+    for (const job of jobs) states.set(job.id, 'running');
+    await load(page);
+    await expect(page.locator('#jobs-notifications li')).toHaveCount(2);
+
+    const firstDismiss = page.getByRole('button', { name: `Dismiss update for job ${jobs[0].id}` });
+    const remainingDismiss = page.getByRole('button', { name: `Dismiss update for job ${jobs[1].id}` });
+    await firstDismiss.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#jobs-notifications li')).toHaveCount(1);
+    await expect(remainingDismiss).toBeFocused();
+
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#jobs-notifications li')).toHaveCount(0);
+    await expect(page.locator('#jobs-refresh')).toBeFocused();
+});
+
 test('auditor reads their own job and an empty account has a truthful empty state', async ({ page }) => {
     await open(page, 'auditor');
     await load(page);

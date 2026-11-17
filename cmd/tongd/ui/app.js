@@ -465,7 +465,13 @@ function renderJobChanges(jobs) {
         dismiss.type = 'button';
         dismiss.textContent = 'Dismiss';
         dismiss.setAttribute('aria-label', `Dismiss update for job ${change.id}`);
-        dismiss.addEventListener('click', () => item.remove());
+        dismiss.addEventListener('click', () => {
+            const focusTarget = item.nextElementSibling?.querySelector('button')
+                ?? item.previousElementSibling?.querySelector('button')
+                ?? jobsRefresh;
+            item.remove();
+            focusTarget?.focus();
+        });
         item.append(message, dismiss);
         jobsNotices.prepend(item);
     }

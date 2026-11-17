@@ -307,7 +307,13 @@ function renderJobChanges(jobs: MyJob[]): void {
   message.textContent = `Job ${change.id} (${change.kind}) changed from ${change.previous} to ${change.current}.`;
   const dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.textContent = 'Dismiss';
   dismiss.setAttribute('aria-label', `Dismiss update for job ${change.id}`);
-  dismiss.addEventListener('click', () => item.remove());
+  dismiss.addEventListener('click', () => {
+   const focusTarget = item.nextElementSibling?.querySelector<HTMLButtonElement>('button')
+    ?? item.previousElementSibling?.querySelector<HTMLButtonElement>('button')
+    ?? jobsRefresh;
+   item.remove();
+   focusTarget?.focus();
+  });
   item.append(message, dismiss); jobsNotices.prepend(item);
  }
  while(jobsNotices.children.length > 5) jobsNotices.lastElementChild?.remove();
