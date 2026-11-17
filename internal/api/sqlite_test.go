@@ -199,6 +199,81 @@ func TestDeveloperSQLiteUnauthenticatedJobMutationsFailClosed(t *testing.T) {
 	}
 }
 
+func TestDeveloperSQLiteJobsFailClosedWhenAuthUnconfigured(t *testing.T) {
+	s, q, path := setupSQLAPI(t)
+	seeded, err := q.CreateFor("tenant-a", "u1", jobs.KindNoop, "unconfigured-auth-seed-0001")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// An unavailable auth configuration must stop every protected job route
+	// before it can read or mutate the configured SQLite store.
+	s.Keys = nil
+	s.Sessions = nil
+	h := s.Handler()
+	if s.Keys != nil || s.Sessions != nil {
+		t.Fatal("test server unexpectedly retained authentication configuration")
+	}
+
+	db, err := database.Open(context.Background(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	countJobsAndAudits := func() (int, int) {
+		t.Helper()
+		var jobCount, auditCount int
+		if err := db.QueryRow("SELECT count(*) FROM jobs").Scan(&jobCount); err != nil {
+			t.Fatal(err)
+		}
+		if err := db.QueryRow("SELECT count(*) FROM audit_events").Scan(&auditCount); err != nil {
+			t.Fatal(err)
+		}
+		return jobCount, auditCount
+	}
+	beforeJobs, beforeAudits := countJobsAndAudits()
+	if beforeJobs != 1 || beforeAudits != 1 {
+		t.Fatalf("unexpected seeded state: jobs=%d audits=%d", beforeJobs, beforeAudits)
+	}
+
+	assertUnconfigured := func(operation string, response *httptest.ResponseRecorder) {
+		t.Helper()
+		if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body.String(), `"code":"auth_unconfigured"`) {
+			t.Fatalf("%s with unavailable auth configuration=%d %s", operation, response.Code, response.Body.String())
+		}
+		for _, privateValue := range []string{seeded.ID, "tenant-a", "u1", "requested_by"} {
+			if strings.Contains(response.Body.String(), privateValue) {
+				t.Fatalf("%s disclosed protected metadata", operation)
+			}
+		}
+	}
+
+	for _, target := range []string{"/api/v1/jobs", "/api/v1/jobs/" + seeded.ID} {
+		assertUnconfigured("job read "+target, call(h, http.MethodGet, target, "", "", ""))
+	}
+	if jobsAfter, auditsAfter := countJobsAndAudits(); jobsAfter != beforeJobs || auditsAfter != beforeAudits {
+		t.Fatalf("unconfigured-auth read changed state: jobs=%d audits=%d", jobsAfter, auditsAfter)
+	}
+
+	created := call(h, http.MethodPost, "/api/v1/jobs", "", "unconfigured-create-0001", `{"kind":"validation.noop"}`)
+	assertUnconfigured("job create", created)
+	if jobsAfter, auditsAfter := countJobsAndAudits(); jobsAfter != beforeJobs || auditsAfter != beforeAudits {
+		t.Fatalf("unconfigured-auth create changed state: jobs=%d audits=%d", jobsAfter, auditsAfter)
+	}
+
+	cancelled := call(h, http.MethodDelete, "/api/v1/jobs/"+seeded.ID, "", "", "")
+	assertUnconfigured("job cancellation", cancelled)
+	var state string
+	var attempts int
+	if err := db.QueryRow("SELECT state,attempt_count FROM jobs WHERE id=?", seeded.ID).Scan(&state, &attempts); err != nil || state != jobs.Queued || attempts != 0 {
+		t.Fatalf("unconfigured-auth cancellation changed seeded job: state=%q attempts=%d err=%v", state, attempts, err)
+	}
+	if jobsAfter, auditsAfter := countJobsAndAudits(); jobsAfter != beforeJobs || auditsAfter != beforeAudits {
+		t.Fatalf("unconfigured-auth cancellation changed state: jobs=%d audits=%d", jobsAfter, auditsAfter)
+	}
+}
+
 func TestDeveloperSQLiteJobMutationsStopWhenRequestContextExpires(t *testing.T) {
 	for _, operation := range []string{"create", "cancel"} {
 		t.Run(operation, func(t *testing.T) {
