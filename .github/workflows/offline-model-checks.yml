@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'prototypes/p1-release-manifest-model/**'
+      - 'prototypes/p1-firewall-recovery-model/**'
       - 'prototypes/p2-backup-retry-model/**'
       - 'prototypes/p3-deploy-recovery-model/**'
       - 'prototypes/p4-migration-review/**'
@@ -23,6 +24,7 @@ on:
     branches: [main]
     paths:
       - 'prototypes/p1-release-manifest-model/**'
+      - 'prototypes/p1-firewall-recovery-model/**'
       - 'prototypes/p2-backup-retry-model/**'
       - 'prototypes/p3-deploy-recovery-model/**'
       - 'prototypes/p4-migration-review/**'
@@ -133,6 +135,19 @@ jobs:
           persist-credentials: false
       - name: Test provider-neutral backup generation fencing model
         run: python3 -m unittest discover -s prototypes/p2-backup-retry-model -p 'test_*.py' -v
+
+  p1-firewall-recovery-model:
+    name: P1 firewall recovery model (synthetic only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test synthetic firewall and SSH recovery state machine
+        run: python3 -m unittest discover -s prototypes/p1-firewall-recovery-model -p 'test_*.py' -v
 
   p4-compatibility-matrix:
     name: P4 compatibility matrix (synthetic only; not support approval)
