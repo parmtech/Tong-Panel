@@ -1,0 +1,217 @@
+"""Dependency-free SQLite schema validation (python3 -m unittest discover -s db -p 'test_*.py')."""
+import pathlib
+import sqlite3
+import tempfile
+import unittest
+
+MIGRATIONS = sorted((pathlib.Path(__file__).parents[1] / "internal" / "database" / "migrations").glob("[0-9][0-9][0-9][0-9]_*.sql"))
+
+
+class SchemaTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.path = str(pathlib.Path(self.tmp.name) / "panel.db")
+        self.con = sqlite3.connect(self.path)
+        self.addCleanup(lambda: self.con.close())
+        self.con.execute("PRAGMA foreign_keys = ON")
+        for version, migration in enumerate(MIGRATIONS, start=1):
+            self.con.executescript(migration.read_text())
+            self.con.execute(f"PRAGMA user_version={version}")
+        self.con.execute("INSERT INTO tenants(id,name) VALUES('a','A'),('b','B')")
+        self.con.execute("INSERT INTO identities(id,username) VALUES('u1','alice'),('u2','bob')")
+        self.con.execute("INSERT INTO memberships(tenant_id,identity_id,role) VALUES('a','u1','owner'),('b','u2','customer')")
+        self.con.commit()
+
+    def test_schema_and_persistent_reopen(self):
+        self.assertEqual(self.con.execute("PRAGMA user_version").fetchone()[0], len(MIGRATIONS))
+        self.con.close()
+        self.con = sqlite3.connect(self.path)
+        self.con.execute("PRAGMA foreign_keys=ON")
+        self.assertEqual(self.con.execute("SELECT count(*) FROM tenants").fetchone()[0], 2)
+
+    def test_session_membership_enforced(self):
+        sql = "INSERT INTO sessions(id,tenant_id,identity_id,token_sha256,csrf_sha256,expires_at) VALUES(?,?,?,?,?,?)"
+        self.con.execute(sql, ('s1','a','u1',bytes(32), bytes([1])*32,'2026-10-27T00:00:00Z'))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(sql, ('s2','b','u1',bytes([2])*32,bytes([3])*32,'2026-10-27T00:00:00Z'))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(sql, ('s3','a','u1','plaintext',bytes(32),'2026-10-27T00:00:00Z'))
+
+    def test_idempotency_is_tenant_scoped(self):
+        def ins(id_, tenant, actor, key):
+            self.con.execute("INSERT INTO jobs(id,tenant_id,requested_by,kind,idempotency_key) VALUES(?,?,?,?,?)",
+                             (id_, tenant, actor, 'validation.noop', key))
+        ins('j1','a','u1','request-0001')
+        with self.assertRaises(sqlite3.IntegrityError):
+            ins('j2','a','u1','request-0001')
+        ins('j3','b','u2','request-0001')
+        with self.assertRaises(sqlite3.IntegrityError):
+            ins('j4','a','u2','request-2222')
+        self.assertEqual(self.con.execute("SELECT count(*) FROM jobs").fetchone()[0], 2)
+
+    def test_invalid_role_state_and_password_rejected(self):
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("INSERT INTO memberships VALUES('a','u2','root',CURRENT_TIMESTAMP)")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("UPDATE identities SET password_phc='plaintext' WHERE id='u1'")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("INSERT INTO jobs(id,tenant_id,requested_by,kind,state,idempotency_key) VALUES('j0','a','u1','validation.noop','exec','test-00001')")
+
+
+    def test_audit_actor_provenance_guards(self):
+        self.con.execute(
+            "INSERT INTO audit_events(id,tenant_id,actor_identity_id,actor_kind,actor_ref,action,subject_id,request_id) "
+            "VALUES('human','a','u1','user',NULL,'job.created','job-1','request-1')"
+        )
+        self.con.execute(
+            "INSERT INTO audit_events(id,tenant_id,actor_identity_id,actor_kind,actor_ref,action,subject_id,request_id) "
+            "VALUES('worker','a',NULL,'worker','worker-1','job.leased','job-1','request-2')"
+        )
+        self.con.execute(
+            "INSERT INTO audit_events(id,tenant_id,actor_identity_id,actor_kind,actor_ref,action,subject_id,request_id) "
+            "VALUES('reconciler','a',NULL,'system','lease-reconciler','job.lease_expired','job-1','request-3')"
+        )
+        self.assertEqual(
+            self.con.execute("SELECT actor_kind,actor_ref,actor_identity_id FROM audit_events WHERE id='worker'").fetchone(),
+            ('worker', 'worker-1', None),
+        )
+        for values in [
+            ('spoof-human', 'a', None, 'user', None, 'job.created', 'job-1', 'request-4'),
+            ('spoof-worker', 'a', 'u1', 'worker', 'worker-1', 'job.leased', 'job-1', 'request-5'),
+            ('spoof-system', 'a', None, 'system', None, 'job.failed', 'job-1', 'request-6'),
+        ]:
+            with self.assertRaises(sqlite3.IntegrityError):
+                self.con.execute(
+                    "INSERT INTO audit_events(id,tenant_id,actor_identity_id,actor_kind,actor_ref,action,subject_id,request_id) VALUES(?,?,?,?,?,?,?,?)",
+                    values,
+                )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("UPDATE audit_events SET actor_kind='worker' WHERE id='human'")
+
+
+    def test_totp_replay_ledger_identity_fk_and_step_bounds(self):
+        self.con.execute(
+            "INSERT INTO totp_replay_state(identity_id,last_accepted_step) VALUES('u1',60000000)"
+        )
+        self.assertEqual(
+            self.con.execute("SELECT last_accepted_step FROM totp_replay_state WHERE identity_id='u1'").fetchone(),
+            (60000000,),
+        )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("INSERT INTO totp_replay_state(identity_id,last_accepted_step) VALUES('u1',60000001)")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("INSERT INTO totp_replay_state(identity_id,last_accepted_step) VALUES('missing',60000000)")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("UPDATE totp_replay_state SET last_accepted_step=-1 WHERE identity_id='u1'")
+
+
+
+    def test_mfa_enrollment_never_has_plaintext_and_validates_state(self):
+        sql = (
+            "INSERT INTO mfa_totp_enrollments(identity_id,secret_envelope,status,pending_expires_at) "
+            "VALUES(?,?,?,?)"
+        )
+        expiry = "2026-10-29T00:00:00Z"
+        self.con.execute(sql, ("u1", "v1:master-01:encrypted-payload-01234567890123456789", "pending", expiry))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(sql, ("u2", "plaintext", "pending", expiry))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(sql, ("u2", "v1:master-01:encrypted-payload-01234567890123456789", "active", expiry))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(sql, ("nonexistent", "v1:master-01:encrypted-payload-01234567890123456789", "pending", expiry))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(
+                "UPDATE mfa_totp_enrollments SET status='active' WHERE identity_id='u1'"
+            )
+        self.con.execute(
+            "UPDATE mfa_totp_enrollments SET status='active',activated_at='2026-10-28T00:00:00Z' "
+            "WHERE identity_id='u1'"
+        )
+        self.assertEqual(
+            self.con.execute("SELECT status FROM mfa_totp_enrollments WHERE identity_id='u1'").fetchone(),
+            ("active",)
+        )
+
+
+    def test_login_rate_limit_buckets_cannot_store_invalid_counters(self):
+        row = ("x" * 32).encode()
+        self.con.execute(
+            "INSERT INTO login_attempt_buckets(bucket_sha256,attempts,window_start_unix) VALUES(?,?,?)",
+            (row, 1, 12345),
+        )
+        self.assertEqual(
+            self.con.execute("SELECT attempts FROM login_attempt_buckets").fetchone(), (1,)
+        )
+        for values in [(b"short", 1, 12345), (b"z" * 32, 0, 12345),
+                       (b"z" * 32, 26, 12345), (b"z" * 32, 3, -1)]:
+            with self.assertRaises(sqlite3.IntegrityError):
+                self.con.execute(
+                    "INSERT INTO login_attempt_buckets(bucket_sha256,attempts,window_start_unix) VALUES(?,?,?)",
+                    values,
+                )
+
+    def test_domain_evidence_requires_complete_verified_observation(self):
+        self.con.execute("INSERT INTO sites(tenant_id,site_id,document_root,created_at) VALUES('a','site-a','sites/site-a/public',1000)")
+        self.con.execute("INSERT INTO site_domains(domain,tenant_id,site_id,kind,ownership_state) VALUES('example.test','a','site-a','primary','verified')")
+        self.assertEqual(self.con.execute(
+            "SELECT ownership_observed_at,ownership_verified_at,ownership_verification_id FROM site_domains"
+        ).fetchone(), (None, None, None))
+        update = "UPDATE site_domains SET ownership_observed_at=?,ownership_verified_at=?,ownership_verification_id=? WHERE domain='example.test'"
+        receipt = "a" * 32
+        for values in [(None, 2000, receipt), (1000, None, receipt), (1000, 2000, None),
+                       (0, 2000, receipt), (2001, 2000, receipt), (1000.5, 2000, receipt),
+                       (1000, "tomorrow", receipt), (1000, 2000, "G" * 32),
+                       (1000, 2000, "short")]:
+            with self.subTest(values=values), self.assertRaises(sqlite3.IntegrityError):
+                self.con.execute(update, values)
+        self.con.execute(update, (1000, 2000, receipt))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute("UPDATE site_domains SET ownership_state='pending'")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(
+                "INSERT INTO site_domains(domain,tenant_id,site_id,kind,ownership_state,ownership_observed_at,ownership_verified_at,ownership_verification_id) VALUES('duplicate.test','a','site-a','alias','verified',1000,2000,?)",
+                (receipt,),
+            )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(
+                "INSERT INTO site_domains(domain,tenant_id,site_id,kind,ownership_state,ownership_observed_at,ownership_verified_at,ownership_verification_id) VALUES('pending.test','a','site-a','alias','pending',1000,2000,?)",
+                ("b" * 32,),
+            )
+        self.con.execute("UPDATE site_domains SET ownership_state='pending',ownership_observed_at=NULL,ownership_verified_at=NULL,ownership_verification_id=NULL")
+
+    def test_site_database_catalog_tenant_foreign_keys_and_safe_names(self):
+        for tenant, site in (("a", "site-a"), ("b", "site-b")):
+            self.con.execute(
+                "INSERT INTO sites(tenant_id,site_id,document_root,created_at) VALUES(?,?,?,?)",
+                (tenant, site, f"sites/{site}/public", 1234),
+            )
+        insert = (
+            "INSERT INTO site_databases(tenant_id,site_id,database_id,database_name,username,created_at) "
+            "VALUES(?,?,?,?,?,?)"
+        )
+        database_a = "tp_" + "a" * 26
+        user_a = "tu_" + "a" * 26
+        database_b = "tp_" + "b" * 26
+        user_b = "tu_" + "b" * 26
+        self.con.execute(insert, ("a", "site-a", "wordpress", database_a, user_a, 1234))
+        self.con.execute(insert, ("b", "site-b", "wordpress", database_b, user_b, 1234))
+        self.assertEqual(
+            self.con.execute("SELECT count(*) FROM site_databases").fetchone()[0], 2
+        )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(insert, ("a", "site-a", "wordpress", database_b, "tu_" + "c" * 26, 1234))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(insert, ("a", "site-a", "other", database_a, user_b, 1234))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(insert, ("a", "site-a", "bad;drop", "tp_" + "c" * 26, "tu_" + "c" * 26, 1234))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.con.execute(insert, ("missing", "site-a", "wordpress", "tp_" + "d" * 26, "tu_" + "d" * 26, 1234))
+        columns = {
+            row[1] for row in self.con.execute("PRAGMA table_info(site_databases)")
+        }
+        self.assertNotIn("password", columns)
+        self.assertNotIn("credential", columns)
+
+if __name__ == '__main__':
+    unittest.main()

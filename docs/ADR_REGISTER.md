@@ -51,6 +51,11 @@ Approval requires owner/maintainer review and a recorded accepted/rejected outco
 **Alternatives:** curl a moving main branch to sudo bash (unacceptable without provenance/integrity).  
 **Acceptance:** package swap/key compromise simulation, clean install/upgrade/recovery in exact supported OS test matrix.
 
+## ADR-009 — Authentication, sessions and recovery
+**Proposed:** `docs/ADR-009-AUTHENTICATION.md` defines Argon2id PHC policy, bounded verification, generic failures, rate limits, MFA replay/recovery, revocable SQLite sessions, CSRF/Origin checks, tenant revalidation and bootstrap.
+**Status:** DRAFT / NOT APPROVED. The isolated Argon2id and SQLite session primitives are prototypes only; do not wire a login route until owner/security approval and the listed acceptance evidence exist.
+**Review:** issue #6 and issue #1; require benchmark evidence on the smallest supported VM, review of proxy/bootstrap/key handling and negative auth tests.
+
 ## Owner decision checklist
 For each ADR record **Accepted / Rejected / Needs revision**, decision date, reviewers, evidence, alternatives considered, security impact, migration story and link to PR/issues. Until recorded here and in issue #1, all proposals remain non-binding. No code from cPanel/Hestia/Virtualmin should be imported merely because a proposed ADR exists.
 

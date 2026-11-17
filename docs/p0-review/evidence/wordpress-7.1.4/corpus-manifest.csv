@@ -1,0 +1,14 @@
+archive_path,extracted_relative_path,size_bytes,sha256
+wordpress/license.txt,wordpress/license.txt,19903,49e97f629ce763abb2f8f1f13da74cb5a8a9a72a0e72a7477d1540c98cef5141
+wordpress/wp-content/plugins/akismet/LICENSE.txt,wordpress/wp-content/plugins/akismet/LICENSE.txt,18092,8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643
+wordpress/wp-content/themes/twentytwentyfour/assets/fonts/cardo/LICENSE.txt,wordpress/wp-content/themes/twentytwentyfour/assets/fonts/cardo/LICENSE.txt,4372,8e28b778b6e1a7ff9ca72f4dee2d53120aa2856dc1bfd0be44307e365b0e45bb
+wordpress/wp-content/themes/twentytwentyfour/assets/fonts/inter/LICENSE.txt,wordpress/wp-content/themes/twentytwentyfour/assets/fonts/inter/LICENSE.txt,4376,6e6410f2892d61813f54654098dc9654d0a3af2e92172999bee07eec13b0a75a
+wordpress/wp-content/themes/twentytwentythree/assets/fonts/dm-sans/LICENSE.txt,wordpress/wp-content/themes/twentytwentythree/assets/fonts/dm-sans/LICENSE.txt,4609,c619d9700fd6362bfa37cc8ff1a78e3a3c4434649800d21153b90f7719f051b2
+wordpress/wp-content/themes/twentytwentythree/assets/fonts/inter/LICENSE.txt,wordpress/wp-content/themes/twentytwentythree/assets/fonts/inter/LICENSE.txt,4376,6e6410f2892d61813f54654098dc9654d0a3af2e92172999bee07eec13b0a75a
+wordpress/wp-content/themes/twentytwentythree/assets/fonts/source-serif-pro/LICENSE.md,wordpress/wp-content/themes/twentytwentythree/assets/fonts/source-serif-pro/LICENSE.md,4580,f7fd0033f4fb28e98a31623269a14daeef2169d52d39c4b6ee3d992388ba6c78
+wordpress/wp-includes/ID3/license.txt,wordpress/wp-includes/ID3/license.txt,1396,f45a8e3db72f9de7d596b43b0c71eca219857d732387c7781505c181e97bdec1
+wordpress/wp-includes/images/crystal/license.txt,wordpress/wp-includes/images/crystal/license.txt,149,a41e19d4262122efd12bb47d29c2b9bec030f91bf60f7088e74a6a946735a615
+wordpress/wp-includes/js/plupload/license.txt,wordpress/wp-includes/js/plupload/license.txt,17987,ab15fd526bd8dd18a9e77ebc139656bf4d33e97fc7238cd11bf60e2b9b8666c6
+wordpress/wp-includes/js/swfupload/license.txt,wordpress/wp-includes/js/swfupload/license.txt,0,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+wordpress/wp-includes/js/tinymce/license.txt,wordpress/wp-includes/js/tinymce/license.txt,26441,47a9dcd2574891a5a465112fd9dfcebcc7e61844edec27fa936a64642008fe66
+wordpress/wp-includes/sodium_compat/LICENSE,wordpress/wp-includes/sodium_compat/LICENSE,860,1f74dfe6e7621f71daf7928dcd522a86dedd1118307fe48256e726d38effc8f7

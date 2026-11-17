@@ -1,0 +1,225 @@
+//go:build linux
+
+package main
+
+import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
+	"errors"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/parmtech/tong-panel/internal/backups"
+	"github.com/parmtech/tong-panel/internal/files"
+	"golang.org/x/sys/unix"
+)
+
+func labEncryptedArchive(t *testing.T, tenant string, key []byte) []byte {
+	t.Helper()
+	var archive bytes.Buffer
+	gz := gzip.NewWriter(&archive)
+	tw := tar.NewWriter(gz)
+	body := []byte("private site marker")
+	if err := tw.WriteHeader(&tar.Header{Name: "nested/index.html", Mode: 0600, Size: int64(len(body)), Typeflag: tar.TypeReg}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tw.Write(body); err != nil {
+		t.Fatal(err)
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := backups.Encrypt(&out, bytes.NewReader(archive.Bytes()), tenant, key, backups.Options{}); err != nil {
+		t.Fatal(err)
+	}
+	return out.Bytes()
+}
+func labArgs(parent, key, name, tenant string) []string {
+	return []string{"--tenant", tenant, "--key-file", key, "--root", filepath.Join(parent, "tong-restore-lab-"+name), "--destination", "site", "--disposable-only"}
+}
+
+type restoreLabObservedReader struct{ reads int }
+
+func (r *restoreLabObservedReader) Read([]byte) (int, error) {
+	r.reads++
+	return 0, errors.New("must not read")
+}
+func TestRestoreSiteLabRequiresStrictArgsAndExplicitOptIn(t *testing.T) {
+	for _, args := range [][]string{{}, {"--tenant", "a"}, {"--tenant=a", "--tenant=b", "--key-file=/k", "--root=/r", "--destination=site", "--disposable-only"}, {"--tenant=a", "--key-file=/k", "--root=/r", "--destination=../x", "--disposable-only"}, {"--tenant=a", "--key-file=/k", "--root=/r", "--destination=site", "--disposable-only=true"}} {
+		if _, err := parseRestoreSiteLabArgs(args); !errors.Is(err, errLabArguments) {
+			t.Fatalf("accepted %v: %v", args, err)
+		}
+	}
+	t.Setenv("TONG_DISPOSABLE_SITE_RESTORE", "")
+	input := &restoreLabObservedReader{}
+	if err := runRestoreSiteLab(labArgs("/tmp", "/tmp/key", "absent", "tenant-a"), input); !errors.Is(err, errLabBoundary) || input.reads != 0 {
+		t.Fatalf("missing opt-in: %v", err)
+	}
+}
+func TestRestoreSiteLabFreshRootRoundTripAndDenials(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("lab command refuses root")
+	}
+	t.Setenv("TONG_DISPOSABLE_SITE_RESTORE", "1")
+	parent := t.TempDir()
+	if err := os.Chmod(parent, 0700); err != nil {
+		t.Fatal(err)
+	}
+	keyABytes := bytes.Repeat([]byte{0x73}, 32)
+	keyBBytes := bytes.Repeat([]byte{0x74}, 32)
+	keyA := writeKeyFile(t, parent, "tenant-a.key", keyABytes, 0600)
+	keyB := writeKeyFile(t, parent, "tenant-b.key", keyBBytes, 0600)
+	sealedA := labEncryptedArchive(t, "tenant-a", keyABytes)
+	sealedB := labEncryptedArchive(t, "tenant-b", keyBBytes)
+	args := labArgs(parent, keyA, "success-tenant-a", "tenant-a")
+	if err := runRestoreSiteLab(args, bytes.NewReader(sealedA)); err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(parent, "tong-restore-lab-success-tenant-a")
+	body, err := os.ReadFile(filepath.Join(root, "site", "nested", "index.html"))
+	if err != nil || string(body) != "private site marker" {
+		t.Fatalf("restored: %q %v", body, err)
+	}
+	if err := runRestoreSiteLab(args, bytes.NewReader(sealedA)); !errors.Is(err, errLabBoundary) {
+		t.Fatalf("existing root accepted: %v", err)
+	}
+	body, err = os.ReadFile(filepath.Join(root, "site", "nested", "index.html"))
+	if err != nil || string(body) != "private site marker" {
+		t.Fatal("existing lab modified")
+	}
+	argsTenantB := labArgs(parent, keyB, "success-tenant-b", "tenant-b")
+	if err := runRestoreSiteLab(argsTenantB, bytes.NewReader(sealedB)); err != nil {
+		t.Fatalf("tenant B positive control: %v", err)
+	}
+	rootTenantB := filepath.Join(parent, "tong-restore-lab-success-tenant-b")
+	body, err = os.ReadFile(filepath.Join(rootTenantB, "site", "nested", "index.html"))
+	if err != nil || string(body) != "private site marker" {
+		t.Fatalf("tenant B restored: %q %v", body, err)
+	}
+
+	for _, tc := range []struct {
+		name, tenant string
+		key          string
+		data         []byte
+	}{
+		{"tenant-a-artifact-as-b-with-key-a", "tenant-b", keyA, sealedA},
+		{"tenant-b-artifact-as-a-with-key-b", "tenant-a", keyB, sealedB},
+		{"tenant-a-artifact-as-b-with-key-b", "tenant-b", keyB, sealedA},
+		{"tenant-b-artifact-as-a-with-key-a", "tenant-a", keyA, sealedB},
+		{"truncated", "tenant-a", keyA, sealedA[:len(sealedA)-1]},
+	} {
+		args := labArgs(parent, tc.key, tc.name, tc.tenant)
+		if err := runRestoreSiteLab(args, bytes.NewReader(tc.data)); !errors.Is(err, backups.ErrInvalidBackup) {
+			t.Fatalf("%s: %v", tc.name, err)
+		}
+		root := filepath.Join(parent, "tong-restore-lab-"+tc.name)
+		entries, err := os.ReadDir(root)
+		if err != nil || len(entries) != 0 {
+			t.Fatalf("%s changed root: %v %v", tc.name, entries, err)
+		}
+	}
+}
+
+func TestRestoreSiteLabUmask0777Helper(t *testing.T) {
+	if os.Getenv("TONG_TEST_RESTORE_SITE_LAB_UMASK_HELPER") != "1" {
+		return
+	}
+	if os.Geteuid() == 0 {
+		t.Fatal("restore-site-lab helper must run as non-root")
+	}
+	// Isolate this process-global umask change in a child test process.
+	unix.Umask(0777)
+	if err := os.Setenv("TONG_DISPOSABLE_SITE_RESTORE", "1"); err != nil {
+		t.Fatal(err)
+	}
+	parent := os.Getenv("TONG_TEST_RESTORE_SITE_LAB_PARENT")
+	key := os.Getenv("TONG_TEST_RESTORE_SITE_LAB_KEY")
+	if parent == "" || key == "" {
+		t.Fatal("missing helper fixture")
+	}
+	input := &restoreLabObservedReader{}
+	err := runRestoreSiteLab(labArgs(parent, key, "umask", "tenant-a"), input)
+	if !errors.Is(err, errLabRootUnusable) || input.reads != 0 {
+		t.Fatalf("expected truthful unusable-root refusal before input read, got err=%v reads=%d", err, input.reads)
+	}
+}
+
+func TestRestoreSiteLabRestrictiveUmaskSubprocessRetainsEvidence(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("lab command refuses root")
+	}
+	parent := t.TempDir()
+	if err := os.Chmod(parent, 0700); err != nil {
+		t.Fatal(err)
+	}
+	key := writeKeyFile(t, parent, "wrapping.key", bytes.Repeat([]byte{0x61}, 32), 0600)
+	rootPath := filepath.Join(parent, "tong-restore-lab-umask")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestRestoreSiteLabUmask0777Helper$")
+	childEnv := make([]string, 0, len(os.Environ())+3)
+	for _, entry := range os.Environ() {
+		if strings.HasPrefix(entry, "TONG_TEST_RESTORE_SITE_LAB_") || strings.HasPrefix(entry, "TONG_DISPOSABLE_SITE_RESTORE=") {
+			continue
+		}
+		childEnv = append(childEnv, entry)
+	}
+	cmd.Env = append(childEnv,
+		"TONG_TEST_RESTORE_SITE_LAB_UMASK_HELPER=1",
+		"TONG_TEST_RESTORE_SITE_LAB_PARENT="+parent,
+		"TONG_TEST_RESTORE_SITE_LAB_KEY="+key,
+	)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("subprocess failed: %v\n%s", err, output)
+	}
+	info, err := os.Lstat(rootPath)
+	if err != nil || !info.IsDir() || info.Mode().Perm() != 0 {
+		t.Fatalf("expected retained mode-000 root, info=%v err=%v", info, err)
+	}
+	// The helper reports a truthful failure and retains its empty root. Restore
+	// owner permissions only after confirming that evidence survived the child.
+	if err := os.Chmod(rootPath, 0700); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(rootPath)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("retained root should be empty after mode repair: %v %v", entries, err)
+	}
+}
+
+func TestRestoreSiteLabOutcomePreservesUncertainty(t *testing.T) {
+	failure := &os.PathError{Op: "open", Path: "private-filename-and-secret-marker", Err: os.ErrPermission}
+	dir := t.TempDir()
+	evidence := filepath.Join(dir, "private-stage-evidence")
+	if err := os.WriteFile(evidence, []byte("retain"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := restoreSiteLabOutcome(files.ArchivePublishResult{State: files.ArchivePublicationUnknown, LogicalBytes: 10}, failure); !errors.Is(err, errLabOutcomeUnknown) || !errors.Is(err, failure) {
+		t.Fatalf("unknown: %v", err)
+	}
+	if err := restoreSiteLabOutcome(files.ArchivePublishResult{State: files.ArchivePublished, LogicalBytes: 10}, failure); !errors.Is(err, errLabPublishedUncertain) || !errors.Is(err, failure) {
+		t.Fatalf("published uncertain: %v", err)
+	}
+	if err := restoreSiteLabOutcome(files.ArchivePublishResult{State: files.ArchiveNotPublished}, failure); !errors.Is(err, failure) {
+		t.Fatalf("not published: %v", err)
+	}
+	if err := restoreSiteLabOutcome(files.ArchivePublishResult{State: files.ArchivePublished}, nil); err != nil {
+		t.Fatalf("published success: %v", err)
+	}
+	for _, state := range []files.ArchivePublicationState{files.ArchiveNotPublished, files.ArchivePublished, files.ArchivePublicationUnknown} {
+		err := restoreSiteLabOutcome(files.ArchivePublishResult{State: state}, failure)
+		var pathError *os.PathError
+		if !errors.Is(err, os.ErrPermission) || !errors.As(err, &pathError) || strings.Contains(err.Error(), "private-filename-and-secret-marker") {
+			t.Fatalf("unredacted error for state %v: %v", state, err)
+		}
+	}
+	if data, err := os.ReadFile(evidence); err != nil || string(data) != "retain" {
+		t.Fatalf("evidence changed: %q %v", data, err)
+	}
+}

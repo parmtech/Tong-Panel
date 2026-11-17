@@ -1,0 +1,81 @@
+package api
+
+import (
+	"net/http"
+	"net/url"
+	"strings"
+
+	"github.com/parmtech/tong-panel/internal/auth"
+	"github.com/parmtech/tong-panel/internal/rbac"
+)
+
+// cookiePrincipal authenticates a session that was issued by a separate,
+// reviewed login flow. The API intentionally does not issue cookies itself.
+// HTTPS is required from the actual TLS connection, never X-Forwarded-Proto.
+// A cookie must not be combined with developer bearer credentials.
+func (s *Server) cookiePrincipal(r *http.Request, c *http.Cookie) (rbac.Principal, int, string) {
+	p, code, reason, _ := s.cookiePrincipalContext(r, c)
+	return p, code, reason
+}
+
+func (s *Server) cookiePrincipalContext(r *http.Request, c *http.Cookie) (rbac.Principal, int, string, error) {
+	if s.Sessions == nil || r.TLS == nil || r.Header.Get("Authorization") != "" {
+		return rbac.Principal{}, http.StatusUnauthorized, "unauthorized", nil
+	}
+	// Duplicate cookie names have ambiguous parsing semantics. Reject them.
+	count := 0
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == auth.BrowserCookieName {
+			count++
+		}
+	}
+	if count != 1 {
+		return rbac.Principal{}, http.StatusUnauthorized, "unauthorized", nil
+	}
+	p, ok, err := s.Sessions.CheckContext(r.Context(), c.Value)
+	if err != nil {
+		return rbac.Principal{}, 0, "", err
+	}
+	if !ok {
+		return rbac.Principal{}, http.StatusUnauthorized, "unauthorized", nil
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
+		if !sameTLSOrigin(r) {
+			return rbac.Principal{}, http.StatusForbidden, "csrf_failed", nil
+		}
+		csrfOK, err := s.Sessions.CheckCSRFContext(r.Context(), c.Value, r.Header.Get("X-CSRF-Token"))
+		if err != nil {
+			return rbac.Principal{}, 0, "", err
+		}
+		if !csrfOK {
+			return rbac.Principal{}, http.StatusForbidden, "csrf_failed", nil
+		}
+	}
+	return p, 0, "", nil
+}
+
+// sameTLSOrigin enforces the actual Host and HTTPS scheme. Never rely on
+// caller-controlled proxy headers as proof of HTTPS or the trusted domain.
+func sameTLSOrigin(r *http.Request) bool {
+	if r.TLS == nil || r.Host == "" {
+		return false
+	}
+	// Browsers send exactly one Origin. Header.Get silently selects the first
+	// value when a request contains duplicates, which can make upstream and
+	// application proxies disagree about which origin was authorized.
+	origins := r.Header.Values("Origin")
+	if len(origins) != 1 {
+		return false
+	}
+	raw := origins[0]
+	if raw == "" || raw != strings.TrimSpace(raw) {
+		return false
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil ||
+		u.Path != "" || u.RawPath != "" || u.RawQuery != "" || u.Fragment != "" ||
+		u.Opaque != "" {
+		return false
+	}
+	return strings.EqualFold(u.Host, r.Host)
+}

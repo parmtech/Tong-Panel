@@ -1,0 +1,11 @@
+Package: tong-panel-dev
+Version: @VERSION@
+Section: net
+Priority: optional
+Architecture: amd64
+Depends: systemd
+Maintainer: ParmTech
+Description: unsigned loopback-only Tong Panel developer preview
+ This temporary development package supports disposable installation tests only.
+ It binds to loopback, has no production login and must not be used on a customer
+ or production server.

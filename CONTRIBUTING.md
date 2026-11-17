@@ -1,5 +1,8 @@
 # Contributing to Tong Panel
 
+**AI or human contributor?** Start at [AGENTS.md](AGENTS.md) and [the canonical AI resume guide](docs/AI_AGENT_START_HERE.md). The [JSON checkpoint](docs/AI_AGENT_STATE.json) is not live state; check [draft PR #171](https://github.com/parmtech/Tong-Panel/pull/171), [master #172](https://github.com/parmtech/Tong-Panel/issues/172) and the latest exact-head CI before editing. No production installer/root action or phase approval without recorded security decisions.
+
+
 Tong Panel is an AGPL-3.0-licensed open-source project from ParmTech. Its aim is safe and accessible Linux web hosting administration.
 
 ## Start here

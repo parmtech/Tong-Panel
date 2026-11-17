@@ -1,0 +1,224 @@
+//go:build linux
+
+package files
+
+import (
+	"context"
+	"io"
+	"time"
+
+	"golang.org/x/sys/unix"
+)
+
+// TenantRoots maps server-owned tenant identifiers to distinct pinned filesystem roots.
+// Callers must derive tenantID from an authenticated, authorized principal;
+// this mapping is not authentication or authorization by itself.
+type TenantRoots struct {
+	roots map[string]*Root
+}
+
+// NewTenantRoots copies a static tenant-to-root mapping. Empty identifiers or
+// nil roots are rejected; callers cannot mutate the copied mapping afterward.
+func NewTenantRoots(roots map[string]*Root) (*TenantRoots, error) {
+	if len(roots) == 0 {
+		return nil, ErrTenantDenied
+	}
+	type rootIdentity struct {
+		dev uint64
+		ino uint64
+	}
+	seen := make(map[rootIdentity]struct{}, len(roots))
+	copied := make(map[string]*Root, len(roots))
+	for tenantID, root := range roots {
+		if tenantID == "" || root == nil {
+			return nil, ErrTenantDenied
+		}
+		root.mu.RLock()
+		if !root.open {
+			root.mu.RUnlock()
+			return nil, ErrTenantDenied
+		}
+		var stat unix.Stat_t
+		statErr := unix.Fstat(root.fd, &stat)
+		root.mu.RUnlock()
+		if statErr != nil {
+			return nil, ErrTenantDenied
+		}
+		identity := rootIdentity{dev: uint64(stat.Dev), ino: stat.Ino}
+		if _, exists := seen[identity]; exists {
+			return nil, ErrTenantDenied
+		}
+		seen[identity] = struct{}{}
+		copied[tenantID] = root
+	}
+	return &TenantRoots{roots: copied}, nil
+}
+
+// ReadFileForTenant resolves only the root assigned to tenantID. It never
+// falls back to a shared/default root. tenantID must come from the server's
+// verified request principal, never directly from a client parameter.
+func (t *TenantRoots) ReadFileForTenant(tenantID, relative string, maxBytes int64) ([]byte, error) {
+	if t == nil || tenantID == "" {
+		return nil, ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return nil, ErrTenantDenied
+	}
+	return root.ReadFile(relative, maxBytes)
+}
+
+// ListDirForTenant resolves only the root assigned to tenantID. The caller
+// must derive this identifier from the verified server principal.
+func (t *TenantRoots) ListDirForTenant(tenantID, relative string, limit int) ([]Entry, error) {
+	if t == nil || tenantID == "" {
+		return nil, ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return nil, ErrTenantDenied
+	}
+	return root.ListDir(relative, limit)
+}
+
+// WriteNewForTenant creates a file only under the pinned root assigned to
+// tenantID. The ID must be derived from an authorized server principal.
+func (t *TenantRoots) WriteNewForTenant(tenantID, relative string, content []byte) error {
+	if t == nil || tenantID == "" {
+		return ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ErrTenantDenied
+	}
+	return root.WriteNew(relative, content)
+}
+
+// WriteNewFromForTenant ingests bounded file content only beneath the pinned
+// root selected by tenantID. The ID must come from an authenticated and
+// authorized server-side principal; this method itself does not authorize it.
+func (t *TenantRoots) WriteNewFromForTenant(tenantID, relative string, src io.Reader, maxBytes int64) error {
+	return t.WriteNewFromForTenantContext(context.Background(), tenantID, relative, src, maxBytes)
+}
+
+// WriteNewFromForTenantContext writes beneath the selected tenant root only
+// while the caller context remains active through the pre-publication check.
+func (t *TenantRoots) WriteNewFromForTenantContext(ctx context.Context, tenantID, relative string, src io.Reader, maxBytes int64) error {
+	if t == nil || tenantID == "" {
+		return ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ErrTenantDenied
+	}
+	return root.WriteNewFromContext(ctx, relative, src, maxBytes)
+}
+
+// RemoveFileForTenant removes one file only from the root mapped to tenantID.
+// The ID must be derived from the authorized server principal.
+func (t *TenantRoots) RemoveFileForTenant(tenantID, relative string) error {
+	_, err := t.RemoveFileWithSizeForTenant(tenantID, relative)
+	return err
+}
+
+// RemoveFileWithSizeForTenant removes one tenant entry and returns the regular
+// file bytes removed. Unknown tenants are rejected before touching any root.
+func (t *TenantRoots) RemoveFileWithSizeForTenant(tenantID, relative string) (int64, error) {
+	return t.RemoveFileWithSizeForTenantContext(context.Background(), tenantID, relative)
+}
+
+// RemoveFileWithSizeForTenantContext preserves tenant root selection and
+// honors cancellation before the target entry is unlinked.
+func (t *TenantRoots) RemoveFileWithSizeForTenantContext(ctx context.Context, tenantID, relative string) (int64, error) {
+	if t == nil || tenantID == "" {
+		return 0, ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return 0, ErrTenantDenied
+	}
+	return root.RemoveFileWithSizeContext(ctx, relative)
+}
+
+// MeasureUsageForTenant scans only the root selected by the server-owned
+// tenant identifier. Callers must quiesce filesystem writers outside this
+// Root before treating the result as a reconciliation snapshot.
+func (t *TenantRoots) MeasureUsageForTenant(tenantID string, maxEntries, maxDepth int) (int64, error) {
+	if t == nil || tenantID == "" {
+		return 0, ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return 0, ErrTenantDenied
+	}
+	return root.MeasureUsage(maxEntries, maxDepth)
+}
+
+// ExtractGzipTarNewForTenant extracts only beneath the pinned root selected by
+// tenantID. The ID must come from an authenticated and authorized principal.
+func (t *TenantRoots) ExtractGzipTarNewForTenant(tenantID, relative string, archive []byte, limits ArchiveLimits) error {
+	if t == nil || tenantID == "" {
+		return ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ErrTenantDenied
+	}
+	return root.ExtractGzipTarNew(relative, archive, limits)
+}
+
+// ExtractGzipTarNewFromForTenant reads and extracts a bounded archive only
+// beneath the pinned root selected by tenantID. The ID must come from an
+// authenticated and authorized server-side principal.
+func (t *TenantRoots) ExtractGzipTarNewFromForTenant(tenantID, relative string, src io.Reader, limits ArchiveLimits) error {
+	if t == nil || tenantID == "" {
+		return ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ErrTenantDenied
+	}
+	return root.ExtractGzipTarNewFrom(relative, src, limits)
+}
+
+// RestoreEncryptedGzipTarNewForTenant selects the registered pinned root and
+// authenticates the envelope with the same server-supplied tenant identifier.
+// This binds root selection to the encrypted tenant but is not authorization;
+// callers must establish current authority and quota before using it.
+func (t *TenantRoots) RestoreEncryptedGzipTarNewForTenant(ctx context.Context, tenantID, relative string, src io.Reader, key []byte, limits ArchiveLimits) error {
+	_, err := t.RestoreEncryptedGzipTarNewForTenantWithResult(ctx, tenantID, relative, src, key, limits)
+	return err
+}
+
+// RestoreEncryptedGzipTarNewForTenantWithResult reports the destination rename
+// and logical regular-file bytes for the same tenant-bound root and envelope.
+// The result does not establish authority, settle quota, or rule out debris.
+func (t *TenantRoots) RestoreEncryptedGzipTarNewForTenantWithResult(ctx context.Context, tenantID, relative string, src io.Reader, key []byte, limits ArchiveLimits) (ArchivePublishResult, error) {
+	if t == nil || tenantID == "" {
+		return ArchivePublishResult{}, ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return ArchivePublishResult{}, ErrTenantDenied
+	}
+	return root.RestoreEncryptedGzipTarNewWithResult(ctx, relative, src, tenantID, key, limits)
+}
+
+// CleanupStaleStagesForTenant cleans eligible write stages beneath
+// the root selected by tenantID.
+func (t *TenantRoots) CleanupStaleStagesForTenant(tenantID string, olderThan time.Duration) (int, error) {
+	if t == nil || tenantID == "" {
+		return 0, ErrTenantDenied
+	}
+	root, ok := t.roots[tenantID]
+	if !ok {
+		return 0, ErrTenantDenied
+	}
+	return root.CleanupStaleStages(olderThan)
+}
+
+// CleanupStaleArchiveStagesForTenant is a compatibility alias for eligible
+// write-stage cleanup. Archive stages are retained pending reconciliation.
+func (t *TenantRoots) CleanupStaleArchiveStagesForTenant(tenantID string, olderThan time.Duration) (int, error) {
+	return t.CleanupStaleStagesForTenant(tenantID, olderThan)
+}

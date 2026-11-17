@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+case "${1:-}" in
+    upgrade|remove|deconfigure)
+        if [ -d /run/systemd/system ]; then
+            systemctl stop tong-panel-dev.service || true
+        fi
+        ;;
+esac
+
+exit 0

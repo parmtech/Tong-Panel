@@ -1,0 +1,47 @@
+name: Current API contract checks
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['**/*.go', 'go.mod', 'go.sum', 'api/**', 'tools/openapi-check/**', '.github/workflows/api-contract-checks.yml']
+  push:
+    branches: [main]
+    paths: ['**/*.go', 'go.mod', 'go.sum', 'api/**', 'tools/openapi-check/**', '.github/workflows/api-contract-checks.yml']
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Verify isolated validator dependencies
+        run: |
+          go -C tools/openapi-check mod download
+          go -C tools/openapi-check mod verify
+          git diff --exit-code -- tools/openapi-check/go.mod tools/openapi-check/go.sum
+      - name: Test and validate contract
+        run: |
+          test -z "$(gofmt -l tools/openapi-check)"
+          go -C tools/openapi-check test -race ./...
+          go -C tools/openapi-check vet ./...
+          go -C tools/openapi-check run . ../../api/openapi.json
+      - name: Capture actual handler cases without credentials
+        run: TONG_OPENAPI_REPORT="$RUNNER_TEMP/openapi-cases.json" go test ./internal/api -run '^TestCurrentOpenAPIContractScenarios$' -count=1
+      - name: Validate actual handler wire shapes
+        run: go -C tools/openapi-check run . ../../api/openapi.json "$RUNNER_TEMP/openapi-cases.json"
+      - name: Remove private report
+        if: always()
+        run: rm -f "$RUNNER_TEMP/openapi-cases.json"
+      - name: Scan isolated validator module for reachable vulnerabilities
+        run: |
+          GOBIN="$RUNNER_TEMP/tong-contract-bin" go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          cd tools/openapi-check
+          "$RUNNER_TEMP/tong-contract-bin/govulncheck" -test -scan symbol ./...

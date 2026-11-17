@@ -1,0 +1,453 @@
+// Package api exposes an intentionally local, limited P1 developer API.
+// Static bearer tokens are development-only: no production login is implemented.
+package api
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+
+	"github.com/parmtech/tong-panel/internal/auth"
+	"github.com/parmtech/tong-panel/internal/jobs"
+	"github.com/parmtech/tong-panel/internal/rbac"
+	"github.com/parmtech/tong-panel/internal/sites"
+)
+
+type Server struct {
+	Keys                *auth.Store
+	Jobs                *jobs.Store
+	SQLJobs             *jobs.SQLiteStore        // explicit dev-only, no automatic users or login
+	Sessions            *auth.SQLiteSessionStore // separately issued sessions, HTTPS only; no login route
+	Files               TenantFileService        // optional, tenant-scoped Files API
+	FileQuota           TenantFileQuota          // required for any Files upload; nil fails closed
+	FileMutationBarrier FileMutationBarrier      // required for quota-sensitive file writes/deletes
+	SiteCatalog         *sites.Catalog           // opt-in tenant site/domain metadata API
+	DomainTXTLookup     sites.TXTLookup          // required for domain proof completion
+	SiteHostingPaths    *sites.HostingPaths      // optional read-only renderer config; never from request data
+}
+type failure struct {
+	Error struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(value)
+}
+func fail(w http.ResponseWriter, status int, code string) {
+	var e failure
+	e.Error.Code = code
+	e.Error.Message = http.StatusText(status)
+	writeJSON(w, status, e)
+}
+func (s *Server) Handler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			w.Header().Set("Allow", "GET")
+			fail(w, 405, "method_not_allowed")
+			return
+		}
+		writeJSON(w, 200, map[string]string{"status": "ok"})
+	})
+	mux.HandleFunc("/api/v1/version", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			w.Header().Set("Allow", "GET")
+			fail(w, 405, "method_not_allowed")
+			return
+		}
+		writeJSON(w, 200, map[string]string{"product": "Tong Panel", "stage": "experimental-core", "api": "v1"})
+	})
+	mux.HandleFunc("/api/v1/me", s.protected(s.me))
+	mux.HandleFunc("/api/v1/session/logout", s.protected(s.sessionLogout))
+	mux.HandleFunc("/api/v1/jobs", s.protected(s.jobListCreate))
+	mux.HandleFunc("/api/v1/jobs/", s.protected(s.jobDetail))
+	mux.HandleFunc("/api/v1/files", s.protected(s.fileList))
+	mux.HandleFunc("/api/v1/files/content", s.protected(s.fileContent))
+	mux.HandleFunc("/api/v1/sites", s.protected(s.siteCollection))
+	mux.HandleFunc("/api/v1/sites/", s.protected(s.siteResource))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var raw [8]byte
+		_, _ = rand.Read(raw[:])
+		w.Header().Set("X-Request-ID", hex.EncodeToString(raw[:]))
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		mux.ServeHTTP(w, r)
+	})
+}
+
+type secured func(http.ResponseWriter, *http.Request, rbac.Principal)
+
+type sessionProofKey struct{}
+
+func (s *Server) protected(h secured) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if s.Keys == nil && s.Sessions == nil {
+			fail(w, 503, "auth_unconfigured")
+			return
+		}
+		var p rbac.Principal
+		if cookie, err := r.Cookie(auth.BrowserCookieName); err == nil {
+			// A cookie is never downgraded to a static developer token if
+			// expired, malformed, duplicated, or sent over plaintext HTTP.
+			var code int
+			var reason string
+			var authErr error
+			p, code, reason, authErr = s.cookiePrincipalContext(r, cookie)
+			if errors.Is(authErr, context.Canceled) || errors.Is(authErr, context.DeadlineExceeded) {
+				return
+			}
+			if code != 0 {
+				fail(w, code, reason)
+				return
+			}
+			proof, valid := s.Sessions.ReadProof(cookie.Value)
+			if !valid {
+				fail(w, http.StatusUnauthorized, "unauthorized")
+				return
+			}
+			r = r.WithContext(context.WithValue(r.Context(), sessionProofKey{}, proof))
+		} else {
+			if s.Keys == nil {
+				fail(w, 401, "unauthorized")
+				return
+			}
+			var ok bool
+			p, ok = s.Keys.Check(r.Header.Get("Authorization"))
+			if !ok {
+				w.Header().Set("WWW-Authenticate", "Bearer")
+				fail(w, 401, "unauthorized")
+				return
+			}
+		}
+		if s.SQLJobs != nil {
+			// In opt-in SQLite mode, the CURRENT database membership is
+			// authoritative. A stale dev token must not preserve a prior
+			// owner/admin role after account disablement or role downgrade.
+			role, err := s.SQLJobs.RoleForContext(r.Context(), p.TenantID, p.UserID)
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+			if err != nil {
+				w.Header().Set("WWW-Authenticate", "Bearer")
+				fail(w, 401, "unauthorized")
+				return
+			}
+			p.Role = rbac.Role(role)
+		}
+		h(w, r, p)
+	}
+}
+func (s *Server) me(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
+	if r.Method != "GET" {
+		fail(w, 405, "method_not_allowed")
+		return
+	}
+	writeJSON(w, 200, p)
+}
+
+// sessionLogout revokes an already authenticated browser session. It never
+// issues or rotates a session; protected() has already enforced actual TLS,
+// same-origin and CSRF checks for this state-changing request.
+func (s *Server) sessionLogout(w http.ResponseWriter, r *http.Request, _ rbac.Principal) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		fail(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		return
+	}
+	if s.Sessions == nil || r.TLS == nil {
+		fail(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	cookie, err := r.Cookie(auth.BrowserCookieName)
+	if err != nil || cookie.Value == "" {
+		fail(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	if err := s.Sessions.Logout(r.Context(), cookie.Value); err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || r.Context().Err() != nil {
+			return
+		}
+		if errors.Is(err, auth.ErrInvalidSession) {
+			fail(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		fail(w, http.StatusServiceUnavailable, "session_unavailable")
+		return
+	}
+	http.SetCookie(w, auth.ExpiredSessionCookie())
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func jobReadSessionProof(r *http.Request) *auth.SessionReadProof {
+	if proof, ok := r.Context().Value(sessionProofKey{}).(auth.SessionReadProof); ok {
+		return &proof
+	}
+	return nil
+}
+
+func (s *Server) jobListCreate(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
+	if s.Jobs == nil && s.SQLJobs == nil {
+		fail(w, 503, "jobs_unconfigured")
+		return
+	}
+	switch r.Method {
+	case "GET":
+		if !p.Can("jobs:read", p.TenantID) {
+			fail(w, 403, "forbidden")
+			return
+		}
+		after, limit, paged, err := parseJobPage(r.URL.RawQuery)
+		if err != nil {
+			fail(w, 400, "invalid_page")
+			return
+		}
+		if paged {
+			var items []jobs.Job
+			var next string
+			if s.SQLJobs != nil {
+				items, next, err = s.SQLJobs.ListPageForSession(r.Context(), p.TenantID, p.UserID, after, limit, jobReadSessionProof(r))
+			} else {
+				items, next, err = s.Jobs.ListPage(r.Context(), p.TenantID, after, limit)
+			}
+			if errors.Is(err, jobs.ErrInvalidPage) {
+				fail(w, 400, "invalid_page")
+				return
+			}
+			if errors.Is(err, jobs.ErrSessionDenied) {
+				fail(w, http.StatusUnauthorized, "unauthorized")
+				return
+			}
+			if errors.Is(err, jobs.ErrNotFound) {
+				fail(w, 403, "forbidden")
+				return
+			}
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+			if err != nil {
+				fail(w, 503, "jobs_unavailable")
+				return
+			}
+			writeJSON(w, 200, map[string]any{"jobs": items, "next_after": next})
+			return
+		}
+		if s.SQLJobs != nil {
+			items, err := s.SQLJobs.ListForSession(r.Context(), p.TenantID, p.UserID, jobReadSessionProof(r))
+			if errors.Is(err, jobs.ErrSessionDenied) {
+				fail(w, http.StatusUnauthorized, "unauthorized")
+				return
+			}
+			if errors.Is(err, jobs.ErrNotFound) {
+				fail(w, 403, "forbidden")
+				return
+			}
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+			if err != nil {
+				fail(w, 503, "jobs_unavailable")
+				return
+			}
+			writeJSON(w, 200, map[string]any{"jobs": items})
+			return
+		}
+		writeJSON(w, 200, map[string]any{"jobs": s.Jobs.List(p.TenantID)})
+	case "POST":
+		if !p.Can("jobs:create", p.TenantID) {
+			fail(w, 403, "forbidden")
+			return
+		}
+		if ct := r.Header.Get("Content-Type"); ct != "application/json" {
+			fail(w, 415, "json_required")
+			return
+		}
+		key := r.Header.Get("Idempotency-Key")
+		if key == "" {
+			fail(w, 400, "idempotency_required")
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 2048)
+		var req struct {
+			Kind string `json:"kind"`
+		}
+		decoder := json.NewDecoder(r.Body)
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&req); err != nil {
+			fail(w, 400, "invalid_request")
+			return
+		}
+		if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+			fail(w, 400, "invalid_request")
+			return
+		}
+		var j jobs.Job
+		var err error
+		if s.SQLJobs != nil {
+			j, err = s.SQLJobs.CreateForContext(r.Context(), p.TenantID, p.UserID, req.Kind, key)
+		} else {
+			j, err = s.Jobs.Create(p.TenantID, req.Kind, key)
+		}
+		if errors.Is(err, jobs.ErrConflict) {
+			fail(w, 409, "idempotency_conflict")
+			return
+		}
+		if errors.Is(err, jobs.ErrRequesterDenied) {
+			// Membership may change after HTTP authentication; the SQLite
+			// transaction remains authoritative over the earlier principal.
+			fail(w, 403, "forbidden")
+			return
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return // the HTTP caller is gone; do not translate cancellation into a job error
+		}
+		if err != nil {
+			// The API never converts failed SQLite membership checks to
+			// trusted user identities, even with an existing dev token.
+			fail(w, 400, "invalid_job")
+			return
+		}
+		writeJSON(w, 202, j)
+	default:
+		w.Header().Set("Allow", "GET, POST")
+		fail(w, 405, "method_not_allowed")
+	}
+}
+
+// Paging is opt-in, preserving historical no-query and unrelated-query GETs.
+// Decode keys independently so a malformed recognized value cannot silently
+// fall back to the legacy unbounded response.
+func parseJobPage(raw string) (after string, limit int, paged bool, err error) {
+	for _, pair := range strings.Split(raw, "&") {
+		key, _, _ := strings.Cut(pair, "=")
+		decoded, decodeErr := url.QueryUnescape(key)
+		if decodeErr == nil && (decoded == "limit" || decoded == "after") {
+			paged = true
+		}
+	}
+	if !paged {
+		return "", 0, false, nil
+	}
+	values, err := url.ParseQuery(raw)
+	if err != nil {
+		return "", 0, true, jobs.ErrInvalidPage
+	}
+	for key, entries := range values {
+		if (key != "limit" && key != "after") || len(entries) != 1 {
+			return "", 0, true, jobs.ErrInvalidPage
+		}
+	}
+	limit = 50
+	if entries, ok := values["limit"]; ok {
+		if entries[0] == "" {
+			return "", 0, true, jobs.ErrInvalidPage
+		}
+		for _, digit := range entries[0] {
+			if digit < '0' || digit > '9' {
+				return "", 0, true, jobs.ErrInvalidPage
+			}
+		}
+		limit, err = strconv.Atoi(entries[0])
+		if err != nil || limit < 1 || limit > 100 {
+			return "", 0, true, jobs.ErrInvalidPage
+		}
+	}
+	if entries, ok := values["after"]; ok {
+		after = entries[0]
+		if len(after) != 32 {
+			return "", 0, true, jobs.ErrInvalidPage
+		}
+		for _, digit := range after {
+			if (digit < '0' || digit > '9') && (digit < 'a' || digit > 'f') {
+				return "", 0, true, jobs.ErrInvalidPage
+			}
+		}
+	}
+	return after, limit, true, nil
+}
+
+// jobDetail is read-only unless SQLJobs is explicitly configured. JSON-journal
+// mode has no actor ownership data and cannot support safe cancellation.
+func (s *Server) jobDetail(w http.ResponseWriter, r *http.Request, p rbac.Principal) {
+	id := strings.TrimPrefix(r.URL.Path, "/api/v1/jobs/")
+	if len(id) != 32 || strings.ContainsAny(id, "/\\") {
+		fail(w, 404, "not_found")
+		return
+	}
+	if s.Jobs == nil && s.SQLJobs == nil {
+		fail(w, 503, "jobs_unconfigured")
+		return
+	}
+	switch r.Method {
+	case "GET":
+		if !p.Can("jobs:read", p.TenantID) {
+			fail(w, 403, "forbidden")
+			return
+		}
+		var j jobs.Job
+		var err error
+		if s.SQLJobs != nil {
+			j, err = s.SQLJobs.GetForSession(r.Context(), p.TenantID, p.UserID, id, jobReadSessionProof(r))
+		} else {
+			j, err = s.Jobs.Get(p.TenantID, id)
+		}
+		if errors.Is(err, jobs.ErrSessionDenied) {
+			fail(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		if errors.Is(err, jobs.ErrNotFound) {
+			fail(w, 404, "not_found")
+			return
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return
+		}
+		if err != nil {
+			fail(w, 503, "jobs_unavailable")
+			return
+		}
+		writeJSON(w, 200, j)
+	case "DELETE":
+		if s.SQLJobs == nil {
+			fail(w, 501, "sql_jobs_required")
+			return
+		}
+		if !p.Can("jobs:cancel", p.TenantID) {
+			fail(w, 403, "forbidden")
+			return
+		}
+		j, err := s.SQLJobs.CancelForContext(r.Context(), p.TenantID, p.UserID, id)
+		if errors.Is(err, jobs.ErrNotFound) {
+			fail(w, 404, "not_found")
+			return
+		}
+		if errors.Is(err, jobs.ErrJobNotCancelable) {
+			fail(w, 409, "job_not_cancellable")
+			return
+		}
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return
+		}
+		if err != nil {
+			fail(w, 503, "jobs_unavailable")
+			return
+		}
+		writeJSON(w, 200, j)
+	default:
+		w.Header().Set("Allow", "GET, DELETE")
+		fail(w, 405, "method_not_allowed")
+	}
+}

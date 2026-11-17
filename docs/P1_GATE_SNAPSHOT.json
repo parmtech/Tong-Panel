@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "release_candidate": false,
+  "gates": [
+    {
+      "id": "p0_adr_review",
+      "status": "blocked",
+      "evidence": "docs/ADR_REGISTER.md",
+      "issue": 1
+    },
+    {
+      "id": "independent_security_review",
+      "status": "blocked",
+      "evidence": "docs/THREAT_MODEL.md",
+      "issue": 2
+    },
+    {
+      "id": "production_authentication",
+      "status": "blocked",
+      "evidence": "docs/ADR-009-AUTHENTICATION.md",
+      "issue": 6
+    },
+    {
+      "id": "privileged_agent_boundary",
+      "status": "blocked",
+      "evidence": "docs/SECURITY.md",
+      "issue": 8
+    },
+    {
+      "id": "certificate_key_custody",
+      "status": "blocked",
+      "evidence": "docs/P1_CERTIFICATE_OPERATION_CONTRACT.md",
+      "issue": 1
+    },
+    {
+      "id": "browser_terminal_t0",
+      "status": "blocked",
+      "evidence": "docs/P1_BROWSER_TERMINAL_PROPOSAL.md",
+      "issue": 1
+    },
+    {
+      "id": "signed_installer_recovery",
+      "status": "blocked",
+      "evidence": "docs/INSTALLER_SPEC.md",
+      "issue": 11
+    },
+    {
+      "id": "two_tenant_restore_acceptance",
+      "status": "blocked",
+      "evidence": "docs/P2_TWO_TENANT_END_TO_END_ACCEPTANCE.md",
+      "issue": 157
+    },
+    {
+      "id": "accessibility_acceptance",
+      "status": "blocked",
+      "evidence": "docs/UX_UI_SPEC.md",
+      "issue": 4
+    }
+  ]
+}

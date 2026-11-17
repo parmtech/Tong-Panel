@@ -1,0 +1,44 @@
+name: Jobs browser checks
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['cmd/tongd/**', 'internal/api/**', 'internal/auth/**', 'internal/jobs/**', 'internal/database/**', 'web/**', 'tools/ui-browser/**', '.github/workflows/ui-browser-checks.yml']
+  push:
+    branches: [main]
+    paths: ['cmd/tongd/**', 'internal/api/**', 'internal/auth/**', 'internal/jobs/**', 'internal/database/**', 'web/**', 'tools/ui-browser/**', '.github/workflows/ui-browser-checks.yml']
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Install locked development-only browser tools
+        working-directory: tools/ui-browser
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install pinned Chromium and runner dependencies
+        working-directory: tools/ui-browser
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify embedded JavaScript matches TypeScript source
+        run: |
+          npm exec --yes --package=typescript@5.9.3 -- tsc --project web/tsconfig.json --outDir "$RUNNER_TEMP/tong-ui-generated"
+          cmp "$RUNNER_TEMP/tong-ui-generated/app.js" cmd/tongd/ui/app.js
+      - name: Build isolated TLS fixture with race instrumentation
+        run: go test -race -c -o "$RUNNER_TEMP/tong-ui-browser.test" ./cmd/tongd
+      - name: Run actual-handler browser and scoped accessibility checks
+        working-directory: tools/ui-browser
+        env:
+          TONG_UI_FIXTURE_BINARY: ${{ runner.temp }}/tong-ui-browser.test
+        run: npm test

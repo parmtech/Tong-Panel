@@ -1,0 +1,50 @@
+name: P1 gate blocker inventory
+on:
+  pull_request:
+    paths:
+      - 'scripts/p1_gate_audit.py'
+      - 'scripts/test_p1_gate_audit.py'
+      - 'scripts/test_workflow_action_pins.py'
+      - 'scripts/p0_threat_crosswalk_audit.py'
+      - 'scripts/test_p0_threat_crosswalk_audit.py'
+      # Source, test, and document references in the crosswalk can drift anywhere in these trees.
+      - 'scripts/**'
+      - 'internal/**'
+      - 'cmd/**'
+      - 'tools/**'
+      - 'prototypes/**'
+      - 'docs/**'
+      - 'docs/P1_GATE_SNAPSHOT.json'
+      - 'docs/ADR_REGISTER.md'
+      - 'docs/ADR-009-AUTHENTICATION.md'
+      - 'docs/THREAT_MODEL.md'
+      - 'docs/SECURITY.md'
+      - 'docs/P1_CERTIFICATE_OPERATION_CONTRACT.md'
+      - 'docs/P1_BROWSER_TERMINAL_PROPOSAL.md'
+      - 'docs/INSTALLER_SPEC.md'
+      - 'docs/P2_TWO_TENANT_END_TO_END_ACCEPTANCE.md'
+      - 'docs/UX_UI_SPEC.md'
+      - '.github/workflows/p1-gate-audit.yml'
+      - '.github/workflows/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    name: Verify blockers remain explicit (not release approval)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Assert blocker manifest and negative cases
+        run: python3 -m unittest discover -s scripts -p 'test_p1_gate_audit.py' -v
+      - name: Verify workflow actions use immutable commit references
+        run: python3 -m unittest discover -s scripts -p 'test_workflow_action_pins.py' -v
+      - name: Check draft threat crosswalk references (structural only)
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_p0_threat_crosswalk_audit.py' -v
+          python3 scripts/p0_threat_crosswalk_audit.py
+      - name: Audit development blockers; a blocked result is expected
+        run: python3 scripts/p1_gate_audit.py --expect-blocked
