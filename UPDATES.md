@@ -1,16 +1,28 @@
-## CURRENT CHECKPOINT - PR head 5703066 exact-head CI passed (PR/ref and CI read 2026-11-16 22:50:07 UTC; PR body updated 22:52:59 UTC; issue body updated 22:53:04 UTC)
+## CURRENT CHECKPOINT - PR head 0223550 exact-head CI passed (PR/ref and CI read 2026-11-16 23:43:19 UTC; PR body updated 23:45:29 UTC; issue body updated 23:45:34 UTC)
 
-**PR/ref and CI snapshot:** PR #171 remains open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c`, tree `c47a5f859d9dcd2a818ef2a146f34ffc47851ed9`, parent `d885a256f96bac36b5d96ff76d8e094b802d75f0`. 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. The issue #172 DoD/approval state was audited at 21:35:21 UTC and reverified unchanged before its body refresh at 22:53:04 UTC.
+**PR/ref and CI snapshot:** PR #171 remains open/draft/unmerged at exact head `0223550470da87751baed8b46fd7657e7ae05d04`, tree `f50bbb61afa3d935870beca209f14c1dc8387276`, parent `570306628a7143185ef42736a329c81f4096535c`. All 13/13 Actions runs and 23/23 checks succeeded with zero failures or pending checks. P2 run #43978463545 passed; Debian job #133688439172, Ubuntu job #133688439403, and synthetic model check #133688439715 also passed. The issue #172 state was reread at 23:43:19 UTC and its body was refreshed at 23:45:34 UTC.
 
-**Local snapshot:** branch `codex/tong-panel-candidate-20261116` is at 570. Its commit snapshot was clean; the current worktree edits are only these 14 handoff documents. The pushed 570 handoff commit is docs-only atop source commit d885a25.
+**Local snapshot:** branch `codex/tong-panel-candidate-20261116` is at 022. Its commit snapshot was clean; this current correction modifies only the same 14 handoff documents. The 022 commit is docs-only atop 570, which includes source commit d885a25.
 
-**Included source and model evidence:** d885a256 adds strict integer validation for synthetic attempt IDs so Python `True` cannot alias ID 1, with regression `test_boolean_attempt_id_cannot_alias_integer_attempt`; its local model suite passed 7/7. d885a256 is included in PR head 570 and covered by that head's successful CI, including model check #133660331307. This is synthetic model evidence only; it does not select a production policy or close P2 acceptance.
+**Included source and model evidence:** d885a256 adds strict integer validation for synthetic attempt IDs so Python `True` cannot alias ID 1, with regression `test_boolean_attempt_id_cannot_alias_integer_attempt`; its local model suite passed 7/7. It is included in 022 through 570 and covered by successful exact-head CI on both heads, including 022 model check #133688439715. This is synthetic model evidence only; it does not select a production policy or close P2 acceptance.
 
 **Tracker and gates:** Issue #172 remains open at 0/12 DoD checked, with all nine named approvals false and `product_support_approval:false`. No DoD item, approval, pending decision, or gate changed. P0-06 remains unchecked. P1 exit and P2 entry are not approved; no security, installer, production, or release acceptance is granted.
 
-**Next:** the 14 handoff docs have been reviewed. Re-read PR #171/ref and issue #172 immediately before committing and pushing this refreshed checkpoint by normal fast-forward; then inspect the new exact-head CI and update the PR/issue snapshots without changing DoD or approval fields. The docs-only sync may retrigger workflows matched by the full PR diff; record only observed results.
+**GitHub repository settings:** read-only API check at approximately 2026-11-17 00:08 UTC reports `main.protected:false`, branch-protection GET 404, zero repository rulesets, and zero PR reviews. Organization-rulesets GET returned 404 around 00:17 UTC, so organization-level enforcement is unknown. No settings were changed. The PR remains draft/unmerged; do not treat absent branch protections as approval to merge.
 
-### 2026-11-17 09:53:04 Australia/Sydney (2026-11-16T22:53:04Z) — d885a256 source follow-up verified on PR head 5703066
+**Next-sync CI scope:** the PR base-to-head diff contains 524 paths, including all 13 workflow files, and each workflow matches its own `pull_request.paths` filter. A normal PR `synchronize` update is expected to trigger all 13 workflows despite the current docs-only correction. The new SHA still requires its own exact-head CI result; no direct `push` workflow is expected on this candidate branch.
+
+**Next:** review this factual 14-file correction, re-read PR #171/ref and issue #172 immediately before committing and pushing by normal fast-forward, then inspect the new exact-head CI and reconcile the PR/issue snapshots without changing DoD or approval fields. The docs-only sync may retrigger workflows matched by the full PR diff; record only observed results.
+
+### 2026-11-17 10:45:34 Australia/Sydney (2026-11-16T23:45:34Z) - 0223550 terminal CI and tracker refresh
+
+- **Exact head:** PR #171 is open/draft/unmerged at 0223550470da87751baed8b46fd7657e7ae05d04 (tree f50bbb61afa3d935870beca209f14c1dc8387276; parent 570306628a7143185ef42736a329c81f4096535c). The terminal result was read at 23:43:19 UTC: 13/13 Actions runs and 23/23 checks succeeded with no failures or pending checks.
+- **P2 evidence:** run #43978463545 passed; Debian job #133688439172 and Ubuntu job #133688439403 both passed step 18; synthetic model check #133688439715 passed. No raw guest or serial output was read.
+- **Tracker and body updates:** PR body updated 23:45:29 UTC; issue #172 body updated 23:45:34 UTC. Issue #172 remains open at 0/12 DoD checked, all nine approval fields false, and `product_support_approval:false`. Historical db97 and 2054 sections were preserved.
+- **Scope:** 022 is docs-only atop 570, which includes d885a256 and the strict boolean attempt-ID check. No DoD, approval, phase, security, production, merge, or release gate changed.
+- **At this checkpoint:** the 14-file status correction was still pending. That correction is now in the worktree above; next, complete independent review, re-read PR/ref and issue before normal fast-forward publication, then inspect CI on the resulting exact head. Do not mark the project complete or infer any outstanding owner/security/product decision.
+
+### Previous terminal checkpoint — 5703066 (superseded by 0223550; 2026-11-17 09:53:04 Australia/Sydney / 2026-11-16T22:53:04Z)
 
 - **Branch/PR:** `codex/tong-panel-candidate-20261116`; PR #171 head `570306628a7143185ef42736a329c81f4096535c` (tree `c47a5f859d9dcd2a818ef2a146f34ffc47851ed9`, parent `d885a256f96bac36b5d96ff76d8e094b802d75f0`) is open/draft/unmerged against main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`.
 - **Source and evidence:** d885a256 rejects non-integer synthetic attempt IDs so Python `True` cannot alias attempt ID 1. Its regression checks all three attempt-ID entry points. The local model suite passed 7/7; the PR-head P2 model check #133660331307 passed.
@@ -20,7 +32,7 @@
 
 ### Historical checkpoint - 10f666a CI passed; d885 was then local (2026-11-16 21:46:26 to 22:03:54 UTC)
 
-At the 10f666a checkpoint, PR #171 was open/draft/unmerged at `10f666a3db7ccf1f2e89d0a01d75f25820e24804`; all 16 workflow runs and 26 check runs passed, including P2 run #43960459442, Debian #133626151956, and Ubuntu #133626151728. The d885a256 source candidate (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`, parent 10f666a) had then passed its local model suite 7/7 but was not yet in the PR or that CI. The current 570 head includes d885 and has its own exact-head CI result recorded above.
+At the 10f666a checkpoint, PR #171 was open/draft/unmerged at `10f666a3db7ccf1f2e89d0a01d75f25820e24804`; all 16 workflow runs and 26 check runs passed, including P2 run #43960459442, Debian #133626151956, and Ubuntu #133626151728. The d885a256 source candidate (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`, parent 10f666a) had then passed its local model suite 7/7 but was not yet in the PR or that CI. The subsequent 570 head included d885 and had its own exact-head CI result; 022 later added only documentation and also passed exact-head CI.
 
 ## HISTORICAL CHECKPOINT — remote head f804127; exact-head CI passed (17 November 2026, Australia/Sydney; superseded by 10f666a)
 

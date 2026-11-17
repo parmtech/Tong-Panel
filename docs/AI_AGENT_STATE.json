@@ -56,23 +56,22 @@
     "ubuntu_guest": "step_18_success; post_setup_checkout_success; Complete_success",
     "failure_cause_db97": "unknown_generic_exit_1; 5257_and_f804_success_do_not_explain_it",
     "raw_guest_or_serial_output_read": false,
-    "scope": "historical_f804_terminal_CI_baseline_only; latest_live_snapshot_records_terminal_5703066_CI"
+    "scope": "historical_f804_terminal_CI_baseline_only; previous_live_snapshot_570 preserves 570 terminal CI; latest_live_snapshot records terminal 022 CI"
   },
   "latest_live_snapshot": {
-    "observed_at_utc": "2026-11-16T22:50:07Z",
-    "observation_basis": "PR/ref and terminal exact-head CI were read at 2026-11-16T22:50:07Z. PR body updated_at was 2026-11-16T22:52:59Z. Issue #172 DoD/approval state was audited at 2026-11-16T21:35:21Z and reverified unchanged before issue body updated_at 2026-11-16T22:53:04Z; exact re-verification time was not separately provided.",
+    "observed_at_utc": "2026-11-16T23:43:19Z",
+    "observation_basis": "PR/ref and terminal exact-head CI were read at 2026-11-16T23:43:19Z. PR body updated_at was 2026-11-16T23:45:29Z. Issue #172 state was reread at 23:43:19Z and its body updated_at was 2026-11-16T23:45:34Z.",
     "observed_on_local_date": "2026-11-17",
     "pr": 171,
     "pr_state": "open_draft_unmerged",
-    "pr_state_observed_at_utc": "2026-11-16T22:50:07Z",
-    "pr_body_updated_at_utc": "2026-11-16T22:52:59Z",
-    "pr_head_sha": "570306628a7143185ef42736a329c81f4096535c",
-    "pr_head_tree_sha": "c47a5f859d9dcd2a818ef2a146f34ffc47851ed9",
-    "pr_head_parent_sha": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
+    "pr_state_observed_at_utc": "2026-11-16T23:43:19Z",
+    "pr_body_updated_at_utc": "2026-11-16T23:45:29Z",
+    "pr_head_sha": "0223550470da87751baed8b46fd7657e7ae05d04",
+    "pr_head_tree_sha": "f50bbb61afa3d935870beca209f14c1dc8387276",
+    "pr_head_parent_sha": "570306628a7143185ef42736a329c81f4096535c",
     "working_branch": "codex/tong-panel-candidate-20261116",
-    "worktree_clean_at_570_snapshot": true,
-    "current_local_head_sha": "570306628a7143185ef42736a329c81f4096535c",
-    "current_worktree_changes": "14_handoff_docs_only_uncommitted",
+    "current_local_head_sha": "0223550470da87751baed8b46fd7657e7ae05d04",
+    "current_worktree_changes": "14_handoff_docs_only_current_status_correction_uncommitted",
     "workflow_runs_total": 13,
     "workflow_success": 13,
     "workflow_in_progress": 0,
@@ -82,13 +81,13 @@
     "check_in_progress": 0,
     "check_failure": 0,
     "pending_checks": [],
-    "p2_run_id": 43970283329,
-    "debian_job_id": 133660332166,
-    "ubuntu_job_id": 133660331317,
-    "synthetic_model_check_id": 133660331307,
+    "p2_run_id": 43978463545,
+    "debian_job_id": 133688439172,
+    "ubuntu_job_id": 133688439403,
+    "synthetic_model_check_id": 133688439715,
     "p2_guest_status": "both_guests_passed",
     "synthetic_model_check_status": "success",
-    "exact_head_ci_status": "passed_all_13_workflow_runs_and_23_check_runs",
+    "exact_head_ci_status": "0223550_passed_all_13_workflow_runs_and_23_check_runs",
     "included_source_candidate": {
       "commit": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
       "tree_sha": "693c0a91575b98202bf94aa345eade6c6d3218bd",
@@ -96,18 +95,19 @@
       "change": "rejects_bool_attempt_ids_that_alias_integer_ID_1",
       "regression_test": "test_boolean_attempt_id_cannot_alias_integer_attempt",
       "local_model_tests": "7_of_7_passed",
-      "hosted_exact_head_coverage": "included_in_570; synthetic_model_check_133660331307_success"
+      "hosted_exact_head_coverage": "d885_is_included_through_570; 022_docs_only_child_exact_head_CI_passed_including_model_check_133688439715"
     },
     "issue_172_state": "open",
-    "issue_172_body_updated_at_utc": "2026-11-16T22:53:04Z",
-    "issue_172_dod_approval_state_audited_at_utc": "2026-11-16T21:35:21Z",
+    "issue_172_body_updated_at_utc": "2026-11-16T23:45:34Z",
+    "issue_172_dod_approval_state_audited_at_utc": "2026-11-16T23:43:19Z",
     "issue_172_dod_approval_state_reverified_unchanged_before_body_update": true,
-    "issue_172_dod_reverification_time_utc": "not_separately_provided",
+    "issue_172_dod_reverification_time_utc": "2026-11-16T23:43:19Z",
     "issue_172_dod_total": 12,
     "issue_172_dod_checked": 0,
     "issue_172_approval_fields_false": 9,
     "product_support_approval": false,
-    "gate_changes": false
+    "gate_changes": false,
+    "worktree_clean_at_022_snapshot": true
   },
   "local_source_candidate_followup": {
     "source_head_at_start": "10f666a3db7ccf1f2e89d0a01d75f25820e24804",
@@ -120,20 +120,23 @@
     "local_test_result": "7_of_7_passed",
     "commit": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
     "tree_sha": "693c0a91575b98202bf94aa345eade6c6d3218bd",
-    "status": "committed_source_candidate_in_remote_PR_head_5703066; exact_head_CI_passed_13_workflows_and_23_checks_including_model_check_133660331307",
+    "status": "committed_source_candidate_in_remote_PR_head_0223550; exact_head_CI_passed_13_workflows_23_checks_including_model_check_133688439715",
     "pushed": true,
-    "included_in_pr_head": "570306628a7143185ef42736a329c81f4096535c",
-    "hosted_ci": "5703066_exact_head_passed_13_workflows_and_23_checks; synthetic_model_check_133660331307_success"
+    "included_in_pr_head": "0223550470da87751baed8b46fd7657e7ae05d04",
+    "hosted_ci": "0223550_exact_head_passed_13_workflows_23_checks; synthetic_model_check_133688439715_success"
   },
   "next": {
-    "task_id": "REVIEW_PENDING_DOCS_ONLY_HANDOFF_REFRESH",
+    "task_id": "REVIEW_AND_PUBLISH_022_STATUS_CORRECTION",
     "priority": 1,
-    "action": "Review the 14 pending handoff-document edits against PR head 570306628a7143185ef42736a329c81f4096535c. Exact-head CI passed 13 Actions runs and 23 checks, including P2 run 43970283329, Debian 133660332166, Ubuntu 133660331317, and synthetic model check 133660331307. Source candidate d885a256 is included in that head and its local model suite passed 7/7. Preserve issue #172 at 0/12, all nine approval fields false, P0-06 unchecked, product_support_approval:false, all pending decisions, and all owner/security/production/restore/accessibility/signing/merge/release gates.",
+    "action": "Review the current 14-file handoff correction against PR head 0223550470da87751baed8b46fd7657e7ae05d04. Exact-head CI passed 13 Actions runs and 23 checks, including P2 run 43978463545, Debian 133688439172, Ubuntu 133688439403, and model check 133688439715. PR body updated at 23:45:29Z; issue body at 23:45:34Z. Issue #172 remains 0/12 with nine approvals false and product_support_approval:false. Re-read PR/ref and issue before normal fast-forward publication, then inspect exact-head CI for the new docs SHA. Preserve all open gates and pending decisions. A workflow path audit found all 13 workflow files in the current base-to-head diff, so a PR synchronize should trigger all 13 workflows; inspect the new SHA rather than carrying 022 results forward.",
     "required_evidence": [
-      "PR #171 open/draft/unmerged at exact head 570306628a7143185ef42736a329c81f4096535c (tree c47a5f859d9dcd2a818ef2a146f34ffc47851ed9; parent d885a256f96bac36b5d96ff76d8e094b802d75f0); read at 2026-11-16T22:50:07Z.",
-      "Exact-head CI on 570: 13/13 workflow runs and 23/23 check runs succeeded with zero failures or pending; P2 run 43970283329, Debian 133660332166, Ubuntu 133660331317, and synthetic model check 133660331307 passed.",
-      "Issue #172 body updated_at 2026-11-16T22:53:04Z. The issue was audited at 21:35:21Z and its 0/12 and nine-false-approval state reverified unchanged before the body refresh; product_support_approval:false.",
-      "Local branch is at 570 (tree c47a5f859d9dcd2a818ef2a146f34ffc47851ed9); only the 14 handoff docs are current worktree edits. d885 is included in the pushed 570 head; its local model suite passed 7/7."
+      "PR #171 open/draft/unmerged at exact head 0223550470da87751baed8b46fd7657e7ae05d04 (tree f50bbb61afa3d935870beca209f14c1dc8387276; parent 570306628a7143185ef42736a329c81f4096535c); read at 2026-11-16T23:43:19Z.",
+      "Exact-head CI on 022: 13/13 workflow runs and 23/23 check runs succeeded with zero failures or pending; P2 run 43978463545, Debian 133688439172, Ubuntu 133688439403, and model check 133688439715 passed.",
+      "Issue #172 body updated_at 2026-11-16T23:45:34Z after state reread at 23:43:19Z; 0/12 DoD, nine false approvals, and product_support_approval:false.",
+      "Local branch is at 022 (tree f50bbb61afa3d935870beca209f14c1dc8387276); this worktree contains only the 14-file handoff status correction. d885 is included through 570 and remains covered by 022 exact-head CI.",
+      "Read-only GitHub settings observation at 2026-11-17T00:08Z: main protected=false, branch-protection API 404, zero repository rulesets, and zero PR reviews; no settings changed and no merge is authorized.",
+      "Workflow path audit: 524 PR base-to-head paths include all 13 workflow files, each matching its own pull_request.paths filter; the current 14 docs files do not match the filters, but all 13 PR synchronize workflows are expected from the full diff. Direct push workflows: none expected.",
+      "Organization-rulesets GET returned 404 at approximately 2026-11-17T00:17Z; organization-level enforcement is unknown and no settings were changed."
     ],
     "gates_unchanged": true,
     "p4_draft_contract": {
@@ -144,13 +147,13 @@
       "product_support_approval": false,
       "status": "structural_inventory_only; owner_support_decision_pending; not_P4_acceptance"
     },
-    "local_candidate_head": "570306628a7143185ef42736a329c81f4096535c",
-    "local_candidate_tree_sha": "c47a5f859d9dcd2a818ef2a146f34ffc47851ed9",
+    "local_candidate_head": "0223550470da87751baed8b46fd7657e7ae05d04",
+    "local_candidate_tree_sha": "f50bbb61afa3d935870beca209f14c1dc8387276",
     "source_candidate_head_before_handoff_commit": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
-    "remote_pr_head": "570306628a7143185ef42736a329c81f4096535c",
+    "remote_pr_head": "0223550470da87751baed8b46fd7657e7ae05d04",
     "local_source_candidate_parent": "10f666a3db7ccf1f2e89d0a01d75f25820e24804",
     "local_source_candidate_pushed": true,
-    "current_worktree_changes": "14_handoff_docs_only_uncommitted",
+    "current_worktree_changes": "14_handoff_docs_only_current_status_correction_uncommitted",
     "latest_exact_head_ci": {
       "workflows_total": 13,
       "workflows_success": 13,
@@ -159,17 +162,17 @@
       "checks_success": 23,
       "checks_in_progress": 0,
       "failures": 0,
-      "p2_run_id": 43970283329,
-      "debian_job_id": 133660332166,
-      "ubuntu_job_id": 133660331317,
-      "synthetic_model_check_id": 133660331307,
+      "p2_run_id": 43978463545,
+      "debian_job_id": 133688439172,
+      "ubuntu_job_id": 133688439403,
+      "synthetic_model_check_id": 133688439715,
       "includes": [
         "both_P2_guests",
         "synthetic_model_check"
       ],
-      "status": "passed_on_5703066; all_checks_terminal_success"
+      "status": "passed_on_0223550; all_checks_terminal_success"
     },
-    "current_handoff_commit_parent": "d885a256f96bac36b5d96ff76d8e094b802d75f0"
+    "current_handoff_commit_parent": "570306628a7143185ef42736a329c81f4096535c"
   },
   "approvals": {
     "p0_adrs_001_009": false,
@@ -263,7 +266,7 @@
     "current_jobs_browser": "https://github.com/parmtech/Tong-Panel/actions/runs/43945726491"
   },
   "latest_source_checkpoint": {
-    "scope": "historical_f804_published_source_CI_baseline; latest_5703066_result_is_in_latest_live_snapshot",
+    "scope": "historical_f804_published_source_CI_baseline; latest_0223550_result_is_in_latest_live_snapshot",
     "sha": "f804127fdef6b46fec16c27beeb357398e066cba",
     "tree_sha": "99a18f04b6750198ff10f51800b25aaef76e9eac",
     "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
@@ -291,8 +294,8 @@
     },
     "limitations": "P0-06, all 12 issue #172 DoD items, all nine owner/security/production/release approvals, and all human acceptance gates remain open."
   },
-  "published_pr_head_at_snapshot": "570306628a7143185ef42736a329c81f4096535c",
-  "local_checkpoint_parent_at_snapshot": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
+  "published_pr_head_at_snapshot": "0223550470da87751baed8b46fd7657e7ae05d04",
+  "local_checkpoint_parent_at_snapshot": "570306628a7143185ef42736a329c81f4096535c",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
@@ -530,18 +533,18 @@
     "evidence": "Adds bounded HTTPS failure-only metadata and invocation-count coverage, keyboard pagination/focus and 401/403 denied-state fallback, and malformed/trailing encrypted-backup coverage. Combined local checks: 11 cleanup cases, 14 Python HTTPS tests, 51/51 web unit tests, shell/JavaScript syntax and diff check. Separate component evidence: focused pagination 1/1, denial 1/1, responsive browser 13/13, TypeScript passed. Independent integrated review found no blocker.",
     "limitations": "At the 1f snapshot, candidate exact-head CI was pending and the integrated worktree lacked Playwright, TypeScript and Go; b411 later included 1f and passed exact-head CI. PHP-FPM comm names on pinned guests remain unverified. The HTTPS failure cause remains unknown. Synthetic UI evidence does not establish authenticated-tenant, physical-device or human accessibility acceptance; issue #155 remains open."
   },
-  "local_candidate_head": "570306628a7143185ef42736a329c81f4096535c",
+  "local_candidate_head": "0223550470da87751baed8b46fd7657e7ae05d04",
   "local_latest_test_commit": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
-  "local_candidate_tree_sha": "c47a5f859d9dcd2a818ef2a146f34ffc47851ed9",
-  "local_snapshot_head": "570306628a7143185ef42736a329c81f4096535c",
-  "local_snapshot_tree": "c47a5f859d9dcd2a818ef2a146f34ffc47851ed9",
+  "local_candidate_tree_sha": "f50bbb61afa3d935870beca209f14c1dc8387276",
+  "local_snapshot_head": "0223550470da87751baed8b46fd7657e7ae05d04",
+  "local_snapshot_tree": "f50bbb61afa3d935870beca209f14c1dc8387276",
   "local_source_candidate_before_handoff_commit": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
   "local_source_candidate_parent": "10f666a3db7ccf1f2e89d0a01d75f25820e24804",
   "local_source_candidate_pushed": true,
   "local_source_candidate_commit_time_utc": "2026-11-16T22:03:54Z",
-  "current_worktree_changes": "14_handoff_docs_only_uncommitted",
+  "current_worktree_changes": "14_handoff_docs_only_current_status_correction_uncommitted",
   "snapshot_scope_note": "Historical pre-10f666a snapshot, PR/ref read 2026-11-16T20:29:23Z: f804 f804127fdef6b46fec16c27beeb357398e066cba against main 0aad68e81138a0f226e83e401f90bae4d0b6bddc; exact-head CI read 2026-11-16T20:26:10Z passed 13/13 Actions and 22/22 checks. Local candidate a2988b377d9a5c9656be310cab50fb58b5bbaed7 (tree 819becb152a32d620a0a4616c97aaabe145712dd), based on f804, contains commits f3d02ac841655a5320f5dd3b602310ef3cc5757f, 90becaf720556fe28cffadf18813dfc2d7e4682a, and a2988b377d9a5c9656be310cab50fb58b5bbaed7. At that earlier snapshot, these commits had no hosted CI result recorded, and the 13-workflow/23-check post-sync count was a forecast, not an observation.",
-  "published_pr_tree_at_snapshot": "c47a5f859d9dcd2a818ef2a146f34ffc47851ed9",
+  "published_pr_tree_at_snapshot": "f50bbb61afa3d935870beca209f14c1dc8387276",
   "published_pr_ci_snapshot": {
     "scope": "historical_f804_terminal_CI_baseline_only; 10f666a_and_570_exact_head_CI_are_preserved_in_historical_and_latest_snapshots",
     "head_sha": "f804127fdef6b46fec16c27beeb357398e066cba",
@@ -668,7 +671,7 @@
   },
   "snapshot_read_at_utc": "2026-11-16T23:05:06Z",
   "current_follow_up": {
-    "status": "PR_head_5703066_open_draft_unmerged; exact_head_CI_13_of_13_workflows_and_23_of_23_checks_passed; zero_failures_or_pending; source_d885_included",
+    "status": "PR_head_0223550_open_draft_unmerged; exact_head_CI_13_of_13_workflows_and_23_of_23_checks_passed; zero_failures_or_pending; source_d885_included",
     "published_diagnostics_head": "5257aa3bd3b217a5a28316812618009c6244c01f",
     "published_diagnostics_files": [
       "scripts/clean_vm_smoke.sh",
@@ -719,7 +722,8 @@
       "actions_success": "13_of_13",
       "checks_success": "22_of_22",
       "both_guest_lifecycles": "step_18_and_post_setup_checkout_and_Complete_passed",
-      "scope": "historical_terminal_CI_baseline_on_f804_only; latest_live_snapshot_records_terminal_5703066_CI"
+      "scope": "historical_10f666a_terminal_CI_preserved; latest_live_snapshot records terminal 0223550 CI",
+      "latest_live_snapshot_records": "0223550_terminal_CI"
     },
     "historical_5257_exact_head_ci": {
       "head_sha": "5257aa3bd3b217a5a28316812618009c6244c01f",
@@ -756,10 +760,10 @@
       "independent_code_test_guide_review": "complete",
       "source_commit": "a5e1787832cf74754e45750f47b512ac9e81a721",
       "parent_published_head": "5257aa3bd3b217a5a28316812618009c6244c01f",
-      "included_in_remote_head": "570306628a7143185ef42736a329c81f4096535c",
+      "included_in_remote_head": "0223550470da87751baed8b46fd7657e7ae05d04",
       "local_commit": true,
       "pushed": true,
-      "hosted_exact_head_ci": "f804_and_10f666a_historical_CI_passed; latest_570_exact_head_CI_passed_13_workflows_23_checks",
+      "hosted_exact_head_ci": "f804_and_10f666a_historical_CI_passed; 570_and_022_exact_head_CI_passed_13_of_13_Actions_23_of_23_checks",
       "workflow_path_coverage": "verified_no_filter_update_pending"
     },
     "local_accessibility_candidate": {
@@ -767,18 +771,18 @@
       "latest_test_commit": "f3d02ac841655a5320f5dd3b602310ef3cc5757f",
       "commit_tree_sha": "0a3d4119c2dcf10f181f0bb92f2e0b95c72a1cec",
       "unpushed": false,
-      "included_in_pr_head": "570306628a7143185ef42736a329c81f4096535c",
+      "included_in_pr_head": "0223550470da87751baed8b46fd7657e7ae05d04",
       "focused_ui_tests": "passed_2_of_2",
       "coverage": "synthetic_Sites_details_pending_domain_catalog_only_at_390x844_axe_scoped_to_site_details; synthetic_empty_Files_folder_keyboard_round_trip_at_320x640",
-      "hosted_ci": "570_exact_head_CI_passed_13_workflows_and_23_checks",
+      "hosted_ci": "022_exact_head_CI_passed_13_workflows_and_23_checks",
       "limitations": "component_only; no_authenticated_journey_WCAG_2_2_human_screen_reader_or_physical_device_acceptance",
       "issue_155_open": true,
       "axe_commit": "974db0990b509b335fd62f370b6d99daefc16673",
       "orientation_commit": "d08344804a435a06ca73751dd496f9134af94096",
       "files_open_preview_commit": "9897f5c168e700a13608b3e1512be653d9aa359c",
-      "verification": "Focused local synthetic UI tests passed 2/2 and source is included in 570; latest exact-head CI passed 13 workflows and 23 checks.",
+      "verification": "Focused local synthetic UI tests passed 2/2; source remains included in 022 and its exact-head CI passed 13 workflows and 23 checks.",
       "scans": "Sites_section_1440x900; Files_explorer_1440x900_preview_closed; visible_Files_preview_320x640",
-      "hosted_browser_ci": "f804 UI run 43945726533 passed; aggregate 570 exact-head CI passed 13 workflows and 23 checks"
+      "hosted_browser_ci": "f804 UI run 43945726533 passed; aggregate 022 exact-head CI passed 13 workflows and 23 checks"
     },
     "local_p2_backup_retry_model": {
       "files": [
@@ -788,9 +792,9 @@
         ".github/workflows/offline-model-checks.yml",
         "docs/P2_BACKUP_LAB.md"
       ],
-      "status": "committed_in_PR_head_570_synthetic_only_model_and_workflow_addition",
+      "status": "committed_in_PR_head_022_synthetic_only_model_and_workflow_addition",
       "local_tests": "source_commit_90becaf_suite_6_of_6; source_candidate_d885_suite_7_of_7",
-      "hosted_ci": "570_exact_head_CI_passed; synthetic_model_check_133660331307_success; source_d885_boolean_ID_fix_included",
+      "hosted_ci": "022_exact_head_CI_passed; synthetic_model_check_133688439715_success; source_d885_boolean_ID_fix_included",
       "provider_or_production_policy_selected": false,
       "issue_152_open": true,
       "commit": "90becaf720556fe28cffadf18813dfc2d7e4682a",
@@ -805,19 +809,19 @@
       "change": "Model._get_attempt rejects non-int values so bool true cannot alias attempt ID 1.",
       "regression_test": "test_boolean_attempt_id_cannot_alias_integer_attempt",
       "local_tests": "7_of_7_passed",
-      "hosted_ci": "included_in_570_exact_head_CI; 13_of_13_workflows_and_23_of_23_checks_passed; synthetic_model_check_133660331307_success",
+      "hosted_ci": "included_in_022_exact_head_CI; 13_of_13_workflows_and_23_of_23_checks_passed; synthetic_model_check_133688439715_success",
       "commit": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
       "tree_sha": "693c0a91575b98202bf94aa345eade6c6d3218bd",
       "pushed": true,
-      "status": "committed_and_in_remote_PR_head_570; no_production_policy_selected",
-      "included_in_pr_head": "570306628a7143185ef42736a329c81f4096535c"
+      "status": "committed_and_in_remote_PR_head_022_via_570; no_production_policy_selected",
+      "included_in_pr_head": "0223550470da87751baed8b46fd7657e7ae05d04"
     },
     "local_sqlite_job_kind_allowlist_regression": {
       "file": "internal/jobs/sqlite_test.go",
       "test": "TestSQLiteCreateRejectsCommandLikeKindsBeforeStoreAccess",
-      "status": "committed_in_pr_head_570_test_only; reviewed_not_run_locally",
+      "status": "committed_in_pr_head_022_test_only; reviewed_not_run_locally",
       "reason_not_run": "Go_and_gofmt_unavailable",
-      "hosted_ci": "570_exact_head_CI_passed_all_13_workflows_and_23_checks",
+      "hosted_ci": "022_exact_head_CI_passed_all_13_workflows_and_23_checks",
       "commit": "a2988b377d9a5c9656be310cab50fb58b5bbaed7",
       "tree_sha": "819becb152a32d620a0a4616c97aaabe145712dd",
       "committed_at_utc": "2026-11-16T21:08:43Z"
@@ -827,7 +831,7 @@
       "provider_or_policy_selected": false,
       "issue_152_open": true
     },
-    "next": "Review the 14 pending handoff-doc edits; preserve issue #172 gates and approvals; no docs commit SHA is known or claimed.",
+    "next": "Review the 14-file factual status correction for 022; preserve issue #172 gates and approvals; publish by normal fast-forward only after a fresh PR/ref/issue read, then verify CI on the new exact head.",
     "gates": "all_existing_owner_security_production_restore_accessibility_merge_signing_deployment_and_release_gates_remain_open",
     "design_only_doc_updates": {
       "issues": [
@@ -875,13 +879,13 @@
       "workflow_path_coverage": "verified_no_filter_update_pending",
       "compatibility_alias_for": "current_follow_up.p4_schema_v2"
     },
-    "local_candidate_head": "570306628a7143185ef42736a329c81f4096535c",
-    "local_candidate_tree_sha": "c47a5f859d9dcd2a818ef2a146f34ffc47851ed9",
+    "local_candidate_head": "0223550470da87751baed8b46fd7657e7ae05d04",
+    "local_candidate_tree_sha": "f50bbb61afa3d935870beca209f14c1dc8387276",
     "source_candidate_head_before_handoff_commit": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
-    "remote_pr_head": "570306628a7143185ef42736a329c81f4096535c",
+    "remote_pr_head": "0223550470da87751baed8b46fd7657e7ae05d04",
     "local_source_candidate_parent": "10f666a3db7ccf1f2e89d0a01d75f25820e24804",
     "local_source_candidate_pushed": true,
-    "current_worktree_changes": "14_handoff_docs_only_uncommitted",
+    "current_worktree_changes": "14_handoff_docs_only_current_status_correction_uncommitted",
     "latest_exact_head_ci": {
       "workflows_total": 13,
       "workflows_success": 13,
@@ -890,17 +894,17 @@
       "checks_success": 23,
       "checks_in_progress": 0,
       "failures": 0,
-      "p2_run_id": 43970283329,
-      "debian_job_id": 133660332166,
-      "ubuntu_job_id": 133660331317,
-      "synthetic_model_check_id": 133660331307,
+      "p2_run_id": 43978463545,
+      "debian_job_id": 133688439172,
+      "ubuntu_job_id": 133688439403,
+      "synthetic_model_check_id": 133688439715,
       "includes": [
         "both_P2_guests",
         "synthetic_model_check"
       ],
-      "status": "passed_on_5703066; all_checks_terminal_success"
+      "status": "passed_on_0223550; all_checks_terminal_success"
     },
-    "worktree_state": "570_commit_snapshot_clean; current_local_HEAD_is_5703066; only_14_handoff_docs_are_uncommitted",
+    "worktree_state": "022_commit_snapshot_clean; current_local_HEAD_is_0223550; only_14_handoff_docs_have_current_status_correction_uncommitted",
     "historical_source_commits_since_f804_in_pr_head_10f666a": [
       {
         "sha": "f3d02ac841655a5320f5dd3b602310ef3cc5757f",
@@ -965,7 +969,8 @@
         "scope": "synthetic_boolean_attempt_ID_type_validation_and_regression",
         "commit_time_utc": "2026-11-16T22:03:54Z"
       }
-    ]
+    ],
+    "source_commits_inventory_scope": "Historical source inventory first recorded on 5703066; 0223550 is its docs-only descendant and terminal 022 CI passed for the complete tree."
   },
   "historical_b02_pr_ci_snapshot": {
     "head_sha": "b02a95726c1317f176f162978b7d1ba035deb796",
@@ -986,7 +991,7 @@
     "collected_at_utc": "2026-11-16T15:25Z"
   },
   "worktree_changes": {
-    "status": "remote_PR_head_5703066_open_draft_unmerged_and_CI_passed_13_workflows_23_checks; d885_source_candidate_included; only_14_handoff_docs_uncommitted",
+    "status": "remote_PR_head_0223550_open_draft_unmerged_and_CI_passed_13_workflows_23_checks; d885_source_candidate_included; only_14_current_handoff_status_corrections_uncommitted",
     "uncommitted_files": [
       "AGENTS.md",
       "UPDATES.md",
@@ -1004,11 +1009,11 @@
       "docs/ROADMAP.md"
     ],
     "p4_source_commit": "a5e1787832cf74754e45750f47b512ac9e81a721",
-    "p4_in_remote_head": "570306628a7143185ef42736a329c81f4096535c",
+    "p4_in_remote_head": "0223550470da87751baed8b46fd7657e7ae05d04",
     "p4_local_tests": "root_verified_27_of_27",
-    "p4_hosted_ci": "f804_and_10f666a_historical_CI_passed; 570_exact_head_passed_13_of_13_23_of_23",
+    "p4_hosted_ci": "f804_and_10f666a_historical_CI_passed; 570_and_022_exact_head_CI_passed_13_of_13_Actions_23_of_23_checks",
     "product_support_approval": false,
-    "offline_workflow_path_coverage": "P4 validator/tests/guide and P2 model paths are in 570 PR head; exact-head CI passed; synthetic model check 133660331307 succeeded.",
+    "offline_workflow_path_coverage": "P4 validator/tests/guide and P2 model paths are in 022 PR head; exact-head CI passed; synthetic model check 133688439715 succeeded.",
     "local_test_commit": "f3d02ac841655a5320f5dd3b602310ef3cc5757f",
     "local_test_commit_tree": "0a3d4119c2dcf10f181f0bb92f2e0b95c72a1cec",
     "uncommitted_worktree_has_changes_beyond_local_test_commit": true,
@@ -1047,18 +1052,18 @@
       "checks_success": 23,
       "checks_in_progress": 0,
       "failures": 0,
-      "p2_run_id": 43970283329,
-      "debian_job_id": 133660332166,
-      "ubuntu_job_id": 133660331317,
-      "synthetic_model_check_id": 133660331307,
+      "p2_run_id": 43978463545,
+      "debian_job_id": 133688439172,
+      "ubuntu_job_id": 133688439403,
+      "synthetic_model_check_id": 133688439715,
       "includes": [
         "both_P2_guests",
         "synthetic_model_check"
       ],
-      "status": "passed_on_5703066; all_checks_terminal_success"
+      "status": "passed_on_0223550; all_checks_terminal_success"
     },
     "only_uncommitted_changes_are_handoff_docs": true,
-    "uncommitted_files_alias_status": "current file lists are the 14 handoff docs only; source commit d885a256 is included in remote PR head 5703066 and covered by its passed exact-head CI; the 570 commit snapshot itself was clean",
+    "uncommitted_files_alias_status": "current file lists are the 14 handoff docs with a factual 022 status correction; source commit d885a256 is included through 570 in remote PR head 022 and covered by its passed exact-head CI; 022 commit snapshot itself was clean",
     "current_uncommitted_files": [
       "AGENTS.md",
       "UPDATES.md",
@@ -1111,7 +1116,8 @@
         "scope": "synthetic_boolean_attempt_ID_type_validation_and_regression",
         "commit_time_utc": "2026-11-16T22:03:54Z"
       }
-    ]
+    ],
+    "source_commits_inventory_scope": "Historical source inventory first recorded on 5703066; 0223550 is its docs-only descendant and terminal 022 CI passed for the complete tree."
   },
   "historical_db97_source_head_ci": {
     "head_sha": "db97e1d1a67a24a85ff61d59f0dccc8ca4033de0",
@@ -1340,9 +1346,9 @@
     "collected_at_utc": "2026-11-16T16:35:23Z",
     "snapshot_scope": "historical_db97_only; not_current_5257_CI"
   },
-  "pr_state_observed_at_utc": "2026-11-16T22:50:07Z",
-  "issue_state_observed_at_utc": "2026-11-16T21:35:21Z",
-  "ci_snapshot_timestamp_utc": "2026-11-16T22:50:07Z",
+  "pr_state_observed_at_utc": "2026-11-16T23:43:19Z",
+  "issue_state_observed_at_utc": "2026-11-16T23:43:19Z",
+  "ci_snapshot_timestamp_utc": "2026-11-16T23:43:19Z",
   "historical_5257_head": {
     "head_sha": "5257aa3bd3b217a5a28316812618009c6244c01f",
     "tree_sha": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
@@ -1399,9 +1405,9 @@
     "gate_changes": false
   },
   "source_candidate_head_before_handoff_commit": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
-  "remote_pr_head": "570306628a7143185ef42736a329c81f4096535c",
-  "current_handoff_commit_parent": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
-  "issue_body_updated_at_utc": "2026-11-16T22:53:04Z",
+  "remote_pr_head": "0223550470da87751baed8b46fd7657e7ae05d04",
+  "current_handoff_commit_parent": "570306628a7143185ef42736a329c81f4096535c",
+  "issue_body_updated_at_utc": "2026-11-16T23:45:34Z",
   "source_commits_since_f804_in_pr_head_5703066": [
     {
       "sha": "f3d02ac841655a5320f5dd3b602310ef3cc5757f",
@@ -1446,15 +1452,95 @@
     "checks_success": 23,
     "checks_in_progress": 0,
     "failures": 0,
-    "p2_run_id": 43970283329,
-    "debian_job_id": 133660332166,
-    "ubuntu_job_id": 133660331317,
-    "synthetic_model_check_id": 133660331307,
+    "p2_run_id": 43978463545,
+    "debian_job_id": 133688439172,
+    "ubuntu_job_id": 133688439403,
+    "synthetic_model_check_id": 133688439715,
     "includes": [
       "both_P2_guests",
       "synthetic_model_check"
     ],
-    "status": "passed_on_5703066; all_checks_terminal_success"
+    "status": "passed_on_0223550; all_checks_terminal_success"
   },
-  "worktree_state": "570_commit_snapshot_clean; current_local_HEAD_is_5703066; only_14_handoff_docs_are_uncommitted"
+  "worktree_state": "022_commit_snapshot_clean; current_local_HEAD_is_0223550; only_14_handoff_docs_have_current_status_correction_uncommitted",
+  "previous_live_snapshot_570": {
+    "observed_at_utc": "2026-11-16T22:50:07Z",
+    "observation_basis": "PR/ref and terminal exact-head CI were read at 2026-11-16T22:50:07Z. PR body updated_at was 2026-11-16T22:52:59Z. Issue #172 DoD/approval state was audited at 2026-11-16T21:35:21Z and reverified unchanged before issue body updated_at 2026-11-16T22:53:04Z; exact re-verification time was not separately provided.",
+    "observed_on_local_date": "2026-11-17",
+    "pr": 171,
+    "pr_state": "open_draft_unmerged",
+    "pr_state_observed_at_utc": "2026-11-16T22:50:07Z",
+    "pr_body_updated_at_utc": "2026-11-16T22:52:59Z",
+    "pr_head_sha": "570306628a7143185ef42736a329c81f4096535c",
+    "pr_head_tree_sha": "c47a5f859d9dcd2a818ef2a146f34ffc47851ed9",
+    "pr_head_parent_sha": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
+    "working_branch": "codex/tong-panel-candidate-20261116",
+    "worktree_clean_at_570_snapshot": true,
+    "current_local_head_sha": "570306628a7143185ef42736a329c81f4096535c",
+    "current_worktree_changes": "14_handoff_docs_only_uncommitted",
+    "workflow_runs_total": 13,
+    "workflow_success": 13,
+    "workflow_in_progress": 0,
+    "workflow_failure": 0,
+    "check_runs_total": 23,
+    "check_success": 23,
+    "check_in_progress": 0,
+    "check_failure": 0,
+    "pending_checks": [],
+    "p2_run_id": 43970283329,
+    "debian_job_id": 133660332166,
+    "ubuntu_job_id": 133660331317,
+    "synthetic_model_check_id": 133660331307,
+    "p2_guest_status": "both_guests_passed",
+    "synthetic_model_check_status": "success",
+    "exact_head_ci_status": "passed_all_13_workflow_runs_and_23_check_runs",
+    "included_source_candidate": {
+      "commit": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
+      "tree_sha": "693c0a91575b98202bf94aa345eade6c6d3218bd",
+      "parent": "10f666a3db7ccf1f2e89d0a01d75f25820e24804",
+      "change": "rejects_bool_attempt_ids_that_alias_integer_ID_1",
+      "regression_test": "test_boolean_attempt_id_cannot_alias_integer_attempt",
+      "local_model_tests": "7_of_7_passed",
+      "hosted_exact_head_coverage": "included_in_570; synthetic_model_check_133660331307_success"
+    },
+    "issue_172_state": "open",
+    "issue_172_body_updated_at_utc": "2026-11-16T22:53:04Z",
+    "issue_172_dod_approval_state_audited_at_utc": "2026-11-16T21:35:21Z",
+    "issue_172_dod_approval_state_reverified_unchanged_before_body_update": true,
+    "issue_172_dod_reverification_time_utc": "not_separately_provided",
+    "issue_172_dod_total": 12,
+    "issue_172_dod_checked": 0,
+    "issue_172_approval_fields_false": 9,
+    "product_support_approval": false,
+    "gate_changes": false,
+    "snapshot_label": "previous_terminal_570_snapshot"
+  },
+  "source_commits_inventory_scope": "Historical source inventory first recorded on 5703066; 0223550 is its docs-only descendant and terminal 022 CI passed for the complete tree.",
+  "repository_safety_snapshot": {
+    "observed_at_utc": "2026-11-17T00:08Z",
+    "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+    "main_protected": false,
+    "branch_protection_api_http_status": 404,
+    "repository_rulesets": 0,
+    "pr_171_reviews": 0,
+    "settings_changed": false,
+    "merge_authorized": false,
+    "note": "Read-only GitHub API observations. Repository main is unprotected and has no repo-level rulesets; org-level enforcement is unknown because the org-rulesets endpoint returned 404. Absence of visible protection is not approval to merge; preserve the draft PR and all owner/security/product/release gates.",
+    "organization_rulesets_api_http_status": 404,
+    "organization_rulesets_observed_at_utc": "2026-11-17T00:17Z",
+    "organization_level_enforcement": "unknown_organization_rulesets_endpoint_returned_404"
+  },
+  "pr_workflow_trigger_audit": {
+    "pr_head": "0223550470da87751baed8b46fd7657e7ae05d04",
+    "base_branch": "main",
+    "base_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+    "base_to_head_paths": 524,
+    "workflow_files_in_diff": 13,
+    "workflows_matching_own_pull_request_path_filter": 13,
+    "current_14_file_docs_correction_matches_path_filters": false,
+    "expected_workflows_on_pr_synchronize": 13,
+    "expected_direct_push_workflows_on_candidate_branch": 0,
+    "new_head_requires_own_terminal_ci": true,
+    "note": "The PR synchronize event evaluates the complete base-to-head diff, so the workflow-file changes select all workflows despite the new commit being docs-only. A future docs-only PR with no matching workflow/docs path may skip path-filtered checks; absent checks are not success."
+  }
 }

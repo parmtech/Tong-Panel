@@ -1,7 +1,7 @@
 # Tong Panel — Phase Index / Single Operational Plan
 **Updated:** 2026-11-17. The combined development review preserves all original draft work. P0 decisions and phase acceptance remain open; P1 prototypes and disposable P2 QA may continue, but P1 exit and P2 entry are not approved. Read the current handoff for executed evidence.
 
-**Latest PR/CI snapshot (read 16 November 2026 22:50:07 UTC):** PR #171 is open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c` (tree `c47a5f859d9dcd2a818ef2a146f34ffc47851ed9`, parent d885a256). 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. The d885 boolean-attempt-ID change and regression passed 7/7 locally and are included in this tested head. Only the 14 handoff docs are pending locally; issue #172 remains 0/12 with nine approvals and product support false. Preserve all P0-P6 gates and pending decisions.
+**Latest PR/CI snapshot (terminal read 16 November 2026 23:43:19 UTC; PR/issue bodies updated 23:45:29/23:45:34 UTC):** PR #171 is open/draft/unmerged at exact head `0223550470da87751baed8b46fd7657e7ae05d04` (tree `f50bbb61afa3d935870beca209f14c1dc8387276`, parent 570306628a7143185ef42736a329c81f4096535c). All 13/13 Actions runs and 23/23 checks succeeded with zero failures or pending checks. P2 run #43978463545 passed; Debian #133688439172, Ubuntu #133688439403, and synthetic model check #133688439715 also passed. The d885 boolean-attempt-ID change and regression passed 7/7 locally and are included through 570. Issue #172 remains 0/12 with nine approvals and product support false. The current 14-file local changes are a factual status correction; preserve all P0-P6 gates and pending decisions.
 
 **Historical verified baseline:** f804127fdef6b46fec16c27beeb357398e066cba passed 13/13 Actions runs and 22/22 checks at the 2026-11-16 20:26:10 UTC read; both P2 guests passed. This result applies to f804 only. The db97 Debian failure cause remains unknown.
 
@@ -17,7 +17,7 @@
 
 ## For a new AI agent
 
-**Current snapshot (17 November 2026):** PR #171 remains open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c`. 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. The source parent d885a256 (tree `693c0a91575b98202bf94aa345eade6c6d3218bd`) includes the boolean-ID fix and 7/7 local synthetic model test result. The worktree has only 14 pending handoff docs. Issue #172 is open with 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`. Preserve all P0-P6 gates and pending decisions.
+**Current snapshot (17 November 2026):** PR #171 remains open/draft/unmerged at exact head `0223550470da87751baed8b46fd7657e7ae05d04`. All 13/13 Actions runs and 23/23 checks succeeded, including P2 run #43978463545 and both guests; no failures or pending checks. Source parent d885a256 includes the boolean-ID fix and 7/7 local synthetic model test result. The local branch is at 022; this 14-file working change corrects the handoff status. Issue #172 is open with 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`. Preserve all P0-P6 gates and pending decisions.
 
 ### Historical resume snapshot — 16 November 2026 (superseded)
 

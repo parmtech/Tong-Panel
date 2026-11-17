@@ -1,10 +1,10 @@
-## Current resume checkpoint - PR head 5703066 exact-head CI passed (17 November 2026; read 22:50:07 UTC)
+## Current resume checkpoint - PR head 0223550 exact-head CI passed (17 November 2026; terminal read 23:43:19 UTC)
 
-PR #171 remains open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c`. 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed.
+PR #171 remains open/draft/unmerged at exact head `0223550470da87751baed8b46fd7657e7ae05d04`. All 13/13 Actions runs and 23/23 checks succeeded with zero failures or pending checks. P2 run #43978463545 passed; Debian job #133688439172, Ubuntu job #133688439403, and synthetic model check #133688439715 also passed.
 
-The local branch is `codex/tong-panel-candidate-20261116` at 570 (tree `c47a5f859d9dcd2a818ef2a146f34ffc47851ed9`, parent `d885a256f96bac36b5d96ff76d8e094b802d75f0`). The 570 commit snapshot was clean; only these 14 handoff docs are pending in the worktree. d885 adds the boolean attempt-ID fix and regression; the local model suite passed 7/7, and d885 is included in 570's successful exact-head CI.
+The local branch is `codex/tong-panel-candidate-20261116` at 022 (tree `f50bbb61afa3d935870beca209f14c1dc8387276`, parent `570306628a7143185ef42736a329c81f4096535c`). The 022 commit snapshot was clean and contains the prior 14-doc refresh; this current factual correction edits those docs only. d885 adds the boolean attempt-ID fix and regression; the local model suite passed 7/7, and 022's successful exact-head CI includes it.
 
-Issue #172 is open at 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`. Its body was updated at 22:53:04 UTC; the DoD/approval state audited at 21:35:21 UTC was reverified unchanged before that update. No DoD item, approval boolean, or pending decision changed. Retain all owner, security, production, restore, accessibility, signing, merge, and release gates.
+Issue #172 is open at 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`. Its body was updated at 23:45:34 UTC after the state was reread at 23:43:19 UTC. No DoD item, approval boolean, or pending decision changed. Retain all owner, security, production, restore, accessibility, signing, merge, and release gates.
 
 ## Historical verified resume checkpoint — remote PR/ref f804127; exact-head CI passed (17 November 2026; superseded by 10f666a)
 

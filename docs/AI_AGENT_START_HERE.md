@@ -1,11 +1,13 @@
-## Latest resume checkpoint - PR head 5703066 exact-head CI passed (17 November 2026; PR/ref and CI read 22:50:07 UTC)
+## Latest resume checkpoint - PR head 0223550 exact-head CI passed (17 November 2026; PR/ref and CI read 23:43:19 UTC)
 
-- **PR/source ref:** PR #171 remains open/draft/unmerged at exact head `570306628a7143185ef42736a329c81f4096535c` (tree `c47a5f859d9dcd2a818ef2a146f34ffc47851ed9`, parent d885a256). The PR body was updated at 22:52:59 UTC.
-- **Exact-head CI:** 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43970283329 passed; Debian job #133660332166, Ubuntu job #133660331317, and synthetic model check #133660331307 also passed. The exact-head run includes source commit d885a256.
-- **Included source:** d885a256 adds the boolean-attempt-ID rejection and regression test; the local synthetic model suite passed 7/7. Hosted synthetic model check #133660331307 passed on head 570. This is not P2 acceptance or production policy evidence.
-- **Local checkout:** branch `codex/tong-panel-candidate-20261116` is at 570; its commit snapshot was clean and the current worktree has only the 14 pending handoff-doc edits.
-- **Tracker:** issue #172 is open at 0/12 DoD checked; all nine named approval fields and `product_support_approval` are false. Its body was refreshed at 22:53:04 UTC; DoD/approval state was audited at 21:35:21 UTC and reverified unchanged before the refresh.
-- **Next:** review the pending 14-doc refresh. Preserve all pending decisions and owner, security, production, restore, accessibility, signing, merge, and release gates.
+- **PR/source ref:** PR #171 remains open/draft/unmerged at exact head `0223550470da87751baed8b46fd7657e7ae05d04` (tree `f50bbb61afa3d935870beca209f14c1dc8387276`, parent `570306628a7143185ef42736a329c81f4096535c`). The PR body was updated at 23:45:29 UTC.
+- **Exact-head CI:** 13/13 Actions runs and 23/23 check runs succeeded with zero failures or pending checks. P2 run #43978463545 passed; Debian job #133688439172, Ubuntu job #133688439403, and synthetic model check #133688439715 also passed. The exact-head run includes source commit d885a256 through 570.
+- **Included source:** d885a256 adds the boolean-attempt-ID rejection and regression test; the local synthetic model suite passed 7/7. Hosted synthetic model check #133688439715 passed on head 022. This is not P2 acceptance or production policy evidence.
+- **Local checkout:** branch `codex/tong-panel-candidate-20261116` is at 022; its commit snapshot was clean. The 022 commit contains the prior 14-doc refresh; the current work is a factual 14-doc correction only.
+- **Tracker:** issue #172 is open at 0/12 DoD checked; all nine named approval fields and `product_support_approval` are false. Its body was refreshed at 23:45:34 UTC; state was reread at 23:43:19 UTC.
+- **GitHub repository settings:** read-only check at approximately 2026-11-17 00:08 UTC reports `main.protected:false`, branch-protection GET 404, zero repository rulesets, and zero PR reviews. Organization-rulesets GET returned 404 around 00:17 UTC, so organization-level enforcement is unknown. No repository settings were changed; keep PR #171 draft/unmerged and do not infer approval from absent protections.
+- **Next-sync CI scope:** PR base-to-head diff has 524 paths, including all 13 workflow files; each matches its PR path filter. A normal synchronize update is expected to trigger all 13 workflows despite this docs-only correction. The new SHA needs its own exact-head result.
+- **Next:** review the current factual handoff correction, re-read the PR/ref and tracker before normal fast-forward publication, then verify exact-head CI for the new docs commit. Preserve all pending decisions and owner, security, production, restore, accessibility, signing, merge, and release gates.
 
 ## Historical verified checkpoint — remote PR/ref f804127; exact-head CI passed (17 November 2026; superseded by 10f666a)
 
