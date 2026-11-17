@@ -78,6 +78,9 @@ func internalReferences(value any) bool {
 }
 
 func loadContract(ctx context.Context, data []byte) (*openapi3.T, error) {
+	if rejectDuplicateContractMembers(data) != nil {
+		return nil, errors.New("contract must be JSON with internal references only")
+	}
 	var raw any
 	if json.Unmarshal(data, &raw) != nil || !internalReferences(raw) {
 		return nil, errors.New("contract must be JSON with internal references only")
@@ -102,6 +105,77 @@ func loadContract(ctx context.Context, data []byte) (*openapi3.T, error) {
 		}
 	}
 	return document, nil
+}
+
+// rejectDuplicateContractMembers rejects repeated decoded member names exactly.
+// OpenAPI input has no handler-report member-count or case-folding policy.
+func rejectDuplicateContractMembers(data []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	if err := scanContractJSONValue(decoder); err != nil {
+		return err
+	}
+	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
+		if err != nil {
+			return err
+		}
+		return errors.New("contract has trailing JSON values")
+	}
+	return nil
+}
+
+func scanContractJSONValue(decoder *json.Decoder) error {
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	delimiter, ok := token.(json.Delim)
+	if !ok {
+		return nil
+	}
+	switch delimiter {
+	case '{':
+		seen := map[string]struct{}{}
+		for decoder.More() {
+			keyToken, err := decoder.Token()
+			if err != nil {
+				return err
+			}
+			key, ok := keyToken.(string)
+			if !ok {
+				return errors.New("contract object member is invalid")
+			}
+			if _, exists := seen[key]; exists {
+				return errors.New("contract has duplicate object members")
+			}
+			seen[key] = struct{}{}
+			if err := scanContractJSONValue(decoder); err != nil {
+				return err
+			}
+		}
+		closing, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		if end, ok := closing.(json.Delim); !ok || end != '}' {
+			return errors.New("contract object is invalid")
+		}
+	case '[':
+		for decoder.More() {
+			if err := scanContractJSONValue(decoder); err != nil {
+				return err
+			}
+		}
+		closing, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		if end, ok := closing.(json.Delim); !ok || end != ']' {
+			return errors.New("contract array is invalid")
+		}
+	default:
+		return errors.New("contract value is invalid")
+	}
+	return nil
 }
 
 func decodeReport(data []byte) (contractReport, error) {

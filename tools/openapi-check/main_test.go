@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -99,6 +101,63 @@ func TestLoadContractRejectsExternalReferencesAndInvalidDocuments(t *testing.T) 
 		if _, err := loadContract(context.Background(), []byte(input)); err == nil {
 			t.Fatal("accepted invalid or externally referenced contract")
 		}
+	}
+}
+
+func TestLoadContractRejectsRootAndNestedDuplicateMembers(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "root member",
+			input: strings.Replace(minimalContract, `"openapi":"3.0.3"`, `"openapi":"3.0.3","openapi":"3.0.3"`, 1),
+		},
+		{
+			name:  "nested member",
+			input: strings.Replace(minimalContract, `"title":"synthetic test"`, `"title":"synthetic test","title":"duplicate"`, 1),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.input == minimalContract {
+				t.Fatal("duplicate-member fixture did not match the contract")
+			}
+			if _, err := loadContract(context.Background(), []byte(tc.input)); err == nil {
+				t.Fatal("accepted duplicate OpenAPI object member")
+			}
+		})
+	}
+}
+
+func TestRejectDuplicateContractMembersUsesExactNames(t *testing.T) {
+	if err := rejectDuplicateContractMembers([]byte(`{"Name":1,"name":2}`)); err != nil {
+		t.Fatalf("case-distinct contract member names were folded together: %v", err)
+	}
+	if err := rejectDuplicateContractMembers([]byte(`{"name":1,"name":2}`)); err == nil {
+		t.Fatal("accepted repeated exact contract member name")
+	}
+}
+
+func TestLoadContractRejectsDuplicateMembersBeforeExternalReferenceResolution(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"type":"boolean"}`))
+	}))
+	defer server.Close()
+
+	input := strings.Replace(minimalContract,
+		`"title":"synthetic test"`, `"title":"synthetic test","title":"duplicate"`, 1)
+	input = strings.Replace(input, `"type":"boolean"`, `"$ref":"`+server.URL+`/schema.json"`, 1)
+	if input == minimalContract {
+		t.Fatal("duplicate/reference fixture did not match the contract")
+	}
+	if _, err := loadContract(context.Background(), []byte(input)); err == nil {
+		t.Fatal("accepted duplicate member containing an external reference")
+	}
+	if got := requests.Load(); got != 0 {
+		t.Fatalf("resolved an external reference %d times for invalid input", got)
 	}
 }
 
