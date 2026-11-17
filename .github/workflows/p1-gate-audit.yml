@@ -4,6 +4,7 @@ on:
     paths:
       - 'scripts/p1_gate_audit.py'
       - 'scripts/test_p1_gate_audit.py'
+      - 'scripts/test_workflow_action_pins.py'
       - 'scripts/p0_threat_crosswalk_audit.py'
       - 'scripts/test_p0_threat_crosswalk_audit.py'
       # Source, test, and document references in the crosswalk can drift anywhere in these trees.
@@ -24,6 +25,7 @@ on:
       - 'docs/P2_TWO_TENANT_END_TO_END_ACCEPTANCE.md'
       - 'docs/UX_UI_SPEC.md'
       - '.github/workflows/p1-gate-audit.yml'
+      - '.github/workflows/**'
   workflow_dispatch:
 permissions:
   contents: read
@@ -38,6 +40,8 @@ jobs:
           persist-credentials: false
       - name: Assert blocker manifest and negative cases
         run: python3 -m unittest discover -s scripts -p 'test_p1_gate_audit.py' -v
+      - name: Verify workflow actions use immutable commit references
+        run: python3 -m unittest discover -s scripts -p 'test_workflow_action_pins.py' -v
       - name: Check draft threat crosswalk references (structural only)
         run: |
           python3 -m unittest discover -s scripts -p 'test_p0_threat_crosswalk_audit.py' -v
