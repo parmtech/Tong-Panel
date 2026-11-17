@@ -6,7 +6,7 @@ import sys
 import unittest
 
 EXPECTED = {"failure": ("test_dpkg_failure_recovery_lab.py", 5),
-            "crash": ("test_dpkg_crash_recovery_lab.py", 2)}
+            "crash": ("test_dpkg_crash_recovery_lab.py", 3)}
 
 
 def run(name):

@@ -30,13 +30,13 @@ class LabGuardTests(unittest.TestCase):
         suite = MagicMock()
         suite.countTestCases.return_value = 0
         with patch.object(guard.unittest.defaultTestLoader, "discover", return_value=suite):
-            with self.assertRaisesRegex(RuntimeError, "expected 2"):
+            with self.assertRaisesRegex(RuntimeError, "expected 3"):
                 guard.run("crash")
 
     def test_skip_and_test_failure_are_not_success(self):
         suite = MagicMock()
-        suite.countTestCases.return_value = 2
-        result = MagicMock(testsRun=2, skipped=[("test", "missing")])
+        suite.countTestCases.return_value = 3
+        result = MagicMock(testsRun=3, skipped=[("test", "missing")])
         result.wasSuccessful.return_value = True
         with patch.object(guard.unittest.defaultTestLoader, "discover", return_value=suite), \
              patch.object(guard.unittest, "TextTestRunner") as runner:

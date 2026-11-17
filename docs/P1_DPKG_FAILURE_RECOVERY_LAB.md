@@ -8,7 +8,7 @@
 
 It **refuses to run as root**, and requires explicit `TONG_DISPOSABLE_DPKG_LAB=1` opt-in. A private package database and installation root do **not** necessarily suppress site-configured `dpkg` pre/post-invoke hooks: hosted CI showed an unrelated `needrestart` hook attempt to touch `/run`, denied by the unprivileged runner. Thus **only run this lab on disposable CI hosts/VM guests**; never run it against untrusted packages or on a real server. The opt-in and non-root checks are deliberate safety barriers.
 
-It also preserves the existing non-root execution rule. Every `dpkg` invocation explicitly sets `--admindir`, `--instdir`, `--log` to the temporary sandbox, and uses `--force-not-root --force-script-chrootless` to execute **only the locally constructed inert hooks**. There is no real system package install, shell command from a client, network call, service restart, real site data, or host configuration change. Do not repurpose the test runner for untrusted `.deb` files: in chrootless mode a malicious maintainer hook could act with the executing user's permissions.
+It also preserves the existing non-root execution rule. Every `dpkg` invocation explicitly sets `--admindir`, `--instdir`, and `--log` to the temporary sandbox, and uses `--force-not-root --force-script-chrootless` for the locally constructed inert package hooks. Site-configured system-level dpkg hooks may also run; the fixture itself does not intentionally install system packages, restart services, or change host configuration. Never repurpose the test runner for untrusted `.deb` files: in chrootless mode a malicious maintainer hook could act with the executing user's permissions.
 
 The four scenarios demonstrate **actual dpkg semantics**, not an invented recovery contract:
 
@@ -18,6 +18,12 @@ The four scenarios demonstrate **actual dpkg semantics**, not an invented recove
 4. **Old `prerm` fails:** dpkg may **fall back to the new package's `prerm` and complete upgrade successfully**. This is a crucial limitation: a successful dpkg exit status **does not prove** all original script/service effects were safe or that an upgrade was healthy. The test observes and records the actual fallback, instead of falsely expecting a fail-closed abort.
 
 Each case starts from a clean private package DB and executes as a nonprivileged process. Full daemon/process supervision, signed provenance, independent trusted key custody, package-manager kill/SIGKILL, filesystem power-loss semantics, fsync/atomic rename, malicious maintainer scripts, cross-tenant restore, systemd state and rollback safety on actual host directories are **not** tested.
+
+## Local first-install interruption candidate (not yet verified)
+
+The uncommitted candidate in `scripts/test_dpkg_crash_recovery_lab.py` adds a third crash-lab case for an interrupted **initial install**. It starts with no package record or payload in the private install root, interrupts the synthetic version-1 `postinst`, checks `install ok half-configured|1`, confirms the unpacked payload and unrelated private marker, then explicitly runs `dpkg --configure` and checks for `install ok installed|1`. The inert hook exits successfully on that retry. `scripts/run_dpkg_labs.py` and its guard regression now expect three crash-lab cases.
+
+This candidate has not been run locally or in hosted CI. The exact-head P2 clean-VM workflow must confirm the expected status, absent-package query, and explicit recovery on disposable Ubuntu 24.04 and Debian 12 guests. Configured system-level dpkg hooks may run even with private database and install-root paths; keep the non-root and opt-in guards and run the lab only on disposable CI hosts/VM guests. The test is synthetic component evidence, not actual power-loss, installer acceptance, or production recovery evidence.
 
 ## Running and CI evidence
 

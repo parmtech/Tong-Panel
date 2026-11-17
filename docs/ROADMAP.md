@@ -2,7 +2,15 @@
 **Original roadmap:** 2026-10-28 | **Status reconciled:** 2026-11-17. P0 owner/independent security decisions are pending; P1 prototypes and disposable P2 QA may continue, but P1 exit and P2 entry are not approved. [A–Z next-agent handoff](AI_AGENT_START_HERE.md).
 All durations are intentionally uncommitted; phases are gated by evidence rather than time estimates.
 
-## Current execution checkpoint (PR/ref read 2026-11-17T05:51:52Z; exact-head CI read 05:51:37Z; PR head e9a6c70)
+## Current execution checkpoint (verified 2026-11-17T06:53:46Z; PR head f220226)
+
+PR #171 remains open/draft/unmerged at `f2202265b2f366b7abcdbc92f785db6e570d758d` (tree `4f7e8d5c949225a26e906050349aa087be24f574`, parent `e9a6c700022e4d2834074980e9e82bac40a1b4d6`, base main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`); the integration ref matched. Exact-head CI completed with 13/13 PR-event Actions runs and 24/24 check-runs successful, zero failures/pending. P2 run #44032725908 passed Debian #133868248945 at 06:53:02Z and Ubuntu #133868249256 at 06:52:57Z, including step 18 guest smoke and post steps. Runner-side restore CLI steps 13 and 15 passed in both matrix jobs. No raw VM or serial logs were read. Legacy combined status remains `pending` with zero contexts, separate from named checks. PR/issue openings were corrected and read back at 07:02:48Z/07:02:53Z.
+
+The verified f220 change adds a test-only post-failure archive-stage inventory assertion after authenticated traversal/symlink denials. Two uncommitted test-only candidates add initial-install dpkg interruption with explicit `dpkg --configure` recovery, and restore from retained encrypted artifacts after deleting both synthetic source trees. Neither candidate has local test or hosted CI evidence. The dpkg lab may invoke configured system hooks despite private paths, so run it only as non-root with explicit opt-in on disposable CI guests. Source deletion evidence remains synthetic; it does not prove offsite transfer, retention, new-guest, database/settings recovery, or issue #152 acceptance.
+
+Issue #172 remains open at 0/12 with all nine approval fields and `product_support_approval:false`. P0-06 and owner/security, production authentication/key custody, privileged-host, signed installer/recovery, integrated restore, accessibility, merge, deployment, and release gates remain open. Continue safe test/design work only; CI does not change phase or release decisions.
+
+## Historical execution checkpoint (PR head e9a6c70; superseded by f220226)
 
 PR #171 is open/draft/unmerged at `e9a6c700022e4d2834074980e9e82bac40a1b4d6` (base main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`); the integration branch ref matches. Exact-head CI was terminal at 05:51:37Z: 13/13 PR-event Actions runs and 24/24 check-runs succeeded, with zero failures or pending. P2 run #44024677223 passed Debian #133842055840 (Complete/job success at 05:45:33Z) and Ubuntu #133842055630 (Complete/job success at 05:50:38Z). No raw VM or serial logs were read. The legacy combined commit-status endpoint is `pending` with zero contexts; keep that no-context status separate from the successful named check-runs. PR and issue body reads were observed at 2026-11-17T05:54:07Z, after the PR/ref/CI reads; returned GitHub `updated_at` values were 2026-11-17T05:54:11Z for PR #171 and 2026-11-17T05:54:16Z for issue #172.
 

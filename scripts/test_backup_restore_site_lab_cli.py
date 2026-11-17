@@ -3,6 +3,7 @@ import os
 import io
 from pathlib import Path
 import random
+import shutil
 import subprocess
 import sys
 import stat
@@ -64,6 +65,15 @@ def main():
         sealed_b = artifact_b.read_bytes()
         if marker in sealed_b or marker_b in sealed_b or len(sealed_b) <= 65536:
             raise AssertionError("tenant-b fixture must be multi-record ciphertext without plaintext markers")
+
+        # Prove restores use only the retained encrypted artifacts. The source
+        # trees are both children of this private /tmp test root.
+        if source.parent != root or source_b.parent != root:
+            raise AssertionError("source fixture escaped the private test root")
+        shutil.rmtree(source)
+        shutil.rmtree(source_b)
+        if source.exists() or source_b.exists():
+            raise AssertionError("source fixtures remain after deletion")
 
         def lab(name):
             # The command must atomically create this absent, named root.
@@ -162,7 +172,7 @@ def main():
         run(args(target), sealed)
         restored = target / "restored"
         if (restored / "index.html").read_bytes() != marker or (restored / "nested" / "data.bin").read_bytes() != data:
-            raise AssertionError("restored site differs from source")
+            raise AssertionError("restored site differs from expected fixture bytes")
         if not (restored / "empty").is_dir() or sorted(p.name for p in target.iterdir()) != ["restored"]:
             raise AssertionError("unexpected restored tree or stage")
         inspect_empty_inventory(target)
@@ -176,7 +186,7 @@ def main():
         restored_b = target_b / "restored"
         if ((restored_b / "index.html").read_bytes() != marker_b or
                 (restored_b / "nested" / "data.bin").read_bytes() != data_b):
-            raise AssertionError("tenant-b restored site differs from source")
+            raise AssertionError("tenant-b restored site differs from expected fixture bytes")
         if not (restored_b / "empty").is_dir() or sorted(p.name for p in target_b.iterdir()) != ["restored"]:
             raise AssertionError("unexpected tenant-b restored tree or stage")
         if artifact_b.read_bytes() != sealed_b:

@@ -1,4 +1,14 @@
-## CURRENT CHECKPOINT: PR #171 at published e9a6c70 (PR/ref read 2026-11-17T05:51:52Z; exact-head CI read 05:51:37Z)
+## CURRENT CHECKPOINT: PR #171 at published f220226 (verified 2026-11-17T06:53:46Z)
+
+**Remote PR and exact-head CI:** PR #171 is open/draft/unmerged at `f2202265b2f366b7abcdbc92f785db6e570d758d` (tree `4f7e8d5c949225a26e906050349aa087be24f574`, parent `e9a6c700022e4d2834074980e9e82bac40a1b4d6`, base main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`); the integration ref matched. All 13 PR-event Actions runs and 24 check-runs succeeded, with zero failures or pending. P2 run #44032725908 passed Debian #133868248945 at 06:53:02Z and Ubuntu #133868249256 at 06:52:57Z, including guest smoke and post steps. Runner-side restore CLI steps 13 and 15 passed in both matrix jobs. No raw VM or serial logs were read. The legacy commit-status endpoint remains `pending` with zero contexts, separate from named checks. PR/issue openings were corrected and read back at 07:02:48Z/07:02:53Z.
+
+**Verified source:** f220226 adds a test-only metadata inventory assertion after authenticated traversal/symlink archive denials. The P2 step metadata confirms the enclosing CLI step passed but does not expose this assertion separately. It does not test cleanup failure or ambiguous publication.
+
+**Uncommitted test-only candidates:** one adds a first-install interruption and explicit `dpkg --configure` recovery, with the crash-lab count guards updated; another deletes both synthetic source trees after export and restores from retained encrypted artifacts against expected bytes held in memory. Neither has been run locally or in hosted CI. Configured dpkg hooks may run even with private database/install roots, so the lab remains non-root, explicit-opt-in, and disposable-guest-only. Synthetic source deletion does not prove offsite transfer, retention, a new-guest restore, database/settings recovery, or issue #152 acceptance.
+
+**Tracker and gates:** Issue #172 remains open at 0/12 DoD checked; its body says all nine approval fields and `product_support_approval` are false. P0-06 and owner/security, production authentication/key custody, privileged-host, signed installer/recovery, two-tenant restore, accessibility, merge, deployment, and release gates remain open. CI is not acceptance.
+
+## HISTORICAL CHECKPOINT: PR #171 at e9a6c70 (superseded by f220226)
 
 **Remote PR and exact-head CI:** PR #171 is open/draft/unmerged at `e9a6c700022e4d2834074980e9e82bac40a1b4d6` (base main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`); `integration/pr-reconciliation-20261113` matches. Exact-head CI was terminal at the 05:51:37Z read: 13/13 PR-event Actions runs and 24/24 check-runs succeeded, with zero failures or pending. P2 run #44024677223 passed Debian #133842055840 (Complete/job success at 05:45:33Z) and Ubuntu #133842055630 (Complete/job success at 05:50:38Z). No raw VM or serial logs were read. The legacy combined commit-status endpoint is `pending` with zero contexts; keep that no-context status separate from the successful named check-runs.
 

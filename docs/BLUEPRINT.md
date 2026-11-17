@@ -5,7 +5,17 @@
 **Status:** PRODUCT BLUEPRINT + UNMERGED DEV PROTOTYPES — no production-ready or supported deployable Tong Panel exists. For the actual code/CI state read [AI agent A–Z handoff](AI_AGENT_START_HERE.md).  
 **Original blueprint:** 2026-10-26 | **Current engineering status linked:** 2026-11-17 | **Blueprint revision:** 0.1 (targets preserved)
 
-## Current implementation reality and next agent entrypoint (PR #171 head e9a6c70; CI observed 2026-11-17T05:51:37Z)
+## Current implementation reality and next agent entrypoint (PR #171 head f220226; CI observed 2026-11-17T06:53:46Z)
+
+**Published PR/ref:** PR #171 remains open/draft/unmerged at `f2202265b2f366b7abcdbc92f785db6e570d758d` (tree `4f7e8d5c949225a26e906050349aa087be24f574`, parent `e9a6c700022e4d2834074980e9e82bac40a1b4d6`) against main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`; the integration ref matched. PR and issue openings were corrected and read back at 07:02:48Z and 07:02:53Z.
+
+**Exact-head CI:** all 13 PR-event Actions runs and 24 check-runs completed successfully for f220226, with no failures or pending results. P2 run #44032725908 passed Debian job #133868248945 at 06:53:02Z and Ubuntu job #133868249256 at 06:52:57Z, including step 18 guest smoke and post steps. Runner-side restore CLI steps 13 and 15 passed in both matrix jobs. Metadata does not show `inspect_empty_inventory` as a separate assertion result. No raw guest or serial logs were read. The legacy aggregate commit-status API remains `pending` with zero contexts, separate from named checks.
+
+**Verified source and local candidates:** f220226 adds the test-only post-failure inventory assertion after authenticated traversal/symlink denials; it does not inject cleanup failure or test ambiguous publication. Current uncommitted candidates add initial-install interruption and explicit `dpkg --configure` recovery in `scripts/test_dpkg_crash_recovery_lab.py` with count-guard updates, and source deletion/restoration from retained encrypted artifacts in `scripts/test_backup_restore_site_lab_cli.py`. Neither candidate was run locally or in hosted CI. The dpkg lab may invoke site-configured system hooks despite its private paths; preserve the non-root/opt-in barriers and disposable-guest restriction. The restore source-deletion case is synthetic and does not prove offsite transfer, retention, new-guest restore, database/settings recovery, or issue #152 acceptance.
+
+**Tracker and gates:** Issue #172 remains open at 0/12 DoD checked; its body states all nine approval fields false and `product_support_approval:false`. P0-06, owner/security decisions, production authentication/key custody, privileged-host actions, signed installer/recovery, integrated two-tenant restore, accessibility, merge, deployment, and release gates remain open. CI is not approval or phase acceptance; no production-ready or supported deployable Tong Panel exists. Read the [Aâ€“Z handoff](AI_AGENT_START_HERE.md) for the current resume order.
+
+### Historical exact-head snapshot — e9a6c70 (superseded by f220226; CI observed 2026-11-17T05:51:37Z)
 
 **Published PR/ref:** PR #171 remains open/draft/unmerged at `e9a6c700022e4d2834074980e9e82bac40a1b4d6` (tree `12891d236860bf2479ac37a84ca4166dbc2bfb3a`, parent `34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee`) against main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`; `integration/pr-reconciliation-20261113` matches.
 
