@@ -82,6 +82,15 @@ def main(binary):
         require(rejected.returncode == 2 and not rejected.stdout, "support export accepted extra arguments")
         require(canary.encode() not in rejected.stderr, "support usage error echoed secret argument")
         require(not database.exists(), "rejected command created a database")
+        if sys.platform.startswith("linux"):
+            full_device = Path("/dev/full")
+            require(full_device.is_char_device(), "Linux stdout-failure test device is unavailable")
+            with full_device.open("wb") as failing_stdout:
+                failed = subprocess.run([binary, "support-bundle"], env=environment,
+                                        stdout=failing_stdout, stderr=subprocess.PIPE, timeout=15)
+            require(failed.returncode == 1, "stdout write failure had unexpected exit status")
+            require(failed.stderr == b"support-bundle: output unavailable\n",
+                    "stdout write failure exposed a non-generic diagnostic")
     print("structured support export validated; canaries omitted, arguments rejected, no database created")
 
 
