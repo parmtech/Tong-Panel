@@ -190,6 +190,19 @@ def main():
             raise AssertionError("swapped-key denial did not retain an empty lab root")
         if tree_snapshot(target) != snapshot_a or tree_snapshot(target_b) != snapshot_b:
             raise AssertionError("swapped-key denial changed a valid tenant restore root")
+
+        # A tenant-b archive and its valid key must still be denied when the
+        # request names tenant-a. This isolates tenant binding from key failure.
+        denied_cross_tenant = lab("tenant-b-requested-as-a")
+        run(args(denied_cross_tenant, "tenant-a", key_b), sealed_b, success=False)
+        if not denied_cross_tenant.is_dir() or list(denied_cross_tenant.iterdir()):
+            raise AssertionError("cross-tenant denial did not retain an empty lab root")
+        if (denied_cross_tenant / "restored").exists():
+            raise AssertionError("cross-tenant denial published a destination")
+        if tree_snapshot(target) != snapshot_a or tree_snapshot(target_b) != snapshot_b:
+            raise AssertionError("cross-tenant denial changed a valid tenant restore root")
+        if artifact.read_bytes() != sealed or artifact_b.read_bytes() != sealed_b:
+            raise AssertionError("cross-tenant denial changed source ciphertext")
     print("synthetic export-to-restore-site-lab CLI checks passed")
 
 
