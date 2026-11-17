@@ -624,6 +624,28 @@ test('dark theme job details pass scoped accessibility checks', async ({ page })
     expect(axe.violations.map(({ id, impact, nodes }) => ({ id, impact, nodes: nodes.map(node => ({ target: node.target, reason: node.failureSummary })) }))).toEqual([]);
 });
 
+test('quick tour opens and closes by keyboard with focus return', async ({ page }) => {
+    await open(page, null);
+    const themeButton = page.getByRole('button', { name: 'Toggle color theme' });
+    const tourButton = page.getByRole('button', { name: 'Quick tour' });
+    const dialog = page.getByRole('dialog', { name: 'Welcome to Tong Panel' });
+    const closeButton = page.getByRole('button', { name: 'Got it' });
+
+    await themeButton.focus();
+    await page.keyboard.press('Tab');
+    await expect(tourButton).toBeFocused();
+    await page.keyboard.press('Enter');
+
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveJSProperty('open', true);
+    await expect(closeButton).toBeFocused();
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(dialog).toHaveJSProperty('open', false);
+    await expect(tourButton).toBeFocused();
+});
+
 test('mocked non-JSON detail 401 clears already rendered jobs and details', async ({ page }) => {
     await open(page);
     await load(page);
