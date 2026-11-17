@@ -77,6 +77,10 @@ class TransferNotRetryable(BackupModelError):
     pass
 
 
+class InvalidCheckpoint(BackupModelError):
+    pass
+
+
 @dataclass(frozen=True)
 class Identity:
     """Immutable logical backup stream generation bound to expected content."""
@@ -336,6 +340,28 @@ class _TransferAttempt:
     finished_at: float | None = None
 
 
+@dataclass(frozen=True)
+class _CheckpointOperation:
+    operation_id: int
+    identity: Identity
+    expected_size_bytes: int
+    attempt_ids: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class _CheckpointTransferAttempt:
+    attempt_id: int
+    operation_id: int
+    attempt_number: int
+    started_at: float
+    updated_at: float
+    transferred_bytes: int
+    state: TransferState
+    failure_reason: TransferFailureReason | None
+    cleanup_verified: bool | None
+    finished_at: float | None
+
+
 class TransferSimulator:
     """Provider-neutral transfer outcomes driven by caller-supplied limits and clock.
 
@@ -348,6 +374,8 @@ class TransferSimulator:
         model: Model,
         limits: TransferLimits,
         clock: Callable[[], float],
+        *,
+        clock_epoch: str | None = None,
     ) -> None:
         if (
             not isinstance(model, Model)
@@ -355,9 +383,12 @@ class TransferSimulator:
             or not callable(clock)
         ):
             raise InvalidTransferPolicy("a Model, explicit TransferLimits, and clock are required")
+        if clock_epoch is not None and (type(clock_epoch) is not str or not clock_epoch):
+            raise InvalidTransferClock("clock_epoch must be a non-empty synthetic epoch label")
         self._model = model
         self._limits = limits
         self._clock = clock
+        self._clock_epoch = clock_epoch
         self._last_clock_value: float | None = None
         self._next_operation_id = 0
         self._operations: dict[int, _TransferOperation] = {}
@@ -523,6 +554,63 @@ class TransferSimulator:
     def transfer(self, attempt_id: int) -> TransferSnapshot:
         return self._snapshot(self._get_attempt(attempt_id))
 
+    def checkpoint(self) -> SyntheticCheckpoint:
+        """Capture terminal coupled state as an in-memory synthetic value.
+
+        This is not a persistence or serialization format. An explicit epoch
+        label and an already-observed clock anchor are required so a caller
+        cannot silently carry elapsed downtime into this model.
+        """
+
+        if self._clock_epoch is None:
+            raise InvalidCheckpoint("checkpoint requires an explicit synthetic clock epoch")
+        if self._active_attempts:
+            raise InvalidCheckpoint("active transfer attempts cannot be checkpointed")
+        if self._last_clock_value is None:
+            raise InvalidCheckpoint("checkpoint requires an observed synthetic clock anchor")
+
+        checkpoint = SyntheticCheckpoint(
+            clock_epoch=self._clock_epoch,
+            clock_anchor=self._last_clock_value,
+            limits=self._limits,
+            next_attempt_id=self._model._next_attempt,
+            model_attempts=tuple(
+                AttemptSnapshot(attempt_id, value.identity, value.state)
+                for attempt_id, value in sorted(self._model._attempts.items())
+            ),
+            current_artifacts=tuple(
+                ArtifactSnapshot(value.identity, value.published_by)
+                for _, value in sorted(self._model._current.items())
+            ),
+            next_operation_id=self._next_operation_id,
+            operations=tuple(
+                _CheckpointOperation(
+                    operation_id,
+                    value.identity,
+                    value.expected_size_bytes,
+                    tuple(value.attempt_ids),
+                )
+                for operation_id, value in sorted(self._operations.items())
+            ),
+            transfer_attempts=tuple(
+                _CheckpointTransferAttempt(
+                    attempt_id=value.attempt_id,
+                    operation_id=value.operation_id,
+                    attempt_number=value.attempt_number,
+                    started_at=value.started_at,
+                    updated_at=value.updated_at,
+                    transferred_bytes=value.transferred_bytes,
+                    state=value.state,
+                    failure_reason=value.failure_reason,
+                    cleanup_verified=value.cleanup_verified,
+                    finished_at=value.finished_at,
+                )
+                for attempt_id, value in sorted(self._attempts.items())
+            ),
+        )
+        checkpoint._validate()
+        return checkpoint
+
     def _new_attempt(
         self,
         operation_id: int,
@@ -605,15 +693,519 @@ class TransferSimulator:
             raise InvalidTransferProgress("cleanup_verified must be true, false, or unspecified")
 
     def _now(self) -> float:
-        value = self._clock()
-        if (
-            isinstance(value, bool)
-            or not isinstance(value, (int, float))
-            or not math.isfinite(value)
-        ):
-            raise InvalidTransferClock("injected clock must return a finite number")
-        now = float(value)
+        now = self._read_clock(self._clock)
         if self._last_clock_value is not None and now < self._last_clock_value:
             raise InvalidTransferClock("injected clock must be monotonic")
         self._last_clock_value = now
         return now
+
+    @staticmethod
+    def _read_clock(clock: Callable[[], float]) -> float:
+        value = clock()
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise InvalidTransferClock("injected clock must return a finite number")
+        try:
+            finite = math.isfinite(value)
+        except OverflowError:
+            finite = False
+        if not finite:
+            raise InvalidTransferClock("injected clock must return a finite number")
+        return float(value)
+
+
+@dataclass(frozen=True)
+class SyntheticCheckpoint:
+    """Immutable, in-memory value for deterministic synthetic reconstruction.
+
+    This deliberately has no byte encoding, file format, schema version, or
+    durable recovery semantics. It captures one coupled Model and
+    TransferSimulator fixture only.
+    """
+
+    clock_epoch: str
+    clock_anchor: float
+    limits: TransferLimits
+    next_attempt_id: int
+    model_attempts: tuple[AttemptSnapshot, ...]
+    current_artifacts: tuple[ArtifactSnapshot, ...]
+    next_operation_id: int
+    operations: tuple[_CheckpointOperation, ...]
+    transfer_attempts: tuple[_CheckpointTransferAttempt, ...]
+
+    def reconstruct(
+        self,
+        clock: Callable[[], float],
+        *,
+        clock_epoch: str,
+    ) -> tuple[Model, TransferSimulator]:
+        """Rebuild the coupled fixture at its exact saved synthetic clock anchor."""
+
+        self._validate()
+        if not callable(clock):
+            raise InvalidCheckpoint("reconstruction requires a supplied synthetic clock")
+        if type(clock_epoch) is not str or clock_epoch != self.clock_epoch:
+            raise InvalidCheckpoint("supplied clock epoch does not match the checkpoint")
+        if TransferSimulator._read_clock(clock) != float(self.clock_anchor):
+            raise InvalidCheckpoint("supplied clock must begin at the saved synthetic anchor")
+
+        model = Model()
+        model._next_attempt = self.next_attempt_id
+        model._attempts = {
+            record.attempt_id: _Attempt(record.identity, record.state)
+            for record in self.model_attempts
+        }
+        model._current = {
+            artifact.identity.backup_id: _Artifact(artifact.identity, artifact.published_by)
+            for artifact in self.current_artifacts
+        }
+
+        simulator = TransferSimulator(
+            model,
+            self.limits,
+            clock,
+            clock_epoch=self.clock_epoch,
+        )
+        simulator._last_clock_value = float(self.clock_anchor)
+        simulator._next_operation_id = self.next_operation_id
+        simulator._operations = {
+            operation.operation_id: _TransferOperation(
+                operation.identity,
+                operation.expected_size_bytes,
+                list(operation.attempt_ids),
+            )
+            for operation in self.operations
+        }
+        simulator._attempts = {
+            record.attempt_id: _TransferAttempt(
+                attempt_id=record.attempt_id,
+                operation_id=record.operation_id,
+                attempt_number=record.attempt_number,
+                started_at=record.started_at,
+                updated_at=record.updated_at,
+                transferred_bytes=record.transferred_bytes,
+                state=record.state,
+                failure_reason=record.failure_reason,
+                cleanup_verified=record.cleanup_verified,
+                finished_at=record.finished_at,
+            )
+            for record in self.transfer_attempts
+        }
+        # Active attempts are rejected by validation, so the reconstructed
+        # simulator begins with no occupied concurrency slots.
+        simulator._active_attempts = set()
+        return model, simulator
+
+    def _validate(self) -> None:
+        """Reject active or inconsistent coupled fixture state before copying."""
+
+        def invalid(message: str) -> None:
+            raise InvalidCheckpoint(message)
+
+        def finite_number(value: object) -> bool:
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                return False
+            try:
+                return math.isfinite(value)
+            except OverflowError:
+                return False
+
+        if type(self.clock_epoch) is not str or not self.clock_epoch:
+            invalid("checkpoint has no synthetic clock epoch")
+        if not finite_number(self.clock_anchor):
+            invalid("checkpoint clock anchor must be finite")
+        if not isinstance(self.limits, TransferLimits):
+            invalid("checkpoint is missing explicit transfer limits")
+        for name, value in (
+            ("next_attempt_id", self.next_attempt_id),
+            ("next_operation_id", self.next_operation_id),
+        ):
+            if type(value) is not int or value < 0:
+                invalid(f"checkpoint {name} must be a non-negative integer")
+        for name, value in (
+            ("model_attempts", self.model_attempts),
+            ("current_artifacts", self.current_artifacts),
+            ("operations", self.operations),
+            ("transfer_attempts", self.transfer_attempts),
+        ):
+            if type(value) is not tuple:
+                invalid(f"checkpoint {name} must be an immutable tuple")
+
+        model_records: dict[int, AttemptSnapshot] = {}
+        for record in self.model_attempts:
+            if not isinstance(record, AttemptSnapshot):
+                invalid("checkpoint contains an invalid model attempt record")
+            if (
+                type(record.attempt_id) is not int
+                or record.attempt_id < 1
+                or record.attempt_id > self.next_attempt_id
+                or not isinstance(record.identity, Identity)
+                or not isinstance(record.state, AttemptState)
+                or record.state is AttemptState.ACTIVE
+            ):
+                invalid("checkpoint contains an active or invalid model attempt")
+            if record.attempt_id in model_records:
+                invalid("checkpoint contains duplicate model attempt IDs")
+            model_records[record.attempt_id] = record
+        if len(model_records) != self.next_attempt_id or (
+            model_records and max(model_records) != self.next_attempt_id
+        ):
+            invalid("model attempt counter does not match its complete history")
+
+        artifacts: dict[str, ArtifactSnapshot] = {}
+        for artifact in self.current_artifacts:
+            if not isinstance(artifact, ArtifactSnapshot) or not isinstance(
+                artifact.identity, Identity
+            ):
+                invalid("checkpoint contains an invalid current artifact")
+            backup_id = artifact.identity.backup_id
+            if backup_id in artifacts:
+                invalid("checkpoint contains duplicate current backup IDs")
+            publisher = model_records.get(artifact.published_by)
+            if (
+                type(artifact.published_by) is not int
+                or publisher is None
+                or publisher.identity != artifact.identity
+                or publisher.state is not AttemptState.VERIFIED
+            ):
+                invalid("current artifact does not match a verified publisher")
+            artifacts[backup_id] = artifact
+
+        operations: dict[int, _CheckpointOperation] = {}
+        for operation in self.operations:
+            if not isinstance(operation, _CheckpointOperation):
+                invalid("checkpoint contains an invalid transfer operation")
+            if (
+                type(operation.operation_id) is not int
+                or operation.operation_id < 1
+                or operation.operation_id > self.next_operation_id
+                or not isinstance(operation.identity, Identity)
+                or type(operation.expected_size_bytes) is not int
+                or operation.expected_size_bytes < 0
+                or type(operation.attempt_ids) is not tuple
+                or not operation.attempt_ids
+            ):
+                invalid("checkpoint contains an invalid transfer operation")
+            if operation.operation_id in operations:
+                invalid("checkpoint contains duplicate operation IDs")
+            operations[operation.operation_id] = operation
+        if len(operations) != self.next_operation_id or (
+            operations and max(operations) != self.next_operation_id
+        ):
+            invalid("operation counter does not match its complete history")
+
+        previous_initial_attempt_id: int | None = None
+        for operation_id in sorted(operations):
+            operation = operations[operation_id]
+            if any(type(attempt_id) is not int or attempt_id < 1 for attempt_id in operation.attempt_ids):
+                invalid("operation contains an invalid attempt ID")
+            if any(
+                earlier >= later
+                for earlier, later in zip(operation.attempt_ids, operation.attempt_ids[1:])
+            ):
+                invalid("attempt IDs must increase within each operation")
+            initial_attempt_id = operation.attempt_ids[0]
+            if (
+                previous_initial_attempt_id is not None
+                and initial_attempt_id <= previous_initial_attempt_id
+            ):
+                invalid("initial attempt IDs must increase with operation IDs")
+            previous_initial_attempt_id = initial_attempt_id
+
+        transfer_records: dict[int, _CheckpointTransferAttempt] = {}
+        for record in self.transfer_attempts:
+            if not isinstance(record, _CheckpointTransferAttempt):
+                invalid("checkpoint contains an invalid transfer attempt record")
+            if type(record.attempt_id) is not int or record.attempt_id in transfer_records:
+                invalid("checkpoint contains duplicate or invalid transfer attempt IDs")
+            transfer_records[record.attempt_id] = record
+        if set(transfer_records) != set(model_records):
+            invalid("model and transfer attempt histories do not match")
+
+        observed_operation_attempts: set[int] = set()
+        for operation_id, operation in operations.items():
+            if len(set(operation.attempt_ids)) != len(operation.attempt_ids):
+                invalid("operation contains duplicate attempt IDs")
+            if len(operation.attempt_ids) > self.limits.max_attempts:
+                invalid("operation history exceeds its configured attempt cap")
+            for index, attempt_id in enumerate(operation.attempt_ids, start=1):
+                if type(attempt_id) is not int or attempt_id in observed_operation_attempts:
+                    invalid("operation histories contain duplicate or invalid attempt IDs")
+                observed_operation_attempts.add(attempt_id)
+                record = transfer_records.get(attempt_id)
+                model_record = model_records.get(attempt_id)
+                if record is None or model_record is None:
+                    invalid("operation references an unknown attempt")
+                if (
+                    type(record.operation_id) is not int
+                    or record.operation_id < 1
+                    or type(record.attempt_number) is not int
+                    or record.attempt_number < 1
+                    or record.attempt_number > self.limits.max_attempts
+                    or record.operation_id != operation_id
+                    or record.attempt_number != index
+                    or model_record.identity != operation.identity
+                ):
+                    invalid("operation and attempt histories disagree")
+                if (
+                    type(record.transferred_bytes) is not int
+                    or not 0 <= record.transferred_bytes <= operation.expected_size_bytes
+                    or not finite_number(record.started_at)
+                    or not finite_number(record.updated_at)
+                    or not finite_number(record.finished_at)
+                    or record.started_at > record.updated_at
+                    or record.updated_at != record.finished_at
+                    or record.finished_at > self.clock_anchor
+                    or record.state is TransferState.ACTIVE
+                    or not isinstance(record.state, TransferState)
+                    or (
+                        record.failure_reason is not None
+                        and not isinstance(record.failure_reason, TransferFailureReason)
+                    )
+                    or (
+                        record.cleanup_verified is not None
+                        and type(record.cleanup_verified) is not bool
+                    )
+                ):
+                    invalid("checkpoint contains an active or invalid transfer attempt")
+
+                if (
+                    record.failure_reason is TransferFailureReason.STALE_GENERATION
+                    and record.state is not TransferState.STALE
+                ):
+                    invalid("stale-generation reason requires a stale transfer state")
+                if record.failure_reason in (
+                    TransferFailureReason.DIGEST_MISMATCH,
+                    TransferFailureReason.GENERATION_CONFLICT,
+                ) and (
+                    record.transferred_bytes != operation.expected_size_bytes
+                    or operation.expected_size_bytes > self.limits.max_size_bytes
+                ):
+                    invalid("digest or generation conflicts require a complete in-limit transfer")
+
+                model_state = model_record.state
+                elapsed = record.finished_at - record.started_at
+                current = artifacts.get(operation.identity.backup_id)
+                if model_state is AttemptState.STALE and (
+                    current is None
+                    or current.identity.generation <= operation.identity.generation
+                ):
+                    invalid("stale model attempt has no newer current generation")
+                if operation.expected_size_bytes > self.limits.max_size_bytes and (
+                    index != 1
+                    or len(operation.attempt_ids) != 1
+                    or record.state is not TransferState.FAILED
+                    or model_state is not AttemptState.FAILED
+                    or record.failure_reason is not TransferFailureReason.SIZE_LIMIT
+                    or record.cleanup_verified is not None
+                    or record.transferred_bytes != 0
+                    or record.finished_at != record.started_at
+                ):
+                    invalid("over-limit declared size must be an immediate unretryable size failure")
+                if record.state is TransferState.VERIFIED:
+                    valid_pair = model_state in (AttemptState.VERIFIED, AttemptState.STALE)
+                    if (
+                        not valid_pair
+                        or record.failure_reason is not None
+                        or record.cleanup_verified is not None
+                        or record.transferred_bytes != operation.expected_size_bytes
+                        or operation.expected_size_bytes > self.limits.max_size_bytes
+                        or elapsed > self.limits.max_duration_seconds
+                        or (
+                            model_state is AttemptState.STALE
+                            and (
+                                operation.identity.backup_id not in artifacts
+                                or artifacts[operation.identity.backup_id].identity.generation
+                                <= operation.identity.generation
+                            )
+                        )
+                    ):
+                        invalid("verified transfer state is inconsistent")
+                elif record.state is TransferState.STALE:
+                    if (
+                        model_state is not AttemptState.STALE
+                        or record.failure_reason is not TransferFailureReason.STALE_GENERATION
+                        or record.cleanup_verified is not None
+                        or record.transferred_bytes != operation.expected_size_bytes
+                        or operation.expected_size_bytes > self.limits.max_size_bytes
+                        or current is None
+                        or current.identity.generation <= operation.identity.generation
+                    ):
+                        invalid("stale transfer state is inconsistent")
+                elif record.state is TransferState.CLEANED:
+                    if (
+                        model_state is not AttemptState.FAILED
+                        or record.failure_reason is None
+                        or record.cleanup_verified is not True
+                        or record.transferred_bytes == 0
+                    ):
+                        invalid("cleaned transfer state is inconsistent")
+                elif record.state is TransferState.RECONCILIATION_REQUIRED:
+                    if (
+                        model_state is not AttemptState.RECONCILIATION_REQUIRED
+                        or record.failure_reason is None
+                        or record.cleanup_verified is True
+                        or record.transferred_bytes == 0
+                    ):
+                        invalid("unresolved reconciliation state is inconsistent")
+                elif record.state is TransferState.FAILED:
+                    if (
+                        model_state is not AttemptState.FAILED
+                        or record.failure_reason is None
+                        or record.cleanup_verified is not None
+                        or record.transferred_bytes != 0
+                    ):
+                        invalid("failed transfer state is inconsistent")
+                else:
+                    invalid("checkpoint contains an unsupported transfer state")
+
+                if elapsed > self.limits.max_duration_seconds:
+                    if record.failure_reason is not TransferFailureReason.DURATION_LIMIT:
+                        invalid("over-duration attempt has an inconsistent failure reason")
+                elif record.failure_reason is TransferFailureReason.DURATION_LIMIT:
+                    invalid("duration-limit failure did not exceed its configured bound")
+
+                if index > 1:
+                    previous = transfer_records.get(operation.attempt_ids[index - 2])
+                    if previous is None:
+                        invalid("retry history is missing its previous attempt")
+                    if (
+                        previous.state not in (TransferState.FAILED, TransferState.CLEANED)
+                        or previous.failure_reason is TransferFailureReason.SIZE_LIMIT
+                        or record.started_at
+                        < previous.finished_at
+                        + self.limits.backoff_seconds[previous.attempt_number - 1]
+                    ):
+                        invalid("retry history violates its prior outcome or backoff")
+
+        if observed_operation_attempts != set(transfer_records):
+            invalid("transfer attempts are not completely assigned to operations")
+
+        previous_started_at: float | None = None
+        for attempt_id in sorted(transfer_records):
+            started_at = transfer_records[attempt_id].started_at
+            if previous_started_at is not None and started_at < previous_started_at:
+                invalid("attempt start times must be nondecreasing by attempt ID")
+            previous_started_at = started_at
+
+        for attempt in model_records.values():
+            if (
+                attempt.state is AttemptState.VERIFIED
+                and attempt.identity.backup_id not in artifacts
+            ):
+                invalid("verified attempt has no current artifact")
+
+        successful_identities: dict[tuple[str, int], Identity] = {}
+        for transfer in transfer_records.values():
+            if transfer.state is not TransferState.VERIFIED:
+                continue
+            identity = operations[transfer.operation_id].identity
+            generation_key = (identity.backup_id, identity.generation)
+            prior_identity = successful_identities.setdefault(generation_key, identity)
+            if prior_identity != identity:
+                invalid("successful transfers conflict on a verified generation digest")
+
+        for backup_id, artifact in artifacts.items():
+            publisher_transfer = transfer_records.get(artifact.published_by)
+            if publisher_transfer is None or publisher_transfer.state is not TransferState.VERIFIED:
+                invalid("current artifact has no verified transfer publisher")
+            for transfer in transfer_records.values():
+                if transfer.state is not TransferState.VERIFIED:
+                    continue
+                transfer_identity = operations[transfer.operation_id].identity
+                # Duplicate verification preserves the original publisher. Equal-time
+                # finishes have no saved completion order, so cannot prove a forgery.
+                if (
+                    transfer_identity == artifact.identity
+                    and transfer.finished_at < publisher_transfer.finished_at
+                ):
+                    invalid("current publisher has an earlier verified publication")
+                if (
+                    transfer_identity.backup_id == backup_id
+                    and transfer_identity.generation < artifact.identity.generation
+                    and transfer.finished_at > publisher_transfer.finished_at
+                ):
+                    invalid("older verified transfer finishes after the current publication")
+            for attempt in model_records.values():
+                if (
+                    attempt.identity.backup_id != backup_id
+                    or attempt.state is not AttemptState.VERIFIED
+                ):
+                    continue
+                if attempt.identity.generation > artifact.identity.generation:
+                    invalid("current artifact is older than a verified generation")
+                if (
+                    attempt.identity.generation == artifact.identity.generation
+                    and attempt.identity != artifact.identity
+                ):
+                    invalid("current artifact conflicts with a verified generation digest")
+
+        for stale_id, stale in transfer_records.items():
+            if stale.state is not TransferState.STALE:
+                continue
+            stale_identity = operations[stale.operation_id].identity
+            has_prior_higher_publication = any(
+                witness_id != stale_id
+                and witness.state is TransferState.VERIFIED
+                and model_records[witness_id].state
+                in (AttemptState.VERIFIED, AttemptState.STALE)
+                and operations[witness.operation_id].identity.backup_id
+                == stale_identity.backup_id
+                and operations[witness.operation_id].identity.generation
+                > stale_identity.generation
+                and witness.finished_at <= stale.finished_at
+                for witness_id, witness in transfer_records.items()
+            )
+            if not has_prior_higher_publication:
+                invalid("stale transfer has no prior higher-generation verified publication")
+
+        for attempt_id, conflict in transfer_records.items():
+            if conflict.failure_reason is not TransferFailureReason.GENERATION_CONFLICT:
+                continue
+            conflict_identity = operations[conflict.operation_id].identity
+            has_higher_generation_published_before_conflict = any(
+                publication.state is TransferState.VERIFIED
+                and model_records[publication_id].state
+                in (AttemptState.VERIFIED, AttemptState.STALE)
+                and operations[publication.operation_id].identity.backup_id
+                == conflict_identity.backup_id
+                and operations[publication.operation_id].identity.generation
+                > conflict_identity.generation
+                and publication.finished_at < conflict.finished_at
+                for publication_id, publication in transfer_records.items()
+            )
+            has_prior_verified_witness = any(
+                witness_id != attempt_id
+                and witness.state is TransferState.VERIFIED
+                and model_records[witness_id].state
+                in (AttemptState.VERIFIED, AttemptState.STALE)
+                and operations[witness.operation_id].identity.backup_id
+                == conflict_identity.backup_id
+                and operations[witness.operation_id].identity.generation
+                == conflict_identity.generation
+                and operations[witness.operation_id].identity != conflict_identity
+                and witness.finished_at <= conflict.finished_at
+                for witness_id, witness in transfer_records.items()
+            )
+            if not has_prior_verified_witness:
+                invalid("generation conflict has no prior verified identity witness")
+            if has_higher_generation_published_before_conflict:
+                invalid("generation conflict follows a newer verified publication")
+
+        concurrency_events: list[tuple[float, int]] = []
+        for record in transfer_records.values():
+            operation = operations[record.operation_id]
+            if (
+                operation.expected_size_bytes > self.limits.max_size_bytes
+                or record.finished_at == record.started_at
+            ):
+                continue
+            concurrency_events.append((record.started_at, 1))
+            concurrency_events.append((record.finished_at, -1))
+        active_intervals = 0
+        for _, change in sorted(concurrency_events):
+            # A finish (-1) sorts before a start (+1) at the same timestamp.
+            active_intervals += change
+            if active_intervals < 0 or active_intervals > self.limits.max_concurrent_transfers:
+                invalid("historical admitted transfers exceed the concurrency cap")
+        if active_intervals != 0:
+            invalid("historical transfer intervals are inconsistent")

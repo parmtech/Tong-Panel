@@ -1,10 +1,18 @@
-# P2 issue #155 — Responsive Sites and Files journey acceptance plan
+## Current project checkpoint (state refreshed 2026-11-17T14:14:56Z)
 
-**State:** design proposal only, based on PR #171 source `dff0a230f3c7840df118efec63fa00011435e9a4`. This document adds acceptance criteria; it does not implement or verify the journeys, approve a role policy, or close P2 issue #155.
+PR #171 remains open/draft/unmerged at source head 8c8293bd0221df8500c26347a21270db41d78104 (tree f437c5570670a5b32ef3659d725bdf8073d1fd45, parent 203179dccdbcb9c07089c82f5644ba6b049c8093) against main 0aad68e81138a0f226e83e401f90bae4d0b6bddc; the integration ref matches. Exact-head CI remains green: 16/16 Actions runs and 27/27 checks. The PR/ref, issue/body, and exact-CI state were refreshed at 2026-11-17T14:14:56Z. Issue #172 remains open at 0/12; all nine approval fields and product_support_approval are false. Exact-head CI is 16/16 Actions runs and 27/27 checks green.
 
-**Issue:** [#155 — P2 acceptance: define mobile/tablet site and Files journeys](https://github.com/parmtech/Tong-Panel/issues/155).
+Issue #172 approval and release gates remain open. The Jobs browser regression remains browser automation evidence only; it does not satisfy issue #155 acceptance, physical-device testing, authenticated production coverage, WCAG review, or human accessibility review.
 
-## Current project checkpoint (published PR #171 head `203179dccdbcb9c07089c82f5644ba6b049c8093`; observed 2026-11-17T11:54:39Z)
+## Historical project checkpoint: PR #171 source head 8c8293; previous read at 2026-11-17T12:47:12Z
+
+PR #171 is open/draft/unmerged at `8c8293bd0221df8500c26347a21270db41d78104` (tree `f437c5570670a5b32ef3659d725bdf8073d1fd45`, parent `203179dccdbcb9c07089c82f5644ba6b049c8093`) against main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`; the integration ref matches. Exact-SHA CI is terminal green: 16/16 Actions runs and 27/27 check-runs passed, split into 13 pull_request runs / 24 checks and 3 push runs / 3 checks. No failures or pending checks. The P2 clean-VM run #44081075608 passed Debian 12 job #134031510312 (12:27:23Z) and Ubuntu 24.04 job #134031510891 (12:28:06Z), including restore CLI step 13, guest smoke step 18, cleanup, and job completion. No raw VM or serial logs were read. PR body readback is 2026-11-17T12:42:24Z; issue #172 body readback is 2026-11-17T12:42:30Z.
+
+Issue #172 remains open at 0/12 DoD, with all nine approval fields and `product_support_approval` false. P0-06, owner/security, production auth/key custody, privileged-host, signed installer/recovery, integrated restore, accessibility, merge, deployment, and release gates remain open. This CI does not satisfy issue #155 acceptance or human accessibility review.
+
+The committed Jobs browser regression covers a 320x640 phone viewport through the actual Files handler fixture. Its CI workflow/config includes the spec and passed; sanitized job metadata does not expose the individual test name. This remains browser automation evidence, not physical-device, authenticated production, WCAG, or issue #155 acceptance.
+
+## Historical project checkpoint (published PR #171 head `203179dccdbcb9c07089c82f5644ba6b049c8093`; superseded by 8c8293b; observed 2026-11-17T11:54:39Z)
 
 PR #171 is open/draft/unmerged at `203179dccdbcb9c07089c82f5644ba6b049c8093` (tree `b83dfc22980abc2bf3cdfc3579faf2e59404972b`) against main `0aad68e81138a0f226e83e401f90bae4d0b6bddc`; `integration/pr-reconciliation-20261113` matches. Exact-SHA CI is terminal green: 17/17 Actions runs and 28/28 check-runs passed (13 PR-event runs/24 checks and 4 push runs/4 checks). P2 run [#44067810602](https://github.com/parmtech/Tong-Panel/actions/runs/44067810602) passed Debian job #133985940788 and Ubuntu job #133985941365 through restore CLI, guest smoke, and job completion. No raw VM or serial logs were read. PR `updated_at` is `2026-11-17T11:04:13Z`; issue #172 `updated_at` is `2026-11-17T11:04:19Z`; those body timestamps precede this state/CI reread.
 
