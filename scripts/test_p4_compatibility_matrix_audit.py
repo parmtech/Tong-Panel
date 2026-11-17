@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -39,6 +40,25 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(contents, encoding="utf-8")
         return path
+
+    def make_outside_file(self):
+        outside = tempfile.TemporaryDirectory(dir=self.root.parent)
+        self.addCleanup(outside.cleanup)
+        path = Path(outside.name) / "outside.txt"
+        path.write_text("synthetic outside-root target\n", encoding="utf-8")
+        self.assertFalse(path.resolve().is_relative_to(self.root.resolve()))
+        return path
+
+    def create_outside_symlink(self, link: Path, target: Path):
+        link.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            link.symlink_to(target)
+        except OSError as exc:
+            if os.name == "nt" and getattr(exc, "winerror", None) == 1314:
+                self.skipTest(f"Windows symlink privilege is unavailable: {exc}")
+            self.fail(f"could not create required symlink fixture: {exc}")
+        self.assertTrue(link.is_symlink())
+        self.assertFalse(link.resolve().is_relative_to(self.root.resolve()))
 
     def valid_matrix(self):
         profile = {
@@ -315,6 +335,24 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
         self.matrix = self.valid_matrix()
         self.matrix["rows"][0]["evidence"][0]["artifact"] = "../outside.txt"
         self.assert_error("reference_outside_root:rows[0].evidence[0].artifact")
+
+    def test_symlinked_evidence_artifact_cannot_escape_root(self):
+        outside = self.make_outside_file()
+        link = self.root / "artifacts" / "outside.txt"
+        self.create_outside_symlink(link, outside)
+        self.matrix["rows"][0]["evidence"][0]["artifact"] = "artifacts/outside.txt"
+
+        self.assert_error("reference_unresolved:rows[0].evidence[0].artifact")
+
+    def test_symlinked_prerequisite_gate_reference_cannot_escape_root(self):
+        outside = self.make_outside_file()
+        link = self.root / "docs" / "phases" / "outside.md"
+        self.create_outside_symlink(link, outside)
+        self.matrix["rows"][0]["prerequisite_gates"][0]["reference"] = (
+            "docs/phases/outside.md"
+        )
+
+        self.assert_error("reference_unresolved:rows[0].prerequisite_gates[0].reference")
 
     def test_unknown_duplicate_and_uncovered_acceptance_cases_fail(self):
         self.matrix["rows"][0]["acceptance_case_ids"].append("11")

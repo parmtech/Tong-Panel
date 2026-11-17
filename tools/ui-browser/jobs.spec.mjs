@@ -648,21 +648,36 @@ test('existing file explorer remains wired when the fixture has no file backend'
     await expect(page.locator('#files-status')).toHaveText('File access is not enabled on this server yet.');
 });
 
-test('real Files handler pages and previews stay scoped to the authenticated tenant', async ({ page }) => {
+test('synthetic TLS fixture: real Files handler stays tenant-scoped at a phone viewport', async ({ page }) => {
     test.skip(process.platform !== 'linux', 'real pinned tenant roots are Linux-only');
     expect(fixture.Files).toBeTruthy();
+    await page.setViewportSize({ width: 320, height: 640 });
     await open(page, 'alice', fixture.Files);
     await page.locator('#files-refresh').click();
     await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'available');
     await expect(page.locator('#files-list .file-entry')).toHaveCount(200);
     await expect(page.locator('#files-list')).toContainText('a-000.txt');
     await expect(page.locator('#files-list')).not.toContainText('b-only.txt');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.getByRole('button', { name: 'Preview text a-000.txt' }).click();
     await expect(page.locator('#files-preview-content')).toHaveText('tenant A preview');
-    await page.locator('#files-next').click();
+    await page.getByRole('button', { name: 'Preview text a-199.txt' }).focus();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#files-preview-close')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#files-preview-content')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#files-next')).toBeFocused();
+    await expect(page.locator('#files-next')).toHaveCSS('outline-style', 'solid');
+    const nextBounds = await page.locator('#files-next').boundingBox();
+    expect(nextBounds).not.toBeNull();
+    expect(nextBounds.height).toBeGreaterThanOrEqual(44);
+    await page.keyboard.press('Enter');
     await expect(page.locator('#files-list .file-entry')).toHaveCount(1);
     await expect(page.locator('#files-list')).toContainText('a-200.txt');
     await expect(page.locator('#files-preview')).toBeHidden();
+    await expect(page.locator('#files-previous')).toBeFocused();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.context().clearCookies();
     await page.context().addCookies([{ name: '__Host-tong_session', value: fixture.Tokens.carol, url: fixture.Files, secure: true, httpOnly: true, sameSite: 'Strict' }]);
     await page.locator('#files-refresh').click();
@@ -670,6 +685,7 @@ test('real Files handler pages and previews stay scoped to the authenticated ten
     await expect(page.locator('#files-list')).not.toContainText('a-200.txt');
     await page.getByRole('button', { name: 'Preview text b-only.txt' }).click();
     await expect(page.locator('#files-preview-content')).toHaveText('tenant B preview');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.context().clearCookies();
     await page.locator('#files-refresh').click();
     await expect(page.locator('#files-status')).toHaveAttribute('data-state', 'unavailable');
