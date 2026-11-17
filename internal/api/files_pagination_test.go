@@ -12,22 +12,33 @@ import (
 type pagedTestFiles struct {
 	tenant, path, after, prefix string
 	limit                       int
+	calls                       int
 }
 
 func (f *pagedTestFiles) ListForTenant(_, _ string, _ int) ([]TenantFileEntry, error) {
+	f.calls++
 	return []TenantFileEntry{{Name: "legacy", Kind: "file"}}, nil
 }
-func (f *pagedTestFiles) ReadForTenant(_, _ string, _ int64) ([]byte, error) { return nil, nil }
+func (f *pagedTestFiles) ReadForTenant(_, _ string, _ int64) ([]byte, error) {
+	f.calls++
+	return nil, nil
+}
 func (f *pagedTestFiles) WriteNewForTenant(_, _ string, _ io.Reader, _ int64) (int64, error) {
+	f.calls++
 	return 0, nil
 }
-func (f *pagedTestFiles) RemoveForTenant(_, _ string) (int64, error) { return 0, nil }
+func (f *pagedTestFiles) RemoveForTenant(_, _ string) (int64, error) {
+	f.calls++
+	return 0, nil
+}
 func (f *pagedTestFiles) ListPageForTenant(tenant, path, after string, limit int) ([]TenantFileEntry, string, error) {
+	f.calls++
 	f.tenant, f.path, f.after, f.limit = tenant, path, after, limit
 	return []TenantFileEntry{{Name: "a", Kind: "file"}}, "a", nil
 }
 
 func (f *pagedTestFiles) ListPagePrefixForTenant(tenant, path, after, prefix string, limit int) ([]TenantFileEntry, string, error) {
+	f.calls++
 	f.prefix = prefix
 	return f.ListPageForTenant(tenant, path, after, limit)
 }
@@ -54,9 +65,13 @@ func TestFileListPaginationOptInAndAuthorization(t *testing.T) {
 	if w.Code != 200 || strings.Contains(w.Body.String(), "next_after") {
 		t.Fatalf("legacy response %d %s", w.Code, w.Body.String())
 	}
-	for _, query := range []string{"?prefix=a", "?page=1&prefix=a&prefix=b", "?page=1&prefix=a%2Fb", "?page=1&prefix=" + strings.Repeat("x", 129), "?after=a", "?page=2", "?page=1&page=1", "?page=1&after=a&after=b", "?page=1&tenant=other", "?page=1&limit=1001"} {
+	callsBeforeInvalidQueries := files.calls
+	for _, query := range []string{"?prefix=a", "?page=1&prefix=a&prefix=b", "?page=1&prefix=a%2Fb", "?page=1&prefix=%FF", "?page=1&prefix=%00", "?page=1&prefix=%7F", "?page=1&prefix=" + strings.Repeat("x", 129), "?after=a", "?page=2", "?page=1&page=1", "?page=1&after=a&after=b", "?page=1&tenant=other", "?page=1&limit=1001"} {
 		if w = run(query, owner); w.Code != 400 {
 			t.Errorf("%s returned %d", query, w.Code)
+		}
+		if files.calls != callsBeforeInvalidQueries {
+			t.Errorf("%s reached the file service (%d calls, want %d)", query, files.calls, callsBeforeInvalidQueries)
 		}
 	}
 	w = run("?page=1", rbac.Principal{UserID: "auditor", TenantID: "tenant-a", Role: rbac.Auditor})

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -15,7 +16,78 @@ import (
 	"github.com/parmtech/tong-panel/internal/auth"
 	"github.com/parmtech/tong-panel/internal/database"
 	"github.com/parmtech/tong-panel/internal/rbac"
+	"github.com/parmtech/tong-panel/internal/sites"
 )
+
+func TestSiteSessionListPrefixIsLiteralAndTenantScopedAtAPI(t *testing.T) {
+	s, _, db := setupSiteAPI(t)
+	sessions, err := auth.NewSQLiteSessionStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Sessions = sessions
+	h := s.Handler()
+	for _, item := range []struct{ token, id, domain string }{
+		{secret, "app_01", "app-underscore.example.test"},
+		{secret, "app_02", "app-underscore-second.example.test"},
+		{secret, "appX01", "app-x.example.test"},
+		{sqlOtherToken, "app_03", "tenant-b-match.example.test"},
+	} {
+		if r := createTestSite(t, h, item.token, item.id, item.domain); r.Code != http.StatusCreated {
+			t.Fatalf("create %s: %d %s", item.id, r.Code, r.Body.String())
+		}
+	}
+
+	issue := func(tenantID, userID string) string {
+		t.Helper()
+		token, _, _, err := sessions.Issue(rbac.Principal{TenantID: tenantID, UserID: userID, Role: rbac.Customer}, time.Hour)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return token
+	}
+
+	type sitePage struct {
+		Sites []sites.SiteSummary `json:"sites"`
+		Next  string              `json:"next_after"`
+	}
+	readPage := func(token, path string) (*httptest.ResponseRecorder, sitePage) {
+		t.Helper()
+		r := cookieCall(h, http.MethodGet, path, token, "", "", "")
+		var page sitePage
+		if r.Code != http.StatusOK {
+			t.Fatalf("%s: %d %s", path, r.Code, r.Body.String())
+		}
+		if err := json.Unmarshal(r.Body.Bytes(), &page); err != nil {
+			t.Fatalf("%s: decode page: %v", path, err)
+		}
+		return r, page
+	}
+	assertOnlySite := func(path string, r *httptest.ResponseRecorder, page sitePage, wantSiteID, wantDomain, wantNext string) {
+		t.Helper()
+		if len(page.Sites) != 1 || page.Sites[0].SiteID != wantSiteID || page.Sites[0].PrimaryDomain != wantDomain || page.Next != wantNext {
+			t.Fatalf("%s: returned %#v with cursor %q, want only %s at %s and cursor %q", path, page.Sites, page.Next, wantSiteID, wantDomain, wantNext)
+		}
+		for _, excluded := range []string{"appX01", "app-x.example.test", "app_01", "app-underscore.example.test", "app_02", "app-underscore-second.example.test", "app_03", "tenant-b-match.example.test"} {
+			if excluded != wantSiteID && excluded != wantDomain && strings.Contains(r.Body.String(), excluded) {
+				t.Fatalf("%s: response disclosed excluded site %q: %s", path, excluded, r.Body.String())
+			}
+		}
+	}
+
+	tenantAToken := issue("tenant-a", "u1")
+	path := "/api/v1/sites?prefix=app_&limit=1"
+	r, page := readPage(tenantAToken, path)
+	assertOnlySite(path, r, page, "app_01", "app-underscore.example.test", "app_01")
+
+	path += "&after=" + page.Next
+	r, page = readPage(tenantAToken, path)
+	assertOnlySite(path, r, page, "app_02", "app-underscore-second.example.test", "")
+
+	tenantBPath := "/api/v1/sites?prefix=app_&limit=1"
+	r, page = readPage(issue("tenant-b", "u3"), tenantBPath)
+	assertOnlySite(tenantBPath, r, page, "app_03", "tenant-b-match.example.test", "")
+}
 
 func TestSiteListRechecksAuthenticatedSessionSnapshot(t *testing.T) {
 	s, _, db := setupSiteAPI(t)

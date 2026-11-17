@@ -636,6 +636,7 @@ test('component preview: Sites and Files reflow with 200% text enlargement and s
 
     await tabUntilFocused(page, '#site-details-close', viewport);
     await expectVisibleKeyboardFocus(page, '#site-details-close', viewport);
+    await page.locator('#files-refresh').focus();
     await tabUntilFocused(page, '#files-preview-close', viewport);
     await expectVisibleKeyboardFocus(page, '#files-preview-close', viewport);
 

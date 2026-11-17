@@ -204,7 +204,7 @@ def main():
             ("tampered", bytes(tampered)),
             ("truncated", sealed[:len(sealed) // 2]),
         ):
-            denied = lab(kind)
+            denied = lab("post-valid-" + kind)
             run(args(denied), damaged, success=False, expected_stderr=rejected_restore)
             if not denied.is_dir() or list(denied.iterdir()):
                 raise AssertionError(kind + " artifact denial did not retain an empty lab root")

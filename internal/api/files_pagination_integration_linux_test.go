@@ -32,6 +32,20 @@ func TestFilePaginationCookieAndPinnedTenantRoots(t *testing.T) {
 			}
 		}
 	}
+	for root, names := range map[string][]string{
+		rootA: {"app_01.txt", "app_02.txt", "appX01.txt", "z-last.txt"},
+		rootB: {"app_03.txt"},
+	} {
+		dir := filepath.Join(root, "prefix-pages")
+		if err := os.Mkdir(dir, 0700); err != nil {
+			t.Fatal(err)
+		}
+		for _, name := range names {
+			if err := os.WriteFile(filepath.Join(dir, name), []byte(name), 0600); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
 	issue := func(p rbac.Principal) string {
 		token, _, _, err := sessions.Issue(p, time.Hour)
 		if err != nil {
@@ -67,6 +81,37 @@ func TestFilePaginationCookieAndPinnedTenantRoots(t *testing.T) {
 	page(tokenA, "", []string{"a-one", "a-three"}, "a-three")
 	page(tokenA, "&after=a-three", []string{"a-two"}, "")
 	page(tokenB, "", []string{"b-only"}, "")
+	prefixPage := func(token, after string, wantNames []string, wantNext string, forbidden ...string) {
+		t.Helper()
+		query := "/api/v1/files?path=prefix-pages&page=1&limit=1&prefix=app_"
+		if after != "" {
+			query += "&after=" + after
+		}
+		response := sessionGET(h, query, token)
+		if response.Code != http.StatusOK {
+			t.Fatalf("prefix listing: %d %s", response.Code, response.Body.String())
+		}
+		var body listing
+		if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+			t.Fatal(err)
+		}
+		names := make([]string, 0, len(body.Entries))
+		for _, entry := range body.Entries {
+			names = append(names, entry.Name)
+		}
+		if !reflect.DeepEqual(names, wantNames) || body.Next != wantNext {
+			t.Fatalf("prefix listing after %q returned names %v and cursor %q, want %v and %q", after, names, body.Next, wantNames, wantNext)
+		}
+		for _, name := range forbidden {
+			if strings.Contains(response.Body.String(), name) {
+				t.Fatalf("prefix listing disclosed nonmatching or foreign name %q: %s", name, response.Body.String())
+			}
+		}
+	}
+	prefixPage(tokenA, "", []string{"app_01.txt"}, "app_01.txt", "appX01.txt", "app_02.txt", "app_03.txt", "z-last.txt")
+	prefixPage(tokenA, "app_01.txt", []string{"app_02.txt"}, "", "appX01.txt", "app_03.txt", "z-last.txt")
+	prefixPage(tokenA, "app_02.txt", []string{}, "", "appX01.txt", "app_03.txt", "z-last.txt")
+	prefixPage(tokenB, "", []string{"app_03.txt"}, "", "app_01.txt", "app_02.txt", "appX01.txt", "z-last.txt")
 	for _, tc := range []struct {
 		token, query string
 		want         int

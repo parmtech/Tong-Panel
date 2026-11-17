@@ -91,5 +91,7 @@
 /* Keep the primary Sites and Files actions usable at phone widths. */
 #sites-load,#sites-filter button,#sites-prefix,#sites-list button[aria-label^="Use "],#sites-previous,#sites-next,
 #files-refresh,#files-filter button,#files-prefix,#files-list button[aria-label^="Preview text "],#files-preview-close,#files-previous,#files-next{min-width:44px;min-height:44px}
+#sites-prefix,#files-prefix{max-width:100%}
+#sites-list .job-entry>span,#site-details-fields dd,#site-details-domains li{overflow-wrap:anywhere}
 
 .sidebar nav a:focus-visible,.notice a:focus-visible{outline-color:#fff}

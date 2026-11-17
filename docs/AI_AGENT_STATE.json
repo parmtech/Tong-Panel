@@ -2,12 +2,12 @@
   "schema": 1,
   "generated_date": "2026-11-17",
   "timezone": "Australia/Sydney",
-  "snapshot_kind": "not_live_monitor",
+  "snapshot_kind": "static_snapshot_not_live_monitor",
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "codex/tong-panel-candidate-20261116",
-  "source_head_before_handoff_commit": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-  "source_tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+  "source_head_before_handoff_commit": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+  "source_tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -552,8 +552,8 @@
       "scope_note": "These results are for exact PR head 34db, a documentation-only child of 7f5bbc. They cover the committed 7f source in that tree, but are not a standalone exact-head result on 7f5bbc and do not cover later uncommitted worktree changes."
     }
   },
-  "published_pr_head_at_snapshot": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-  "local_checkpoint_parent_at_snapshot": "f2202265b2f366b7abcdbc92f785db6e570d758d",
+  "published_pr_head_at_snapshot": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+  "local_checkpoint_parent_at_snapshot": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
@@ -791,20 +791,20 @@
     "evidence": "Adds bounded HTTPS failure-only metadata and invocation-count coverage, keyboard pagination/focus and 401/403 denied-state fallback, and malformed/trailing encrypted-backup coverage. Combined local checks: 11 cleanup cases, 14 Python HTTPS tests, 51/51 web unit tests, shell/JavaScript syntax and diff check. Separate component evidence: focused pagination 1/1, denial 1/1, responsive browser 13/13, TypeScript passed. Independent integrated review found no blocker.",
     "limitations": "At the 1f snapshot, candidate exact-head CI was pending and the integrated worktree lacked Playwright, TypeScript and Go; b411 later included 1f and passed exact-head CI. PHP-FPM comm names on pinned guests remain unverified. The HTTPS failure cause remains unknown. Synthetic UI evidence does not establish authenticated-tenant, physical-device or human accessibility acceptance; issue #155 remains open."
   },
-  "local_candidate_head": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-  "local_latest_test_commit": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+  "local_candidate_head": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+  "local_latest_test_commit": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
   "previous_local_latest_test_commit": "16038e2818f7eea3b177d954a4d02423420f5976",
-  "local_candidate_tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
-  "local_snapshot_head": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-  "local_snapshot_tree": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
-  "local_source_candidate_before_handoff_commit": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-  "local_source_candidate_parent": "f2202265b2f366b7abcdbc92f785db6e570d758d",
-  "local_source_candidate_pushed": true,
+  "local_candidate_tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
+  "local_snapshot_head": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+  "local_snapshot_tree": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
+  "local_source_candidate_before_handoff_commit": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+  "local_source_candidate_parent": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+  "local_source_candidate_pushed": false,
   "local_source_candidate_commit_time_utc": "2026-11-17T07:22:02Z",
   "previous_local_source_candidate_commit_time_utc": "2026-11-17T03:10:11Z",
-  "current_worktree_changes": "HEAD is published PR #171 c86f9fd158c391cf8fb4d441d890c7417134fb43 (tree 7db2054e9d3dd0e3b5d530086b286e232cc5d61f). Current uncommitted paths are: .github/workflows/p1-gate-audit.yml, AGENTS.md, UPDATES.md, docs/AI_AGENT_START_HERE.md, docs/AI_AGENT_STATE.json, docs/BLUEPRINT.md, docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md, docs/P0_THREAT_TEST_CROSSWALK.md, docs/P1_DPKG_FAILURE_RECOVERY_LAB.md, docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md, docs/P2_ACCEPTANCE_TRACEABILITY.md, docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md, docs/PHASE_INDEX.md, docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md, docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md, docs/RESUME_HANDOFF_2026-11-12.md, docs/ROADMAP.md, docs/phases/P4-DESIGN-ACCEPTANCE.md, internal/api/site_page_test.go, scripts/p0_threat_crosswalk_audit.py, scripts/test_p0_threat_crosswalk_audit.py, scripts/test_backup_restore_site_lab_cli.py, tools/ui-browser/responsive-sites-files.spec.mjs. They are not pushed or covered by c86 CI.",
-  "snapshot_scope_note": "Static local-candidate snapshot refreshed 08:54:41Z. Last PR/ref/issue read was 08:17:04Z and exact c86 Actions/check-run metadata was reread 08:21:00Z; a fresh read is required immediately before publication. PR/issue body updated_at values remain 08:15:15Z and 08:15:21Z.",
-  "published_pr_tree_at_snapshot": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+  "current_worktree_changes": "HEAD is published PR #171 5712fa17b5c07bc60ad881ddd772554e4fa94c96 (tree dd69eccf8ae9146ebdc7757d99ca329de365dd4b). At 2026-11-17T10:42:52Z, 19 local paths are modified; the current worktree candidate records exact paths, local results, scope, and workflow forecast. None is included in hosted 5712 CI.",
+  "snapshot_scope_note": "Static state refreshed for published PR #171 exact head 5712fa17. GitHub connector PR/ref/CI and issue observation at 2026-11-17T10:02:06Z. PR and issue body snapshots were refreshed separately at 10:03Z with historical suffixes retained; API updated_at values are 10:06:24Z (PR) and 10:06:31Z (issue). The earlier 09:24:20Z PR API timestamp reflected head-sync metadata.",
+  "published_pr_tree_at_snapshot": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
   "published_pr_ci_snapshot": {
     "scope": "historical_f804_terminal_CI_baseline_only; 10f666a_and_570_exact_head_CI_are_preserved_in_historical_and_latest_snapshots",
     "head_sha": "f804127fdef6b46fec16c27beeb357398e066cba",
@@ -866,7 +866,7 @@
     "note": "Issue #172 state was reread at 2026-11-17T05:13:45Z: open, 0/12 DoD checked, all nine approval fields false, and product support false. The issue body updated_at remains 2026-11-17T04:53:18Z; this is a separate body timestamp, not the reread time."
   },
   "local_snapshot_note": "Published f220 passed 13/13 PR-event Actions and 24/24 checks, including P2 on Debian and Ubuntu. Current uncommitted dpkg and restore CLI candidates have not run locally or in hosted CI; f220 CI does not cover them.",
-  "snapshot_timestamp_utc": "2026-11-17T08:54:41Z",
+  "snapshot_timestamp_utc": "2026-11-17T10:02:06Z",
   "historical_pr_2054_ci_snapshot": {
     "head_sha": "2054a425108abd4db8df6e84b29c421dafe17dd0",
     "source_candidate_sha": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
@@ -931,7 +931,7 @@
     "source_fix_present": false,
     "source_fix_scope_note": "false on published head 2054; FPM follow-up is present only in unpublished local candidate 3490235 and does not confirm root cause"
   },
-  "snapshot_read_at_utc": "2026-11-17T08:17:04Z",
+  "snapshot_read_at_utc": "2026-11-17T10:02:06Z",
   "previous_current_follow_up_before_e9a6": {
     "status": "PR_34db_open_draft_unmerged_exact_head_green; newer_test_and_document_changes_uncommitted",
     "published_pr_head": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
@@ -1244,9 +1244,9 @@
     "collected_at_utc": "2026-11-16T16:35:23Z",
     "snapshot_scope": "historical_db97_only; not_current_5257_CI"
   },
-  "pr_state_observed_at_utc": "2026-11-17T08:17:04Z",
-  "issue_state_observed_at_utc": "2026-11-17T08:17:04Z",
-  "ci_snapshot_timestamp_utc": "2026-11-17T08:21:00Z",
+  "pr_state_observed_at_utc": "2026-11-17T10:02:06Z",
+  "issue_state_observed_at_utc": "2026-11-17T10:02:06Z",
+  "ci_snapshot_timestamp_utc": "2026-11-17T10:02:06Z",
   "historical_5257_head": {
     "head_sha": "5257aa3bd3b217a5a28316812618009c6244c01f",
     "tree_sha": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
@@ -1302,10 +1302,9 @@
     "product_support_approval": false,
     "gate_changes": false
   },
-  "source_candidate_head_before_handoff_commit": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-  "remote_pr_head": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-  "current_handoff_commit_parent": "f2202265b2f366b7abcdbc92f785db6e570d758d",
-  "issue_body_updated_at_utc": "2026-11-17T08:15:21Z",
+  "source_candidate_head_before_handoff_commit": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+  "remote_pr_head": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+  "current_handoff_commit_parent": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
   "source_commits_since_f804_in_pr_head_5703066": [
     {
       "sha": "f3d02ac841655a5320f5dd3b602310ef3cc5757f",
@@ -1443,7 +1442,7 @@
     },
     "terminal_result_first_observed_at_utc": "2026-11-17T04:52:17Z"
   },
-  "worktree_state": "HEAD is published PR c86 with 13/13 pull_request Actions and 24/24 checks passed; current 23-file candidate is uncommitted, unpublished, and outside that CI.",
+  "worktree_state": "HEAD is published PR 5712. PR-event CI has 11/13 runs and 21/24 checks green; exact-SHA push CI has 3/3 runs and checks green. The 10:12Z local worktree inventory is uncommitted and outside hosted results.",
   "previous_live_snapshot_570": {
     "observed_at_utc": "2026-11-16T22:50:07Z",
     "observation_basis": "PR/ref and terminal exact-head CI were read at 2026-11-16T22:50:07Z. PR body updated_at was 2026-11-16T22:52:59Z. Issue #172 DoD/approval state was audited at 2026-11-16T21:35:21Z and reverified unchanged before issue body updated_at 2026-11-16T22:53:04Z; exact re-verification time was not separately provided.",
@@ -1496,7 +1495,7 @@
     "gate_changes": false,
     "snapshot_label": "previous_terminal_570_snapshot"
   },
-  "source_commits_inventory_scope": "Published source history through c86 includes test-only regressions and handoff documents. Current uncommitted candidate adds restore corruption denials, injected-CSS responsive checks, a literal-prefix pagination API regression, P0 crosswalk structural validation/workflow, and refreshed current/historical phase handoffs; no production behavior or approval-gate change is claimed.",
+  "source_commits_inventory_scope": "Published source is exact PR head 5712. P2 runner-side restore CLI step 13 failed on both OS jobs before guest step 18; hosted browser step 9 ended with generic exit 1; a separate local run of the committed 5712 test measured 410px scrollWidth at 320x640, a plausible but unconfirmed explanation. Local CSS/responsive, P2 CLI, API test, and structural P0 audit changes remain unpublished; P0 audit passed 10/10 without mitigation or approval evidence. The cookie-session prefix/cursor/tenant API test in internal/api/site_session_page_test.go, actual-Handler cookie prefix/cursor/tenant-root isolation test in internal/api/files_pagination_integration_linux_test.go, and %FF/%00/%7F invalid-prefix HTTP 400 cases in internal/api/files_pagination_test.go assert no file-service call; they are test-only and unrun because Go is unavailable.",
   "repository_safety_snapshot": {
     "observed_at_utc": "2026-11-17T00:08Z",
     "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
@@ -1530,7 +1529,6 @@
     "observed_failures_on_7f": 0,
     "scope": "historical workflow-selection audit for 7f; when this audit was recorded, current 2f CI was recorded in the then-latest_live_snapshot; current exact-head CI is 34db"
   },
-  "pr_body_updated_at_utc": "2026-11-17T08:15:15Z",
   "previous_live_snapshot_7f": {
     "observed_at_utc": "2026-11-17T00:54:06Z",
     "ci_completed_at_utc": "2026-11-17T00:48:19Z",
@@ -1759,8 +1757,8 @@
     "previous_terminal_7f": "13_of_13_Actions_and_23_of_23_checks_passed_at_00:48:19Z; P2_run_43986960603; Debian_133717480521; Ubuntu_133717480949; historical_for_7f_only",
     "local_docs_refresh_uncommitted": true
   },
-  "pr_body_snapshot_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-  "issue_body_snapshot_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+  "pr_body_snapshot_head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+  "issue_body_snapshot_head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
   "historical_f804_source_checkpoint": {
     "scope": "historical f804 source-CI baseline; current PR head 2f is a test-only P4 schema regression plus handoff docs and has terminal exact-head CI",
     "sha": "f804127fdef6b46fec16c27beeb357398e066cba",
@@ -1905,7 +1903,7 @@
     "hosted_ci": "not_run",
     "note": "Prior 7f workflow-trigger forecast is preserved as historical; no workflow forecast or exact-head result is asserted for this uncommitted candidate."
   },
-  "local_handoff_refresh_status": "c86 is published in PR #171 and exact-head CI passed 13/13 pull_request Actions and 24/24 checks. Current restore, responsive UI, site-prefix API, P0 crosswalk, workflow, and 17-document handoff changes remain uncommitted and outside that CI.",
+  "local_handoff_refresh_status": "5712 is published. The 12-file handoff/state refresh plus CSS, responsive spec, API tests, P2 CLI fixture, and P0 audit changes remain unpublished; worktree inventory observed 2026-11-17T10:35:47Z.",
   "previous_source_head_ci_11c": {
     "head_sha": "11c0362cd70ba01fee1f360ac2c657566713fc17",
     "tree_sha": "bfd7c35693d328a8b47cb4adf9368b9767663cdb",
@@ -2989,8 +2987,8 @@
       "p2_backup_retry_model": "python -m unittest discover -s prototypes/p2-backup-retry-model -p 'test_*.py' -v"
     }
   },
-  "local_candidate_hosted_ci": "not_run_for_current_uncommitted_post_c86_worktree_candidate; c86 CI does not cover these edits",
-  "current_handoff_commit_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+  "local_candidate_hosted_ci": "not_run_for_current_uncommitted_changes; exact 5712 PR and push results do not cover them.",
+  "current_handoff_commit_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
   "published_source_checkpoint": {
     "sha": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
     "tree_sha": "17f0d52f1ba1cf955766bb1d68c4e7710630eb9c",
@@ -3041,7 +3039,7 @@
       "scripts/test_backup_restore_site_lab_cli.py"
     ]
   },
-  "local_source_candidate_status": "The current candidate is the post-c86 uncommitted worktree delta with a synthetic site-prefix API regression and expanded handoff refresh; it is not pushed or covered by hosted CI. Published c86 exact-head CI is separate and does not cover it.",
+  "local_source_candidate_status": "Uncommitted filter-width/wrapping CSS changes and responsive-spec keyboard-focus setup correction; responsive spec 21/21; structural P0 crosswalk audit 10/10 without mitigation/P0 acceptance; P2 root-name adjustment unrun. The cookie-session prefix/cursor/tenant API test in internal/api/site_session_page_test.go, actual-Handler cookie prefix/cursor/tenant-root isolation test in internal/api/files_pagination_integration_linux_test.go, and %FF/%00/%7F invalid-prefix HTTP 400 cases in internal/api/files_pagination_test.go asserting no file-service call are test-only and unrun because Go is unavailable.",
   "previous_legacy_commit_status_34db": {
     "head_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
     "state": "pending",
@@ -3759,397 +3757,352 @@
     }
   },
   "source_head_ci": {
-    "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
     "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
     "pr_state": "open_draft_unmerged",
-    "observed_at_utc": "2026-11-17T07:52:05Z",
-    "workflow_runs_total": 13,
-    "workflow_success": 13,
-    "workflow_failure": 0,
-    "check_runs_total": 24,
+    "observed_at_utc": "2026-11-17T10:02:06Z",
+    "observation_source": "GitHub connector read at 2026-11-17T10:02:06Z.",
+    "workflow_runs_total": 16,
+    "workflow_success": 14,
+    "workflow_failure": 2,
+    "check_runs_total": 27,
     "check_success": 24,
-    "check_failure": 0,
+    "check_failure": 3,
     "pending": 0,
     "pull_request_workflows": {
       "total": 13,
-      "success": 13,
+      "success": 11,
+      "failure": 2,
+      "in_progress": 0
+    },
+    "pull_request_check_runs": {
+      "total": 24,
+      "success": 21,
+      "failure": 3,
+      "in_progress": 0
+    },
+    "exact_sha_push_workflows": {
+      "total": 3,
+      "success": 3,
       "failure": 0,
       "in_progress": 0
     },
-    "push_workflows": {
-      "total": 0,
-      "success": 0,
+    "exact_sha_push_check_runs": {
+      "total": 3,
+      "success": 3,
       "failure": 0,
-      "in_progress": 0,
-      "observation": "no same-SHA push runs observed"
+      "in_progress": 0
     },
-    "p2_run_id": 44038233819,
-    "debian_job_id": 133886220172,
-    "ubuntu_job_id": 133886219805,
-    "p2_runner_steps": {
-      "run_id": 44038233819,
-      "debian_job_id": 133886220172,
-      "debian_guest_status": "guest_smoke_step_18_success_2026-11-17T07:36:57Z; post_steps_and_job_success_2026-11-17T07:37:00Z",
-      "ubuntu_job_id": 133886219805,
-      "ubuntu_guest_status": "guest_smoke_step_18_and_post_steps_success_2026-11-17T07:51:10Z; job_success_2026-11-17T07:51:12Z",
-      "runner_steps_8_9_13_15": "success_on_both_jobs; step 8 dpkg failure/recovery, step 9 interruption/recovery, step 13 restore CLI, step 15 restore inventory CLI",
-      "assertion_visibility_limit": "Step metadata confirms enclosing CLI steps, not individual assertions.",
-      "raw_vm_or_serial_logs_read": false
-    },
+    "failures": [
+      {
+        "check": "P2 Debian",
+        "runner_side_restore_cli_step_13": "failed",
+        "guest_step_18": "skipped",
+        "guest_runtime_evidence": "none"
+      },
+      {
+        "check": "P2 Ubuntu",
+        "runner_side_restore_cli_step_13": "failed",
+        "guest_step_18": "skipped",
+        "guest_runtime_evidence": "none"
+      },
+      {
+        "check": "Jobs browser checks",
+        "step_9": "generic exit 1"
+      }
+    ],
     "raw_vm_or_serial_logs_read": false,
-    "limitations": [
-      "This result applies to exact published PR head c86 only; it does not cover the uncommitted post-c86 candidate.",
-      "P2 step metadata confirms enclosing runner-side steps, not individual assertions.",
-      "The legacy aggregate commit-status endpoint is pending with zero contexts and is separate from named check-runs.",
-      "No raw VM or serial logs were read."
-    ],
-    "scope": "Exact c86 pull_request Actions and check-run metadata reread at 2026-11-17T08:21:00Z; all are terminal and successful. P2 Debian and Ubuntu job completion times and step metadata are recorded separately.",
-    "workflow_run_ids": {
-      "pr_current_api_contract_checks": 44038234109,
-      "pr_go_static_security_analysis": 44038233841,
-      "pr_p1_unsigned_developer_package_lab": 44038233949,
-      "pr_jobs_browser_checks": 44038233798,
-      "pr_go_checks": 44038233941,
-      "pr_sqlite_schema_checks": 44038234152,
-      "pr_ui_checks": 44038234136,
-      "pr_go_vulnerability_checks": 44038233790,
-      "pr_p1_gate_blocker_inventory": 44038233799,
-      "pr_offline_model_and_fixture_checks": 44038233818,
-      "pr_isolated_go_prototype_checks": 44038234358,
-      "pr_p1_developer_smoke": 44038234150,
-      "pr_p2_clean_disposable_vm_smoke": 44038233819
+    "browser_overflow_reproduction": "A local run of the committed 5712 200% responsive test measured document scrollWidth 410px at 320x640. This is a plausible explanation for hosted browser step 9, not a confirmed cause; hosted metadata gives only generic exit 1.",
+    "unpublished_followups": {
+      "p2_cli_root_name": "scripts/test_backup_restore_site_lab_cli.py uses lab(\"post-valid-\" + kind); unrun",
+      "cookie_session_prefix_cursor_tenant_api": "unrun; Go unavailable",
+      "p0_crosswalk_audit": {
+        "path": "scripts/test_p0_threat_crosswalk_audit.py",
+        "result": "10/10 local structural audit tests passed, including symlink-escape regression",
+        "scope": "Repository reference and text-signature checks only; no cited product-test execution, threat mitigation evidence, or P0 approval",
+        "hosted_5712_coverage": false
+      },
+      "full_npm_test": "not established",
+      "actual_handler_browser_workflow": "not established; Go fixture binary unavailable",
+      "api_files_pagination_integration_linux": "actual-Handler cookie prefix/cursor/tenant-root isolation test; test-only and unrun because Go is unavailable",
+      "api_files_pagination_invalid_prefix": "%FF/%00/%7F invalid-prefix HTTP 400 cases assert no file-service call; test-only and unrun because Go is unavailable",
+      "responsive_css_and_keyboard_test_setup": "21/21 passed after unpublished filter-width/wrapping CSS changes and a responsive-spec keyboard-focus setup correction; no product focus order changed."
     },
-    "workflow_run_ids_complete": true,
-    "check_run_ids": [
-      133886221287,
-      133886220925,
-      133886220896,
-      133886220671,
-      133886220447,
-      133886220350,
-      133886220265,
-      133886220226,
-      133886220195,
-      133886220172,
-      133886220170,
-      133886220146,
-      133886220121,
-      133886220052,
-      133886220039,
-      133886220030,
-      133886219915,
-      133886219899,
-      133886219828,
-      133886219805,
-      133886219666,
-      133886219477,
-      133886219462,
-      133886219351
-    ],
-    "check_run_ids_complete": true,
     "legacy_commit_status": {
-      "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+      "head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
       "state": "pending",
       "total_contexts": 0,
       "statuses": [],
-      "observed_at_utc": "2026-11-17T08:21:00Z",
-      "note": "The legacy commit-status API returned pending with zero contexts for c86. Keep this separate from the 13 successful pull_request Actions runs and 24 successful check-runs; it does not establish branch-protection satisfaction."
+      "observed_at_utc": "2026-11-17T10:02:06Z",
+      "note": "The aggregate /commits/{sha}/status endpoint is pending with zero contexts; it is separate from the 16 exact-SHA Actions runs and 27 named check-runs."
     },
-    "terminal_result_observed_at_utc": "2026-11-17T07:52:05Z",
-    "latest_p2_job_completed_at_utc": "2026-11-17T07:51:12Z",
-    "run_ids_and_check_ids_verified_at_utc": "2026-11-17T08:21:00Z"
+    "limitations": [
+      "Failures are the Debian and Ubuntu P2 checks and the browser check.",
+      "P2 step 13 failed on both OS jobs before guest step 18; no guest runtime evidence exists.",
+      "No raw VM or serial logs were read.",
+      "Local responsive and structural audit results do not change hosted 5712 failures or establish P0/accessibility acceptance.",
+      "No full npm test or actual-handler browser workflow result is claimed."
+    ],
+    "forecast_for_subsequent_candidate": {
+      "pr_event_actions_runs": 13,
+      "exact_sha_push_actions_runs": 3,
+      "forecast_only": true,
+      "events_separate": true
+    },
+    "body_snapshot_refreshed_at_utc": "2026-11-17T10:03Z",
+    "body_historical_suffixes_retained": true,
+    "pr_api_updated_at_utc": "2026-11-17T10:06:24Z",
+    "issue_api_updated_at_utc": "2026-11-17T10:06:31Z",
+    "prior_pr_api_updated_at_utc": "2026-11-17T09:24:20Z",
+    "prior_issue_api_updated_at_utc": "2026-11-17T08:15:21Z"
   },
   "latest_exact_head_ci": {
-    "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
     "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
     "pr_state": "open_draft_unmerged",
-    "observed_at_utc": "2026-11-17T07:52:05Z",
-    "workflow_runs_total": 13,
-    "workflow_success": 13,
-    "workflow_failure": 0,
-    "check_runs_total": 24,
+    "observed_at_utc": "2026-11-17T10:02:06Z",
+    "observation_source": "GitHub connector read at 2026-11-17T10:02:06Z.",
+    "workflow_runs_total": 16,
+    "workflow_success": 14,
+    "workflow_failure": 2,
+    "check_runs_total": 27,
     "check_success": 24,
-    "check_failure": 0,
+    "check_failure": 3,
     "pending": 0,
     "pull_request_workflows": {
       "total": 13,
-      "success": 13,
+      "success": 11,
+      "failure": 2,
+      "in_progress": 0
+    },
+    "pull_request_check_runs": {
+      "total": 24,
+      "success": 21,
+      "failure": 3,
+      "in_progress": 0
+    },
+    "exact_sha_push_workflows": {
+      "total": 3,
+      "success": 3,
       "failure": 0,
       "in_progress": 0
     },
-    "push_workflows": {
-      "total": 0,
-      "success": 0,
+    "exact_sha_push_check_runs": {
+      "total": 3,
+      "success": 3,
       "failure": 0,
-      "in_progress": 0,
-      "observation": "no same-SHA push runs observed"
+      "in_progress": 0
     },
-    "p2_run_id": 44038233819,
-    "debian_job_id": 133886220172,
-    "ubuntu_job_id": 133886219805,
-    "p2_runner_steps": {
-      "run_id": 44038233819,
-      "debian_job_id": 133886220172,
-      "debian_guest_status": "guest_smoke_step_18_success_2026-11-17T07:36:57Z; post_steps_and_job_success_2026-11-17T07:37:00Z",
-      "ubuntu_job_id": 133886219805,
-      "ubuntu_guest_status": "guest_smoke_step_18_and_post_steps_success_2026-11-17T07:51:10Z; job_success_2026-11-17T07:51:12Z",
-      "runner_steps_8_9_13_15": "success_on_both_jobs; step 8 dpkg failure/recovery, step 9 interruption/recovery, step 13 restore CLI, step 15 restore inventory CLI",
-      "assertion_visibility_limit": "Step metadata confirms enclosing CLI steps, not individual assertions.",
-      "raw_vm_or_serial_logs_read": false
-    },
+    "failures": [
+      {
+        "check": "P2 Debian",
+        "runner_side_restore_cli_step_13": "failed",
+        "guest_step_18": "skipped",
+        "guest_runtime_evidence": "none"
+      },
+      {
+        "check": "P2 Ubuntu",
+        "runner_side_restore_cli_step_13": "failed",
+        "guest_step_18": "skipped",
+        "guest_runtime_evidence": "none"
+      },
+      {
+        "check": "Jobs browser checks",
+        "step_9": "generic exit 1"
+      }
+    ],
     "raw_vm_or_serial_logs_read": false,
-    "limitations": [
-      "This result applies to exact published PR head c86 only; it does not cover the uncommitted post-c86 candidate.",
-      "P2 step metadata confirms enclosing runner-side steps, not individual assertions.",
-      "The legacy aggregate commit-status endpoint is pending with zero contexts and is separate from named check-runs.",
-      "No raw VM or serial logs were read."
-    ],
-    "scope": "Exact c86 pull_request Actions and check-run metadata reread at 2026-11-17T08:21:00Z; all are terminal and successful. P2 Debian and Ubuntu job completion times and step metadata are recorded separately.",
-    "workflow_run_ids": {
-      "pr_current_api_contract_checks": 44038234109,
-      "pr_go_static_security_analysis": 44038233841,
-      "pr_p1_unsigned_developer_package_lab": 44038233949,
-      "pr_jobs_browser_checks": 44038233798,
-      "pr_go_checks": 44038233941,
-      "pr_sqlite_schema_checks": 44038234152,
-      "pr_ui_checks": 44038234136,
-      "pr_go_vulnerability_checks": 44038233790,
-      "pr_p1_gate_blocker_inventory": 44038233799,
-      "pr_offline_model_and_fixture_checks": 44038233818,
-      "pr_isolated_go_prototype_checks": 44038234358,
-      "pr_p1_developer_smoke": 44038234150,
-      "pr_p2_clean_disposable_vm_smoke": 44038233819
+    "browser_overflow_reproduction": "A local run of the committed 5712 200% responsive test measured document scrollWidth 410px at 320x640. This is a plausible explanation for hosted browser step 9, not a confirmed cause; hosted metadata gives only generic exit 1.",
+    "unpublished_followups": {
+      "p2_cli_root_name": "scripts/test_backup_restore_site_lab_cli.py uses lab(\"post-valid-\" + kind); unrun",
+      "cookie_session_prefix_cursor_tenant_api": "unrun; Go unavailable",
+      "p0_crosswalk_audit": {
+        "path": "scripts/test_p0_threat_crosswalk_audit.py",
+        "result": "10/10 local structural audit tests passed, including symlink-escape regression",
+        "scope": "Repository reference and text-signature checks only; no cited product-test execution, threat mitigation evidence, or P0 approval",
+        "hosted_5712_coverage": false
+      },
+      "full_npm_test": "not established",
+      "actual_handler_browser_workflow": "not established; Go fixture binary unavailable",
+      "api_files_pagination_integration_linux": "actual-Handler cookie prefix/cursor/tenant-root isolation test; test-only and unrun because Go is unavailable",
+      "api_files_pagination_invalid_prefix": "%FF/%00/%7F invalid-prefix HTTP 400 cases assert no file-service call; test-only and unrun because Go is unavailable",
+      "responsive_css_and_keyboard_test_setup": "21/21 passed after unpublished filter-width/wrapping CSS changes and a responsive-spec keyboard-focus setup correction; no product focus order changed."
     },
-    "workflow_run_ids_complete": true,
-    "check_run_ids": [
-      133886221287,
-      133886220925,
-      133886220896,
-      133886220671,
-      133886220447,
-      133886220350,
-      133886220265,
-      133886220226,
-      133886220195,
-      133886220172,
-      133886220170,
-      133886220146,
-      133886220121,
-      133886220052,
-      133886220039,
-      133886220030,
-      133886219915,
-      133886219899,
-      133886219828,
-      133886219805,
-      133886219666,
-      133886219477,
-      133886219462,
-      133886219351
-    ],
-    "check_run_ids_complete": true,
     "legacy_commit_status": {
-      "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+      "head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
       "state": "pending",
       "total_contexts": 0,
       "statuses": [],
-      "observed_at_utc": "2026-11-17T08:21:00Z",
-      "note": "The legacy commit-status API returned pending with zero contexts for c86. Keep this separate from the 13 successful pull_request Actions runs and 24 successful check-runs; it does not establish branch-protection satisfaction."
+      "observed_at_utc": "2026-11-17T10:02:06Z",
+      "note": "The aggregate /commits/{sha}/status endpoint is pending with zero contexts; it is separate from the 16 exact-SHA Actions runs and 27 named check-runs."
     },
-    "terminal_result_observed_at_utc": "2026-11-17T07:52:05Z",
-    "latest_p2_job_completed_at_utc": "2026-11-17T07:51:12Z",
-    "run_ids_and_check_ids_verified_at_utc": "2026-11-17T08:21:00Z"
+    "limitations": [
+      "Failures are the Debian and Ubuntu P2 checks and the browser check.",
+      "P2 step 13 failed on both OS jobs before guest step 18; no guest runtime evidence exists.",
+      "No raw VM or serial logs were read.",
+      "Local responsive and structural audit results do not change hosted 5712 failures or establish P0/accessibility acceptance.",
+      "No full npm test or actual-handler browser workflow result is claimed."
+    ],
+    "forecast_for_subsequent_candidate": {
+      "pr_event_actions_runs": 13,
+      "exact_sha_push_actions_runs": 3,
+      "forecast_only": true,
+      "events_separate": true
+    },
+    "body_snapshot_refreshed_at_utc": "2026-11-17T10:03Z",
+    "body_historical_suffixes_retained": true,
+    "pr_api_updated_at_utc": "2026-11-17T10:06:24Z",
+    "issue_api_updated_at_utc": "2026-11-17T10:06:31Z",
+    "prior_pr_api_updated_at_utc": "2026-11-17T09:24:20Z",
+    "prior_issue_api_updated_at_utc": "2026-11-17T08:15:21Z"
   },
   "latest_live_snapshot": {
-    "observed_at_utc": "2026-11-17T08:17:04Z",
-    "observed_on_local_date": "2026-11-17",
+    "observed_at_utc": "2026-11-17T10:02:06Z",
+    "snapshot_source": "GitHub connector read at 2026-11-17T10:02:06Z.",
     "pr": 171,
     "pr_state": "open_draft_unmerged",
-    "pr_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "pr_head_tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
-    "pr_head_parent_sha": "f2202265b2f366b7abcdbc92f785db6e570d758d",
+    "pr_head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "pr_head_tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
+    "pr_head_parent_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
     "pr_base_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
-    "branch_ref": "refs/heads/integration/pr-reconciliation-20261113",
-    "branch_ref_matches_pr_head": true,
-    "working_branch": "codex/tong-panel-candidate-20261116",
-    "workflow_runs_total_same_sha_all_events": 13,
+    "workflow_runs_total_same_sha_all_events": 16,
     "pull_request_workflows_total": 13,
-    "pull_request_workflows_success": 13,
-    "pull_request_workflows_failure": 0,
-    "pull_request_workflows_in_progress": 0,
-    "push_workflows_total": 0,
-    "push_workflows_success": 0,
+    "pull_request_workflows_success": 11,
+    "pull_request_workflows_failure": 2,
+    "push_workflows_total": 3,
+    "push_workflows_success": 3,
     "push_workflows_failure": 0,
-    "same_sha_push_runs_observed": false,
-    "check_runs_total_same_sha_all_events": 24,
-    "check_runs_success": 24,
-    "check_runs_failure": 0,
-    "check_runs_in_progress": 0,
-    "p2_run_id": 44038233819,
-    "debian_job_id": 133886220172,
-    "ubuntu_job_id": 133886219805,
-    "p2_runner_steps": {
-      "run_id": 44038233819,
-      "debian_job_id": 133886220172,
-      "debian_guest_status": "guest_smoke_step_18_success_2026-11-17T07:36:57Z; post_steps_and_job_success_2026-11-17T07:37:00Z",
-      "ubuntu_job_id": 133886219805,
-      "ubuntu_guest_status": "guest_smoke_step_18_and_post_steps_success_2026-11-17T07:51:10Z; job_success_2026-11-17T07:51:12Z",
-      "runner_steps_8_9_13_15": "success_on_both_jobs; step 8 dpkg failure/recovery, step 9 interruption/recovery, step 13 restore CLI, step 15 restore inventory CLI",
-      "assertion_visibility_limit": "Step metadata confirms enclosing CLI steps, not individual assertions.",
-      "raw_vm_or_serial_logs_read": false
-    },
-    "pending_checks": [],
+    "check_runs_total_same_sha_all_events": 27,
+    "pull_request_check_runs_total": 24,
+    "pull_request_check_runs_success": 21,
+    "pull_request_check_runs_failure": 3,
+    "push_check_runs_total": 3,
+    "push_check_runs_success": 3,
+    "push_check_runs_failure": 0,
+    "combined_workflow_runs_success": 14,
+    "combined_workflow_runs_failure": 2,
+    "combined_check_runs_success": 24,
+    "combined_check_runs_failure": 3,
+    "pending": 0,
+    "p2_runner_step_13": "failed on Debian and Ubuntu",
+    "p2_guest_step_18": "skipped on both",
+    "p2_guest_runtime_evidence": "none",
     "raw_vm_or_serial_logs_read": false,
+    "browser_step_9": "generic exit 1",
+    "browser_local_overflow": "A local run of the committed 5712 200% responsive test measured document scrollWidth 410px at 320x640. This is a plausible explanation for hosted browser step 9, not a confirmed cause; hosted metadata gives only generic exit 1.",
     "issue_172_state": "open",
     "issue_172_dod_total": 12,
     "issue_172_dod_checked": 0,
     "issue_172_dod_unchecked": 12,
     "issue_172_approval_fields_false": 9,
     "product_support_approval": false,
-    "pr_body_updated_at_utc": "2026-11-17T08:15:15Z",
-    "issue_body_updated_at_utc": "2026-11-17T08:15:21Z",
-    "pr_body_snapshot_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "issue_body_snapshot_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "body_historical_suffixes_preserved_byte_for_byte": true,
-    "historical_suffix_marker_counts": {
-      "pr": 6,
-      "issue": 8
-    },
     "body_snapshots_stale": false,
     "gates_changed": false,
     "current_worktree_candidate": {
-      "base_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+      "base_published_head": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+      "base_tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
       "pushed": false,
-      "hosted_ci": "not_run",
+      "hosted_ci": "not_run_for_current_uncommitted_changes",
       "uncommitted_files": [
-        ".github/workflows/p1-gate-audit.yml",
         "AGENTS.md",
         "UPDATES.md",
+        "cmd/tongd/ui/style.css",
         "docs/AI_AGENT_START_HERE.md",
         "docs/AI_AGENT_STATE.json",
         "docs/BLUEPRINT.md",
         "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
         "docs/P0_THREAT_TEST_CROSSWALK.md",
-        "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
-        "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
         "docs/P2_ACCEPTANCE_TRACEABILITY.md",
         "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
         "docs/PHASE_INDEX.md",
-        "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
-        "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
         "docs/RESUME_HANDOFF_2026-11-12.md",
         "docs/ROADMAP.md",
-        "docs/phases/P4-DESIGN-ACCEPTANCE.md",
-        "internal/api/site_page_test.go",
-        "scripts/p0_threat_crosswalk_audit.py",
-        "scripts/test_p0_threat_crosswalk_audit.py",
+        "internal/api/files_pagination_integration_linux_test.go",
+        "internal/api/files_pagination_test.go",
+        "internal/api/site_session_page_test.go",
         "scripts/test_backup_restore_site_lab_cli.py",
+        "scripts/test_p0_threat_crosswalk_audit.py",
         "tools/ui-browser/responsive-sites-files.spec.mjs"
       ],
-      "scope": "Post-c86 restore corruption, responsive UI, P0 crosswalk, and site-prefix API test candidates plus handoff refresh. No production behavior or approval policy change is claimed."
+      "handoff_files": [
+        "AGENTS.md",
+        "UPDATES.md",
+        "docs/AI_AGENT_START_HERE.md",
+        "docs/RESUME_HANDOFF_2026-11-12.md",
+        "docs/BLUEPRINT.md",
+        "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+        "docs/P0_THREAT_TEST_CROSSWALK.md",
+        "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+        "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+        "docs/PHASE_INDEX.md",
+        "docs/ROADMAP.md",
+        "docs/AI_AGENT_STATE.json"
+      ],
+      "changed_code_files": [
+        "cmd/tongd/ui/style.css",
+        "tools/ui-browser/responsive-sites-files.spec.mjs",
+        "internal/api/site_session_page_test.go",
+        "internal/api/files_pagination_integration_linux_test.go",
+        "internal/api/files_pagination_test.go",
+        "scripts/test_backup_restore_site_lab_cli.py",
+        "scripts/test_p0_threat_crosswalk_audit.py"
+      ],
+      "local_results": {
+        "responsive_sites_files_spec": "21/21 passed after CSS filter-width/wrapping changes and responsive-spec keyboard-focus setup correction; no product focus order changed.",
+        "p0_structural_crosswalk_audit": "10/10 passed including symlink-escape regression; structural source/reference checks only, no mitigation or P0 approval",
+        "p2_cli_root_name_adjustment": "not run",
+        "api_tests": "The cookie-session prefix/cursor/tenant API test in internal/api/site_session_page_test.go, actual-Handler cookie prefix/cursor/tenant-root isolation test in internal/api/files_pagination_integration_linux_test.go, and %FF/%00 HTTP rejection tests in internal/api/files_pagination_test.go are test-only and unrun because Go is unavailable.",
+        "full_npm_test": "not established",
+        "actual_handler_browser_workflow": "not established; Go fixture binary unavailable"
+      },
+      "scope": "Unpublished local changes after the 10:02 GitHub observation; none are included in hosted 5712 results.",
+      "gates": "No mitigation, P0 approval, production decision, or approval-policy change is implied.",
+      "inventory_observed_at_utc": "2026-11-17T10:12:17Z"
     },
-    "snapshot_kind": "static_snapshot_not_live_monitor",
-    "local_worktree_clean_at_observation": false,
-    "workflow_run_ids": {
-      "pr_current_api_contract_checks": 44038234109,
-      "pr_go_static_security_analysis": 44038233841,
-      "pr_p1_unsigned_developer_package_lab": 44038233949,
-      "pr_jobs_browser_checks": 44038233798,
-      "pr_go_checks": 44038233941,
-      "pr_sqlite_schema_checks": 44038234152,
-      "pr_ui_checks": 44038234136,
-      "pr_go_vulnerability_checks": 44038233790,
-      "pr_p1_gate_blocker_inventory": 44038233799,
-      "pr_offline_model_and_fixture_checks": 44038233818,
-      "pr_isolated_go_prototype_checks": 44038234358,
-      "pr_p1_developer_smoke": 44038234150,
-      "pr_p2_clean_disposable_vm_smoke": 44038233819
+    "local_p0_audit": {
+      "path": "scripts/test_p0_threat_crosswalk_audit.py",
+      "result": "10/10 local structural audit tests passed, including symlink-escape regression",
+      "scope": "Repository reference and text-signature checks only; no cited product-test execution, threat mitigation evidence, or P0 approval",
+      "hosted_5712_coverage": false
     },
-    "workflow_run_ids_complete": true,
-    "check_run_ids": [
-      133886221287,
-      133886220925,
-      133886220896,
-      133886220671,
-      133886220447,
-      133886220350,
-      133886220265,
-      133886220226,
-      133886220195,
-      133886220172,
-      133886220170,
-      133886220146,
-      133886220121,
-      133886220052,
-      133886220039,
-      133886220030,
-      133886219915,
-      133886219899,
-      133886219828,
-      133886219805,
-      133886219666,
-      133886219477,
-      133886219462,
-      133886219351
-    ],
-    "check_run_ids_complete": true,
-    "issue_172_state_observed_at_utc": "2026-11-17T08:17:04Z",
-    "pr_state_observed_at_utc": "2026-11-17T08:17:04Z",
-    "pr_comments": 27,
-    "pr_review_comments": 0,
-    "pr_reviews": 0,
-    "issue_comments": 38,
-    "pr_labels": [],
-    "issue_labels": [],
-    "live_read_confirmations": {
-      "pr_state": "open_draft_unmerged",
-      "pr_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-      "branch_ref": "refs/heads/integration/pr-reconciliation-20261113",
-      "branch_ref_matches_pr_head": true,
-      "issue_172_state": "open",
-      "issue_172_dod": "0/12 unchecked",
-      "issue_172_approval_fields_false": 9,
-      "product_support_approval": false,
-      "pr_state_observed_at_utc": "2026-11-17T08:17:04Z",
-      "issue_state_observed_at_utc": "2026-11-17T08:17:04Z",
-      "pr_updated_at_utc": "2026-11-17T08:15:15Z",
-      "issue_172_updated_at_utc": "2026-11-17T08:15:21Z",
-      "pr_body_snapshot_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-      "issue_body_snapshot_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-      "historical_suffixes_preserved_byte_for_byte": true,
-      "pr_historical_suffix_markers": 6,
-      "issue_historical_suffix_markers": 8,
-      "pr_comments": 27,
-      "pr_review_comments": 0,
-      "pr_reviews": 0,
-      "issue_comments": 38,
-      "pr_labels": 0,
-      "issue_labels": 0,
-      "no_comment_label_or_review_events_after_0815": true
+    "current_workflow_forecast": {
+      "pr_event_actions_runs": 13,
+      "exact_sha_push_actions_runs": 3,
+      "forecast_only": true
     },
-    "body_readback_at_utc": "2026-11-17T08:17:04Z",
-    "body_patch_observed_at_utc": "2026-11-17T08:15:00Z",
-    "branch_ref_observed_at_utc": "2026-11-17T08:17:04Z",
-    "terminal_exact_head_ci_observed_at_utc": "2026-11-17T07:52:05Z",
-    "ci_ids_and_statuses_reread_at_utc": "2026-11-17T08:21:00Z",
-    "body_snapshot_observation_note": "PR/issue current sections were read back during the 08:17Z audit. GitHub updated_at values are 08:15:15Z (PR) and 08:15:21Z (issue); both historical suffixes were byte-for-byte preserved."
+    "branch_ref_matches_pr_head": true,
+    "pr_api_updated_at_utc": "2026-11-17T10:06:24Z",
+    "issue_api_updated_at_utc": "2026-11-17T10:06:31Z",
+    "embedded_pr_body_snapshot_observed_at_utc": "2026-11-17T10:03Z",
+    "body_readback_at_utc": "2026-11-17T10:02:06Z",
+    "pr_body_updated_at_is_head_sync_metadata": true,
+    "embedded_issue_body_snapshot_observed_at_utc": "2026-11-17T10:03Z",
+    "pr_body_snapshot_refreshed_at_utc": "2026-11-17T10:03Z",
+    "issue_body_snapshot_refreshed_at_utc": "2026-11-17T10:03Z",
+    "prior_pr_api_updated_at_utc": "2026-11-17T09:24:20Z",
+    "prior_issue_api_updated_at_utc": "2026-11-17T08:15:21Z",
+    "body_historical_suffixes_retained": true,
+    "pr_body_snapshot_head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "issue_body_snapshot_head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "current_worktree_inventory_observed_at_utc": "2026-11-17T10:12:17Z"
   },
   "current_follow_up": {
-    "status": "PR_c86_open_draft_unmerged_exact_head_green; post_c86_candidates_uncommitted",
-    "published_pr_head": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "published_pr_tree": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
-    "published_pr_parent": "f2202265b2f366b7abcdbc92f785db6e570d758d",
+    "status": "5712_published_PR_event_failures_and_exact_SHA_push_green",
+    "published_pr_head": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "published_pr_tree": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
+    "published_pr_parent": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
     "published_exact_head_ci": {
-      "workflow_runs_total": 13,
-      "workflow_success": 13,
-      "check_runs_total": 24,
-      "check_success": 24,
-      "p2_run_id": 44038233819,
-      "debian_job_id": 133886220172,
-      "ubuntu_job_id": 133886219805,
-      "same_sha_push_runs_observed": false
+      "pr_event_runs": "11/13",
+      "pr_event_checks": "21/24",
+      "push_runs": "3/3",
+      "push_checks": "3/3",
+      "failures": [
+        "P2 Debian",
+        "P2 Ubuntu",
+        "browser"
+      ]
     },
     "issue_172": {
       "state": "open",
@@ -4158,281 +4111,129 @@
       "approval_fields_false": 9,
       "product_support_approval": false
     },
-    "current_local_candidate": "Uncommitted post-c86 restore, responsive UI, literal-prefix API pagination/tenant-isolation, crosswalk validator/workflow, and historical handoff corrections; no local tests or candidate hosted CI have run.",
-    "next": "Finish independent source, documentation, and machine-state review; complete static validation; read PR #171, its integration ref, and issue #172 immediately before publication; commit and normal-fast-forward publish the reviewed candidate. Verify all ten matching pull_request workflows on the new PR head and the three direct-push workflows separately, refresh PR/issue current sections while preserving historical suffixes, and leave all gates open.",
+    "current_local_candidate": "Responsive Sites/Files spec 21/21 after filter-width/wrapping CSS and responsive-spec keyboard-focus setup correction; P0 structural audit 10/10 without mitigation/P0 approval; P2 CLI and all Go API tests unrun. The cookie-session prefix/cursor/tenant API test in internal/api/site_session_page_test.go and actual-Handler cookie prefix/cursor/tenant-root isolation test in internal/api/files_pagination_integration_linux_test.go are test-only and unrun because Go is unavailable. The Files invalid-prefix cases cover %FF, %00, and %7F, expect HTTP 400, and assert no file-service call.",
+    "local_p0_audit": {
+      "path": "scripts/test_p0_threat_crosswalk_audit.py",
+      "result": "10/10 local structural audit tests passed, including symlink-escape regression",
+      "scope": "Repository reference and text-signature checks only; no cited product-test execution, threat mitigation evidence, or P0 approval",
+      "hosted_5712_coverage": false
+    },
+    "next": "Review, commit, and normally fast-forward publish the current candidate only after a fresh PR/ref/issue read. Forecast 13 PR-event and 4 push Actions runs; inspect actual run and check-run counts separately. Preserve all gates.",
     "gates_unchanged": true,
-    "latest_pr_ref_issue_read_at_utc": "2026-11-17T08:17:04Z",
-    "latest_body_readback_at_utc": "2026-11-17T08:17:04Z",
-    "pr_body_updated_at_utc": "2026-11-17T08:15:15Z",
-    "issue_body_updated_at_utc": "2026-11-17T08:15:21Z",
-    "pr_comments": 27,
-    "pr_review_comments": 0,
-    "pr_reviews": 0,
-    "issue_comments": 38,
-    "pr_labels": [],
-    "issue_labels": [],
-    "expected_candidate_ci": {
-      "pull_request_workflows": 10,
-      "direct_push_workflows": 3,
-      "forecast_only": true
-    }
+    "observed_at_utc": "2026-11-17T10:02:06Z",
+    "observation_source": "GitHub connector read at 2026-11-17T10:02:06Z.",
+    "worktree_inventory_observed_at_utc": "2026-11-17T10:42:52Z"
   },
   "next": {
     "priority": 1,
-    "action": "Finish independent source, documentation, and machine-state review; complete static validation; read PR #171, its integration ref, and issue #172 immediately before publication; commit and normal-fast-forward publish the reviewed candidate. Verify all ten matching pull_request workflows on the new PR head and the three direct-push workflows separately, refresh PR/issue current sections while preserving historical suffixes, and leave all gates open.",
-    "required_evidence": [
-      "Independent review of restore tamper/truncation assertions, API literal-prefix and tenant/pagination behavior, crosswalk validator/workflow, responsive browser case, stale historical PR labels, and machine state.",
-      "Static checks pass: git diff --check, JSON parse, and exact candidate path inventory against git status.",
-      "Fresh PR #171/ref and issue #172 state immediately before normal fast-forward publication; PR remains draft and tracker approvals remain unchanged.",
-      "Terminal exact-new-head results for ten pull_request workflows: Go checks; Go static security analysis; Go vulnerability checks; Current API contract checks; P1 gate blocker inventory; P1 unsigned developer package lab; P1 developer smoke; P2 clean disposable VM smoke (Debian and Ubuntu); Jobs browser checks; Offline model and fixture checks.",
-      "Separately inspect the three integration-branch push workflows: Go checks; P1 unsigned developer package lab; P1 developer smoke."
-    ],
+    "action": "Review unpublished filter-width/wrapping CSS and responsive-spec keyboard-focus setup correction, P2 CLI fixture, API tests, and P0 structural audit. Responsive spec passed 21/21; P0 structural audit passed 10/10 without mitigation/P0 approval; P2 CLI and Go API tests remain unrun. Forecast 13 PR-event and 4 push Actions runs; do not forecast push check count. Manually review root AGENTS.md/UPDATES.md; inspect actual PR-only P2 and P0 runs. Preserve issue #172 at 0/12, all nine approvals false, product_support_approval false, and owner/security/production decisions open.",
     "gates_unchanged": true
   },
   "worktree_changes": {
-    "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "head_tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "head_tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
     "uncommitted_files": [
-      ".github/workflows/p1-gate-audit.yml",
       "AGENTS.md",
       "UPDATES.md",
+      "cmd/tongd/ui/style.css",
       "docs/AI_AGENT_START_HERE.md",
       "docs/AI_AGENT_STATE.json",
       "docs/BLUEPRINT.md",
       "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
       "docs/P0_THREAT_TEST_CROSSWALK.md",
-      "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
-      "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
       "docs/P2_ACCEPTANCE_TRACEABILITY.md",
       "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
       "docs/PHASE_INDEX.md",
-      "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
-      "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
       "docs/RESUME_HANDOFF_2026-11-12.md",
       "docs/ROADMAP.md",
-      "docs/phases/P4-DESIGN-ACCEPTANCE.md",
-      "internal/api/site_page_test.go",
-      "scripts/p0_threat_crosswalk_audit.py",
-      "scripts/test_p0_threat_crosswalk_audit.py",
+      "internal/api/files_pagination_integration_linux_test.go",
+      "internal/api/files_pagination_test.go",
+      "internal/api/site_session_page_test.go",
       "scripts/test_backup_restore_site_lab_cli.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
       "tools/ui-browser/responsive-sites-files.spec.mjs"
     ],
     "only_uncommitted_changes_are_test_and_handoff_refresh": false,
     "published_pr_head_matches_worktree_head": true,
     "local_candidate_pushed": false,
     "hosted_ci_for_uncommitted_changes": "not_run",
-    "candidate_components": [
-      "Restore CLI tamper/truncation denial regression.",
-      "Responsive Sites/Files browser case with injected 200% CSS text enlargement.",
-      "Synthetic bearer-authenticated site-prefix literal matching and tenant-exclusion API regression.",
-      "Structural-only P0 crosswalk validator, focused tests, and workflow wiring.",
-      "Current handoff refresh and explicit historical labels for pre-c86 snapshots."
-    ],
-    "test_candidates": [
-      "internal/api/site_page_test.go: TestSiteListPrefixIsLiteralAndTenantScopedAtAPI",
-      "scripts/test_backup_restore_site_lab_cli.py: tampered/truncated restore denial cases",
-      "tools/ui-browser/responsive-sites-files.spec.mjs: 200% computed-text reflow case",
-      "scripts/test_p0_threat_crosswalk_audit.py: structural crosswalk validator cases"
-    ],
-    "documentation_changes": [
-      "AGENTS.md",
-      "UPDATES.md",
-      "docs/AI_AGENT_START_HERE.md",
-      "docs/AI_AGENT_STATE.json",
-      "docs/BLUEPRINT.md",
-      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
-      "docs/P0_THREAT_TEST_CROSSWALK.md",
-      "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
-      "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
-      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
-      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
-      "docs/PHASE_INDEX.md",
-      "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
-      "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
-      "docs/RESUME_HANDOFF_2026-11-12.md",
-      "docs/ROADMAP.md",
-      "docs/phases/P4-DESIGN-ACCEPTANCE.md"
-    ],
-    "scope_limit": "All current worktree changes are uncommitted and outside published c86 exact-head CI. No merge, live-server mutation, production approval, or public release is authorized.",
-    "working_tree_path_count": 23
+    "working_tree_path_count": 19,
+    "observed_at_utc": "2026-11-17T10:42:52Z",
+    "note": "Point-in-time inventory after the 2026-11-17 GitHub API reread. Responsive spec is 21/21; P0 structural audit is 10/10; Go API and P2 CLI tests remain unrun. The candidate forecasts 13 PR-event and 4 push Actions runs; push check-run count is not forecast."
   },
   "current_worktree_candidate": {
-    "base_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "base_head_tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "base_published_head": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "base_tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
     "pushed": false,
-    "hosted_ci": "not_run",
-    "changed_code_files": [
-      ".github/workflows/p1-gate-audit.yml",
-      "internal/api/site_page_test.go",
-      "scripts/p0_threat_crosswalk_audit.py",
-      "scripts/test_p0_threat_crosswalk_audit.py",
-      "scripts/test_backup_restore_site_lab_cli.py",
-      "tools/ui-browser/responsive-sites-files.spec.mjs"
-    ],
-    "scope": "Post-c86 test and validation candidate: restore tamper/truncation denial checks; responsive Sites/Files text enlargement; literal site-prefix and tenant-exclusion API regression; P0 crosswalk structural validator/tests/workflow; refreshed current and historical handoff labels. No production behavior or approval policy change is claimed. Additional dated phase/security packets now distinguish closed PR #149 snapshots from current c86 status; their historical evidence and open gates are preserved.",
-    "test_candidates": [
-      "internal/api/site_page_test.go: TestSiteListPrefixIsLiteralAndTenantScopedAtAPI (two-page cursor continuation, literal-prefix matching, tenant isolation)",
-      "scripts/test_backup_restore_site_lab_cli.py: tampered/truncated restore denial cases",
-      "tools/ui-browser/responsive-sites-files.spec.mjs: 200% computed-text reflow case",
-      "scripts/test_p0_threat_crosswalk_audit.py: structural crosswalk validator cases"
-    ],
-    "restore_cli_scope": "Valid tenant and key with midpoint ciphertext bit-flip or half-length truncation; require exact redacted denial stderr, empty private lab root before/after inventory, and unchanged successful restore roots/ciphertexts.",
-    "responsive_browser_scope": "Synthetic Sites/Files fixture at 320x640 with injected 2x computed font sizes only; targeted bounds, horizontal overflow, scroll reachability, close-button keyboard focus, and intercepted read-only request checks. Not browser zoom or human accessibility acceptance.",
-    "site_prefix_api_scope": "Synthetic bearer-authenticated SQLite API/catalog requests for prefix=app_ with limit=1 and after cursor; require app_01 then app_02, the expected next_after cursor on page one and empty cursor on page two, exclude appX01 and its domain, and do not disclose tenant B app_03 or its domain. Does not cover cookie-session auth, case sensitivity, or the full tenant-to-agent lifecycle.",
-    "crosswalk_scope": "T01-T15 completeness, repository-contained file links, nearest preceding linked test file for named test symbols, and structural source-text signatures only. Does not parse language syntax, run cited tests, assess mitigations, or change approvals.",
-    "local_validation": {
-      "git_diff_check": "passed_after_final_candidate_delta_2026-11-17",
-      "json_parse": "passed_after_final_state_write_2026-11-17",
-      "local_tests": "not_run",
-      "process_execution": "not_run_locally",
-      "hosted_ci": "not_run",
-      "candidate_path_inventory": "passed_23_paths_match_git_status_after_final_state_write"
-    },
-    "documentation_changes": [
-      "AGENTS.md",
-      "UPDATES.md",
-      "docs/AI_AGENT_START_HERE.md",
-      "docs/AI_AGENT_STATE.json",
-      "docs/BLUEPRINT.md",
-      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
-      "docs/P0_THREAT_TEST_CROSSWALK.md",
-      "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
-      "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
-      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
-      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
-      "docs/PHASE_INDEX.md",
-      "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
-      "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
-      "docs/RESUME_HANDOFF_2026-11-12.md",
-      "docs/ROADMAP.md",
-      "docs/phases/P4-DESIGN-ACCEPTANCE.md"
-    ],
-    "limitations": [
-      "All post-c86 candidate changes are uncommitted and outside c86 exact-head CI.",
-      "The API regression uses synthetic development bearer auth and does not cover cookie sessions, case-sensitive prefixes, or the complete lifecycle.",
-      "The browser case is injected CSS at one viewport, not browser zoom, broad responsive coverage, or human accessibility acceptance.",
-      "The crosswalk checks structural text signatures, not parsed source or test execution and does not prove mitigations or approval.",
-      "Restore corruption coverage is synthetic CLI behavior in the disposable non-root workflow and does not establish integrated customer recovery.",
-      "Keep owner, security, production-auth, privileged-host, key-custody, signed-package, accessibility, merge, deployment, and release gates open.",
-      "Dated phase/security packets retain historical evidence; PRs #45, #51-#53, #80, #84, #89, #91, #143, #144, #145, #146, #147, and #149 are closed unmerged in the 2026-11-17 GitHub reads. Their status does not change owner, security, product, or release gates."
-    ],
-    "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "working_tree_changes_uncommitted": true,
+    "hosted_ci": "not_run_for_current_uncommitted_changes",
     "uncommitted_files": [
-      ".github/workflows/p1-gate-audit.yml",
       "AGENTS.md",
       "UPDATES.md",
+      "cmd/tongd/ui/style.css",
       "docs/AI_AGENT_START_HERE.md",
       "docs/AI_AGENT_STATE.json",
       "docs/BLUEPRINT.md",
       "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
       "docs/P0_THREAT_TEST_CROSSWALK.md",
-      "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
-      "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
       "docs/P2_ACCEPTANCE_TRACEABILITY.md",
       "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
       "docs/PHASE_INDEX.md",
-      "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
-      "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
       "docs/RESUME_HANDOFF_2026-11-12.md",
       "docs/ROADMAP.md",
-      "docs/phases/P4-DESIGN-ACCEPTANCE.md",
-      "internal/api/site_page_test.go",
-      "scripts/p0_threat_crosswalk_audit.py",
-      "scripts/test_p0_threat_crosswalk_audit.py",
+      "internal/api/files_pagination_integration_linux_test.go",
+      "internal/api/files_pagination_test.go",
+      "internal/api/site_session_page_test.go",
       "scripts/test_backup_restore_site_lab_cli.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
       "tools/ui-browser/responsive-sites-files.spec.mjs"
     ],
-    "related_historical_pr_status_audit": {
-      "observed_on_utc_date": "2026-11-17",
-      "note": "GitHub API reads show these prior component/planning PRs are closed unmerged; their historical CI evidence does not satisfy phase gates.",
-      "pull_requests": {
-        "45": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:40:51Z",
-          "head_sha": "f51780e6d6be9ea7f4fec9639920c016d0a43477"
-        },
-        "51": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:41:09Z",
-          "head_sha": "437795d4533e9565b58763f7726516736179f3ee"
-        },
-        "52": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:41:11Z",
-          "head_sha": "c5cbe427d2745a9fe247be451b2637ab5a2c91d3"
-        },
-        "53": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:41:15Z",
-          "head_sha": "2fba56f00df137e896892851ec4811b78abb95fd"
-        },
-        "80": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:42:31Z",
-          "head_sha": "22578a13da3980c79c6198e089a9b66b252a5cc4"
-        },
-        "84": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:42:43Z",
-          "head_sha": "955a61098ea4a40b95bbc4e521f1a4c96542168c"
-        },
-        "89": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:42:56Z",
-          "head_sha": "51e12abb99d919e5e8cb10a69e868dc65c4ed9a0"
-        },
-        "91": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:43:02Z",
-          "head_sha": "01ae2237b8bdb4240fb79ca45842f9e6d4f549a1"
-        },
-        "144": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:45:28Z",
-          "head_sha": "2cf9211d592c7233dff01ab1e059aa260752af76"
-        },
-        "145": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:45:30Z",
-          "head_sha": "24304bbba3d6d8882a0fd1d70aa9d13e751100c5"
-        },
-        "143": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:45:25Z",
-          "head_sha": "482017005f9872c1fe7f2969ebfb477ea7de30dd"
-        },
-        "146": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:45:33Z",
-          "head_sha": "1b15276ef98b519335ba2566de04b6d862cb8277"
-        },
-        "147": {
-          "state": "closed",
-          "merged": false,
-          "closed_at_utc": "2026-11-12T15:45:36Z",
-          "head_sha": "7cf24a675490a6a07333a873d0ebe12dd00bd375"
-        }
-      },
-      "related_issues": {
-        "148": {
-          "state": "open",
-          "updated_at_utc": "2026-11-10T10:08:16Z",
-          "note": "P5 decision tracker; no approval inferred."
-        }
-      }
+    "handoff_files": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/ROADMAP.md",
+      "docs/AI_AGENT_STATE.json"
+    ],
+    "changed_code_files": [
+      "cmd/tongd/ui/style.css",
+      "internal/api/files_pagination_integration_linux_test.go",
+      "internal/api/files_pagination_test.go",
+      "internal/api/site_session_page_test.go",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
+      "tools/ui-browser/responsive-sites-files.spec.mjs"
+    ],
+    "local_results": {
+      "responsive_sites_files_spec": "21/21 passed after CSS filter-width/wrapping changes and responsive-spec keyboard-focus setup correction; no product focus order changed.",
+      "p0_structural_crosswalk_audit": "10/10 passed including symlink-escape regression; structural source/reference checks only, no mitigation or P0 approval",
+      "p2_cli_root_name_adjustment": "not run; Go fixture binary unavailable",
+      "api_tests": "The cookie-session prefix/cursor/tenant API test in internal/api/site_session_page_test.go and actual-Handler cookie prefix/cursor/tenant-root isolation test in internal/api/files_pagination_integration_linux_test.go are test-only and unrun because Go is unavailable. The Files invalid-prefix cases cover %FF, %00, and %7F, expect HTTP 400, and assert no file-service call.",
+      "full_npm_test": "not established",
+      "actual_handler_browser_workflow": "not established; Go fixture binary unavailable"
+    },
+    "scope": "Unpublished local changes after the fresh 2026-11-17 GitHub API reread; none are included in hosted 5712 results.",
+    "gates": "No mitigation, P0 approval, production decision, or approval-policy change is implied.",
+    "inventory_observed_at_utc": "2026-11-17T10:42:52Z",
+    "workflow_forecast": {
+      "pull_request_actions_runs": 13,
+      "push_actions_runs": 4,
+      "push_workflow_reasons": [
+        "Go checks, P1 developer smoke, and P1 unsigned developer package lab match changed internal/api/*.go files.",
+        "UI checks also matches cmd/tongd/ui/style.css."
+      ],
+      "push_check_run_count": "not forecast; read actual GitHub check-runs after push",
+      "manual_or_pr_only_verification": [
+        "P2 CLI and P0 structural audit workflows are PR-only.",
+        "Root-level AGENTS.md and UPDATES.md are not matched by workflow path filters; review their contents manually."
+      ],
+      "forecast_only": true
     }
   },
   "tracker_dod_at_snapshot": {
@@ -4441,211 +4242,119 @@
     "unchecked": 12,
     "approval_fields_false": 9,
     "issue_state": "open",
-    "issue_updated_at_utc": "2026-11-17T08:15:21Z",
-    "observed_at_utc": "2026-11-17T08:17:04Z",
+    "issue_updated_at_utc": "2026-11-17T10:06:31Z",
+    "observed_at_utc": "2026-11-17T10:02:06Z",
     "product_support_approval": false,
-    "approval_field_identifiers_independently_verified": false,
-    "note": "Issue #172 live read at 08:17:04Z: open, all 12 DoD items unchecked, all nine approval fields false, and product support false; updated_at is 08:15:21Z."
+    "note": "Issue #172 current connector observation at 10:02:06Z: open at 0/12, all nine approval fields and product support false. Issue body snapshot refreshed at 10:03Z with historical suffixes retained; API updated_at is 10:06:31Z.",
+    "body_snapshot_refreshed_at_utc": "2026-11-17T10:03Z",
+    "historical_suffixes_retained": true
   },
   "legacy_commit_status": {
-    "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
     "state": "pending",
     "total_contexts": 0,
     "statuses": [],
-    "observed_at_utc": "2026-11-17T08:21:00Z",
-    "note": "The legacy commit-status API returned pending with zero contexts for c86. Keep this separate from the 13 successful pull_request Actions runs and 24 successful check-runs; it does not establish branch-protection satisfaction."
+    "observed_at_utc": "2026-11-17T10:02:06Z",
+    "note": "The aggregate /commits/{sha}/status endpoint is pending with zero contexts; it is separate from the 16 exact-SHA Actions runs and 27 named check-runs."
   },
   "latest_source_checkpoint": {
-    "sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
-    "parent": "f2202265b2f366b7abcdbc92f785db6e570d758d",
-    "base_published_head": "f2202265b2f366b7abcdbc92f785db6e570d758d",
-    "source_commits": [
-      {
-        "sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-        "scope": "Published test-only synthetic first-install dpkg interruption/recovery and restore after synthetic source-tree deletion, plus handoff refresh; no production behavior or acceptance-gate change."
-      }
-    ],
-    "scope": "c86 is the current published test/document checkpoint. The post-c86 local restore, responsive UI, site-prefix API, crosswalk, workflow, and handoff candidate is uncommitted.",
-    "local_tests": {
-      "restore_tamper_truncation_candidate": "not_run",
-      "responsive_text_enlargement_candidate": "not_run",
-      "p0_crosswalk_validator_candidate": "not_run",
-      "site_prefix_api_candidate": "not_run"
-    },
+    "sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
+    "parent": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
     "pushed": true,
-    "hosted_ci": "Exact published c86 head passed 13/13 pull_request Actions and 24/24 check-runs with zero failures/pending. This does not cover the current uncommitted candidate.",
-    "next": "Finish independent source, documentation, and machine-state review; complete static validation; read PR #171, its integration ref, and issue #172 immediately before publication; commit and normal-fast-forward publish the reviewed candidate. Verify all ten matching pull_request workflows on the new PR head and the three direct-push workflows separately, refresh PR/issue current sections while preserving historical suffixes, and leave all gates open.",
-    "published_exact_head_ci": {
-      "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-      "tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
-      "workflow_runs_total": 13,
-      "workflow_success": 13,
-      "check_runs_total": 24,
-      "check_success": 24,
-      "workflow_run_ids": {
-        "pr_current_api_contract_checks": 44038234109,
-        "pr_go_static_security_analysis": 44038233841,
-        "pr_p1_unsigned_developer_package_lab": 44038233949,
-        "pr_jobs_browser_checks": 44038233798,
-        "pr_go_checks": 44038233941,
-        "pr_sqlite_schema_checks": 44038234152,
-        "pr_ui_checks": 44038234136,
-        "pr_go_vulnerability_checks": 44038233790,
-        "pr_p1_gate_blocker_inventory": 44038233799,
-        "pr_offline_model_and_fixture_checks": 44038233818,
-        "pr_isolated_go_prototype_checks": 44038234358,
-        "pr_p1_developer_smoke": 44038234150,
-        "pr_p2_clean_disposable_vm_smoke": 44038233819
-      },
-      "check_run_ids": [
-        133886221287,
-        133886220925,
-        133886220896,
-        133886220671,
-        133886220447,
-        133886220350,
-        133886220265,
-        133886220226,
-        133886220195,
-        133886220172,
-        133886220170,
-        133886220146,
-        133886220121,
-        133886220052,
-        133886220039,
-        133886220030,
-        133886219915,
-        133886219899,
-        133886219828,
-        133886219805,
-        133886219666,
-        133886219477,
-        133886219462,
-        133886219351
-      ],
-      "check_run_ids_complete": true,
-      "p2_run_id": 44038233819,
-      "debian_job_id": 133886220172,
-      "ubuntu_job_id": 133886219805,
-      "scope_note": "Exact PR head c86 only. P2 passed both jobs; step metadata does not identify individual assertions."
-    }
+    "scope": "Published 5712 includes the committed responsive 200% test; P2 step 13 failed on both OS jobs before guest step 18 and browser step 9 failed.",
+    "published_ci": {
+      "pr_event_runs": "11/13 successful",
+      "pr_event_checks": "21/24 successful",
+      "exact_sha_push_runs": "3/3 successful",
+      "exact_sha_push_checks": "3/3 successful",
+      "failures": [
+        "P2 Debian",
+        "P2 Ubuntu",
+        "browser"
+      ]
+    },
+    "local_follow_up": "Responsive Sites/Files spec 21/21 after filter-width/wrapping CSS and responsive-spec keyboard-focus setup correction; P0 structural audit 10/10 without mitigation/P0 approval; P2 CLI and all Go API tests unrun. The cookie-session prefix/cursor/tenant API test in internal/api/site_session_page_test.go and actual-Handler cookie prefix/cursor/tenant-root isolation test in internal/api/files_pagination_integration_linux_test.go are test-only and unrun because Go is unavailable. The Files invalid-prefix cases cover %FF, %00, and %7F, expect HTTP 400, and assert no file-service call.",
+    "local_p0_audit": {
+      "path": "scripts/test_p0_threat_crosswalk_audit.py",
+      "result": "10/10 local structural audit tests passed, including symlink-escape regression",
+      "scope": "Repository reference and text-signature checks only; no cited product-test execution, threat mitigation evidence, or P0 approval",
+      "hosted_5712_coverage": false
+    },
+    "next": "Review and publish the current candidate after a fresh PR/ref/issue read. Forecast 13 PR-event and 4 push Actions runs; inspect actual checks on the exact new SHA and preserve all gates."
   },
   "candidate_workflow_trigger_audit": {
-    "base_published_head": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
-    "uncommitted_candidate_files": [
-      ".github/workflows/p1-gate-audit.yml",
-      "AGENTS.md",
-      "UPDATES.md",
-      "docs/AI_AGENT_START_HERE.md",
-      "docs/AI_AGENT_STATE.json",
-      "docs/BLUEPRINT.md",
-      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
-      "docs/P0_THREAT_TEST_CROSSWALK.md",
-      "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
-      "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
-      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
-      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
-      "docs/PHASE_INDEX.md",
-      "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
-      "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
-      "docs/RESUME_HANDOFF_2026-11-12.md",
-      "docs/ROADMAP.md",
-      "docs/phases/P4-DESIGN-ACCEPTANCE.md",
-      "internal/api/site_page_test.go",
-      "scripts/p0_threat_crosswalk_audit.py",
-      "scripts/test_p0_threat_crosswalk_audit.py",
-      "scripts/test_backup_restore_site_lab_cli.py",
-      "tools/ui-browser/responsive-sites-files.spec.mjs"
-    ],
-    "workflow_path_audit": {
-      "events": [
-        "pull_request.synchronize",
-        "push"
-      ],
-      "predicted_pull_request_workflows": [
-        {
-          "name": "Go checks",
-          "reason": "internal/api/site_page_test.go matches **/*.go; Go test suite executes the added test."
-        },
-        {
-          "name": "Go static security analysis",
-          "reason": "internal/api/** Go path matches its PR filter."
-        },
-        {
-          "name": "Go vulnerability checks",
-          "reason": "internal/api/** Go path matches its PR filter."
-        },
-        {
-          "name": "Current API contract checks",
-          "reason": "**/*.go path matches; this workflow runs its named OpenAPI scenario rather than the new test."
-        },
-        {
-          "name": "P1 gate blocker inventory",
-          "reason": "internal/** plus scripts/**, tools/**, docs/** and the changed workflow match."
-        },
-        {
-          "name": "P1 unsigned developer package lab",
-          "reason": "**/*.go path matches."
-        },
-        {
-          "name": "P1 developer smoke (non-destructive)",
-          "reason": "**/*.go path matches."
-        },
-        {
-          "name": "P2 clean disposable VM smoke",
-          "reason": "internal/api/** matches; Debian 12 and Ubuntu 24.04 guest jobs run the API test binary."
-        },
-        {
-          "name": "Jobs browser checks",
-          "reason": "internal/api/** and tools/ui-browser/** paths match; the browser job runs."
-        },
-        {
-          "name": "Offline model and fixture checks",
-          "reason": "docs/phases/P4-DESIGN-ACCEPTANCE.md matches its explicit PR path filter; this triggers its offline model/fixture suite."
-        }
-      ],
-      "expected_pr_workflow_total": 10,
-      "predicted_push_workflows": [
-        {
-          "name": "Go checks",
-          "reason": "**/*.go push path filter matches on the integration branch."
-        },
-        {
-          "name": "P1 unsigned developer package lab",
-          "reason": "**/*.go push path filter matches on the integration branch."
-        },
-        {
-          "name": "P1 developer smoke (non-destructive)",
-          "reason": "**/*.go push path filter matches on the integration branch."
-        }
-      ],
-      "expected_direct_push_workflow_total": 3,
-      "forecast_only": true,
-      "path_filter_audit_observed_at_utc": "2026-11-17T08:54:41Z",
-      "workflow_dispatch_only_limits": "No relevant predicted workflow is dispatch-only. The listed PR checks have matching pull_request paths. Offline model and fixture checks is PR-triggered by the P4 design document; its direct push trigger is main-only."
+    "base_published_head": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "observed_pr_event": {
+      "actions_runs_total": 13,
+      "success": 11,
+      "failure": 2,
+      "check_runs_total": 24,
+      "check_success": 21,
+      "check_failure": 3
     },
-    "hosted_ci": "not_run_for_current_uncommitted_candidate",
-    "note": "Forecast applies if the candidate updates PR #171 integration/pr-reconciliation-20261113. Ten pull_request runs are predicted from API and P4-document paths; three direct push runs are separately predicted on the integration branch. Contents permissions are read-only; P1 gate/UI browser disable persisted checkout credentials, while P2 checkout uses default credential persistence."
+    "observed_exact_sha_push": {
+      "actions_runs_total": 3,
+      "success": 3,
+      "failure": 0,
+      "check_runs_total": 3,
+      "check_success": 3,
+      "check_failure": 0
+    },
+    "forecast_for_subsequent_candidate": {
+      "pr_event_actions_runs": 13,
+      "exact_sha_push_actions_runs": 4,
+      "forecast_only": true,
+      "events": "separate",
+      "push_check_run_count": "not forecast; read from GitHub"
+    },
+    "failure_summary": [
+      "P2 Debian step 13; guest step 18 skipped",
+      "P2 Ubuntu step 13; guest step 18 skipped",
+      "Browser step 9 generic exit 1"
+    ],
+    "note": "Published 5712 had 3 successful exact-SHA push runs. For the unpublished candidate, the CSS change adds UI checks on push, making the forecast 4 push Actions runs. Forecast only; read actual runs and check-runs after publication.",
+    "exact_sha_push_workflows_forecast": [
+      {
+        "name": "Go checks",
+        "reason": "Changed internal/api/*.go files match push path filter."
+      },
+      {
+        "name": "P1 developer smoke (non-destructive)",
+        "reason": "Changed Go files match push path filter."
+      },
+      {
+        "name": "P1 unsigned developer package lab",
+        "reason": "Changed Go files match push path filter."
+      },
+      {
+        "name": "UI checks",
+        "reason": "cmd/tongd/ui/style.css matches push path filter."
+      }
+    ],
+    "push_workflows_excluded": [
+      "Go static security analysis and Go vulnerability checks are restricted to pushes on main; integration branch push does not match.",
+      "P2 clean disposable VM smoke and P1 gate blocker inventory are PR-only."
+    ],
+    "manual_alternate_verification": [
+      "Root AGENTS.md and UPDATES.md do not match workflow path filters; review manually.",
+      "P2 CLI fixture and P0 structural audit need their PR-event workflows; push workflows do not cover them."
+    ]
   },
   "candidate_handoff_files": [
     "AGENTS.md",
     "UPDATES.md",
     "docs/AI_AGENT_START_HERE.md",
-    "docs/AI_AGENT_STATE.json",
+    "docs/RESUME_HANDOFF_2026-11-12.md",
     "docs/BLUEPRINT.md",
     "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
     "docs/P0_THREAT_TEST_CROSSWALK.md",
-    "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
-    "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
     "docs/P2_ACCEPTANCE_TRACEABILITY.md",
     "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "docs/PHASE_INDEX.md",
-    "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
-    "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
-    "docs/RESUME_HANDOFF_2026-11-12.md",
     "docs/ROADMAP.md",
-    "docs/phases/P4-DESIGN-ACCEPTANCE.md"
+    "docs/AI_AGENT_STATE.json"
   ],
   "previous_snapshot_summary_e9a6": {
     "scope": "Top-level values current before f220 refresh; full e9a6 current objects are preserved under previous_*_e9a6 or previous_*_before_f220 keys.",
@@ -6283,5 +5992,1110 @@
     "worktree_state": "HEAD is published PR c86 with 13/13 pull_request Actions and 24/24 checks passed; current 20-file candidate is uncommitted, unpublished, and outside that CI.",
     "source_commits_inventory_scope": "Published source history through c86 includes test-only regressions and handoff documents. The current uncommitted candidate adds restore corruption denials, injected-CSS responsive checks, a site-prefix API regression, P0 crosswalk structural validation and workflow wiring, plus refreshed handoff docs; no production behavior or approval-gate change is claimed.",
     "snapshot_timestamp_utc": "2026-11-17T08:47:03Z"
-  }
+  },
+  "previous_latest_exact_head_ci_c86": {
+    "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+    "pr_state": "open_draft_unmerged",
+    "observed_at_utc": "2026-11-17T07:52:05Z",
+    "workflow_runs_total": 13,
+    "workflow_success": 13,
+    "workflow_failure": 0,
+    "check_runs_total": 24,
+    "check_success": 24,
+    "check_failure": 0,
+    "pending": 0,
+    "pull_request_workflows": {
+      "total": 13,
+      "success": 13,
+      "failure": 0,
+      "in_progress": 0
+    },
+    "push_workflows": {
+      "total": 0,
+      "success": 0,
+      "failure": 0,
+      "in_progress": 0,
+      "observation": "no same-SHA push runs observed"
+    },
+    "p2_run_id": 44038233819,
+    "debian_job_id": 133886220172,
+    "ubuntu_job_id": 133886219805,
+    "p2_runner_steps": {
+      "run_id": 44038233819,
+      "debian_job_id": 133886220172,
+      "debian_guest_status": "guest_smoke_step_18_success_2026-11-17T07:36:57Z; post_steps_and_job_success_2026-11-17T07:37:00Z",
+      "ubuntu_job_id": 133886219805,
+      "ubuntu_guest_status": "guest_smoke_step_18_and_post_steps_success_2026-11-17T07:51:10Z; job_success_2026-11-17T07:51:12Z",
+      "runner_steps_8_9_13_15": "success_on_both_jobs; step 8 dpkg failure/recovery, step 9 interruption/recovery, step 13 restore CLI, step 15 restore inventory CLI",
+      "assertion_visibility_limit": "Step metadata confirms enclosing CLI steps, not individual assertions.",
+      "raw_vm_or_serial_logs_read": false
+    },
+    "raw_vm_or_serial_logs_read": false,
+    "limitations": [
+      "This result applies to exact published PR head c86 only; it does not cover the uncommitted post-c86 candidate.",
+      "P2 step metadata confirms enclosing runner-side steps, not individual assertions.",
+      "The legacy aggregate commit-status endpoint is pending with zero contexts and is separate from named check-runs.",
+      "No raw VM or serial logs were read."
+    ],
+    "scope": "Exact c86 pull_request Actions and check-run metadata reread at 2026-11-17T08:21:00Z; all are terminal and successful. P2 Debian and Ubuntu job completion times and step metadata are recorded separately.",
+    "workflow_run_ids": {
+      "pr_current_api_contract_checks": 44038234109,
+      "pr_go_static_security_analysis": 44038233841,
+      "pr_p1_unsigned_developer_package_lab": 44038233949,
+      "pr_jobs_browser_checks": 44038233798,
+      "pr_go_checks": 44038233941,
+      "pr_sqlite_schema_checks": 44038234152,
+      "pr_ui_checks": 44038234136,
+      "pr_go_vulnerability_checks": 44038233790,
+      "pr_p1_gate_blocker_inventory": 44038233799,
+      "pr_offline_model_and_fixture_checks": 44038233818,
+      "pr_isolated_go_prototype_checks": 44038234358,
+      "pr_p1_developer_smoke": 44038234150,
+      "pr_p2_clean_disposable_vm_smoke": 44038233819
+    },
+    "workflow_run_ids_complete": true,
+    "check_run_ids": [
+      133886221287,
+      133886220925,
+      133886220896,
+      133886220671,
+      133886220447,
+      133886220350,
+      133886220265,
+      133886220226,
+      133886220195,
+      133886220172,
+      133886220170,
+      133886220146,
+      133886220121,
+      133886220052,
+      133886220039,
+      133886220030,
+      133886219915,
+      133886219899,
+      133886219828,
+      133886219805,
+      133886219666,
+      133886219477,
+      133886219462,
+      133886219351
+    ],
+    "check_run_ids_complete": true,
+    "legacy_commit_status": {
+      "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+      "state": "pending",
+      "total_contexts": 0,
+      "statuses": [],
+      "observed_at_utc": "2026-11-17T08:21:00Z",
+      "note": "The legacy commit-status API returned pending with zero contexts for c86. Keep this separate from the 13 successful pull_request Actions runs and 24 successful check-runs; it does not establish branch-protection satisfaction."
+    },
+    "terminal_result_observed_at_utc": "2026-11-17T07:52:05Z",
+    "latest_p2_job_completed_at_utc": "2026-11-17T07:51:12Z",
+    "run_ids_and_check_ids_verified_at_utc": "2026-11-17T08:21:00Z"
+  },
+  "previous_source_head_ci_c86": {
+    "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+    "pr_state": "open_draft_unmerged",
+    "observed_at_utc": "2026-11-17T07:52:05Z",
+    "workflow_runs_total": 13,
+    "workflow_success": 13,
+    "workflow_failure": 0,
+    "check_runs_total": 24,
+    "check_success": 24,
+    "check_failure": 0,
+    "pending": 0,
+    "pull_request_workflows": {
+      "total": 13,
+      "success": 13,
+      "failure": 0,
+      "in_progress": 0
+    },
+    "push_workflows": {
+      "total": 0,
+      "success": 0,
+      "failure": 0,
+      "in_progress": 0,
+      "observation": "no same-SHA push runs observed"
+    },
+    "p2_run_id": 44038233819,
+    "debian_job_id": 133886220172,
+    "ubuntu_job_id": 133886219805,
+    "p2_runner_steps": {
+      "run_id": 44038233819,
+      "debian_job_id": 133886220172,
+      "debian_guest_status": "guest_smoke_step_18_success_2026-11-17T07:36:57Z; post_steps_and_job_success_2026-11-17T07:37:00Z",
+      "ubuntu_job_id": 133886219805,
+      "ubuntu_guest_status": "guest_smoke_step_18_and_post_steps_success_2026-11-17T07:51:10Z; job_success_2026-11-17T07:51:12Z",
+      "runner_steps_8_9_13_15": "success_on_both_jobs; step 8 dpkg failure/recovery, step 9 interruption/recovery, step 13 restore CLI, step 15 restore inventory CLI",
+      "assertion_visibility_limit": "Step metadata confirms enclosing CLI steps, not individual assertions.",
+      "raw_vm_or_serial_logs_read": false
+    },
+    "raw_vm_or_serial_logs_read": false,
+    "limitations": [
+      "This result applies to exact published PR head c86 only; it does not cover the uncommitted post-c86 candidate.",
+      "P2 step metadata confirms enclosing runner-side steps, not individual assertions.",
+      "The legacy aggregate commit-status endpoint is pending with zero contexts and is separate from named check-runs.",
+      "No raw VM or serial logs were read."
+    ],
+    "scope": "Exact c86 pull_request Actions and check-run metadata reread at 2026-11-17T08:21:00Z; all are terminal and successful. P2 Debian and Ubuntu job completion times and step metadata are recorded separately.",
+    "workflow_run_ids": {
+      "pr_current_api_contract_checks": 44038234109,
+      "pr_go_static_security_analysis": 44038233841,
+      "pr_p1_unsigned_developer_package_lab": 44038233949,
+      "pr_jobs_browser_checks": 44038233798,
+      "pr_go_checks": 44038233941,
+      "pr_sqlite_schema_checks": 44038234152,
+      "pr_ui_checks": 44038234136,
+      "pr_go_vulnerability_checks": 44038233790,
+      "pr_p1_gate_blocker_inventory": 44038233799,
+      "pr_offline_model_and_fixture_checks": 44038233818,
+      "pr_isolated_go_prototype_checks": 44038234358,
+      "pr_p1_developer_smoke": 44038234150,
+      "pr_p2_clean_disposable_vm_smoke": 44038233819
+    },
+    "workflow_run_ids_complete": true,
+    "check_run_ids": [
+      133886221287,
+      133886220925,
+      133886220896,
+      133886220671,
+      133886220447,
+      133886220350,
+      133886220265,
+      133886220226,
+      133886220195,
+      133886220172,
+      133886220170,
+      133886220146,
+      133886220121,
+      133886220052,
+      133886220039,
+      133886220030,
+      133886219915,
+      133886219899,
+      133886219828,
+      133886219805,
+      133886219666,
+      133886219477,
+      133886219462,
+      133886219351
+    ],
+    "check_run_ids_complete": true,
+    "legacy_commit_status": {
+      "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+      "state": "pending",
+      "total_contexts": 0,
+      "statuses": [],
+      "observed_at_utc": "2026-11-17T08:21:00Z",
+      "note": "The legacy commit-status API returned pending with zero contexts for c86. Keep this separate from the 13 successful pull_request Actions runs and 24 successful check-runs; it does not establish branch-protection satisfaction."
+    },
+    "terminal_result_observed_at_utc": "2026-11-17T07:52:05Z",
+    "latest_p2_job_completed_at_utc": "2026-11-17T07:51:12Z",
+    "run_ids_and_check_ids_verified_at_utc": "2026-11-17T08:21:00Z"
+  },
+  "previous_latest_live_snapshot_c86": {
+    "observed_at_utc": "2026-11-17T08:17:04Z",
+    "observed_on_local_date": "2026-11-17",
+    "pr": 171,
+    "pr_state": "open_draft_unmerged",
+    "pr_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "pr_head_tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "pr_head_parent_sha": "f2202265b2f366b7abcdbc92f785db6e570d758d",
+    "pr_base_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+    "branch_ref": "refs/heads/integration/pr-reconciliation-20261113",
+    "branch_ref_matches_pr_head": true,
+    "working_branch": "codex/tong-panel-candidate-20261116",
+    "workflow_runs_total_same_sha_all_events": 13,
+    "pull_request_workflows_total": 13,
+    "pull_request_workflows_success": 13,
+    "pull_request_workflows_failure": 0,
+    "pull_request_workflows_in_progress": 0,
+    "push_workflows_total": 0,
+    "push_workflows_success": 0,
+    "push_workflows_failure": 0,
+    "same_sha_push_runs_observed": false,
+    "check_runs_total_same_sha_all_events": 24,
+    "check_runs_success": 24,
+    "check_runs_failure": 0,
+    "check_runs_in_progress": 0,
+    "p2_run_id": 44038233819,
+    "debian_job_id": 133886220172,
+    "ubuntu_job_id": 133886219805,
+    "p2_runner_steps": {
+      "run_id": 44038233819,
+      "debian_job_id": 133886220172,
+      "debian_guest_status": "guest_smoke_step_18_success_2026-11-17T07:36:57Z; post_steps_and_job_success_2026-11-17T07:37:00Z",
+      "ubuntu_job_id": 133886219805,
+      "ubuntu_guest_status": "guest_smoke_step_18_and_post_steps_success_2026-11-17T07:51:10Z; job_success_2026-11-17T07:51:12Z",
+      "runner_steps_8_9_13_15": "success_on_both_jobs; step 8 dpkg failure/recovery, step 9 interruption/recovery, step 13 restore CLI, step 15 restore inventory CLI",
+      "assertion_visibility_limit": "Step metadata confirms enclosing CLI steps, not individual assertions.",
+      "raw_vm_or_serial_logs_read": false
+    },
+    "pending_checks": [],
+    "raw_vm_or_serial_logs_read": false,
+    "issue_172_state": "open",
+    "issue_172_dod_total": 12,
+    "issue_172_dod_checked": 0,
+    "issue_172_dod_unchecked": 12,
+    "issue_172_approval_fields_false": 9,
+    "product_support_approval": false,
+    "pr_body_updated_at_utc": "2026-11-17T08:15:15Z",
+    "issue_body_updated_at_utc": "2026-11-17T08:15:21Z",
+    "pr_body_snapshot_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "issue_body_snapshot_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "body_historical_suffixes_preserved_byte_for_byte": true,
+    "historical_suffix_marker_counts": {
+      "pr": 6,
+      "issue": 8
+    },
+    "body_snapshots_stale": false,
+    "gates_changed": false,
+    "current_worktree_candidate": {
+      "base_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+      "pushed": false,
+      "hosted_ci": "not_run",
+      "uncommitted_files": [
+        ".github/workflows/p1-gate-audit.yml",
+        "AGENTS.md",
+        "UPDATES.md",
+        "docs/AI_AGENT_START_HERE.md",
+        "docs/AI_AGENT_STATE.json",
+        "docs/BLUEPRINT.md",
+        "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+        "docs/P0_THREAT_TEST_CROSSWALK.md",
+        "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
+        "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
+        "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+        "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+        "docs/PHASE_INDEX.md",
+        "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
+        "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
+        "docs/RESUME_HANDOFF_2026-11-12.md",
+        "docs/ROADMAP.md",
+        "docs/phases/P4-DESIGN-ACCEPTANCE.md",
+        "internal/api/site_page_test.go",
+        "scripts/p0_threat_crosswalk_audit.py",
+        "scripts/test_p0_threat_crosswalk_audit.py",
+        "scripts/test_backup_restore_site_lab_cli.py",
+        "tools/ui-browser/responsive-sites-files.spec.mjs"
+      ],
+      "scope": "Post-c86 restore corruption, responsive UI, P0 crosswalk, and site-prefix API test candidates plus handoff refresh. No production behavior or approval policy change is claimed."
+    },
+    "snapshot_kind": "static_snapshot_not_live_monitor",
+    "local_worktree_clean_at_observation": false,
+    "workflow_run_ids": {
+      "pr_current_api_contract_checks": 44038234109,
+      "pr_go_static_security_analysis": 44038233841,
+      "pr_p1_unsigned_developer_package_lab": 44038233949,
+      "pr_jobs_browser_checks": 44038233798,
+      "pr_go_checks": 44038233941,
+      "pr_sqlite_schema_checks": 44038234152,
+      "pr_ui_checks": 44038234136,
+      "pr_go_vulnerability_checks": 44038233790,
+      "pr_p1_gate_blocker_inventory": 44038233799,
+      "pr_offline_model_and_fixture_checks": 44038233818,
+      "pr_isolated_go_prototype_checks": 44038234358,
+      "pr_p1_developer_smoke": 44038234150,
+      "pr_p2_clean_disposable_vm_smoke": 44038233819
+    },
+    "workflow_run_ids_complete": true,
+    "check_run_ids": [
+      133886221287,
+      133886220925,
+      133886220896,
+      133886220671,
+      133886220447,
+      133886220350,
+      133886220265,
+      133886220226,
+      133886220195,
+      133886220172,
+      133886220170,
+      133886220146,
+      133886220121,
+      133886220052,
+      133886220039,
+      133886220030,
+      133886219915,
+      133886219899,
+      133886219828,
+      133886219805,
+      133886219666,
+      133886219477,
+      133886219462,
+      133886219351
+    ],
+    "check_run_ids_complete": true,
+    "issue_172_state_observed_at_utc": "2026-11-17T08:17:04Z",
+    "pr_state_observed_at_utc": "2026-11-17T08:17:04Z",
+    "pr_comments": 27,
+    "pr_review_comments": 0,
+    "pr_reviews": 0,
+    "issue_comments": 38,
+    "pr_labels": [],
+    "issue_labels": [],
+    "live_read_confirmations": {
+      "pr_state": "open_draft_unmerged",
+      "pr_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+      "branch_ref": "refs/heads/integration/pr-reconciliation-20261113",
+      "branch_ref_matches_pr_head": true,
+      "issue_172_state": "open",
+      "issue_172_dod": "0/12 unchecked",
+      "issue_172_approval_fields_false": 9,
+      "product_support_approval": false,
+      "pr_state_observed_at_utc": "2026-11-17T08:17:04Z",
+      "issue_state_observed_at_utc": "2026-11-17T08:17:04Z",
+      "pr_updated_at_utc": "2026-11-17T08:15:15Z",
+      "issue_172_updated_at_utc": "2026-11-17T08:15:21Z",
+      "pr_body_snapshot_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+      "issue_body_snapshot_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+      "historical_suffixes_preserved_byte_for_byte": true,
+      "pr_historical_suffix_markers": 6,
+      "issue_historical_suffix_markers": 8,
+      "pr_comments": 27,
+      "pr_review_comments": 0,
+      "pr_reviews": 0,
+      "issue_comments": 38,
+      "pr_labels": 0,
+      "issue_labels": 0,
+      "no_comment_label_or_review_events_after_0815": true
+    },
+    "body_readback_at_utc": "2026-11-17T08:17:04Z",
+    "body_patch_observed_at_utc": "2026-11-17T08:15:00Z",
+    "branch_ref_observed_at_utc": "2026-11-17T08:17:04Z",
+    "terminal_exact_head_ci_observed_at_utc": "2026-11-17T07:52:05Z",
+    "ci_ids_and_statuses_reread_at_utc": "2026-11-17T08:21:00Z",
+    "body_snapshot_observation_note": "PR/issue current sections were read back during the 08:17Z audit. GitHub updated_at values are 08:15:15Z (PR) and 08:15:21Z (issue); both historical suffixes were byte-for-byte preserved."
+  },
+  "previous_latest_source_checkpoint_c86": {
+    "sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "parent": "f2202265b2f366b7abcdbc92f785db6e570d758d",
+    "base_published_head": "f2202265b2f366b7abcdbc92f785db6e570d758d",
+    "source_commits": [
+      {
+        "sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+        "scope": "Published test-only synthetic first-install dpkg interruption/recovery and restore after synthetic source-tree deletion, plus handoff refresh; no production behavior or acceptance-gate change."
+      }
+    ],
+    "scope": "c86 is the current published test/document checkpoint. The post-c86 local restore, responsive UI, site-prefix API, crosswalk, workflow, and handoff candidate is uncommitted.",
+    "local_tests": {
+      "restore_tamper_truncation_candidate": "not_run",
+      "responsive_text_enlargement_candidate": "not_run",
+      "p0_crosswalk_validator_candidate": "not_run",
+      "site_prefix_api_candidate": "not_run"
+    },
+    "pushed": true,
+    "hosted_ci": "Exact published c86 head passed 13/13 pull_request Actions and 24/24 check-runs with zero failures/pending. This does not cover the current uncommitted candidate.",
+    "next": "Finish independent source, documentation, and machine-state review; complete static validation; read PR #171, its integration ref, and issue #172 immediately before publication; commit and normal-fast-forward publish the reviewed candidate. Verify all ten matching pull_request workflows on the new PR head and the three direct-push workflows separately, refresh PR/issue current sections while preserving historical suffixes, and leave all gates open.",
+    "published_exact_head_ci": {
+      "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+      "tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+      "workflow_runs_total": 13,
+      "workflow_success": 13,
+      "check_runs_total": 24,
+      "check_success": 24,
+      "workflow_run_ids": {
+        "pr_current_api_contract_checks": 44038234109,
+        "pr_go_static_security_analysis": 44038233841,
+        "pr_p1_unsigned_developer_package_lab": 44038233949,
+        "pr_jobs_browser_checks": 44038233798,
+        "pr_go_checks": 44038233941,
+        "pr_sqlite_schema_checks": 44038234152,
+        "pr_ui_checks": 44038234136,
+        "pr_go_vulnerability_checks": 44038233790,
+        "pr_p1_gate_blocker_inventory": 44038233799,
+        "pr_offline_model_and_fixture_checks": 44038233818,
+        "pr_isolated_go_prototype_checks": 44038234358,
+        "pr_p1_developer_smoke": 44038234150,
+        "pr_p2_clean_disposable_vm_smoke": 44038233819
+      },
+      "check_run_ids": [
+        133886221287,
+        133886220925,
+        133886220896,
+        133886220671,
+        133886220447,
+        133886220350,
+        133886220265,
+        133886220226,
+        133886220195,
+        133886220172,
+        133886220170,
+        133886220146,
+        133886220121,
+        133886220052,
+        133886220039,
+        133886220030,
+        133886219915,
+        133886219899,
+        133886219828,
+        133886219805,
+        133886219666,
+        133886219477,
+        133886219462,
+        133886219351
+      ],
+      "check_run_ids_complete": true,
+      "p2_run_id": 44038233819,
+      "debian_job_id": 133886220172,
+      "ubuntu_job_id": 133886219805,
+      "scope_note": "Exact PR head c86 only. P2 passed both jobs; step metadata does not identify individual assertions."
+    }
+  },
+  "previous_current_worktree_candidate_c86": {
+    "base_head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "base_head_tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "pushed": false,
+    "hosted_ci": "not_run",
+    "changed_code_files": [
+      ".github/workflows/p1-gate-audit.yml",
+      "internal/api/site_page_test.go",
+      "scripts/p0_threat_crosswalk_audit.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "tools/ui-browser/responsive-sites-files.spec.mjs"
+    ],
+    "scope": "Post-c86 test and validation candidate: restore tamper/truncation denial checks; responsive Sites/Files text enlargement; literal site-prefix and tenant-exclusion API regression; P0 crosswalk structural validator/tests/workflow; refreshed current and historical handoff labels. No production behavior or approval policy change is claimed. Additional dated phase/security packets now distinguish closed PR #149 snapshots from current c86 status; their historical evidence and open gates are preserved.",
+    "test_candidates": [
+      "internal/api/site_page_test.go: TestSiteListPrefixIsLiteralAndTenantScopedAtAPI (two-page cursor continuation, literal-prefix matching, tenant isolation)",
+      "scripts/test_backup_restore_site_lab_cli.py: tampered/truncated restore denial cases",
+      "tools/ui-browser/responsive-sites-files.spec.mjs: 200% computed-text reflow case",
+      "scripts/test_p0_threat_crosswalk_audit.py: structural crosswalk validator cases"
+    ],
+    "restore_cli_scope": "Valid tenant and key with midpoint ciphertext bit-flip or half-length truncation; require exact redacted denial stderr, empty private lab root before/after inventory, and unchanged successful restore roots/ciphertexts.",
+    "responsive_browser_scope": "Synthetic Sites/Files fixture at 320x640 with injected 2x computed font sizes only; targeted bounds, horizontal overflow, scroll reachability, close-button keyboard focus, and intercepted read-only request checks. Not browser zoom or human accessibility acceptance.",
+    "site_prefix_api_scope": "Synthetic bearer-authenticated SQLite API/catalog requests for prefix=app_ with limit=1 and after cursor; require app_01 then app_02, the expected next_after cursor on page one and empty cursor on page two, exclude appX01 and its domain, and do not disclose tenant B app_03 or its domain. Does not cover cookie-session auth, case sensitivity, or the full tenant-to-agent lifecycle.",
+    "crosswalk_scope": "T01-T15 completeness, repository-contained file links, nearest preceding linked test file for named test symbols, and structural source-text signatures only. Does not parse language syntax, run cited tests, assess mitigations, or change approvals.",
+    "local_validation": {
+      "git_diff_check": "passed_after_final_candidate_delta_2026-11-17",
+      "json_parse": "passed_after_final_state_write_2026-11-17",
+      "local_tests": "not_run",
+      "process_execution": "not_run_locally",
+      "hosted_ci": "not_run",
+      "candidate_path_inventory": "passed_23_paths_match_git_status_after_final_state_write"
+    },
+    "documentation_changes": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
+      "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
+      "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md",
+      "docs/phases/P4-DESIGN-ACCEPTANCE.md"
+    ],
+    "limitations": [
+      "All post-c86 candidate changes are uncommitted and outside c86 exact-head CI.",
+      "The API regression uses synthetic development bearer auth and does not cover cookie sessions, case-sensitive prefixes, or the complete lifecycle.",
+      "The browser case is injected CSS at one viewport, not browser zoom, broad responsive coverage, or human accessibility acceptance.",
+      "The crosswalk checks structural text signatures, not parsed source or test execution and does not prove mitigations or approval.",
+      "Restore corruption coverage is synthetic CLI behavior in the disposable non-root workflow and does not establish integrated customer recovery.",
+      "Keep owner, security, production-auth, privileged-host, key-custody, signed-package, accessibility, merge, deployment, and release gates open.",
+      "Dated phase/security packets retain historical evidence; PRs #45, #51-#53, #80, #84, #89, #91, #143, #144, #145, #146, #147, and #149 are closed unmerged in the 2026-11-17 GitHub reads. Their status does not change owner, security, product, or release gates."
+    ],
+    "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "working_tree_changes_uncommitted": true,
+    "uncommitted_files": [
+      ".github/workflows/p1-gate-audit.yml",
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
+      "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
+      "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md",
+      "docs/phases/P4-DESIGN-ACCEPTANCE.md",
+      "internal/api/site_page_test.go",
+      "scripts/p0_threat_crosswalk_audit.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "tools/ui-browser/responsive-sites-files.spec.mjs"
+    ],
+    "related_historical_pr_status_audit": {
+      "observed_on_utc_date": "2026-11-17",
+      "note": "GitHub API reads show these prior component/planning PRs are closed unmerged; their historical CI evidence does not satisfy phase gates.",
+      "pull_requests": {
+        "45": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:40:51Z",
+          "head_sha": "f51780e6d6be9ea7f4fec9639920c016d0a43477"
+        },
+        "51": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:41:09Z",
+          "head_sha": "437795d4533e9565b58763f7726516736179f3ee"
+        },
+        "52": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:41:11Z",
+          "head_sha": "c5cbe427d2745a9fe247be451b2637ab5a2c91d3"
+        },
+        "53": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:41:15Z",
+          "head_sha": "2fba56f00df137e896892851ec4811b78abb95fd"
+        },
+        "80": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:42:31Z",
+          "head_sha": "22578a13da3980c79c6198e089a9b66b252a5cc4"
+        },
+        "84": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:42:43Z",
+          "head_sha": "955a61098ea4a40b95bbc4e521f1a4c96542168c"
+        },
+        "89": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:42:56Z",
+          "head_sha": "51e12abb99d919e5e8cb10a69e868dc65c4ed9a0"
+        },
+        "91": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:43:02Z",
+          "head_sha": "01ae2237b8bdb4240fb79ca45842f9e6d4f549a1"
+        },
+        "144": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:45:28Z",
+          "head_sha": "2cf9211d592c7233dff01ab1e059aa260752af76"
+        },
+        "145": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:45:30Z",
+          "head_sha": "24304bbba3d6d8882a0fd1d70aa9d13e751100c5"
+        },
+        "143": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:45:25Z",
+          "head_sha": "482017005f9872c1fe7f2969ebfb477ea7de30dd"
+        },
+        "146": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:45:33Z",
+          "head_sha": "1b15276ef98b519335ba2566de04b6d862cb8277"
+        },
+        "147": {
+          "state": "closed",
+          "merged": false,
+          "closed_at_utc": "2026-11-12T15:45:36Z",
+          "head_sha": "7cf24a675490a6a07333a873d0ebe12dd00bd375"
+        }
+      },
+      "related_issues": {
+        "148": {
+          "state": "open",
+          "updated_at_utc": "2026-11-10T10:08:16Z",
+          "note": "P5 decision tracker; no approval inferred."
+        }
+      }
+    }
+  },
+  "previous_worktree_changes_c86": {
+    "head_sha": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "head_tree_sha": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "uncommitted_files": [
+      ".github/workflows/p1-gate-audit.yml",
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
+      "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
+      "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md",
+      "docs/phases/P4-DESIGN-ACCEPTANCE.md",
+      "internal/api/site_page_test.go",
+      "scripts/p0_threat_crosswalk_audit.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "tools/ui-browser/responsive-sites-files.spec.mjs"
+    ],
+    "only_uncommitted_changes_are_test_and_handoff_refresh": false,
+    "published_pr_head_matches_worktree_head": true,
+    "local_candidate_pushed": false,
+    "hosted_ci_for_uncommitted_changes": "not_run",
+    "candidate_components": [
+      "Restore CLI tamper/truncation denial regression.",
+      "Responsive Sites/Files browser case with injected 200% CSS text enlargement.",
+      "Synthetic bearer-authenticated site-prefix literal matching and tenant-exclusion API regression.",
+      "Structural-only P0 crosswalk validator, focused tests, and workflow wiring.",
+      "Current handoff refresh and explicit historical labels for pre-c86 snapshots."
+    ],
+    "test_candidates": [
+      "internal/api/site_page_test.go: TestSiteListPrefixIsLiteralAndTenantScopedAtAPI",
+      "scripts/test_backup_restore_site_lab_cli.py: tampered/truncated restore denial cases",
+      "tools/ui-browser/responsive-sites-files.spec.mjs: 200% computed-text reflow case",
+      "scripts/test_p0_threat_crosswalk_audit.py: structural crosswalk validator cases"
+    ],
+    "documentation_changes": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
+      "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
+      "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md",
+      "docs/phases/P4-DESIGN-ACCEPTANCE.md"
+    ],
+    "scope_limit": "All current worktree changes are uncommitted and outside published c86 exact-head CI. No merge, live-server mutation, production approval, or public release is authorized.",
+    "working_tree_path_count": 23
+  },
+  "previous_current_follow_up_c86": {
+    "status": "PR_c86_open_draft_unmerged_exact_head_green; post_c86_candidates_uncommitted",
+    "published_pr_head": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "published_pr_tree": "7db2054e9d3dd0e3b5d530086b286e232cc5d61f",
+    "published_pr_parent": "f2202265b2f366b7abcdbc92f785db6e570d758d",
+    "published_exact_head_ci": {
+      "workflow_runs_total": 13,
+      "workflow_success": 13,
+      "check_runs_total": 24,
+      "check_success": 24,
+      "p2_run_id": 44038233819,
+      "debian_job_id": 133886220172,
+      "ubuntu_job_id": 133886219805,
+      "same_sha_push_runs_observed": false
+    },
+    "issue_172": {
+      "state": "open",
+      "dod_total": 12,
+      "dod_checked": 0,
+      "approval_fields_false": 9,
+      "product_support_approval": false
+    },
+    "current_local_candidate": "Uncommitted post-c86 restore, responsive UI, literal-prefix API pagination/tenant-isolation, crosswalk validator/workflow, and historical handoff corrections; no local tests or candidate hosted CI have run.",
+    "next": "Finish independent source, documentation, and machine-state review; complete static validation; read PR #171, its integration ref, and issue #172 immediately before publication; commit and normal-fast-forward publish the reviewed candidate. Verify all ten matching pull_request workflows on the new PR head and the three direct-push workflows separately, refresh PR/issue current sections while preserving historical suffixes, and leave all gates open.",
+    "gates_unchanged": true,
+    "latest_pr_ref_issue_read_at_utc": "2026-11-17T08:17:04Z",
+    "latest_body_readback_at_utc": "2026-11-17T08:17:04Z",
+    "pr_body_updated_at_utc": "2026-11-17T08:15:15Z",
+    "issue_body_updated_at_utc": "2026-11-17T08:15:21Z",
+    "pr_comments": 27,
+    "pr_review_comments": 0,
+    "pr_reviews": 0,
+    "issue_comments": 38,
+    "pr_labels": [],
+    "issue_labels": [],
+    "expected_candidate_ci": {
+      "pull_request_workflows": 10,
+      "direct_push_workflows": 3,
+      "forecast_only": true
+    }
+  },
+  "previous_next_c86": {
+    "priority": 1,
+    "action": "Finish independent source, documentation, and machine-state review; complete static validation; read PR #171, its integration ref, and issue #172 immediately before publication; commit and normal-fast-forward publish the reviewed candidate. Verify all ten matching pull_request workflows on the new PR head and the three direct-push workflows separately, refresh PR/issue current sections while preserving historical suffixes, and leave all gates open.",
+    "required_evidence": [
+      "Independent review of restore tamper/truncation assertions, API literal-prefix and tenant/pagination behavior, crosswalk validator/workflow, responsive browser case, stale historical PR labels, and machine state.",
+      "Static checks pass: git diff --check, JSON parse, and exact candidate path inventory against git status.",
+      "Fresh PR #171/ref and issue #172 state immediately before normal fast-forward publication; PR remains draft and tracker approvals remain unchanged.",
+      "Terminal exact-new-head results for ten pull_request workflows: Go checks; Go static security analysis; Go vulnerability checks; Current API contract checks; P1 gate blocker inventory; P1 unsigned developer package lab; P1 developer smoke; P2 clean disposable VM smoke (Debian and Ubuntu); Jobs browser checks; Offline model and fixture checks.",
+      "Separately inspect the three integration-branch push workflows: Go checks; P1 unsigned developer package lab; P1 developer smoke."
+    ],
+    "gates_unchanged": true
+  },
+  "previous_candidate_workflow_trigger_audit_c86": {
+    "base_published_head": "c86f9fd158c391cf8fb4d441d890c7417134fb43",
+    "uncommitted_candidate_files": [
+      ".github/workflows/p1-gate-audit.yml",
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
+      "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
+      "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md",
+      "docs/phases/P4-DESIGN-ACCEPTANCE.md",
+      "internal/api/site_page_test.go",
+      "scripts/p0_threat_crosswalk_audit.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "tools/ui-browser/responsive-sites-files.spec.mjs"
+    ],
+    "workflow_path_audit": {
+      "events": [
+        "pull_request.synchronize",
+        "push"
+      ],
+      "predicted_pull_request_workflows": [
+        {
+          "name": "Go checks",
+          "reason": "internal/api/site_page_test.go matches **/*.go; Go test suite executes the added test."
+        },
+        {
+          "name": "Go static security analysis",
+          "reason": "internal/api/** Go path matches its PR filter."
+        },
+        {
+          "name": "Go vulnerability checks",
+          "reason": "internal/api/** Go path matches its PR filter."
+        },
+        {
+          "name": "Current API contract checks",
+          "reason": "**/*.go path matches; this workflow runs its named OpenAPI scenario rather than the new test."
+        },
+        {
+          "name": "P1 gate blocker inventory",
+          "reason": "internal/** plus scripts/**, tools/**, docs/** and the changed workflow match."
+        },
+        {
+          "name": "P1 unsigned developer package lab",
+          "reason": "**/*.go path matches."
+        },
+        {
+          "name": "P1 developer smoke (non-destructive)",
+          "reason": "**/*.go path matches."
+        },
+        {
+          "name": "P2 clean disposable VM smoke",
+          "reason": "internal/api/** matches; Debian 12 and Ubuntu 24.04 guest jobs run the API test binary."
+        },
+        {
+          "name": "Jobs browser checks",
+          "reason": "internal/api/** and tools/ui-browser/** paths match; the browser job runs."
+        },
+        {
+          "name": "Offline model and fixture checks",
+          "reason": "docs/phases/P4-DESIGN-ACCEPTANCE.md matches its explicit PR path filter; this triggers its offline model/fixture suite."
+        }
+      ],
+      "expected_pr_workflow_total": 10,
+      "predicted_push_workflows": [
+        {
+          "name": "Go checks",
+          "reason": "**/*.go push path filter matches on the integration branch."
+        },
+        {
+          "name": "P1 unsigned developer package lab",
+          "reason": "**/*.go push path filter matches on the integration branch."
+        },
+        {
+          "name": "P1 developer smoke (non-destructive)",
+          "reason": "**/*.go push path filter matches on the integration branch."
+        }
+      ],
+      "expected_direct_push_workflow_total": 3,
+      "forecast_only": true,
+      "path_filter_audit_observed_at_utc": "2026-11-17T08:54:41Z",
+      "workflow_dispatch_only_limits": "No relevant predicted workflow is dispatch-only. The listed PR checks have matching pull_request paths. Offline model and fixture checks is PR-triggered by the P4 design document; its direct push trigger is main-only."
+    },
+    "hosted_ci": "not_run_for_current_uncommitted_candidate",
+    "note": "Forecast applies if the candidate updates PR #171 integration/pr-reconciliation-20261113. Ten pull_request runs are predicted from API and P4-document paths; three direct push runs are separately predicted on the integration branch. Contents permissions are read-only; P1 gate/UI browser disable persisted checkout credentials, while P2 checkout uses default credential persistence."
+  },
+  "snapshot_source": "GitHub connector read at 2026-11-17T10:02:06Z.",
+  "local_candidate_pushed": false,
+  "branch_ref_observed_at_utc": "2026-11-17T10:02:06Z",
+  "terminal_exact_head_ci_observed_at_utc": "2026-11-17T10:02:06Z",
+  "ci_ids_and_statuses_reread_at_utc": "2026-11-17T10:02:06Z",
+  "pr_updated_at_utc": "2026-11-17T10:06:24Z",
+  "issue_updated_at_utc": "2026-11-17T10:06:31Z",
+  "previous_pr_api_updated_at_2026_11_17T09_24_20Z": "2026-11-17T09:24:20Z",
+  "previous_issue_api_updated_at_2026_11_17T08_15_21Z": "2026-11-17T08:15:21Z",
+  "pr_api_updated_at_utc": "2026-11-17T10:06:24Z",
+  "issue_api_updated_at_utc": "2026-11-17T10:06:31Z",
+  "embedded_pr_body_snapshot_observed_at_utc": "2026-11-17T10:03Z",
+  "embedded_issue_body_snapshot_observed_at_utc": "2026-11-17T10:03Z",
+  "pr_body_snapshot_refreshed_at_utc": "2026-11-17T10:03Z",
+  "issue_body_snapshot_refreshed_at_utc": "2026-11-17T10:03Z",
+  "body_historical_suffixes_retained": true,
+  "pr_body_snapshot_observation_note": "The embedded current PR body says its snapshot was observed at 10:03Z; PR API updated_at 10:06:24Z is recorded separately. The prior 09:24:20Z PR API updated_at reflected head-sync metadata.",
+  "issue_body_snapshot_observation_note": "The embedded current issue body says its snapshot was observed at 10:03Z; issue API updated_at 10:06:31Z is recorded separately.",
+  "previous_current_worktree_candidate_5712_10_02": {
+    "base_published_head": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "base_tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
+    "pushed": false,
+    "hosted_ci": "not_run_for_current_uncommitted_changes",
+    "uncommitted_files": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "cmd/tongd/ui/style.css",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md",
+      "internal/api/site_session_page_test.go",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
+      "tools/ui-browser/responsive-sites-files.spec.mjs"
+    ],
+    "handoff_files": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/ROADMAP.md",
+      "docs/AI_AGENT_STATE.json"
+    ],
+    "changed_code_files": [
+      "cmd/tongd/ui/style.css",
+      "tools/ui-browser/responsive-sites-files.spec.mjs",
+      "internal/api/site_session_page_test.go",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "scripts/test_p0_threat_crosswalk_audit.py"
+    ],
+    "local_results": {
+      "responsive_sites_files_spec": "21/21 passed after unpublished CSS/focus-order fix",
+      "p0_structural_crosswalk_audit": "10/10 local structural audit tests passed, including symlink-escape regression",
+      "p2_cli_root_name_adjustment": "not run",
+      "cookie_session_prefix_cursor_tenant_api_test": "not run; Go unavailable",
+      "full_npm_test": "not established",
+      "actual_handler_browser_workflow": "not established; Go fixture binary unavailable"
+    },
+    "scope": "Unpublished local changes; none are included in hosted 5712 results.",
+    "gates": "No mitigation, P0 approval, production decision, or approval-policy change is implied."
+  },
+  "previous_worktree_changes_5712_10_02": {
+    "head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "head_tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
+    "uncommitted_files": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "cmd/tongd/ui/style.css",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md",
+      "internal/api/site_session_page_test.go",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
+      "tools/ui-browser/responsive-sites-files.spec.mjs"
+    ],
+    "only_uncommitted_changes_are_test_and_handoff_refresh": false,
+    "published_pr_head_matches_worktree_head": true,
+    "local_candidate_pushed": false,
+    "hosted_ci_for_uncommitted_changes": "not_run",
+    "working_tree_path_count": 17,
+    "note": "Point-in-time inventory includes concurrent CSS, responsive-spec, API, P2 CLI, and P0 structural-audit changes."
+  },
+  "local_worktree_inventory_observed_at_utc": "2026-11-17T10:42:52Z",
+  "previous_pr_body_updated_at_utc_before_10_03_body_refresh": "2026-11-17T08:15:15Z",
+  "previous_issue_body_updated_at_utc_before_10_03_body_refresh": "2026-11-17T08:15:21Z",
+  "previous_body_readback_at_utc_before_10_03_body_refresh": "2026-11-17T10:02:06Z",
+  "pr_body_snapshot_observed_at_utc": "2026-11-17T10:03Z",
+  "issue_body_snapshot_observed_at_utc": "2026-11-17T10:03Z",
+  "body_snapshot_refreshed_at_utc": "2026-11-17T10:03Z",
+  "previous_current_worktree_candidate_5712_10_12": {
+    "base_published_head": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "base_tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
+    "pushed": false,
+    "hosted_ci": "not_run_for_current_uncommitted_changes",
+    "uncommitted_files": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "cmd/tongd/ui/style.css",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md",
+      "internal/api/files_pagination_integration_linux_test.go",
+      "internal/api/files_pagination_test.go",
+      "internal/api/site_session_page_test.go",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
+      "tools/ui-browser/responsive-sites-files.spec.mjs"
+    ],
+    "handoff_files": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/ROADMAP.md",
+      "docs/AI_AGENT_STATE.json"
+    ],
+    "changed_code_files": [
+      "cmd/tongd/ui/style.css",
+      "tools/ui-browser/responsive-sites-files.spec.mjs",
+      "internal/api/site_session_page_test.go",
+      "internal/api/files_pagination_integration_linux_test.go",
+      "internal/api/files_pagination_test.go",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "scripts/test_p0_threat_crosswalk_audit.py"
+    ],
+    "local_results": {
+      "responsive_sites_files_spec": "21/21 passed after unpublished CSS/focus-order fix",
+      "p0_structural_crosswalk_audit": "10/10 passed including symlink-escape regression; structural source/reference checks only, no mitigation or P0 approval",
+      "p2_cli_root_name_adjustment": "not run",
+      "api_tests": "The cookie-session prefix/cursor/tenant API test in internal/api/site_session_page_test.go, actual-Handler cookie prefix/cursor/tenant-root isolation test in internal/api/files_pagination_integration_linux_test.go, and %FF/%00 HTTP rejection tests in internal/api/files_pagination_test.go are test-only and unrun because Go is unavailable.",
+      "full_npm_test": "not established",
+      "actual_handler_browser_workflow": "not established; Go fixture binary unavailable"
+    },
+    "scope": "Unpublished local changes after the 10:02 GitHub observation; none are included in hosted 5712 results.",
+    "gates": "No mitigation, P0 approval, production decision, or approval-policy change is implied.",
+    "inventory_observed_at_utc": "2026-11-17T10:12:17Z"
+  },
+  "previous_worktree_changes_5712_10_12": {
+    "head_sha": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "head_tree_sha": "dd69eccf8ae9146ebdc7757d99ca329de365dd4b",
+    "uncommitted_files": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "cmd/tongd/ui/style.css",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+      "docs/PHASE_INDEX.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md",
+      "internal/api/files_pagination_integration_linux_test.go",
+      "internal/api/files_pagination_test.go",
+      "internal/api/site_session_page_test.go",
+      "scripts/test_backup_restore_site_lab_cli.py",
+      "scripts/test_p0_threat_crosswalk_audit.py",
+      "tools/ui-browser/responsive-sites-files.spec.mjs"
+    ],
+    "only_uncommitted_changes_are_test_and_handoff_refresh": false,
+    "published_pr_head_matches_worktree_head": true,
+    "local_candidate_pushed": false,
+    "hosted_ci_for_uncommitted_changes": "not_run",
+    "working_tree_path_count": 19,
+    "observed_at_utc": "2026-11-17T10:12:17Z",
+    "note": "Point-in-time inventory after 10:02 GitHub read: CSS, responsive spec, site/API tests, P2 CLI test, P0 structural audit, and handoff/state changes."
+  },
+  "previous_candidate_workflow_trigger_audit_5712_10_12": {
+    "base_published_head": "5712fa17b5c07bc60ad881ddd772554e4fa94c96",
+    "observed_pr_event": {
+      "actions_runs_total": 13,
+      "success": 11,
+      "failure": 2,
+      "check_runs_total": 24,
+      "check_success": 21,
+      "check_failure": 3
+    },
+    "observed_exact_sha_push": {
+      "actions_runs_total": 3,
+      "success": 3,
+      "failure": 0,
+      "check_runs_total": 3,
+      "check_success": 3,
+      "check_failure": 0
+    },
+    "forecast_for_subsequent_candidate": {
+      "pr_event_actions_runs": 13,
+      "exact_sha_push_actions_runs": 3,
+      "forecast_only": true,
+      "events": "separate"
+    },
+    "failure_summary": [
+      "P2 Debian step 13; guest step 18 skipped",
+      "P2 Ubuntu step 13; guest step 18 skipped",
+      "Browser step 9 generic exit 1"
+    ],
+    "note": "Unpublished CSS, responsive-spec, API, P2 CLI, and P0 audit changes are outside 5712 hosted results."
+  },
+  "pr_body_updated_at_utc": "2026-11-17T10:06:24Z",
+  "issue_body_updated_at_utc": "2026-11-17T10:06:31Z",
+  "previous_candidate_handoff_files_c86": [
+    "AGENTS.md",
+    "UPDATES.md",
+    "docs/AI_AGENT_START_HERE.md",
+    "docs/AI_AGENT_STATE.json",
+    "docs/BLUEPRINT.md",
+    "docs/OPENROOTAT_SECURITY_REVIEW_HANDOFF.md",
+    "docs/P0_THREAT_TEST_CROSSWALK.md",
+    "docs/P1_DPKG_FAILURE_RECOVERY_LAB.md",
+    "docs/P1_SECURITY_ACCEPTANCE_2026-11-13.md",
+    "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+    "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
+    "docs/PHASE_INDEX.md",
+    "docs/P3_ENTRY_AND_ACCEPTANCE_TEST_PLAN.md",
+    "docs/P5_PREREQUISITE_AND_ACCEPTANCE_SPEC.md",
+    "docs/RESUME_HANDOFF_2026-11-12.md",
+    "docs/ROADMAP.md",
+    "docs/phases/P4-DESIGN-ACCEPTANCE.md"
+  ]
 }

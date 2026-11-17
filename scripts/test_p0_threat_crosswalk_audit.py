@@ -1,4 +1,6 @@
 """Structural checks for the draft P0 threat crosswalk, not threat acceptance."""
+import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -83,6 +85,39 @@ class P0ThreatCrosswalkAuditTests(unittest.TestCase):
         self.crosswalk.write_text(
             self.crosswalk.read_text(encoding="utf-8").replace(
                 "../internal/source.go", "../../outside.go", 1
+            ),
+            encoding="utf-8",
+        )
+        with self.assertRaises(InvalidCrosswalk):
+            audit_crosswalk(self.root, self.crosswalk)
+
+    def test_symlinked_local_reference_cannot_escape_repository(self):
+        self.write_crosswalk()
+        outside = self.parent / "outside.go"
+        outside.write_text("package outside\n", encoding="utf-8")
+        escaped_link = self.docs / "escape.go"
+
+        if not hasattr(os, "symlink"):
+            if sys.platform.startswith("linux"):
+                self.fail("Linux CI must support symlink creation")
+            self.skipTest("symlink creation is unsupported on this platform")
+
+        try:
+            os.symlink(outside, escaped_link)
+        except NotImplementedError as exc:
+            if sys.platform.startswith("linux"):
+                raise
+            self.skipTest(f"symlink creation is unsupported on this platform: {exc}")
+        except OSError as exc:
+            if os.name == "nt" and getattr(exc, "winerror", None) == 1314:
+                self.skipTest(f"Windows symlink privilege is unavailable: {exc}")
+            raise
+
+        self.assertTrue(escaped_link.is_symlink())
+        self.assertFalse(escaped_link.resolve().is_relative_to(self.root.resolve()))
+        self.crosswalk.write_text(
+            self.crosswalk.read_text(encoding="utf-8").replace(
+                "../internal/source.go", "escape.go", 1
             ),
             encoding="utf-8",
         )
