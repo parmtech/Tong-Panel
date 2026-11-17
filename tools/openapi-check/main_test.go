@@ -138,6 +138,57 @@ func TestRejectDuplicateContractMembersUsesExactNames(t *testing.T) {
 	}
 }
 
+func TestRejectDuplicateContractMembersDecodesEscapesAndScopesKeysPerObject(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		input     string
+		wantError bool
+	}{
+		{
+			name:      "escaped equivalent member name",
+			input:     `{"a":1,"\u0061":2}`,
+			wantError: true,
+		},
+		{
+			name:      "duplicate in object nested in array",
+			input:     `{"items":[{"a":1,"a":2}]}`,
+			wantError: true,
+		},
+		{
+			name:  "same key in sibling objects",
+			input: `{"left":{"a":1},"right":{"a":2}}`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := rejectDuplicateContractMembers([]byte(tc.input))
+			if tc.wantError && err == nil {
+				t.Fatal("accepted duplicate decoded member name")
+			}
+			if !tc.wantError && err != nil {
+				t.Fatalf("rejected same key in a separate object: %v", err)
+			}
+		})
+	}
+}
+
+func TestRejectDuplicateContractMembersRejectsMalformedAndTrailingInput(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		input string
+	}{
+		{name: "unclosed top-level object", input: `{"a":1`},
+		{name: "malformed top-level value", input: `{"a":}`},
+		{name: "second top-level JSON value", input: `{"a":1} {}`},
+		{name: "trailing non-JSON bytes", input: `{"a":1} trailing`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := rejectDuplicateContractMembers([]byte(tc.input)); err == nil {
+				t.Fatal("accepted malformed or trailing JSON input")
+			}
+		})
+	}
+}
+
 func TestLoadContractRejectsDuplicateMembersBeforeExternalReferenceResolution(t *testing.T) {
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
