@@ -122,38 +122,38 @@ func TestBuildClassifiesCurrentMemoryAndDiskBoundaries(t *testing.T) {
 	const diskBoundaryBytes uint64 = 8 * 1024 * 1024 * 1024
 
 	tests := []struct {
-		name               string
-		memoryKnown        bool
-		memoryKB           uint64
-		diskKnown          bool
-		diskBytes          uint64
-		wantMemory         string
-		wantDisk           string
-		wantCollection     Collection
+		name           string
+		memoryKnown    bool
+		memoryKB       uint64
+		diskKnown      bool
+		diskBytes      uint64
+		wantMemory     string
+		wantDisk       string
+		wantCollection Collection
 	}{
 		{
-			name: "below current boundaries",
+			name:        "below current boundaries",
 			memoryKnown: true, memoryKB: memoryBoundaryKB - 1,
 			diskKnown: true, diskBytes: diskBoundaryBytes - 1,
 			wantMemory: "low", wantDisk: "low",
 			wantCollection: Collection{Status: "complete", Code: "facts_collected"},
 		},
 		{
-			name: "at current boundaries",
+			name:        "at current boundaries",
 			memoryKnown: true, memoryKB: memoryBoundaryKB,
 			diskKnown: true, diskBytes: diskBoundaryBytes,
 			wantMemory: "adequate", wantDisk: "adequate",
 			wantCollection: Collection{Status: "complete", Code: "facts_collected"},
 		},
 		{
-			name: "unknown memory ignores supplied value",
+			name:        "unknown memory ignores supplied value",
 			memoryKnown: false, memoryKB: memoryBoundaryKB * 2,
 			diskKnown: true, diskBytes: diskBoundaryBytes,
 			wantMemory: "unknown", wantDisk: "adequate",
 			wantCollection: Collection{Status: "partial", Code: "facts_incomplete"},
 		},
 		{
-			name: "unknown disk ignores supplied value",
+			name:        "unknown disk ignores supplied value",
 			memoryKnown: true, memoryKB: memoryBoundaryKB,
 			diskKnown: false, diskBytes: diskBoundaryBytes * 2,
 			wantMemory: "adequate", wantDisk: "unknown",
@@ -182,11 +182,11 @@ func TestBuildClassifiesCurrentMemoryAndDiskBoundaries(t *testing.T) {
 
 func TestBuildReportsWebPortsOnlyWhenObservationIsKnown(t *testing.T) {
 	tests := []struct {
-		name       string
-		known      bool
-		tcp80      bool
-		tcp443     bool
-		wantStatus string
+		name           string
+		known          bool
+		tcp80          bool
+		tcp443         bool
+		wantStatus     string
 		wantCollection Collection
 	}{
 		{name: "known clear", known: true, wantStatus: "not_seen", wantCollection: Collection{Status: "complete", Code: "facts_collected"}},

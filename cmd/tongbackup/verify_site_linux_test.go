@@ -58,7 +58,7 @@ func TestVerifySiteAcceptsValidSiteArchiveAndRejectsWrongTenant(t *testing.T) {
 	dir := t.TempDir()
 	keyBytes := bytes.Repeat([]byte{0x52}, 32)
 	key := writeKeyFile(t, dir, "key", keyBytes, 0600)
-	sealed := labEncryptedArchive(t, keyBytes)
+	sealed := labEncryptedArchive(t, "tenant-a", keyBytes)
 	var out, stderr bytes.Buffer
 	if err := run([]string{"verify-site", "--tenant", "tenant-a", "--key-file", key}, bytes.NewReader(sealed), &out, &stderr); err != nil {
 		t.Fatalf("valid site verify: %v", err)

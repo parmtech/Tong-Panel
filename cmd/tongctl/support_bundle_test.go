@@ -39,11 +39,11 @@ func TestRunSupportBundleMasksCollectorErrorsAndRetainsPartialFacts(t *testing.T
 
 func TestRunSupportBundleMapsOnlyHTTPAndHTTPSPortObservations(t *testing.T) {
 	tests := []struct {
-		name             string
-		portsKnown       bool
-		listeners        map[uint16]bool
-		wantWebPorts     string
-		wantCollection   supportbundle.Collection
+		name           string
+		portsKnown     bool
+		listeners      map[uint16]bool
+		wantWebPorts   string
+		wantCollection supportbundle.Collection
 	}{
 		{
 			name:           "HTTP listener",
