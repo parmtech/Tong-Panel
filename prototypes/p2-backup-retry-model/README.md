@@ -31,7 +31,7 @@ clock whose first reading exactly equals the saved anchor, so elapsed downtime
 has no modeled meaning. This is deterministic fixture reconstruction only:
 actual process restart, durable encoding/recovery, provider behavior, and product
 behavior remain unmodeled. The checkpoint has no disk, database, JSON, or
-production persistence format. The 12-path candidate remains uncommitted and unpushed, and has no hosted CI. Sol fixed the stale successful same-generation conflicting-digest and substituted-later-publisher findings while preserving exact-time ambiguity; Luna QA found no counterexample. Root review passed and added a narrow huge-integer overflow validation guard and regression, independently QA-reviewed. Root coordinator reran the final suite and confirmed 39/39, including clock-failure atomicity. This is not P2 acceptance evidence.
+production persistence format. The reviewed 12-path candidate is published at 3f8cc51. Root coordinator verified 39/39, including clock-failure atomicity. Sol fixed the stale successful same-generation conflicting-digest and substituted-later-publisher findings while preserving exact-time ambiguity; Luna QA found no counterexample; root review added and independently QA-reviewed the narrow huge-integer overflow guard/regression. Exact-head CI passed at 2026-11-17T15:07:12Z: 13/13 PR-event runs and 24/24 checks, no push runs, failures, or pending. No raw VM or serial logs were read; the P2 result is based on run/job metadata. Offline model, P1 inventory, and P2 guests passed as recorded in the handoff. This is not P2 acceptance evidence.
 
 Only a transfer with the declared size and reported byte count, content matching
 the identity's expected SHA-256 digest, and passing generation fence can reach
