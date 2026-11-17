@@ -272,6 +272,43 @@ async function expectResponsiveBounds(page, viewport, selectors) {
     }
 }
 
+async function expectNoHorizontalContentOverflow(page, selectors) {
+    for (const selector of selectors) {
+        const element = page.locator(selector);
+        const width = await element.evaluate(node => ({ scrollWidth: node.scrollWidth, clientWidth: node.clientWidth }));
+        expect(width.scrollWidth, `${selector} should reflow without internal horizontal clipping`)
+            .toBeLessThanOrEqual(width.clientWidth + 1);
+    }
+}
+
+async function apply200PercentTextEnlargement(page) {
+    return page.evaluate(() => {
+        const selectors = ['section[aria-labelledby="sites-title"]', '.files-explorer'];
+        const roots = selectors.map(selector => document.querySelector(selector));
+        if (roots.some(root => !root)) throw new Error('Sites or Files fixture section is missing');
+
+        const headings = {
+            sites: document.querySelector('#sites-title'),
+            files: document.querySelector('#files-explorer-title'),
+        };
+        const baseline = {
+            sites: Number.parseFloat(getComputedStyle(headings.sites).fontSize),
+            files: Number.parseFloat(getComputedStyle(headings.files).fontSize),
+        };
+        const elements = [...new Set(roots.flatMap(root => [root, ...root.querySelectorAll('*')]))];
+        const originalFontSizes = elements.map(element => Number.parseFloat(getComputedStyle(element).fontSize));
+        elements.forEach((element, index) => {
+            const fontSize = originalFontSizes[index];
+            if (Number.isFinite(fontSize)) element.style.setProperty('font-size', String(fontSize * 2) + 'px', 'important');
+        });
+
+        return {
+            sitesHeading: Number.parseFloat(getComputedStyle(headings.sites).fontSize) / baseline.sites,
+            filesHeading: Number.parseFloat(getComputedStyle(headings.files).fontSize) / baseline.files,
+        };
+    });
+}
+
 function expectSyntheticReadOnlyRequests(records, expected, pageLoads = 1) {
     expect(records.external).toEqual([]);
     expect(records.otherAPI.map(request => request.path).sort()).toEqual(
@@ -555,6 +592,55 @@ test('component preview: Files view fits phone, tablet, and desktop widths with 
 
     expectSyntheticReadOnlyRequests(records, { sites: 0, files: viewports.length * 2, previews: viewports.length });
     expect(records.files.map(request => request.prefix)).toEqual(['', ...Array(viewports.length * 2 - 1).fill('responsive')]);
+});
+
+test('component preview: Sites and Files reflow with 200% text enlargement and synthetic data', async ({ page }) => {
+    const records = { sites: [], siteDetails: [], files: [], previews: [], otherAPI: [], external: [] };
+    const viewport = { width: 320, height: 640 };
+    await page.setViewportSize(viewport);
+    await openComponentPreview(page, records);
+
+    await page.locator('#sites-load').click();
+    await expect(page.locator('#sites-list')).toContainText('responsive.example.test');
+    await page.getByRole('button', { name: 'View details for responsive-site' }).click();
+    await expect(page.locator('#site-details')).toBeVisible();
+
+    await page.locator('#files-refresh').click();
+    await expect(page.locator('#files-list')).toContainText('responsive-layout-notes.txt');
+    await page.getByRole('button', { name: 'Preview text responsive-layout-notes.txt' }).click();
+    await expect(page.locator('#files-preview')).toBeVisible();
+
+    const scale = await apply200PercentTextEnlargement(page);
+    expect(scale.sitesHeading).toBeCloseTo(2, 2);
+    expect(scale.filesHeading).toBeCloseTo(2, 2);
+    await expectResponsiveBounds(page, viewport, [
+        '#sites-title', '#sites-load', '#sites-prefix', '#sites-filter button', '#sites-status',
+        'button[aria-label="View details for responsive-site"]', '#site-details-title', '#site-details-status', '#site-details-close',
+        '#files-explorer-title', '#files-refresh', '#files-prefix', '#files-filter button', '#files-breadcrumbs', '#files-status',
+        'button[aria-label="Preview text responsive-layout-notes.txt"]', '#files-preview-title', '#files-preview-close', '#files-preview-content',
+    ]);
+
+    await expectNoHorizontalContentOverflow(page, [
+        '#sites-list', '#site-details', '#site-details-fields', '#site-details-domains',
+        '#files-breadcrumbs', '#files-list', '#files-preview-content',
+    ]);
+
+    for (const selector of ['#sites-status', '#site-details-close', '#files-status', '#files-preview-close']) {
+        const target = page.locator(selector);
+        await target.scrollIntoViewIfNeeded();
+        const bounds = await target.boundingBox();
+        expect(bounds, selector + ' should remain vertically reachable after text enlargement').toBeTruthy();
+        expect(bounds.y, selector + ' should not be clipped above the viewport').toBeGreaterThanOrEqual(0);
+        expect(bounds.y + bounds.height, selector + ' should not be clipped below the viewport').toBeLessThanOrEqual(viewport.height + 1);
+    }
+
+    await tabUntilFocused(page, '#site-details-close', viewport);
+    await expectVisibleKeyboardFocus(page, '#site-details-close', viewport);
+    await tabUntilFocused(page, '#files-preview-close', viewport);
+    await expectVisibleKeyboardFocus(page, '#files-preview-close', viewport);
+
+    expectSyntheticReadOnlyRequests(records, { sites: 1, files: 1, previews: 1 });
+    expect(records.siteDetails).toHaveLength(1);
 });
 
 test('component preview: Sites controls work by keyboard at phone, tablet, and desktop widths', async ({ page }) => {

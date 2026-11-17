@@ -125,3 +125,51 @@ func TestSiteListPagesScopeAndValidation(t *testing.T) {
 		t.Fatalf("closed catalog: %d", w.Code)
 	}
 }
+
+func TestSiteListPrefixIsLiteralAndTenantScopedAtAPI(t *testing.T) {
+	s, _, _ := setupSiteAPI(t)
+	h := s.Handler()
+	for _, item := range []struct{ token, id, domain string }{
+		{secret, "app_01", "app-underscore.example.test"},
+		{secret, "app_02", "app-underscore-second.example.test"},
+		{secret, "appX01", "app-x.example.test"},
+		{sqlOtherToken, "app_03", "tenant-b-match.example.test"},
+	} {
+		if r := createTestSite(t, h, item.token, item.id, item.domain); r.Code != http.StatusCreated {
+			t.Fatalf("create %s: %d %s", item.id, r.Code, r.Body.String())
+		}
+	}
+
+	var page struct {
+		Sites []sites.SiteSummary `json:"sites"`
+		Next  string              `json:"next_after"`
+	}
+	after := ""
+	for _, tc := range []struct {
+		want string
+		next string
+	}{
+		{"app_01", "app_01"},
+		{"app_02", ""},
+	} {
+		query := "/api/v1/sites?prefix=app_&limit=1"
+		if after != "" {
+			query += "&after=" + after
+		}
+		r := call(h, http.MethodGet, query, secret, "", "")
+		if r.Code != http.StatusOK {
+			t.Fatalf("%s: %d %s", query, r.Code, r.Body.String())
+		}
+		if err := json.Unmarshal(r.Body.Bytes(), &page); err != nil {
+			t.Fatalf("%s: decode prefix page: %v", query, err)
+		}
+		if len(page.Sites) != 1 || page.Sites[0].SiteID != tc.want || page.Next != tc.next {
+			t.Fatalf("%s: prefix page returned %#v with cursor %q, want %s / %q", query, page.Sites, page.Next, tc.want, tc.next)
+		}
+		after = page.Next
+		if strings.Contains(r.Body.String(), "appX01") || strings.Contains(r.Body.String(), "app-x.example.test") ||
+			strings.Contains(r.Body.String(), "app_03") || strings.Contains(r.Body.String(), "tenant-b-match.example.test") {
+			t.Fatalf("%s: prefix response disclosed a nonmatching or foreign site: %s", query, r.Body.String())
+		}
+	}
+}

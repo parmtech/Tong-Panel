@@ -38,7 +38,7 @@ def main():
         key_b.write_bytes(key_b_bytes); key_b.chmod(0o600)
         wrong.write_bytes(b"W" * 32); wrong.chmod(0o600)
 
-        def run(args, data_in=b"", success=True, enabled=True):
+        def run(args, data_in=b"", success=True, enabled=True, expected_stderr=None):
             env = dict(os.environ)
             env.pop("TONG_DISPOSABLE_SITE_RESTORE", None)
             if enabled:
@@ -49,6 +49,8 @@ def main():
                 raise AssertionError("unexpected CLI exit for " + args[0])
             if result.stdout or (success and result.stderr):
                 raise AssertionError("unexpected CLI output for " + args[0])
+            if expected_stderr is not None and result.stderr != expected_stderr:
+                raise AssertionError("unexpected CLI denial response for " + args[0])
             if any(secret in result.stderr for secret in (marker, marker_b, key_bytes, key_b_bytes,
                                                           str(root).encode())):
                 raise AssertionError("sensitive fixture data appeared in CLI output")
@@ -192,9 +194,30 @@ def main():
         if artifact_b.read_bytes() != sealed_b:
             raise AssertionError("tenant-b source ciphertext changed")
 
+        # Valid tenant/key input must still be rejected when its ciphertext is
+        # corrupted or truncated, without changing either valid restore root.
+        snapshot_a, snapshot_b = tree_snapshot(target), tree_snapshot(target_b)
+        tampered = bytearray(sealed)
+        tampered[len(tampered) // 2] ^= 1
+        rejected_restore = b"tongbackup: restore destination not published; private staging debris may remain\n"
+        for kind, damaged in (
+            ("tampered", bytes(tampered)),
+            ("truncated", sealed[:len(sealed) // 2]),
+        ):
+            denied = lab(kind)
+            run(args(denied), damaged, success=False, expected_stderr=rejected_restore)
+            if not denied.is_dir() or list(denied.iterdir()):
+                raise AssertionError(kind + " artifact denial did not retain an empty lab root")
+            inspect_empty_inventory(denied)
+            if not denied.is_dir() or list(denied.iterdir()):
+                raise AssertionError(kind + " inventory modified denied restore root")
+            if tree_snapshot(target) != snapshot_a or tree_snapshot(target_b) != snapshot_b:
+                raise AssertionError(kind + " artifact denial changed a valid tenant restore root")
+            if artifact.read_bytes() != sealed or artifact_b.read_bytes() != sealed_b:
+                raise AssertionError(kind + " artifact denial changed retained ciphertext")
+
         # A tenant-b archive paired with tenant-a's key must fail while leaving
         # both previously restored tenant roots byte-for-byte and mode unchanged.
-        snapshot_a, snapshot_b = tree_snapshot(target), tree_snapshot(target_b)
         denied = lab("paired-swapped-key")
         run(args(denied, "tenant-b", key), sealed_b, success=False)
         if not denied.is_dir() or list(denied.iterdir()):
