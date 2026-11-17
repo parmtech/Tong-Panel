@@ -1,10 +1,14 @@
-## Current resume checkpoint - PR head 0223550 exact-head CI passed (17 November 2026; terminal read 23:43:19 UTC)
+## Current resume checkpoint: PR head 7f602a1 exact-head CI passed (17 November 2026; PR/ref and tracker re-read 00:54:06 UTC; CI completed 00:48:19 UTC)
 
-PR #171 remains open/draft/unmerged at exact head `0223550470da87751baed8b46fd7657e7ae05d04`. All 13/13 Actions runs and 23/23 checks succeeded with zero failures or pending checks. P2 run #43978463545 passed; Debian job #133688439172, Ubuntu job #133688439403, and synthetic model check #133688439715 also passed.
+PR #171 remains open/draft/unmerged at exact head `7f602a1c16dd5d1bdcdd6dd5a49fcb3b43c35656`. All 13/13 Actions runs and 23/23 checks passed with zero failures/pending. P2 run #43986960603 passed on Debian #133717480521 and Ubuntu #133717480949; synthetic model check #133717481690 passed. No raw guest or serial output was read.
 
-The local branch is `codex/tong-panel-candidate-20261116` at 022 (tree `f50bbb61afa3d935870beca209f14c1dc8387276`, parent `570306628a7143185ef42736a329c81f4096535c`). The 022 commit snapshot was clean and contains the prior 14-doc refresh; this current factual correction edits those docs only. d885 adds the boolean attempt-ID fix and regression; the local model suite passed 7/7, and 022's successful exact-head CI includes it.
+The local branch is `codex/tong-panel-candidate-20261116` at 7f (tree `01c99f6dcd190c01f89a45ef53fbf1aa8226c161`, parent 0223550470da87751baed8b46fd7657e7ae05d04). The 7f commit is docs-only; the predecessor 022 had its own terminal green CI. d885 adds the boolean attempt-ID fix and regression; local model suite passed 7/7 and 7f model check #133717481690 passed. Current local successor changes are 14 docs plus a separate uncommitted test-only P4 bool-schema regression from f409807f; it is outside PR #171. Focused unittest discovery passed 28/28, but there is no hosted CI for a future successor SHA.
 
-Issue #172 is open at 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`. Its body was updated at 23:45:34 UTC after the state was reread at 23:43:19 UTC. No DoD item, approval boolean, or pending decision changed. Retain all owner, security, production, restore, accessibility, signing, merge, and release gates.
+Issue #172 is open at 0/12 DoD checked, all nine approvals false, and `product_support_approval:false`, read at 00:54:06Z. PR body updated_at 00:21:22Z and issue body updated_at 23:45:34Z still describe 022. No DoD item, approval boolean, or pending decision changed. Retain all owner, security, production, restore, accessibility, signing, merge, and release gates.
+
+## Historical exact-head resume checkpoint - 0223550 (superseded by 7f602a1)
+
+PR #171 at 0223550470da87751baed8b46fd7657e7ae05d04 passed its own 13/13 Actions runs and 23/23 check-runs, including P2 run #43978463545 and both guests, plus model check #133688439715. Those results apply to 022 only. The PR/issue body timestamps at that snapshot were 23:45:29Z/23:45:34Z.
 
 ## Historical verified resume checkpoint — remote PR/ref f804127; exact-head CI passed (17 November 2026; superseded by 10f666a)
 

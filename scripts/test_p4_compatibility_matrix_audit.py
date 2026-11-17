@@ -354,6 +354,10 @@ class P4CompatibilityMatrixAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "size limit"):
             _read_matrix(oversized)
 
+    def test_schema_version_rejects_boolean(self):
+        self.matrix["schema_version"] = True
+        self.assert_error("schema_version_unsupported:root")
+
     def test_malformed_types_and_unknown_fields_fail_closed(self):
         self.matrix["schema_version"] = 2.0
         self.matrix["rows"][0]["status"] = []
