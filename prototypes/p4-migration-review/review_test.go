@@ -61,6 +61,7 @@ func TestRevalidateRejectsPlanOrActionMutation(t *testing.T) {
 		"dependency changed":        func(p *Plan) { p.Actions[1].DependsOn = nil },
 		"action removed":            func(p *Plan) { p.Actions = p.Actions[:1] },
 		"action target changed":     func(p *Plan) { p.Actions[0].ObjectRef = "other-object" },
+		"action kind changed":       func(p *Plan) { p.Actions[1].Kind = "create_site" },
 		"action added": func(p *Plan) {
 			p.Actions = append(p.Actions, Action{Ref: "step-3", Kind: "create_db", ObjectRef: "db-opaque-1"})
 		},
