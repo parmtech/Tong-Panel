@@ -1,9 +1,14 @@
 import base64
 import copy
 import json
+from pathlib import Path
+import stat
+from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
-from verify_binary_sbom import InvalidSBOM, unique_pairs, verify_document
+from verify_binary_sbom import InvalidSBOM, unique_pairs, verify_document, verify_files
 
 
 class BinarySBOMTests(unittest.TestCase):
@@ -111,6 +116,82 @@ class BinarySBOMTests(unittest.TestCase):
     def test_rejects_duplicate_json_members(self):
         with self.assertRaises(InvalidSBOM):
             json.loads('{"components": [], "components": []}', object_pairs_hook=unique_pairs)
+
+    def test_rejects_symlink_inputs_before_go_metadata_subprocess(self):
+        with TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            binary = root / "tongd"
+            sbom = root / "tongd.cdx.json"
+            linked_binary = root / "linked-tongd"
+            linked_sbom = root / "linked-tongd.cdx.json"
+            binary.write_bytes(b"not executed")
+            sbom.write_text("{}", encoding="utf-8")
+
+            symlinks = ((linked_binary, binary), (linked_sbom, sbom))
+            emulated_links = set()
+            for link, target in symlinks:
+                try:
+                    link.symlink_to(target)
+                except (OSError, NotImplementedError):
+                    emulated_links.add(link)
+
+            real_lstat = Path.lstat
+
+            def synthetic_lstat(path, *args, **kwargs):
+                if path in emulated_links:
+                    return SimpleNamespace(st_mode=stat.S_IFLNK | 0o777)
+                return real_lstat(path, *args, **kwargs)
+
+            def assert_symlink_paths_rejected():
+                for invalid_binary, invalid_sbom in (
+                    (linked_binary, sbom),
+                    (binary, linked_sbom),
+                ):
+                    with self.subTest(binary=invalid_binary, sbom=invalid_sbom):
+                        with self.assertRaisesRegex(InvalidSBOM, "regular file"):
+                            verify_files(invalid_binary, invalid_sbom, self.main)
+
+            with patch("verify_binary_sbom.subprocess.run") as go_version:
+                if emulated_links:
+                    with patch.object(Path, "lstat", new=synthetic_lstat):
+                        assert_symlink_paths_rejected()
+                else:
+                    assert_symlink_paths_rejected()
+                go_version.assert_not_called()
+
+    def test_rejects_directory_inputs_before_go_metadata_subprocess(self):
+        with TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            binary = root / "tongd"
+            sbom = root / "tongd.cdx.json"
+            input_directory = root / "input-directory"
+            binary.write_bytes(b"not executed")
+            sbom.write_text("{}", encoding="utf-8")
+            input_directory.mkdir()
+
+            invalid_pairs = [
+                (input_directory, sbom),
+                (binary, input_directory),
+            ]
+            with patch("verify_binary_sbom.subprocess.run") as go_version:
+                for invalid_binary, invalid_sbom in invalid_pairs:
+                    with self.subTest(binary=invalid_binary, sbom=invalid_sbom):
+                        with self.assertRaisesRegex(InvalidSBOM, "regular file"):
+                            verify_files(invalid_binary, invalid_sbom, self.main)
+                go_version.assert_not_called()
+
+    def test_rejects_oversized_sbom_before_go_metadata_subprocess(self):
+        with TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            binary = root / "tongd"
+            sbom = root / "tongd.cdx.json"
+            binary.write_bytes(b"not executed")
+            sbom.write_bytes(b"x" * (4 * 1024 * 1024 + 1))
+
+            with patch("verify_binary_sbom.subprocess.run") as go_version:
+                with self.assertRaisesRegex(InvalidSBOM, "SBOM exceeds size bound"):
+                    verify_files(binary, sbom, self.main)
+                go_version.assert_not_called()
 
 
 if __name__ == "__main__":
