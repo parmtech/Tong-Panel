@@ -523,6 +523,48 @@ test('actual TLS session shows only own SQL jobs, supports keyboard details and 
     await page.screenshot({ path: test.info().outputPath('jobs-desktop.png'), fullPage: true });
 });
 
+test('job detail recovers after a temporary backend failure using retry', async ({ page }) => {
+    await open(page);
+    await load(page);
+
+    const jobID = fixture.IDs.completed;
+    const fixtureOrigin = new URL(fixture.Primary).origin;
+    const detailPath = `/api/v1/jobs/${jobID}`;
+    const retry = page.locator('#job-detail-retry');
+    const status = page.locator('#job-detail-status');
+    const fields = page.locator('#job-detail-fields');
+    let detailRequests = 0;
+    await page.route(url => url.origin === fixtureOrigin && url.pathname === detailPath, async route => {
+        if (route.request().method() !== 'GET') {
+            await route.continue();
+            return;
+        }
+        detailRequests++;
+        if (detailRequests === 1) {
+            await route.fulfill({
+                status: 503,
+                contentType: 'application/json',
+                body: JSON.stringify({ error: { code: 'jobs_unavailable' } }),
+            });
+            return;
+        }
+        await route.continue();
+    });
+
+    await page.locator(`button[data-job-id="${jobID}"]`).click();
+    await expect(status).toHaveAttribute('data-state', 'jobs_unavailable');
+    await expect(status).toHaveText('Job storage is unavailable. Try again.');
+    await expect(fields.locator('dd')).toHaveCount(0);
+    await expect(retry).toBeVisible();
+
+    await retry.click();
+    await expect(status).toHaveAttribute('data-state', 'available');
+    await expect(fields).toContainText(jobID);
+    await expect(fields).toContainText('completed');
+    await expect(retry).toBeHidden();
+    expect(detailRequests).toBe(2);
+});
+
 test('manual refresh announces observed same-user job state changes and supports dismissal', async ({ page }) => {
     await open(page);
     const job = {
@@ -629,6 +671,7 @@ test('quick tour opens and closes by keyboard with focus return', async ({ page 
     const themeButton = page.getByRole('button', { name: 'Toggle color theme' });
     const tourButton = page.getByRole('button', { name: 'Quick tour' });
     const dialog = page.getByRole('dialog', { name: 'Welcome to Tong Panel' });
+    const dialogElement = page.locator('#intro');
     const closeButton = page.getByRole('button', { name: 'Got it' });
 
     await themeButton.focus();
@@ -642,7 +685,7 @@ test('quick tour opens and closes by keyboard with focus return', async ({ page 
 
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
-    await expect(dialog).toHaveJSProperty('open', false);
+    await expect(dialogElement).toHaveJSProperty('open', false);
     await expect(tourButton).toBeFocused();
 });
 
