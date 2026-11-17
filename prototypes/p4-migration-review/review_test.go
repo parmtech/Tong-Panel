@@ -60,6 +60,7 @@ func TestRevalidateRejectsPlanOrActionMutation(t *testing.T) {
 		"expected revision changed": func(p *Plan) { p.Actions[0].ExpectedRevision = "revision-99" },
 		"dependency changed":        func(p *Plan) { p.Actions[1].DependsOn = nil },
 		"action removed":            func(p *Plan) { p.Actions = p.Actions[:1] },
+		"action ref changed":        func(p *Plan) { p.Actions[1].Ref = "step-3" },
 		"action target changed":     func(p *Plan) { p.Actions[0].ObjectRef = "other-object" },
 		"action kind changed":       func(p *Plan) { p.Actions[1].Kind = "create_site" },
 		"action added": func(p *Plan) {
