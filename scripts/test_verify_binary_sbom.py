@@ -1,5 +1,6 @@
 import base64
 import copy
+import hashlib
 import json
 from pathlib import Path
 import stat
@@ -116,6 +117,36 @@ class BinarySBOMTests(unittest.TestCase):
     def test_rejects_duplicate_json_members(self):
         with self.assertRaises(InvalidSBOM):
             json.loads('{"components": [], "components": []}', object_pairs_hook=unique_pairs)
+
+    def test_reads_build_metadata_without_executing_binary(self):
+        with TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            binary = root / "server"
+            sbom = root / "server.cdx.json"
+            contents = b"synthetic unexecuted binary fixture"
+            binary.write_bytes(contents)
+
+            document = copy.deepcopy(self.document)
+            binary_hash = next(
+                item for item in document["metadata"]["properties"]
+                if item["name"] == "cdx:gomod:binary:hash:SHA-256"
+            )
+            binary_hash["value"] = hashlib.sha256(contents).hexdigest()
+            sbom.write_text(json.dumps(document), encoding="utf-8")
+
+            with patch(
+                "verify_binary_sbom.subprocess.run",
+                return_value=SimpleNamespace(stdout=json.dumps(self.build)),
+            ) as metadata_command:
+                verify_files(binary, sbom, self.main)
+
+            metadata_command.assert_called_once_with(
+                ["go", "version", "-m", "-json", str(binary)],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
 
     def test_rejects_symlink_inputs_before_go_metadata_subprocess(self):
         with TemporaryDirectory() as temporary_directory:
