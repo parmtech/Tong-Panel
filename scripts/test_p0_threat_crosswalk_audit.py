@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from p0_threat_crosswalk_audit import InvalidCrosswalk, audit_crosswalk
+from p0_threat_crosswalk_audit import MAX_CROSSWALK_BYTES, InvalidCrosswalk, audit_crosswalk
 
 
 class P0ThreatCrosswalkAuditTests(unittest.TestCase):
@@ -88,6 +88,34 @@ class P0ThreatCrosswalkAuditTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+        with self.assertRaises(InvalidCrosswalk):
+            audit_crosswalk(self.root, self.crosswalk)
+
+    def test_percent_encoded_traversal_cannot_escape_repository(self):
+        self.write_crosswalk()
+        outside = self.parent / "outside.go"
+        outside.write_text("package outside\n", encoding="utf-8")
+        self.crosswalk.write_text(
+            self.crosswalk.read_text(encoding="utf-8").replace(
+                "../internal/source.go", "../%2e%2e/outside.go", 1
+            ),
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(InvalidCrosswalk):
+            audit_crosswalk(self.root, self.crosswalk)
+
+    def test_over_limit_crosswalk_fails_closed_after_valid_structure(self):
+        self.write_crosswalk()
+        report = audit_crosswalk(self.root, self.crosswalk)
+        self.assertEqual(report["result"], "structural_only")
+        self.assertEqual(report["threat_rows"], 15)
+
+        current_size = self.crosswalk.stat().st_size
+        with self.crosswalk.open("a", encoding="utf-8") as document:
+            document.write("x" * (MAX_CROSSWALK_BYTES - current_size + 1))
+
+        self.assertGreater(self.crosswalk.stat().st_size, MAX_CROSSWALK_BYTES)
         with self.assertRaises(InvalidCrosswalk):
             audit_crosswalk(self.root, self.crosswalk)
 

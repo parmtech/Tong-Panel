@@ -31,8 +31,71 @@ func TestRunSupportBundleMasksCollectorErrorsAndRetainsPartialFacts(t *testing.T
 	if err := json.Unmarshal(output.Bytes(), &bundle); err != nil {
 		t.Fatal(err)
 	}
-	if bundle.Collection.Status != "partial" || bundle.Diagnostics.Memory != "adequate" || bundle.Diagnostics.WebPorts != "unknown" {
+	if bundle.Collection.Status != "partial" || bundle.Diagnostics.Memory != "adequate" ||
+		bundle.Diagnostics.Disk != "unknown" || bundle.Diagnostics.WebPorts != "unknown" {
 		t.Fatal("missing collection status or known partial facts")
+	}
+}
+
+func TestRunSupportBundleMapsOnlyHTTPAndHTTPSPortObservations(t *testing.T) {
+	tests := []struct {
+		name             string
+		portsKnown       bool
+		listeners        map[uint16]bool
+		wantWebPorts     string
+		wantCollection   supportbundle.Collection
+	}{
+		{
+			name:           "HTTP listener",
+			portsKnown:     true,
+			listeners:      map[uint16]bool{80: true},
+			wantWebPorts:   "in_use",
+			wantCollection: supportbundle.Collection{Status: "complete", Code: "facts_collected"},
+		},
+		{
+			name:           "HTTPS listener",
+			portsKnown:     true,
+			listeners:      map[uint16]bool{443: true},
+			wantWebPorts:   "in_use",
+			wantCollection: supportbundle.Collection{Status: "complete", Code: "facts_collected"},
+		},
+		{
+			name:           "unlisted listener is ignored",
+			portsKnown:     true,
+			listeners:      map[uint16]bool{2222: true},
+			wantWebPorts:   "not_seen",
+			wantCollection: supportbundle.Collection{Status: "complete", Code: "facts_collected"},
+		},
+		{
+			name:           "unknown observation stays unknown",
+			listeners:      map[uint16]bool{80: true, 443: true},
+			wantWebPorts:   "unknown",
+			wantCollection: supportbundle.Collection{Status: "partial", Code: "facts_incomplete"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var output bytes.Buffer
+			err := runSupportBundle(nil, &output, func() (preflight.Snapshot, error) {
+				return preflight.Snapshot{
+					OSRelease: "ID=debian\nVERSION_ID=12\n", GOOS: "linux", Arch: "amd64",
+					MemoryKnown: true, MemAvailableKB: 2 * 1024 * 1024,
+					DiskKnown: true, DiskAvailableBytes: 12 * 1024 * 1024 * 1024,
+					PortsKnown: test.portsKnown, TCPListening: test.listeners,
+				}, nil
+			})
+			if err != nil {
+				t.Fatal("support export failed")
+			}
+			var bundle supportbundle.Bundle
+			if err := json.Unmarshal(output.Bytes(), &bundle); err != nil {
+				t.Fatal(err)
+			}
+			if bundle.Diagnostics.WebPorts != test.wantWebPorts || bundle.Collection != test.wantCollection {
+				t.Fatalf("web ports = %q, collection = %#v; want %q, %#v",
+					bundle.Diagnostics.WebPorts, bundle.Collection, test.wantWebPorts, test.wantCollection)
+			}
+		})
 	}
 }
 

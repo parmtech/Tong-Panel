@@ -12,9 +12,13 @@ import (
 var testWrappingKey = bytes.Repeat([]byte{0x5a}, 32)
 
 func encryptBytes(t *testing.T, tenant string, plaintext []byte, options Options) []byte {
+	return encryptBytesWithKey(t, tenant, testWrappingKey, plaintext, options)
+}
+
+func encryptBytesWithKey(t *testing.T, tenant string, key, plaintext []byte, options Options) []byte {
 	t.Helper()
 	var encrypted bytes.Buffer
-	if err := Encrypt(&encrypted, bytes.NewReader(plaintext), tenant, testWrappingKey, options); err != nil {
+	if err := Encrypt(&encrypted, bytes.NewReader(plaintext), tenant, key, options); err != nil {
 		t.Fatalf("Encrypt() error = %v", err)
 	}
 	return encrypted.Bytes()
@@ -40,21 +44,48 @@ func TestEnvelopeRoundTripChunkBoundaries(t *testing.T) {
 }
 
 func TestEnvelopeBindsTenantAndWrappingKey(t *testing.T) {
-	sealed := encryptBytes(t, "tenant-a", []byte("customer backup contents"), Options{})
-	for name, test := range map[string]struct {
-		name string
-		key  []byte
+	plainA := []byte("tenant A customer backup contents")
+	plainB := []byte("tenant B customer backup contents")
+	keyA := bytes.Repeat([]byte{0x5a}, 32)
+	keyB := bytes.Repeat([]byte{0x6b}, 32)
+	wrongKey := bytes.Repeat([]byte{0x7b}, 32)
+	sealedA := encryptBytesWithKey(t, "tenant-a", keyA, plainA, Options{})
+	sealedB := encryptBytesWithKey(t, "tenant-b", keyB, plainB, Options{})
+
+	cases := []struct {
+		name      string
+		tenant    string
+		key       []byte
+		sealed    []byte
+		plaintext []byte
+		wantValid bool
 	}{
-		"wrong tenant": {name: "tenant-b", key: testWrappingKey},
-		"wrong key":    {name: "tenant-a", key: bytes.Repeat([]byte{0x7b}, 32)},
-	} {
-		t.Run(name, func(t *testing.T) {
+		{name: "tenant A positive control", tenant: "tenant-a", key: keyA, sealed: sealedA, plaintext: plainA, wantValid: true},
+		{name: "tenant B positive control", tenant: "tenant-b", key: keyB, sealed: sealedB, plaintext: plainB, wantValid: true},
+		{name: "tenant A artifact denied to tenant B with tenant A key", tenant: "tenant-b", key: keyA, sealed: sealedA},
+		{name: "tenant B artifact denied to tenant A with tenant B key", tenant: "tenant-a", key: keyB, sealed: sealedB},
+		{name: "tenant A artifact denied with tenant B key", tenant: "tenant-b", key: keyB, sealed: sealedA},
+		{name: "tenant B artifact denied with tenant A key", tenant: "tenant-a", key: keyA, sealed: sealedB},
+		{name: "wrong key for tenant A", tenant: "tenant-a", key: wrongKey, sealed: sealedA},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			var restored bytes.Buffer
-			if err := Decrypt(&restored, bytes.NewReader(sealed), test.name, test.key, Options{}); !errors.Is(err, ErrInvalidBackup) {
+			err := Decrypt(&restored, bytes.NewReader(tc.sealed), tc.tenant, tc.key, Options{})
+			if tc.wantValid {
+				if err != nil {
+					t.Fatalf("Decrypt() error = %v", err)
+				}
+				if !bytes.Equal(restored.Bytes(), tc.plaintext) {
+					t.Fatalf("restored %d bytes; want %d", restored.Len(), len(tc.plaintext))
+				}
+				return
+			}
+			if !errors.Is(err, ErrInvalidBackup) {
 				t.Fatalf("Decrypt() error = %v, want ErrInvalidBackup", err)
 			}
 			if restored.Len() != 0 {
-				t.Fatalf("wrong tenant/key wrote %d plaintext bytes", restored.Len())
+				t.Fatalf("denied tenant/key wrote %d plaintext bytes", restored.Len())
 			}
 		})
 	}

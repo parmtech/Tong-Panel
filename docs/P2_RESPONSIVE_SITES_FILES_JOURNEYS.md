@@ -1,4 +1,12 @@
-## Current project checkpoint (refreshed 2026-11-17T15:07:12Z)
+## Current project checkpoint (c1 CI 2026-11-17T16:52:07Z; GitHub read window 2026-11-17T18:46:49Z–18:46:58Z; P2 rerun 2026-11-17T17:54:08Z)
+
+PR #171 remains open/draft/unmerged at c1fbf710e2b530d3b9778fc2ac2f2a53b6ba94c2 against main 0aad68e81138a0f226e83e401f90bae4d0b6bddc; the integration ref matches. Exact-head c1 CI passed all 13 pull_request Actions runs and 26 checks. Jobs browser check #134184804379 passed; P2 clean-VM guests completed smoke, cleanup, and Complete. No raw VM or serial logs were read. These results apply to c1 only. PR/ref and body readback occurred in the 18:46:49Z–18:46:58Z window; API `updated_at` remains 16:48:42Z and 16:49:16Z.
+
+Issue #172 remains open at 0/12 with all nine approvals and product support false. #152 is open/design-only. #155 remains open; no journey acceptance, physical-device evidence, authenticated-production behavior, WCAG result, or human accessibility approval is inferred. P0-06 and all owner/security, production, merge, deployment, and release gates remain open.
+
+The later P2 model suites passed 101/101 at 2026-11-17T17:54:08Z, but do not change responsive behavior or product acceptance. Separate P0, clean-VM, workflow-pinning, OpenAPI validator, and P1-09 test-only follow-ups have no hosted CI on their local edits; OpenAPI Go tests are unrun. None changes issue #155 acceptance or responsive evidence. P2 row 9 remains **UNMET**. This file is a static snapshot; reread PR/ref, tracker, and exact-head CI before action.
+
+## Historical project checkpoint (published 3f8cc51; superseded by c1; read 2026-11-17T15:07:12Z)
 
 PR #171 remains open/draft/unmerged at 3f8cc51cf78b3920292a0c90cde8086ab15e17e1 (tree 8b567874d2942e79a59b30aa16034eb1f8088a5b, parent 8c8293bd0221df8500c26347a21270db41d78104) against main 0aad68e81138a0f226e83e401f90bae4d0b6bddc; the integration ref matches. Exact-head CI was observed at 2026-11-17T15:07:12Z: 13/13 pull_request Actions runs and 24/24 checks passed; no exact-SHA push runs, failures, or pending checks. Offline model run #44107182517 passed. P1 blocker inventory run #44107182674/check #134122595766 passed. P2 check #134122595446 passed. P2 clean-VM run #44107182469 passed Ubuntu job #134122594513 and Debian job #134122595784 through guest smoke and Complete. No raw VM or serial logs were read.
 

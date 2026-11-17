@@ -2,9 +2,13 @@
 
 This standalone Python-standard-library, in-memory model exercises synthetic
 backup identity and generation fencing. A backup ID, generation, and expected
-SHA-256 digest are bound to an attempt; verification is required before
-publication; and an older attempt cannot replace or delete a newer current
-generation. A stale attempt reaches the explicit
+SHA-256 digest, plus a non-empty synthetic tenant ID, are bound to an attempt.
+Current artifacts and generation fences are scoped by `(tenant_id, backup_id)`;
+the same backup ID can therefore be modeled independently for two tenants.
+Verification is required before publication, and an older attempt cannot
+replace or delete a newer current generation within that tenant. The tenant ID
+is part of this fixture identity only; it does not provide authorization or
+remote storage isolation. A stale attempt reaches the explicit
 `stale_reconciliation_required` terminal state. Tests also cover digest
 mismatch, same-generation digest conflict, and immutable identity binding.
 

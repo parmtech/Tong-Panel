@@ -18,7 +18,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func labEncryptedArchive(t *testing.T, key []byte) []byte {
+func labEncryptedArchive(t *testing.T, tenant string, key []byte) []byte {
 	t.Helper()
 	var archive bytes.Buffer
 	gz := gzip.NewWriter(&archive)
@@ -37,7 +37,7 @@ func labEncryptedArchive(t *testing.T, key []byte) []byte {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	if err := backups.Encrypt(&out, bytes.NewReader(archive.Bytes()), "tenant-a", key, backups.Options{}); err != nil {
+	if err := backups.Encrypt(&out, bytes.NewReader(archive.Bytes()), tenant, key, backups.Options{}); err != nil {
 		t.Fatal(err)
 	}
 	return out.Bytes()
@@ -73,30 +73,50 @@ func TestRestoreSiteLabFreshRootRoundTripAndDenials(t *testing.T) {
 	if err := os.Chmod(parent, 0700); err != nil {
 		t.Fatal(err)
 	}
-	keyBytes := bytes.Repeat([]byte{0x73}, 32)
-	key := writeKeyFile(t, parent, "key", keyBytes, 0600)
-	sealed := labEncryptedArchive(t, keyBytes)
-	args := labArgs(parent, key, "success", "tenant-a")
-	if err := runRestoreSiteLab(args, bytes.NewReader(sealed)); err != nil {
+	keyABytes := bytes.Repeat([]byte{0x73}, 32)
+	keyBBytes := bytes.Repeat([]byte{0x74}, 32)
+	keyA := writeKeyFile(t, parent, "tenant-a.key", keyABytes, 0600)
+	keyB := writeKeyFile(t, parent, "tenant-b.key", keyBBytes, 0600)
+	sealedA := labEncryptedArchive(t, "tenant-a", keyABytes)
+	sealedB := labEncryptedArchive(t, "tenant-b", keyBBytes)
+	args := labArgs(parent, keyA, "success-tenant-a", "tenant-a")
+	if err := runRestoreSiteLab(args, bytes.NewReader(sealedA)); err != nil {
 		t.Fatal(err)
 	}
-	root := filepath.Join(parent, "tong-restore-lab-success")
+	root := filepath.Join(parent, "tong-restore-lab-success-tenant-a")
 	body, err := os.ReadFile(filepath.Join(root, "site", "nested", "index.html"))
 	if err != nil || string(body) != "private site marker" {
 		t.Fatalf("restored: %q %v", body, err)
 	}
-	if err := runRestoreSiteLab(args, bytes.NewReader(sealed)); !errors.Is(err, errLabBoundary) {
+	if err := runRestoreSiteLab(args, bytes.NewReader(sealedA)); !errors.Is(err, errLabBoundary) {
 		t.Fatalf("existing root accepted: %v", err)
 	}
 	body, err = os.ReadFile(filepath.Join(root, "site", "nested", "index.html"))
 	if err != nil || string(body) != "private site marker" {
 		t.Fatal("existing lab modified")
 	}
+	argsTenantB := labArgs(parent, keyB, "success-tenant-b", "tenant-b")
+	if err := runRestoreSiteLab(argsTenantB, bytes.NewReader(sealedB)); err != nil {
+		t.Fatalf("tenant B positive control: %v", err)
+	}
+	rootTenantB := filepath.Join(parent, "tong-restore-lab-success-tenant-b")
+	body, err = os.ReadFile(filepath.Join(rootTenantB, "site", "nested", "index.html"))
+	if err != nil || string(body) != "private site marker" {
+		t.Fatalf("tenant B restored: %q %v", body, err)
+	}
+
 	for _, tc := range []struct {
 		name, tenant string
+		key          string
 		data         []byte
-	}{{"wrong-tenant", "tenant-b", sealed}, {"truncated", "tenant-a", sealed[:len(sealed)-1]}} {
-		args := labArgs(parent, key, tc.name, tc.tenant)
+	}{
+		{"tenant-a-artifact-as-b-with-key-a", "tenant-b", keyA, sealedA},
+		{"tenant-b-artifact-as-a-with-key-b", "tenant-a", keyB, sealedB},
+		{"tenant-a-artifact-as-b-with-key-b", "tenant-b", keyB, sealedA},
+		{"tenant-b-artifact-as-a-with-key-a", "tenant-a", keyA, sealedB},
+		{"truncated", "tenant-a", keyA, sealedA[:len(sealedA)-1]},
+	} {
+		args := labArgs(parent, tc.key, tc.name, tc.tenant)
 		if err := runRestoreSiteLab(args, bytes.NewReader(tc.data)); !errors.Is(err, backups.ErrInvalidBackup) {
 			t.Fatalf("%s: %v", tc.name, err)
 		}

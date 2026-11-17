@@ -8,6 +8,8 @@ on:
       - 'prototypes/p1-firewall-recovery-model/**'
       - 'prototypes/p2-backup-retry-model/**'
       - 'prototypes/p2-backup-schedule-run-model/**'
+      - 'prototypes/p2-scheduled-backup-handoff-model/**'
+      - 'prototypes/p2-retention-delete-reconciliation-model/**'
       - 'prototypes/p2-restore-generation-consistency-model/**'
       - 'prototypes/p3-deploy-recovery-model/**'
       - 'prototypes/p4-migration-review/**'
@@ -29,6 +31,8 @@ on:
       - 'prototypes/p1-firewall-recovery-model/**'
       - 'prototypes/p2-backup-retry-model/**'
       - 'prototypes/p2-backup-schedule-run-model/**'
+      - 'prototypes/p2-scheduled-backup-handoff-model/**'
+      - 'prototypes/p2-retention-delete-reconciliation-model/**'
       - 'prototypes/p2-restore-generation-consistency-model/**'
       - 'prototypes/p3-deploy-recovery-model/**'
       - 'prototypes/p4-migration-review/**'
@@ -165,6 +169,32 @@ jobs:
           persist-credentials: false
       - name: Test synthetic backup schedule-to-run identity contract
         run: python3 -m unittest discover -s prototypes/p2-backup-schedule-run-model -p 'test_*.py' -v
+
+  p2-scheduled-backup-handoff-model:
+    name: P2 scheduled backup handoff model (synthetic only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test synthetic scheduled backup handoff contract
+        run: python3 -m unittest discover -s prototypes/p2-scheduled-backup-handoff-model -p 'test_*.py' -v
+
+  p2-retention-delete-reconciliation-model:
+    name: P2 retention-delete reconciliation model (synthetic only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test synthetic retention-delete reconciliation contract
+        run: python3 -m unittest discover -s prototypes/p2-retention-delete-reconciliation-model -p 'test_*.py' -v
 
   p1-firewall-recovery-model:
     name: P1 firewall recovery model (synthetic only)

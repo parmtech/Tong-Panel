@@ -116,6 +116,101 @@ func TestBuildKeepsUnknownAndPartialFactsDistinctFromAdequate(t *testing.T) {
 	}
 }
 
+// These checks pin current diagnostic classifications; they do not certify a supported host profile.
+func TestBuildClassifiesCurrentMemoryAndDiskBoundaries(t *testing.T) {
+	const memoryBoundaryKB uint64 = 1024 * 1024
+	const diskBoundaryBytes uint64 = 8 * 1024 * 1024 * 1024
+
+	tests := []struct {
+		name               string
+		memoryKnown        bool
+		memoryKB           uint64
+		diskKnown          bool
+		diskBytes          uint64
+		wantMemory         string
+		wantDisk           string
+		wantCollection     Collection
+	}{
+		{
+			name: "below current boundaries",
+			memoryKnown: true, memoryKB: memoryBoundaryKB - 1,
+			diskKnown: true, diskBytes: diskBoundaryBytes - 1,
+			wantMemory: "low", wantDisk: "low",
+			wantCollection: Collection{Status: "complete", Code: "facts_collected"},
+		},
+		{
+			name: "at current boundaries",
+			memoryKnown: true, memoryKB: memoryBoundaryKB,
+			diskKnown: true, diskBytes: diskBoundaryBytes,
+			wantMemory: "adequate", wantDisk: "adequate",
+			wantCollection: Collection{Status: "complete", Code: "facts_collected"},
+		},
+		{
+			name: "unknown memory ignores supplied value",
+			memoryKnown: false, memoryKB: memoryBoundaryKB * 2,
+			diskKnown: true, diskBytes: diskBoundaryBytes,
+			wantMemory: "unknown", wantDisk: "adequate",
+			wantCollection: Collection{Status: "partial", Code: "facts_incomplete"},
+		},
+		{
+			name: "unknown disk ignores supplied value",
+			memoryKnown: true, memoryKB: memoryBoundaryKB,
+			diskKnown: false, diskBytes: diskBoundaryBytes * 2,
+			wantMemory: "adequate", wantDisk: "unknown",
+			wantCollection: Collection{Status: "partial", Code: "facts_incomplete"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			facts := completeFacts()
+			facts.MemoryKnown = test.memoryKnown
+			facts.MemAvailableKB = test.memoryKB
+			facts.DiskKnown = test.diskKnown
+			facts.DiskAvailableBytes = test.diskBytes
+
+			bundle := Build(facts)
+			if bundle.Diagnostics.Memory != test.wantMemory || bundle.Diagnostics.Disk != test.wantDisk {
+				t.Fatalf("diagnostics = memory %q, disk %q; want %q, %q",
+					bundle.Diagnostics.Memory, bundle.Diagnostics.Disk, test.wantMemory, test.wantDisk)
+			}
+			if bundle.Collection != test.wantCollection {
+				t.Fatalf("collection = %#v; want %#v", bundle.Collection, test.wantCollection)
+			}
+		})
+	}
+}
+
+func TestBuildReportsWebPortsOnlyWhenObservationIsKnown(t *testing.T) {
+	tests := []struct {
+		name       string
+		known      bool
+		tcp80      bool
+		tcp443     bool
+		wantStatus string
+		wantCollection Collection
+	}{
+		{name: "known clear", known: true, wantStatus: "not_seen", wantCollection: Collection{Status: "complete", Code: "facts_collected"}},
+		{name: "known HTTP listener", known: true, tcp80: true, wantStatus: "in_use", wantCollection: Collection{Status: "complete", Code: "facts_collected"}},
+		{name: "known HTTPS listener", known: true, tcp443: true, wantStatus: "in_use", wantCollection: Collection{Status: "complete", Code: "facts_collected"}},
+		{name: "unknown despite HTTP value", tcp80: true, wantStatus: "unknown", wantCollection: Collection{Status: "partial", Code: "facts_incomplete"}},
+		{name: "unknown despite HTTPS value", tcp443: true, wantStatus: "unknown", wantCollection: Collection{Status: "partial", Code: "facts_incomplete"}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			facts := completeFacts()
+			facts.PortsKnown = test.known
+			facts.TCP80Listening = test.tcp80
+			facts.TCP443Listening = test.tcp443
+
+			bundle := Build(facts)
+			if bundle.Diagnostics.WebPorts != test.wantStatus || bundle.Collection != test.wantCollection {
+				t.Fatalf("web ports = %q, collection = %#v; want %q, %#v",
+					bundle.Diagnostics.WebPorts, bundle.Collection, test.wantStatus, test.wantCollection)
+			}
+		})
+	}
+}
+
 func TestBuildDoesNotCertifyOtherRuntimeTargets(t *testing.T) {
 	for _, change := range []func(*Facts){
 		func(f *Facts) { f.Arch = "arm64" },

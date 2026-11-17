@@ -5,6 +5,14 @@ backup envelope. It is not connected to Tong Panel's API, database lifecycle,
 job queue, scheduler, or host agent. It does not make the project production
 ready.
 
+## Current synthetic component evidence (final root rerun 2026-11-17T17:54:08Z; GitHub read window 2026-11-17T18:46:49Z–18:46:58Z)
+
+Five focused P2 suites passed 101/101: published schedule-to-run identity 11/11; retention reconciliation 19/19 within the exact 8-path retention/Go subinventory; separate 3-path backup-retry tenant scoping 43/43; separate 3-path scheduled-run-to-backup-identity handoff 12/12; and separate 3-path restore-generation uncertainty 16/16. Keep the work inventories separate; do not infer an aggregate path count. Reciprocal Go tests in the retention inventory remain unrun because Go/gofmt are unavailable.
+
+PR #171 remains open/draft/unmerged at c1fbf710e2b530d3b9778fc2ac2f2a53b6ba94c2. Its exact-head CI passed 13/13 PR Actions and 26/26 checks at 2026-11-17T16:52:07Z; this result covers c1 only. PR/ref and body readback occurred in the 18:46:49Z–18:46:58Z window, while API `updated_at` remains 16:48:42Z for the PR and 16:49:16Z for #172. Issue #172 remains open at 0/12 with nine approvals false; #152 remains open/design-only (`updated_at=2026-11-16T19:00:59Z`).
+
+The retention model uses a shared operation-ID namespace and rejects single/batch cross-API reuse. QA confirmed the handoff value guard when configured with canonical `retry_contract.Identity`: it requires that exact type and validates the frozen, hashable identity value before run creation. The constructor accepts a caller-supplied frozen dataclass class, so callers must inject the canonical retry type. The tenant check is fixture consistency, not authorization. Restore read-back validates the full bundle before equality and rejects boolean/float generation aliases. These remain synthetic fixtures: no offsite provider, production scheduler, actual deletion, authorization, or durable restore is implemented. Row 9 remains **UNMET**, and issue #152 remains design-only.
+
 ## Key and file handling
 
 - Supply a raw 32-byte wrapping key from an external key source. The CLI does
@@ -66,10 +74,10 @@ backup/restore acceptance gate.
 
 ## Not yet provided
 
-There is no production key custody or recovery policy, scheduled backup,
-offsite provider integration, retention/deletion workflow, application-driven
-database export, job/audit wiring, restore preview, user authorization, or
-multi-account complete restore. ADR-007 and threat-model owner/security review
+There is no production key custody or recovery policy, integrated scheduled
+backup, offsite provider integration, production retention/deletion workflow,
+application-driven database export, job/audit wiring, restore preview, user
+authorization, or multi-account complete restore. ADR-007 and threat-model owner/security review
 remain pending. Do not treat this lab or CLI as a production backup service.
 
 ## Provider-neutral P2 acceptance checks
@@ -121,15 +129,21 @@ synthetic fixtures and do not connect a production target or service.
 
 **Historical post-7f synthetic-transfer successor snapshot (GitHub read 2026-11-17T03:06:06Z):** The synthetic TransferSimulator in this lab is included in 7f; its exact-head model check failed because finish_transfer looked for identity on _TransferAttempt. Local fix 3ff reads the digest identity from the owning _TransferOperation; the focused Python suite passes 17/17. At that snapshot the fix was not in the remote PR and had no hosted result. P2 clean-VM run #44004387562 passed on Debian #133776021340 and Ubuntu #133776021100. The model remains in-memory and synthetic: it performs no real transfer, provider call, remote object removal, persistence or recovery policy; no acceptance or key-custody decision follows.
 
-### Current synthetic checkpoint snapshot (published 3f8cc51; exact-head CI passed)
+### Current published snapshot (c1fbf71; exact-head CI passed at 2026-11-17T16:52:07Z; body read window 18:46:49Z–18:46:58Z)
+
+PR #171 remains open/draft/unmerged at c1fbf710e2b530d3b9778fc2ac2f2a53b6ba94c2. Exact-head CI passed all 13 pull_request Actions runs and 26 checks. The hosted offline-model job passed backup-retry #134184809724, restore-generation consistency #134184809534, and schedule-to-run #134184809837. The P2 clean-VM run #44124596264 passed Debian #134184804136 and Ubuntu #134184803775 through guest smoke, cleanup, and Complete. No raw VM or serial logs were read. These checks are synthetic/component evidence; issue #152 remains open/design-only and the model results do not meet integrated P2 acceptance.
+
+### Historical synthetic checkpoint snapshot (published 3f8cc51; superseded by c1)
 
 The reviewed checkpoint/reconstruction candidate is published at 3f8cc51. The local prototype suite passed 39/39, including clock-failure atomicity. Sol fixed the stale successful same-generation conflicting-digest and substituted-later-publisher findings while preserving exact-time ambiguity; Luna QA found no counterexample; root review added and independently QA-reviewed the narrow huge-integer overflow guard/regression. The prototype remains synthetic and in-memory: actual process restart, durable serialization/recovery, provider or product behavior, and P2 acceptance remain out of scope. Exact-head CI was observed at 2026-11-17T15:07:12Z: 13/13 pull_request Actions runs and 24/24 checks passed; no exact-SHA push runs, failures, or pending checks. Offline model run #44107182517 passed. P1 blocker inventory run #44107182674/check #134122595766 passed. P2 check #134122595446 passed. P2 clean-VM run #44107182469 passed Ubuntu job #134122594513 and Debian job #134122595784 through guest smoke and Complete. No raw VM or serial logs were read. The issue #152 API/body was reread at 2026-11-17T15:07:12Z: it remains open and design-only; returned updated_at is 2026-11-16T19:00:59Z. The separate issue #172 API/body read at that time remains open at 0/12, with all nine approvals false; its returned updated_at is 2026-11-17T12:42:30Z. This is a static snapshot; reread the relevant tracker before further action.
 
 TransferSimulator.checkpoint() requires a non-empty synthetic epoch string and a previously observed finite clock anchor. SyntheticCheckpoint.reconstruct() requires the same epoch string and a supplied clock whose first reading exactly equals the saved anchor. It rebuilds only the fixture and preserves its identity/digest and size bindings, current artifacts, operation and attempt histories and counters, retry limits/backoff, and reconciliation states. Active or inconsistent state is rejected. Elapsed downtime has no modeled meaning; the checkpoint is not a disk/database/JSON or production persistence format. These synthetic assertions are not P2 acceptance and do not close issue #152. Theme persistence is unspecified and deferred; the P1 Jobs screen statement remains scoped to that screen.
 
-### Unpublished synthetic follow-up (local 18-path worktree; no hosted CI)
+### Local engineering follow-up after c1 (8-path scoped subinventory; no hosted CI)
 
-Two additional standard-library prototypes cover restore-generation identity consistency and schedule-to-run idempotency. Their focused suites passed 11/11 each. The former validates only synthetic identity records before a pointer swap; the latter stores one immutable fixture run per registered tenant/schedule/opaque occurrence key. Neither performs real file/database restore, scheduling, authorization, queueing, or backup execution. These local results are acceptance preparation only and do not close issue #152 or any P2 gate.
+The exact eight-path engineering subinventory adds the in-memory retention-delete reconciliation model, focused tests, offline-model CI wiring, two P2 notes, and reciprocal tenant-denial Go regressions. The retention model accepts only injected verified-absence evidence for a fixture intent and performs no deletion; its focused suite passed 19/19 at 2026-11-17T17:54:08Z. Go/gofmt are unavailable locally, so the reciprocal Go tests are unrun. A separate three-file backup-retry tenant-scoping extension passed 43/43 and independent review found no counterexample; tenant identity is fixture data, not authorization or remote storage isolation. The separate three-path scheduled handoff passed 12/12 at the same final rerun; callers must inject canonical `retry_contract.Identity` because the constructor accepts a caller-supplied frozen dataclass class. The type/value guard provides fixture consistency, not authorization. Separate restore uncertainty passed 16/16. These models remain synthetic and do not provide a provider, scheduling, persistence, real deletion, or integrated restore.
+
+Other post-c1 scopes remain separate with hosted CI pending: original Go/P2/P1-gate workflow pinning; additional P1-smoke/schema/UI pinning; and the OpenAPI report decoder. The OpenAPI regressions are unrun because Go/gofmt are unavailable; API-contract PR CI is pending. P0 crosswalk passed 12/12 structurally without cited tests or mitigations; the clean-VM regression passed locally, with hosted verification pending and no diagnosis of historic guest failures. P1-09 supportbundle changes remain test-only/unrun; QA noted existing 4 KiB/redaction tests provide stronger coverage but do not prove implementation. These edits do not close issue #152, satisfy row 9, or close any P2 gate.
 
 ## Verify before restore
 

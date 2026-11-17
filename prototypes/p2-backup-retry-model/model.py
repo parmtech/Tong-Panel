@@ -83,20 +83,25 @@ class InvalidCheckpoint(BackupModelError):
 
 @dataclass(frozen=True)
 class Identity:
-    """Immutable logical backup stream generation bound to expected content."""
+    """Immutable tenant-scoped backup generation bound to expected content."""
 
+    tenant_id: str
     backup_id: str
     generation: int
     expected_sha256: str
 
     def __post_init__(self) -> None:
         if (
-            not isinstance(self.backup_id, str)
+            not isinstance(self.tenant_id, str)
+            or not self.tenant_id
+            or not isinstance(self.backup_id, str)
             or not self.backup_id
             or type(self.generation) is not int
             or self.generation < 1
         ):
-            raise InvalidIdentity("backup ID and positive integer generation are required")
+            raise InvalidIdentity(
+                "tenant ID, backup ID, and positive integer generation are required"
+            )
         if (
             not isinstance(self.expected_sha256, str)
             or len(self.expected_sha256) != 64
@@ -106,10 +111,19 @@ class Identity:
             raise InvalidIdentity("expected SHA-256 must be 64 lowercase hexadecimal characters")
 
 
-def identity_for_content(backup_id: str, generation: int, content: bytes) -> Identity:
+def identity_for_content(
+    tenant_id: str,
+    backup_id: str,
+    generation: int,
+    content: bytes,
+) -> Identity:
     """Create a synthetic identity from fixture bytes."""
 
-    return Identity(backup_id, generation, hashlib.sha256(content).hexdigest())
+    return Identity(tenant_id, backup_id, generation, hashlib.sha256(content).hexdigest())
+
+
+def _artifact_key(identity: Identity) -> tuple[str, str]:
+    return (identity.tenant_id, identity.backup_id)
 
 
 class AttemptState(Enum):
@@ -153,7 +167,7 @@ class Model:
     def __init__(self) -> None:
         self._next_attempt = 0
         self._attempts: dict[int, _Attempt] = {}
-        self._current: dict[str, _Artifact] = {}
+        self._current: dict[tuple[str, str], _Artifact] = {}
 
     def begin_attempt(self, identity: Identity) -> int:
         if not isinstance(identity, Identity):
@@ -172,7 +186,8 @@ class Model:
             attempt.state = AttemptState.FAILED
             raise DigestMismatch("content does not match the attempt's bound digest")
 
-        current = self._current.get(attempt.identity.backup_id)
+        artifact_key = _artifact_key(attempt.identity)
+        current = self._current.get(artifact_key)
         if current is not None:
             if current.identity.generation > attempt.identity.generation:
                 attempt.state = AttemptState.STALE
@@ -184,7 +199,7 @@ class Model:
                 attempt.state = AttemptState.FAILED
                 raise GenerationConflict("generation is bound to another identity digest")
 
-        self._current[attempt.identity.backup_id] = _Artifact(
+        self._current[artifact_key] = _Artifact(
             identity=attempt.identity,
             published_by=attempt_id,
         )
@@ -216,7 +231,7 @@ class Model:
         if attempt.state not in (AttemptState.ACTIVE, AttemptState.VERIFIED):
             raise AttemptTerminal("attempt is already terminal")
 
-        current = self._current.get(attempt.identity.backup_id)
+        current = self._current.get(_artifact_key(attempt.identity))
         if current is not None and current.identity.generation > attempt.identity.generation:
             attempt.state = AttemptState.STALE
             raise StaleAttempt("a newer generation cannot be deleted by this attempt")
@@ -226,8 +241,15 @@ class Model:
         value = self._get_attempt(attempt_id)
         return AttemptSnapshot(attempt_id, value.identity, value.state)
 
-    def current(self, backup_id: str) -> ArtifactSnapshot | None:
-        value = self._current.get(backup_id)
+    def current(self, tenant_id: str, backup_id: str) -> ArtifactSnapshot | None:
+        if (
+            not isinstance(tenant_id, str)
+            or not tenant_id
+            or not isinstance(backup_id, str)
+            or not backup_id
+        ):
+            raise InvalidIdentity("tenant ID and backup ID are required for lookup")
+        value = self._current.get((tenant_id, backup_id))
         if value is None:
             return None
         return ArtifactSnapshot(value.identity, value.published_by)
@@ -755,7 +777,7 @@ class SyntheticCheckpoint:
             for record in self.model_attempts
         }
         model._current = {
-            artifact.identity.backup_id: _Artifact(artifact.identity, artifact.published_by)
+            _artifact_key(artifact.identity): _Artifact(artifact.identity, artifact.published_by)
             for artifact in self.current_artifacts
         }
 
@@ -851,15 +873,15 @@ class SyntheticCheckpoint:
         ):
             invalid("model attempt counter does not match its complete history")
 
-        artifacts: dict[str, ArtifactSnapshot] = {}
+        artifacts: dict[tuple[str, str], ArtifactSnapshot] = {}
         for artifact in self.current_artifacts:
             if not isinstance(artifact, ArtifactSnapshot) or not isinstance(
                 artifact.identity, Identity
             ):
                 invalid("checkpoint contains an invalid current artifact")
-            backup_id = artifact.identity.backup_id
-            if backup_id in artifacts:
-                invalid("checkpoint contains duplicate current backup IDs")
+            artifact_key = _artifact_key(artifact.identity)
+            if artifact_key in artifacts:
+                invalid("checkpoint contains duplicate tenant/backup identities")
             publisher = model_records.get(artifact.published_by)
             if (
                 type(artifact.published_by) is not int
@@ -868,7 +890,7 @@ class SyntheticCheckpoint:
                 or publisher.state is not AttemptState.VERIFIED
             ):
                 invalid("current artifact does not match a verified publisher")
-            artifacts[backup_id] = artifact
+            artifacts[artifact_key] = artifact
 
         operations: dict[int, _CheckpointOperation] = {}
         for operation in self.operations:
@@ -984,7 +1006,8 @@ class SyntheticCheckpoint:
 
                 model_state = model_record.state
                 elapsed = record.finished_at - record.started_at
-                current = artifacts.get(operation.identity.backup_id)
+                operation_key = _artifact_key(operation.identity)
+                current = artifacts.get(operation_key)
                 if model_state is AttemptState.STALE and (
                     current is None
                     or current.identity.generation <= operation.identity.generation
@@ -1013,8 +1036,8 @@ class SyntheticCheckpoint:
                         or (
                             model_state is AttemptState.STALE
                             and (
-                                operation.identity.backup_id not in artifacts
-                                or artifacts[operation.identity.backup_id].identity.generation
+                                operation_key not in artifacts
+                                or artifacts[operation_key].identity.generation
                                 <= operation.identity.generation
                             )
                         )
@@ -1090,21 +1113,21 @@ class SyntheticCheckpoint:
         for attempt in model_records.values():
             if (
                 attempt.state is AttemptState.VERIFIED
-                and attempt.identity.backup_id not in artifacts
+                and _artifact_key(attempt.identity) not in artifacts
             ):
                 invalid("verified attempt has no current artifact")
 
-        successful_identities: dict[tuple[str, int], Identity] = {}
+        successful_identities: dict[tuple[str, str, int], Identity] = {}
         for transfer in transfer_records.values():
             if transfer.state is not TransferState.VERIFIED:
                 continue
             identity = operations[transfer.operation_id].identity
-            generation_key = (identity.backup_id, identity.generation)
+            generation_key = (*_artifact_key(identity), identity.generation)
             prior_identity = successful_identities.setdefault(generation_key, identity)
             if prior_identity != identity:
                 invalid("successful transfers conflict on a verified generation digest")
 
-        for backup_id, artifact in artifacts.items():
+        for artifact_key, artifact in artifacts.items():
             publisher_transfer = transfer_records.get(artifact.published_by)
             if publisher_transfer is None or publisher_transfer.state is not TransferState.VERIFIED:
                 invalid("current artifact has no verified transfer publisher")
@@ -1120,14 +1143,14 @@ class SyntheticCheckpoint:
                 ):
                     invalid("current publisher has an earlier verified publication")
                 if (
-                    transfer_identity.backup_id == backup_id
+                    _artifact_key(transfer_identity) == artifact_key
                     and transfer_identity.generation < artifact.identity.generation
                     and transfer.finished_at > publisher_transfer.finished_at
                 ):
                     invalid("older verified transfer finishes after the current publication")
             for attempt in model_records.values():
                 if (
-                    attempt.identity.backup_id != backup_id
+                    _artifact_key(attempt.identity) != artifact_key
                     or attempt.state is not AttemptState.VERIFIED
                 ):
                     continue
@@ -1148,8 +1171,8 @@ class SyntheticCheckpoint:
                 and witness.state is TransferState.VERIFIED
                 and model_records[witness_id].state
                 in (AttemptState.VERIFIED, AttemptState.STALE)
-                and operations[witness.operation_id].identity.backup_id
-                == stale_identity.backup_id
+                and _artifact_key(operations[witness.operation_id].identity)
+                == _artifact_key(stale_identity)
                 and operations[witness.operation_id].identity.generation
                 > stale_identity.generation
                 and witness.finished_at <= stale.finished_at
@@ -1166,8 +1189,8 @@ class SyntheticCheckpoint:
                 publication.state is TransferState.VERIFIED
                 and model_records[publication_id].state
                 in (AttemptState.VERIFIED, AttemptState.STALE)
-                and operations[publication.operation_id].identity.backup_id
-                == conflict_identity.backup_id
+                and _artifact_key(operations[publication.operation_id].identity)
+                == _artifact_key(conflict_identity)
                 and operations[publication.operation_id].identity.generation
                 > conflict_identity.generation
                 and publication.finished_at < conflict.finished_at
@@ -1178,8 +1201,8 @@ class SyntheticCheckpoint:
                 and witness.state is TransferState.VERIFIED
                 and model_records[witness_id].state
                 in (AttemptState.VERIFIED, AttemptState.STALE)
-                and operations[witness.operation_id].identity.backup_id
-                == conflict_identity.backup_id
+                and _artifact_key(operations[witness.operation_id].identity)
+                == _artifact_key(conflict_identity)
                 and operations[witness.operation_id].identity.generation
                 == conflict_identity.generation
                 and operations[witness.operation_id].identity != conflict_identity

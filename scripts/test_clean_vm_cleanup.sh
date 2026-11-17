@@ -83,6 +83,39 @@ check_case restore-failure 7 restore
 check_case failure-before-console 2 absent
 check_case successful-cleanup 0 source
 
+invalid_meta_work="$test_root/invalid-failure-metadata"
+invalid_meta_output="$test_root/invalid-failure-metadata.output"
+mkdir "$invalid_meta_work"
+work="$invalid_meta_work"
+pidfile="$work/qemu.pid"
+serial="$work/serial.log"
+printf '%s\n' 'synthetic-serial-secret-canary' '::warning::synthetic-serial-command-canary' > "$serial"
+invalid_stage=$'untrusted-stage\n::warning::synthetic-stage-command-canary'
+invalid_line=$'42\n::error::synthetic-line-command-canary'
+set +e
+(
+  work="$invalid_meta_work"
+  pidfile="$work/qemu.pid"
+  serial="$work/serial.log"
+  vm_stage="$invalid_stage"
+  vm_failure_line="$invalid_line"
+  trap cleanup EXIT
+  exit 23
+) > "$invalid_meta_output" 2>&1
+invalid_meta_status=$?
+set -e
+invalid_meta_expected='::error::clean_vm failure_stage=unknown line=0 status=23 serial_console=withheld'
+[[ "$invalid_meta_status" -eq 23 && ! -e "$invalid_meta_work" ]] || {
+  echo 'FAIL: invalid failure metadata changed status or skipped cleanup' >&2; exit 1;
+}
+[[ "$(wc -l < "$invalid_meta_output")" -eq 1 && "$(cat "$invalid_meta_output")" == "$invalid_meta_expected" ]] || {
+  echo 'FAIL: invalid failure metadata was not reduced to one safe annotation' >&2; exit 1;
+}
+if grep -Eq 'synthetic-(serial|stage|line)-.*canary|::(warning|error)::synthetic-' "$invalid_meta_output"; then
+  echo 'FAIL: invalid metadata or serial canary escaped cleanup diagnostics' >&2; exit 1;
+fi
+printf 'PASS: invalid failure metadata is sanitized with status and cleanup preserved\r\n'
+
 host_fail_test="$test_root/host-fail-test.output"
 host_fail_work="$test_root/host-fail-test"
 mkdir "$host_fail_work"

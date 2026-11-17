@@ -3,9 +3,15 @@ from dataclasses import FrozenInstanceError, replace
 
 from model import (
     REQUIRED_COMPONENTS,
+    ActivationAcknowledgmentLost,
+    ActivationFailedBeforeActivation,
+    ActivationOutcomeUnresolved,
+    ActivationState,
     ActivationStore,
+    ActiveBundle,
     BundleIdentity,
     ComponentRecord,
+    InjectedActivationFailure,
     RestoreCandidate,
     RestoreContractError,
 )
@@ -83,6 +89,161 @@ class RestoreGenerationConsistencyTests(unittest.TestCase):
             {("tenant-a", "backup-a", 2, "marker-two")},
         )
         self.assertEqual(tuple(record.component for record in store.active.components), REQUIRED_COMPONENTS)
+
+    def test_failure_before_activation_is_known_inactive_and_preserves_prior_active(self):
+        store = ActivationStore()
+        original = store.activate(candidate_for())
+        replacement_identity = BundleIdentity("tenant-a", "backup-a", 2, "marker-two")
+        replacement_candidate = candidate_for(replacement_identity)
+
+        with self.assertRaises(ActivationFailedBeforeActivation):
+            store.activate(
+                replacement_candidate,
+                failure=InjectedActivationFailure.BEFORE_ACTIVATION,
+            )
+
+        outcome = store.last_outcome
+        self.assertEqual(outcome.state, ActivationState.INACTIVE)
+        self.assertEqual(outcome.candidate.identity, replacement_identity)
+        self.assertIs(store.active, original)
+        self.assertEqual(store.active.identity, INITIAL_IDENTITY)
+
+        # A known pre-activation failure permits a direct retry because the
+        # candidate was not installed and no outcome is unresolved.
+        replacement = store.activate(replacement_candidate)
+        self.assertEqual(store.last_outcome.state, ActivationState.ACTIVE)
+        self.assertIs(store.active, replacement)
+        self.assertEqual(store.active.identity, replacement_identity)
+
+    def test_failure_before_first_activation_is_known_inactive_not_unresolved(self):
+        store = ActivationStore()
+        candidate = candidate_for()
+
+        with self.assertRaises(ActivationFailedBeforeActivation):
+            store.activate(candidate, failure=InjectedActivationFailure.BEFORE_ACTIVATION)
+
+        self.assertEqual(store.last_outcome.state, ActivationState.INACTIVE)
+        self.assertIsNone(store.active)
+
+        active = store.activate(candidate)
+        self.assertEqual(store.last_outcome.state, ActivationState.ACTIVE)
+        self.assertIs(store.active, active)
+
+    def test_lost_acknowledgment_hides_active_until_exact_readback(self):
+        store = ActivationStore()
+        original = store.activate(candidate_for())
+        replacement_identity = BundleIdentity("tenant-a", "backup-a", 2, "marker-two")
+        replacement_candidate = candidate_for(replacement_identity)
+        expected_read_back = ActiveBundle(
+            replacement_identity,
+            records_for(replacement_identity),
+        )
+
+        with self.assertRaises(ActivationAcknowledgmentLost):
+            store.activate(
+                replacement_candidate,
+                failure=InjectedActivationFailure.ACK_LOST_AFTER_ACTIVATION,
+            )
+
+        unresolved = store.last_outcome
+        self.assertEqual(unresolved.state, ActivationState.RECONCILIATION_REQUIRED)
+        self.assertEqual(unresolved.candidate.identity, replacement_identity)
+        self.assertIsNone(store.active)
+        self.assertIsNot(store.active, original)
+
+        reconciled = store.reconcile(expected_read_back)
+
+        self.assertIs(store.active, reconciled)
+        self.assertEqual(store.active.identity, replacement_identity)
+        self.assertEqual(store.last_outcome.state, ActivationState.ACTIVE)
+
+    def test_mismatched_readback_and_blind_retries_stay_unresolved_without_mutation(self):
+        store = ActivationStore()
+        store.activate(candidate_for())
+        replacement_identity = BundleIdentity("tenant-a", "backup-a", 2, "marker-two")
+        replacement_candidate = candidate_for(replacement_identity)
+        with self.assertRaises(ActivationAcknowledgmentLost):
+            store.activate(
+                replacement_candidate,
+                failure=InjectedActivationFailure.ACK_LOST_AFTER_ACTIVATION,
+            )
+
+        unresolved = store.last_outcome
+        invalid_read_backs = (
+            None,
+            ActiveBundle(INITIAL_IDENTITY, records_for()),
+            ActiveBundle(
+                replacement_identity,
+                change_component(
+                    records_for(replacement_identity),
+                    "settings",
+                    marker="different-marker",
+                ),
+            ),
+            ActiveBundle(
+                replace(replacement_identity, generation=True),
+                records_for(replace(replacement_identity, generation=True)),
+            ),
+            ActiveBundle(
+                replace(replacement_identity, generation=1.0),
+                records_for(replace(replacement_identity, generation=1.0)),
+            ),
+            ActiveBundle(
+                replacement_identity,
+                (
+                    replace(
+                        records_for(replacement_identity)[0],
+                        generation=True,
+                    ),
+                    *records_for(replacement_identity)[1:],
+                ),
+            ),
+            ActiveBundle(
+                replacement_identity,
+                (
+                    replace(
+                        records_for(replacement_identity)[0],
+                        generation=1.0,
+                    ),
+                    *records_for(replacement_identity)[1:],
+                ),
+            ),
+            object(),
+        )
+        for read_back in invalid_read_backs:
+            with self.subTest(read_back=read_back):
+                with self.assertRaises(ActivationOutcomeUnresolved):
+                    store.reconcile(read_back)
+                self.assertIs(store.last_outcome, unresolved)
+                self.assertEqual(
+                    store.last_outcome.state,
+                    ActivationState.RECONCILIATION_REQUIRED,
+                )
+                self.assertIsNone(store.active)
+
+        for retry_candidate in (replacement_candidate, candidate_for()):
+            with self.subTest(identity=retry_candidate.expected_identity):
+                with self.assertRaises(ActivationOutcomeUnresolved):
+                    store.activate(retry_candidate)
+                self.assertIs(store.last_outcome, unresolved)
+                self.assertIsNone(store.active)
+
+        resolved = store.reconcile(
+            ActiveBundle(replacement_identity, records_for(replacement_identity))
+        )
+        self.assertEqual(resolved.identity, replacement_identity)
+        self.assertIs(store.active, resolved)
+
+    def test_reconcile_without_pending_outcome_is_denied_without_mutation(self):
+        store = ActivationStore()
+        active = store.activate(candidate_for())
+        outcome = store.last_outcome
+
+        with self.assertRaises(RestoreContractError):
+            store.reconcile(active)
+
+        self.assertIs(store.active, active)
+        self.assertIs(store.last_outcome, outcome)
 
     def test_missing_empty_or_non_string_expected_markers_are_denied_without_mutation(self):
         for marker in (None, ""):

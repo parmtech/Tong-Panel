@@ -102,12 +102,78 @@ func TestLoadContractRejectsExternalReferencesAndInvalidDocuments(t *testing.T) 
 	}
 }
 
-func TestDecodeReportRejectsMalformedOrAmbiguousInput(t *testing.T) {
+func TestDecodeReportAcceptsValidMarshaledReport(t *testing.T) {
 	data, err := json.Marshal(contractReport{Cases: []contractCase{validSample()}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := decodeReport(data); err != nil {
+	report, err := decodeReport(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Cases) != 1 || report.Cases[0].OperationID != "createSample" {
+		t.Fatalf("decoded unexpected report: %#v", report)
+	}
+}
+
+func TestDecodeReportRejectsDuplicateJSONMembersInReportObjects(t *testing.T) {
+	data, err := json.Marshal(contractReport{Cases: []contractCase{validSample()}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	valid := string(data)
+	for _, tc := range []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "duplicate top-level report field",
+			input: strings.Replace(valid, `{"cases":`, `{"cases":[],"cases":`, 1),
+		},
+		{
+			name:  "duplicate nested case field",
+			input: strings.Replace(valid, `"status":201`, `"status":201,"status":400`, 1),
+		},
+		{
+			name:  "case-variant matching the same nested struct field",
+			input: strings.Replace(valid, `"status":201`, `"Status":201,"status":201`, 1),
+		},
+		{
+			name:  "duplicate nested header map field",
+			input: strings.Replace(valid, `"Content-Type":["application/json"]`, `"Content-Type":["application/json"],"Content-Type":["text/plain"]`, 1),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.input == valid {
+				t.Fatal("duplicate-member fixture did not match the marshaled report")
+			}
+			if _, err := decodeReport([]byte(tc.input)); err == nil {
+				t.Fatal("accepted duplicate JSON object member")
+			} else if err.Error() != "handler report is invalid" {
+				t.Fatalf("duplicate-member error was not redacted: %v", err)
+			}
+		})
+	}
+}
+
+func TestDecodeReportRejectsObjectWithTooManyMembers(t *testing.T) {
+	var input strings.Builder
+	input.WriteString(`{"cases":[{`)
+	for i := 0; i < 17; i++ {
+		if i > 0 {
+			input.WriteByte(',')
+		}
+		input.WriteString(`"` + string(rune('a'+i)) + `":null`)
+	}
+	input.WriteString(`}]}`)
+	if _, err := decodeReport([]byte(input.String())); err == nil || err.Error() != "handler report is invalid" {
+		t.Fatalf("expected redacted object member limit failure, got %v", err)
+	}
+}
+
+func TestDecodeReportRejectsMalformedOrAmbiguousInput(t *testing.T) {
+	data, err := json.Marshal(contractReport{Cases: []contractCase{validSample()}})
+	if err != nil {
 		t.Fatal(err)
 	}
 	for _, input := range []string{`null`, `{"cases":[]}`, `{"cases":[],"unknown":true}`, string(data) + ` {}`, `{"cases":[{"unknown":true}]}`} {

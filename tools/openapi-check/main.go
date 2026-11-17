@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -105,6 +106,9 @@ func loadContract(ctx context.Context, data []byte) (*openapi3.T, error) {
 
 func decodeReport(data []byte) (contractReport, error) {
 	var report contractReport
+	if err := rejectDuplicateJSONMembers(data); err != nil {
+		return report, errors.New("handler report is invalid")
+	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&report) != nil || len(report.Cases) == 0 || len(report.Cases) > 512 {
@@ -114,6 +118,105 @@ func decodeReport(data []byte) (contractReport, error) {
 		return report, errors.New("handler report has trailing data")
 	}
 	return report, nil
+}
+
+const maxJSONMembers = 16
+
+// rejectDuplicateJSONMembers scans the complete first JSON value before typed
+// decoding. Case folding is deliberately as strict as encoding/json's
+// case-insensitive struct-field matching; it also rejects ambiguous header
+// names, which are case-insensitive at the HTTP layer.
+func rejectDuplicateJSONMembers(data []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	return scanJSONValue(decoder, 0)
+}
+
+func scanJSONValue(decoder *json.Decoder, depth int) error {
+	if depth > 64 {
+		return errors.New("handler report nesting exceeds limit")
+	}
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	delimiter, ok := token.(json.Delim)
+	if !ok {
+		return nil
+	}
+	switch delimiter {
+	case '{':
+		seen := make(map[string]struct{}, maxJSONMembers)
+		for decoder.More() {
+			keyToken, err := decoder.Token()
+			if err != nil {
+				return err
+			}
+			key, ok := keyToken.(string)
+			if !ok {
+				return errors.New("handler report object member is invalid")
+			}
+			folded := foldJSONMemberName(key)
+			if _, exists := seen[folded]; exists {
+				return errors.New("handler report has duplicate object members")
+			}
+			if len(seen) >= maxJSONMembers {
+				return errors.New("handler report object has too many members")
+			}
+			seen[folded] = struct{}{}
+			if err := scanJSONValue(decoder, depth+1); err != nil {
+				return err
+			}
+		}
+		closing, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		if end, ok := closing.(json.Delim); !ok || end != '}' {
+			return errors.New("handler report object is invalid")
+		}
+	case '[':
+		for decoder.More() {
+			if err := scanJSONValue(decoder, depth+1); err != nil {
+				return err
+			}
+		}
+		closing, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		if end, ok := closing.(json.Delim); !ok || end != ']' {
+			return errors.New("handler report array is invalid")
+		}
+	default:
+		return errors.New("handler report value is invalid")
+	}
+	return nil
+}
+
+// foldJSONMemberName mirrors encoding/json's case-insensitive name folding so
+// names that target the same struct field cannot be supplied more than once.
+func foldJSONMemberName(name string) string {
+	var folded strings.Builder
+	folded.Grow(len(name))
+	for _, char := range name {
+		if char >= 'a' && char <= 'z' {
+			char -= 'a' - 'A'
+		} else if char > 0x7f {
+			char = foldJSONRune(char)
+		}
+		folded.WriteRune(char)
+	}
+	return folded.String()
+}
+
+func foldJSONRune(char rune) rune {
+	folded := char
+	for candidate := unicode.SimpleFold(char); candidate != char; candidate = unicode.SimpleFold(candidate) {
+		if candidate < folded {
+			folded = candidate
+		}
+	}
+	return folded
 }
 
 func allowedHeaders(headers http.Header, response bool) bool {

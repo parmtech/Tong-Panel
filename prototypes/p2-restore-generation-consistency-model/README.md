@@ -4,7 +4,16 @@ This standalone Python-standard-library model checks one proposed acceptance
 condition: site/files, database, and settings records must agree on the same
 synthetic tenant, backup ID, generation, and opaque marker before activation.
 The model validates the complete candidate first, then replaces one in-memory
-active-bundle pointer. A denied candidate preserves the prior active bundle.
+bundle pointer. A denied candidate preserves the prior active bundle.
+
+Injected activation failures have distinct outcomes. A failure before pointer
+replacement is explicitly `inactive` for that candidate; the prior known active
+bundle, if any, remains active, and a direct retry is allowed. A lost
+acknowledgment after the pointer replacement is `reconciliation_required`:
+`active` is hidden, no active or serving claim is available, and another
+activation attempt is denied. Reconciliation accepts only an exact synthetic
+read-back of the pointer, including the full component records. A mismatched
+read-back leaves the outcome unresolved and does not change state.
 
 Tests cover all-agree activation, complete replacement without mixed
 generations, missing/duplicate/unknown components, missing or empty markers,
@@ -19,10 +28,12 @@ policy, or consistency policy.
 The model performs no filesystem, database, network, encryption, key, provider,
 scheduler, authorization, or host operation. It stores no payload and models no
 snapshot/quiescence behavior, durable state, actual restore, cleanup, or product
-activation. The pointer assignment is a synthetic state transition, not proof
-of an atomic filesystem or database transaction. These tests are acceptance
-preparation only, not P2 acceptance or security approval. P0/P1, owner/security,
-production, and integrated-restore gates remain open.
+activation. The injected read-back is fixture input, not independent evidence
+from a filesystem or service. Pointer assignment and uncertainty handling are
+synthetic state transitions, not proof of an atomic filesystem or database
+transaction. These tests are acceptance preparation only, not P2 acceptance or
+security approval. P0/P1, owner/security, production, and integrated-restore
+gates remain open.
 
 From this directory, run:
 
