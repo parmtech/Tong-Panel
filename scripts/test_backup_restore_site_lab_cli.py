@@ -131,8 +131,8 @@ def main():
             raise AssertionError("nonempty root changed")
 
         # These archives authenticate successfully but contain unsafe entries.
-        # The actual CLI must reject them without publishing or modifying a
-        # sibling; no assumption is made about failed-stage cleanup.
+        # The CLI must reject them without publishing, changing a sibling, or
+        # leaving a stage visible in the post-failure inventory.
         sibling = root / "outside-sentinel"
         sibling.write_bytes(b"untouched")
         for kind in ("traversal", "symlink"):
@@ -156,6 +156,7 @@ def main():
                 raise AssertionError("unsafe archive published a destination or removed its lab root")
             if (root / "escape").exists() or (directory / "escape").exists() or sibling.read_bytes() != b"untouched":
                 raise AssertionError("unsafe archive modified an outside path")
+            inspect_empty_inventory(directory)
 
         target = lab("valid")
         run(args(target), sealed)

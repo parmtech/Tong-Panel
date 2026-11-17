@@ -6,8 +6,8 @@
   "repo": "parmtech/Tong-Panel",
   "license": "AGPL-3.0",
   "working_branch": "codex/tong-panel-candidate-20261116",
-  "source_head_before_handoff_commit": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
-  "source_tree_sha": "17f0d52f1ba1cf955766bb1d68c4e7710630eb9c",
+  "source_head_before_handoff_commit": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+  "source_tree_sha": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
   "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
   "main_docs_only": true,
   "pr": 171,
@@ -21,7 +21,7 @@
     "cancelled": 1,
     "no_head_workflows": 14
   },
-  "source_head_ci": {
+  "previous_source_head_ci_34db": {
     "head_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
     "tree_sha": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
     "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
@@ -123,7 +123,7 @@
     "terminal_result_observed_at_utc": "2026-11-17T04:52:17Z",
     "run_ids_and_check_ids_verified_at_utc": "2026-11-17T05:13:45Z"
   },
-  "latest_live_snapshot": {
+  "previous_live_snapshot_34db": {
     "observed_at_utc": "2026-11-17T05:13:45Z",
     "observed_on_local_date": "2026-11-17",
     "pr": 171,
@@ -353,7 +353,7 @@
     "included_in_pr_head": "2f4da00e0b5d31f40fcc3342d6825eb82aef4e30",
     "hosted_ci": "2f exact-head CI passed 13/13 Actions and 23/23 checks; backup-retry model check 133748137953 passed; prior 7f model result is historical"
   },
-  "next": {
+  "previous_next_before_e9a6": {
     "priority": 1,
     "action": "After a fresh PR/ref/issue read, commit and normal-fast-forward publish the reviewed candidate. Then use the existing P2 non-root runner/guest workflow to execute scripts/test_backup_restore_site_lab_cli.py and inspect exact-head CI. Local WSL/Linux execution is unavailable and is not a prepublication blocker; the 34db CI result does not cover this candidate.",
     "required_evidence": [
@@ -455,7 +455,7 @@
     "historical_5257_vm": "https://github.com/parmtech/Tong-Panel/actions/runs/43922690907",
     "current_jobs_browser": "https://github.com/parmtech/Tong-Panel/actions/runs/43945726491"
   },
-  "latest_source_checkpoint": {
+  "previous_source_checkpoint_before_e9a6": {
     "sha": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
     "tree_sha": "17f0d52f1ba1cf955766bb1d68c4e7710630eb9c",
     "parent": "e790f748cb59eea79e58e85b44f49444021126bc",
@@ -552,8 +552,8 @@
       "scope_note": "These results are for exact PR head 34db, a documentation-only child of 7f5bbc. They cover the committed 7f source in that tree, but are not a standalone exact-head result on 7f5bbc and do not cover later uncommitted worktree changes."
     }
   },
-  "published_pr_head_at_snapshot": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
-  "local_checkpoint_parent_at_snapshot": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
+  "published_pr_head_at_snapshot": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "local_checkpoint_parent_at_snapshot": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
   "responsive_journey_plan": {
     "path": "docs/P2_RESPONSIVE_SITES_FILES_JOURNEYS.md",
     "issue": 155,
@@ -791,20 +791,20 @@
     "evidence": "Adds bounded HTTPS failure-only metadata and invocation-count coverage, keyboard pagination/focus and 401/403 denied-state fallback, and malformed/trailing encrypted-backup coverage. Combined local checks: 11 cleanup cases, 14 Python HTTPS tests, 51/51 web unit tests, shell/JavaScript syntax and diff check. Separate component evidence: focused pagination 1/1, denial 1/1, responsive browser 13/13, TypeScript passed. Independent integrated review found no blocker.",
     "limitations": "At the 1f snapshot, candidate exact-head CI was pending and the integrated worktree lacked Playwright, TypeScript and Go; b411 later included 1f and passed exact-head CI. PHP-FPM comm names on pinned guests remain unverified. The HTTPS failure cause remains unknown. Synthetic UI evidence does not establish authenticated-tenant, physical-device or human accessibility acceptance; issue #155 remains open."
   },
-  "local_candidate_head": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
-  "local_latest_test_commit": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
+  "local_candidate_head": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "local_latest_test_commit": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
   "previous_local_latest_test_commit": "16038e2818f7eea3b177d954a4d02423420f5976",
-  "local_candidate_tree_sha": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
-  "local_snapshot_head": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
-  "local_snapshot_tree": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
+  "local_candidate_tree_sha": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
+  "local_snapshot_head": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "local_snapshot_tree": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
   "local_source_candidate_before_handoff_commit": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
   "local_source_candidate_parent": "e790f748cb59eea79e58e85b44f49444021126bc",
-  "local_source_candidate_pushed": false,
+  "local_source_candidate_pushed": true,
   "local_source_candidate_commit_time_utc": "2026-11-17T04:03:33Z",
   "previous_local_source_candidate_commit_time_utc": "2026-11-17T03:10:11Z",
-  "current_worktree_changes": "The checkout HEAD is published PR head 34db, but the current worktree has uncommitted edits to six handoff documents, this state JSON, and scripts/test_backup_restore_site_lab_cli.py. These edits are not part of 34db and have no hosted CI; the new CLI test has not been process-executed.",
-  "snapshot_scope_note": "Static snapshot reread through GitHub API at 2026-11-17T05:13:45Z: PR/ref/issue state, run/check IDs, and terminal statuses were reread; the exact-head CI was first observed terminal at 04:52:17Z. PR #171 remains open/draft/unmerged at 34db; all 16 Actions and 27 checks succeeded. Issue #172 remains open at 0/12, nine approval fields false, product support false. The 7f source is published in 34db; newer test/document edits are uncommitted and outside that CI.",
-  "published_pr_tree_at_snapshot": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
+  "current_worktree_changes": "The checkout HEAD is the published PR #171 head e9a6c700022e4d2834074980e9e82bac40a1b4d6 (tree 12891d236860bf2479ac37a84ca4166dbc2bfb3a), open/draft/unmerged with 13/13 PR-event Actions and 24/24 checks successful, including both P2 guests. The worktree has uncommitted post-e9a6 documentation and test changes in AGENTS.md, UPDATES.md, docs/AI_AGENT_START_HERE.md, docs/AI_AGENT_STATE.json, docs/BLUEPRINT.md, docs/P0_THREAT_TEST_CROSSWALK.md, docs/P2_ACCEPTANCE_TRACEABILITY.md, docs/RESUME_HANDOFF_2026-11-12.md, docs/ROADMAP.md, scripts/test_backup_restore_site_lab_cli.py; they are not pushed and have no hosted CI.",
+  "snapshot_scope_note": "Static snapshot: PR/ref/issue and exact-head CI state reread at 2026-11-17T05:51:27Z; body patch observed at 05:54:07.320Z and post-patch body updated_at values reread at 05:54:11Z (PR) and 05:54:16Z (issue). Exact CI applies to e9a6, not the current uncommitted worktree delta. e9a6 is a mixed source-test and handoff/document commit; 34db (tree 9ab2235545474d666c0bba9ee97bc2aa48c1b45f) is its base.",
+  "published_pr_tree_at_snapshot": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
   "published_pr_ci_snapshot": {
     "scope": "historical_f804_terminal_CI_baseline_only; 10f666a_and_570_exact_head_CI_are_preserved_in_historical_and_latest_snapshots",
     "head_sha": "f804127fdef6b46fec16c27beeb357398e066cba",
@@ -853,7 +853,7 @@
     "browser_run_id": 43945726491,
     "failure_cause": "db97_generic_exit_1_cause_unknown; f804_success_does_not_explain_it"
   },
-  "tracker_dod_at_snapshot": {
+  "previous_tracker_dod_at_snapshot_34db": {
     "total": 12,
     "checked": 0,
     "unchecked": 12,
@@ -865,8 +865,8 @@
     "approval_field_identifiers_independently_verified": false,
     "note": "Issue #172 state was reread at 2026-11-17T05:13:45Z: open, 0/12 DoD checked, all nine approval fields false, and product support false. The issue body updated_at remains 2026-11-17T04:53:18Z; this is a separate body timestamp, not the reread time."
   },
-  "local_snapshot_note": "Published PR head 34db passed 16/16 Actions and 27/27 checks, including both P2 guests. The uncommitted test/document refresh on top of 34db is outside that CI; its tenant-binding CLI process test has not run and hosted CI has not run.",
-  "snapshot_timestamp_utc": "2026-11-17T05:13:45Z",
+  "local_snapshot_note": "Published PR head e9a6 passed 13/13 PR-event Actions and 24/24 checks, including both P2 hosted guest jobs; no same-SHA push runs were observed. The current post-e9a6 assertion/document changes are uncommitted and outside that CI; the new assertion has not been process-executed or hosted-tested.",
+  "snapshot_timestamp_utc": "2026-11-17T05:54:16Z",
   "historical_pr_2054_ci_snapshot": {
     "head_sha": "2054a425108abd4db8df6e84b29c421dafe17dd0",
     "source_candidate_sha": "61fdb4b8faf520ec277cb5aeef82d4ac3510fe88",
@@ -931,8 +931,8 @@
     "source_fix_present": false,
     "source_fix_scope_note": "false on published head 2054; FPM follow-up is present only in unpublished local candidate 3490235 and does not confirm root cause"
   },
-  "snapshot_read_at_utc": "2026-11-17T05:13:45Z",
-  "current_follow_up": {
+  "snapshot_read_at_utc": "2026-11-17T05:51:27Z",
+  "previous_current_follow_up_before_e9a6": {
     "status": "PR_34db_open_draft_unmerged_exact_head_green; newer_test_and_document_changes_uncommitted",
     "published_pr_head": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
     "published_pr_tree": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
@@ -982,7 +982,7 @@
     "static_pid_file_umask_hypothesis": "unconfirmed",
     "collected_at_utc": "2026-11-16T15:25Z"
   },
-  "worktree_changes": {
+  "previous_worktree_changes_before_e9a6": {
     "head_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
     "head_tree_sha": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
     "uncommitted_files": [
@@ -1244,9 +1244,9 @@
     "collected_at_utc": "2026-11-16T16:35:23Z",
     "snapshot_scope": "historical_db97_only; not_current_5257_CI"
   },
-  "pr_state_observed_at_utc": "2026-11-17T05:13:45Z",
-  "issue_state_observed_at_utc": "2026-11-17T05:13:45Z",
-  "ci_snapshot_timestamp_utc": "2026-11-17T05:13:45Z",
+  "pr_state_observed_at_utc": "2026-11-17T05:51:27Z",
+  "issue_state_observed_at_utc": "2026-11-17T05:51:27Z",
+  "ci_snapshot_timestamp_utc": "2026-11-17T05:51:27Z",
   "historical_5257_head": {
     "head_sha": "5257aa3bd3b217a5a28316812618009c6244c01f",
     "tree_sha": "b9b3d909d0b103d35eb9f9eda5b240064ebc5c42",
@@ -1261,7 +1261,7 @@
     "failure_cause_db97": "unknown; 5257 success does not explain it",
     "observed_at_utc": "2026-11-16T19:51:27Z"
   },
-  "local_candidate_committed_at_utc": "2026-11-17T15:29:41+11:00",
+  "local_candidate_committed_at_utc": "2026-11-17T05:30:00Z",
   "historical_10f666a_snapshot": {
     "observed_at_utc": "2026-11-16T21:46Z",
     "observation_basis": "Terminal exact-head CI and PR/ref state for head 10f666a were re-read at 2026-11-16T21:46:26Z; issue #172 body, DoD, and approvals were last audited at 2026-11-16T21:35:21Z.",
@@ -1303,9 +1303,9 @@
     "gate_changes": false
   },
   "source_candidate_head_before_handoff_commit": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
-  "remote_pr_head": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
-  "current_handoff_commit_parent": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
-  "issue_body_updated_at_utc": "2026-11-17T04:53:18Z",
+  "remote_pr_head": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "current_handoff_commit_parent": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+  "issue_body_updated_at_utc": "2026-11-17T05:54:16Z",
   "source_commits_since_f804_in_pr_head_5703066": [
     {
       "sha": "f3d02ac841655a5320f5dd3b602310ef3cc5757f",
@@ -1342,7 +1342,7 @@
       "scope": "synthetic_boolean_attempt_ID_type_validation_and_regression"
     }
   ],
-  "latest_exact_head_ci": {
+  "previous_latest_exact_head_ci_34db": {
     "head_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
     "tree_sha": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
     "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
@@ -1443,7 +1443,7 @@
     },
     "terminal_result_first_observed_at_utc": "2026-11-17T04:52:17Z"
   },
-  "worktree_state": "HEAD is published PR 34db with 16/16 Actions and 27/27 checks passed; current local test/document delta is uncommitted, unpublished, and outside that CI.",
+  "worktree_state": "HEAD is published PR e9a6 with 13/13 PR-event Actions and 24/24 checks passed; current post-e9a6 test/document changes are uncommitted, unpublished, and outside that CI.",
   "previous_live_snapshot_570": {
     "observed_at_utc": "2026-11-16T22:50:07Z",
     "observation_basis": "PR/ref and terminal exact-head CI were read at 2026-11-16T22:50:07Z. PR body updated_at was 2026-11-16T22:52:59Z. Issue #172 DoD/approval state was audited at 2026-11-16T21:35:21Z and reverified unchanged before issue body updated_at 2026-11-16T22:53:04Z; exact re-verification time was not separately provided.",
@@ -1496,7 +1496,7 @@
     "gate_changes": false,
     "snapshot_label": "previous_terminal_570_snapshot"
   },
-  "source_commits_inventory_scope": "Historical source inventory first recorded on 5703066; 2f is a test-only P4 bool-schema regression plus 14 handoff-doc updates, with no product-behavior or acceptance-policy change.",
+  "source_commits_inventory_scope": "Historical source inventory through 7f5bbc is retained; published e9a6 adds a test-only reciprocal restore-tenant denial regression and handoff/document refresh, with no production behavior or gate change.",
   "repository_safety_snapshot": {
     "observed_at_utc": "2026-11-17T00:08Z",
     "main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
@@ -1530,7 +1530,7 @@
     "observed_failures_on_7f": 0,
     "scope": "historical workflow-selection audit for 7f; when this audit was recorded, current 2f CI was recorded in the then-latest_live_snapshot; current exact-head CI is 34db"
   },
-  "pr_body_updated_at_utc": "2026-11-17T04:52:58Z",
+  "pr_body_updated_at_utc": "2026-11-17T05:54:11Z",
   "previous_live_snapshot_7f": {
     "observed_at_utc": "2026-11-17T00:54:06Z",
     "ci_completed_at_utc": "2026-11-17T00:48:19Z",
@@ -1682,7 +1682,7 @@
     "scope": "structural_tooling_only; no P4 acceptance or product-support decision",
     "product_support_approval": false
   },
-  "local_candidate_commit_time_utc": "2026-11-17T04:29:41Z",
+  "local_candidate_commit_time_utc": "2026-11-17T05:30:00Z",
   "previous_live_snapshot_2f": {
     "observed_at_utc": "2026-11-17T01:46:45Z",
     "ci_completed_at_utc": "2026-11-17T01:45:06Z",
@@ -1759,8 +1759,8 @@
     "previous_terminal_7f": "13_of_13_Actions_and_23_of_23_checks_passed_at_00:48:19Z; P2_run_43986960603; Debian_133717480521; Ubuntu_133717480949; historical_for_7f_only",
     "local_docs_refresh_uncommitted": true
   },
-  "pr_body_snapshot_head_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
-  "issue_body_snapshot_head_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+  "pr_body_snapshot_head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "issue_body_snapshot_head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
   "historical_f804_source_checkpoint": {
     "scope": "historical f804 source-CI baseline; current PR head 2f is a test-only P4 schema regression plus handoff docs and has terminal exact-head CI",
     "sha": "f804127fdef6b46fec16c27beeb357398e066cba",
@@ -1889,7 +1889,7 @@
   },
   "prior_local_latest_test_commit_before_7f5bbc": "d885a256f96bac36b5d96ff76d8e094b802d75f0",
   "body_snapshots_stale": false,
-  "candidate_handoff_files": [
+  "previous_candidate_handoff_files_before_e9a6": [
     "AGENTS.md",
     "UPDATES.md",
     "docs/AI_AGENT_START_HERE.md",
@@ -1898,14 +1898,14 @@
     "docs/ROADMAP.md",
     "docs/RESUME_HANDOFF_2026-11-12.md"
   ],
-  "candidate_workflow_trigger_audit": {
+  "previous_candidate_workflow_trigger_audit_before_e9a6": {
     "base_published_head": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
     "uncommitted_candidate_file": "scripts/test_backup_restore_site_lab_cli.py",
     "workflow_path_audit": "not_recorded",
     "hosted_ci": "not_run",
     "note": "Prior 7f workflow-trigger forecast is preserved as historical; no workflow forecast or exact-head result is asserted for this uncommitted candidate."
   },
-  "local_handoff_refresh_status": "The seven-file handoff refresh is published in 34db and its exact-head CI passed; a newer test/document refresh is uncommitted and unpushed, and has no hosted CI.",
+  "local_handoff_refresh_status": "The e9a6 handoff/test commit is published in PR #171 and its exact-head CI passed (13/13 PR-event Actions, 24/24 checks, including both P2 guests). The current post-e9a6 test/document refresh is uncommitted and unpushed; it has no hosted CI.",
   "previous_source_head_ci_11c": {
     "head_sha": "11c0362cd70ba01fee1f360ac2c657566713fc17",
     "tree_sha": "bfd7c35693d328a8b47cb4adf9368b9767663cdb",
@@ -2989,8 +2989,8 @@
       "p2_backup_retry_model": "python -m unittest discover -s prototypes/p2-backup-retry-model -p 'test_*.py' -v"
     }
   },
-  "local_candidate_hosted_ci": "not_run_for_current_uncommitted_worktree_candidate; published 34db exact-head CI does not cover edits made after 34db",
-  "current_handoff_commit_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+  "local_candidate_hosted_ci": "not_run_for_current_uncommitted_post_e9a6_worktree_candidate; published e9a6 exact-head CI does not cover edits made after e9a6",
+  "current_handoff_commit_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
   "published_source_checkpoint": {
     "sha": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
     "tree_sha": "17f0d52f1ba1cf955766bb1d68c4e7710630eb9c",
@@ -3006,7 +3006,7 @@
       "scope_note": "These results are for exact PR head 34db, a documentation-only child of 7f5bbc. They cover the committed 7f source in that tree, but are not a standalone exact-head result on 7f5bbc and do not cover later uncommitted worktree changes."
     }
   },
-  "current_worktree_candidate": {
+  "previous_current_worktree_candidate_before_e9a6": {
     "base_head_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
     "pushed": false,
     "hosted_ci": "not_run",
@@ -3041,8 +3041,8 @@
       "scripts/test_backup_restore_site_lab_cli.py"
     ]
   },
-  "local_source_candidate_status": "Current candidate means the uncommitted worktree delta and is not pushed or covered by hosted CI. The last committed 7f5bbc source checkpoint is separately recorded as published in PR head 34db.",
-  "legacy_commit_status": {
+  "local_source_candidate_status": "Current candidate means the post-e9a6 uncommitted worktree delta and is not pushed or covered by hosted CI. Published e9a6 exact-head CI is separate and does not cover the latest assertion/document changes.",
+  "previous_legacy_commit_status_34db": {
     "head_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
     "state": "pending",
     "total_contexts": 0,
@@ -3078,5 +3078,684 @@
       "clarified_value": "historical workflow-selection audit for 7f; when this audit was recorded, current 2f CI was recorded in the then-latest_live_snapshot; current exact-head CI is 34db",
       "reason": "Qualifies ?current 2f? as historical wording so it cannot be read as the current 34db live snapshot."
     }
+  ],
+  "source_head_ci": {
+  "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "tree_sha": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
+  "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+  "pr_state": "open_draft_unmerged",
+  "observed_at_utc": "2026-11-17T05:51:27Z",
+  "workflow_runs_total": 13,
+  "workflow_success": 13,
+  "workflow_failure": 0,
+  "check_runs_total": 24,
+  "check_success": 24,
+  "check_failure": 0,
+  "pending": 0,
+  "pull_request_workflows": {
+    "total": 13,
+    "success": 13,
+    "failure": 0,
+    "in_progress": 0
+  },
+  "push_workflows": {
+    "total": 0,
+    "success": 0,
+    "failure": 0,
+    "in_progress": 0,
+    "observation": "no_same_sha_push_runs_observed"
+  },
+  "p2_run_id": 44024677223,
+  "debian_job_id": 133842055840,
+  "debian_guest_status": "step_18_guest_smoke_success_2026-11-17T05:45:29Z; post_setup_go_2026-11-17T05:45:29Z; post_checkout_and_Complete_2026-11-17T05:45:30Z; job_success_2026-11-17T05:45:33Z",
+  "ubuntu_job_id": 133842055630,
+  "ubuntu_guest_status": "step_18_guest_smoke_success_2026-11-17T05:50:35Z; post_setup_go_2026-11-17T05:50:35Z; post_checkout_and_Complete_2026-11-17T05:50:35Z; job_success_2026-11-17T05:50:38Z",
+  "raw_vm_or_serial_logs_read": false,
+  "annotations": {
+    "inventory": "not_included_in_supplied_final_snapshot"
+  },
+  "limitations": [
+    "Exact-head CI applies only to published e9a6 and does not cover later uncommitted worktree changes.",
+    "No same-SHA push runs were observed.",
+    "Raw VM or serial logs were not read; P2 step/job statuses were inspected as metadata."
+  ],
+  "scope": "Exact PR head e9a6: 13/13 PR-event Actions and 24/24 checks succeeded. P2 #44024677223 passed both hosted non-root guests. PR/ref/issue/CI state was read at 05:51:27Z; the latest P2 job completed at 05:50:38Z. Subsequent uncommitted assertion and documentation changes are outside this result.",
+  "workflow_run_ids": [
+    44024677333,
+    44024677612,
+    44024677423,
+    44024677218,
+    44024677516,
+    44024677436,
+    44024677426,
+    44024677326,
+    44024677430,
+    44024677372,
+    44024677455,
+    44024677422,
+    44024677223
+  ],
+  "workflow_run_ids_complete": true,
+  "workflow_run_id_order": "As supplied; workflow names were not included.",
+  "check_run_ids": [
+    133842056699,
+    133842056631,
+    133842056303,
+    133842056197,
+    133842056148,
+    133842056121,
+    133842056115,
+    133842056072,
+    133842056033,
+    133842056031,
+    133842056011,
+    133842055996,
+    133842055927,
+    133842055925,
+    133842055904,
+    133842055861,
+    133842055859,
+    133842055856,
+    133842055840,
+    133842055838,
+    133842055835,
+    133842055630,
+    133842055617,
+    133842055552
+  ],
+  "check_run_ids_complete": true,
+  "legacy_commit_status": {
+    "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "state": "pending",
+    "total_contexts": 0,
+    "statuses": [],
+    "observed_at_utc": "2026-11-17T05:51:27Z",
+    "note": "Legacy combined commit-status API read for exact SHA e9a6 was pending with zero contexts. This is separate from successful Actions/check-runs and does not establish branch-protection satisfaction."
+  },
+  "terminal_result_observed_at_utc": "2026-11-17T05:51:27Z",
+  "latest_p2_job_completed_at_utc": "2026-11-17T05:50:38Z",
+  "run_ids_and_check_ids_verified_at_utc": null,
+  "id_timestamp_note": "Complete ID arrays were supplied for this refresh; a separate retrieval timestamp was not supplied.",
+  "p2_duration_comparison_to_34db": {
+    "debian_34db": "12m42s",
+    "debian_e9a6": "13m07s",
+    "ubuntu_34db": "18m06s",
+    "ubuntu_e9a6": "18m13s",
+    "assessment": "Not unusual; metadata-only duration comparison. No logs were read."
+  }
+},
+  "latest_exact_head_ci": {
+  "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "tree_sha": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
+  "base_main_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+  "pr_state": "open_draft_unmerged",
+  "observed_at_utc": "2026-11-17T05:51:27Z",
+  "workflow_runs_total": 13,
+  "workflow_success": 13,
+  "workflow_failure": 0,
+  "check_runs_total": 24,
+  "check_success": 24,
+  "check_failure": 0,
+  "pending": 0,
+  "pull_request_workflows": {
+    "total": 13,
+    "success": 13,
+    "failure": 0,
+    "in_progress": 0
+  },
+  "push_workflows": {
+    "total": 0,
+    "success": 0,
+    "failure": 0,
+    "in_progress": 0,
+    "observation": "no_same_sha_push_runs_observed"
+  },
+  "p2_run_id": 44024677223,
+  "debian_job_id": 133842055840,
+  "debian_guest_status": "step_18_guest_smoke_success_2026-11-17T05:45:29Z; post_setup_go_2026-11-17T05:45:29Z; post_checkout_and_Complete_2026-11-17T05:45:30Z; job_success_2026-11-17T05:45:33Z",
+  "ubuntu_job_id": 133842055630,
+  "ubuntu_guest_status": "step_18_guest_smoke_success_2026-11-17T05:50:35Z; post_setup_go_2026-11-17T05:50:35Z; post_checkout_and_Complete_2026-11-17T05:50:35Z; job_success_2026-11-17T05:50:38Z",
+  "raw_vm_or_serial_logs_read": false,
+  "annotations": {
+    "inventory": "not_included_in_supplied_final_snapshot"
+  },
+  "limitations": [
+    "Exact-head CI applies only to published e9a6 and does not cover later uncommitted worktree changes.",
+    "No same-SHA push runs were observed.",
+    "Raw VM or serial logs were not read; P2 step/job statuses were inspected as metadata."
+  ],
+  "scope": "Exact PR head e9a6: 13/13 PR-event Actions and 24/24 checks succeeded. P2 #44024677223 passed both hosted non-root guests. PR/ref/issue/CI state was read at 05:51:27Z; the latest P2 job completed at 05:50:38Z. Subsequent uncommitted assertion and documentation changes are outside this result.",
+  "workflow_run_ids": [
+    44024677333,
+    44024677612,
+    44024677423,
+    44024677218,
+    44024677516,
+    44024677436,
+    44024677426,
+    44024677326,
+    44024677430,
+    44024677372,
+    44024677455,
+    44024677422,
+    44024677223
+  ],
+  "workflow_run_ids_complete": true,
+  "workflow_run_id_order": "As supplied; workflow names were not included.",
+  "check_run_ids": [
+    133842056699,
+    133842056631,
+    133842056303,
+    133842056197,
+    133842056148,
+    133842056121,
+    133842056115,
+    133842056072,
+    133842056033,
+    133842056031,
+    133842056011,
+    133842055996,
+    133842055927,
+    133842055925,
+    133842055904,
+    133842055861,
+    133842055859,
+    133842055856,
+    133842055840,
+    133842055838,
+    133842055835,
+    133842055630,
+    133842055617,
+    133842055552
+  ],
+  "check_run_ids_complete": true,
+  "legacy_commit_status": {
+    "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "state": "pending",
+    "total_contexts": 0,
+    "statuses": [],
+    "observed_at_utc": "2026-11-17T05:51:27Z",
+    "note": "Legacy combined commit-status API read for exact SHA e9a6 was pending with zero contexts. This is separate from successful Actions/check-runs and does not establish branch-protection satisfaction."
+  },
+  "terminal_result_observed_at_utc": "2026-11-17T05:51:27Z",
+  "latest_p2_job_completed_at_utc": "2026-11-17T05:50:38Z",
+  "run_ids_and_check_ids_verified_at_utc": null,
+  "id_timestamp_note": "Complete ID arrays were supplied for this refresh; a separate retrieval timestamp was not supplied.",
+  "p2_duration_comparison_to_34db": {
+    "debian_34db": "12m42s",
+    "debian_e9a6": "13m07s",
+    "ubuntu_34db": "18m06s",
+    "ubuntu_e9a6": "18m13s",
+    "assessment": "Not unusual; metadata-only duration comparison. No logs were read."
+  }
+},
+  "latest_live_snapshot": {
+  "observed_at_utc": "2026-11-17T05:51:27Z",
+  "observed_on_local_date": "2026-11-17",
+  "pr": 171,
+  "pr_state": "open_draft_unmerged",
+  "pr_head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "pr_head_tree_sha": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
+  "pr_head_parent_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+  "pr_base_sha": "0aad68e81138a0f226e83e401f90bae4d0b6bddc",
+  "branch_ref": "refs/heads/integration/pr-reconciliation-20261113",
+  "branch_ref_matches_pr_head": true,
+  "working_branch": "codex/tong-panel-candidate-20261116",
+  "workflow_runs_total_same_sha_all_events": 13,
+  "pull_request_workflows_total": 13,
+  "pull_request_workflows_success": 13,
+  "pull_request_workflows_failure": 0,
+  "pull_request_workflows_in_progress": 0,
+  "push_workflows_total": 0,
+  "push_workflows_success": 0,
+  "push_workflows_failure": 0,
+  "check_runs_total_same_sha_all_events": 24,
+  "check_runs_success": 24,
+  "check_runs_failure": 0,
+  "check_runs_in_progress": 0,
+  "p2_run_id": 44024677223,
+  "debian_job_id": 133842055840,
+  "debian_guest_status": "step_18_guest_smoke_success_2026-11-17T05:45:29Z; post_setup_go_2026-11-17T05:45:29Z; post_checkout_and_Complete_2026-11-17T05:45:30Z; job_success_2026-11-17T05:45:33Z",
+  "ubuntu_job_id": 133842055630,
+  "ubuntu_guest_status": "step_18_guest_smoke_success_2026-11-17T05:50:35Z; post_setup_go_2026-11-17T05:50:35Z; post_checkout_and_Complete_2026-11-17T05:50:35Z; job_success_2026-11-17T05:50:38Z",
+  "pending_checks": [],
+  "raw_vm_or_serial_logs_read": false,
+  "issue_172_state": "open",
+  "issue_172_dod_total": 12,
+  "issue_172_dod_checked": 0,
+  "issue_172_dod_unchecked": 12,
+  "issue_172_approval_fields_false": 9,
+  "product_support_approval": false,
+  "pr_body_updated_at_utc": "2026-11-17T05:54:11Z",
+  "issue_body_updated_at_utc": "2026-11-17T05:54:16Z",
+  "pr_body_snapshot_head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "issue_body_snapshot_head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "body_snapshots_stale": false,
+  "gates_changed": false,
+  "published_source_candidate": {
+    "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "tree_sha": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
+    "parent_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+    "included_in_pr_head": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "published": true,
+    "coverage_note": "Exact-head CI passed on e9a6. This does not cover the later uncommitted worktree changes."
+  },
+  "current_worktree_candidate": {
+    "base_head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "pushed": false,
+    "hosted_ci": "not_run",
+    "changed_source_test": "scripts/test_backup_restore_site_lab_cli.py",
+    "scope": "Additional test-only assertion: call inspect_empty_inventory after the traversal and symlink denial cases.",
+    "local_validation": {
+      "git_diff_check": "passed_after_current_worktree_diff_check_2026-11-17",
+      "python_syntax_compilation": "not_reverified_after_latest_additional_assertion",
+      "process_execution": "not_run; local WSL/Linux execution unavailable; execute through existing P2 non-root runner/guest workflow after publication",
+      "json_parse": "passed_after_write"
+    },
+    "documentation_changes": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md"
+    ],
+    "limitations": "These post-e9a6 worktree changes are uncommitted and unpublished, and have no hosted CI. The new inspect_empty_inventory assertion has not been process-executed. e9a6 CI does not cover them.",
+    "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "working_tree_changes_uncommitted": true,
+    "uncommitted_files": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/BLUEPRINT.md",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md",
+      "docs/ROADMAP.md",
+      "scripts/test_backup_restore_site_lab_cli.py"
+    ]
+  },
+  "last_timestamped_legacy_commit_status": {
+    "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "state": "pending",
+    "total_contexts": 0,
+    "statuses": [],
+    "observed_at_utc": "2026-11-17T05:51:27Z",
+    "note": "Legacy combined commit-status API read for exact SHA e9a6 was pending with zero contexts. This is separate from successful Actions/check-runs and does not establish branch-protection satisfaction."
+  },
+  "snapshot_kind": "static_snapshot_not_live_monitor",
+  "snapshot_label": "published_e9a6_green_plus_post_e9a6_unpublished_test_and_document_delta",
+  "local_go_or_gofmt_available": false,
+  "workflow_run_ids": [
+    44024677333,
+    44024677612,
+    44024677423,
+    44024677218,
+    44024677516,
+    44024677436,
+    44024677426,
+    44024677326,
+    44024677430,
+    44024677372,
+    44024677455,
+    44024677422,
+    44024677223
+  ],
+  "check_run_ids": [
+    133842056699,
+    133842056631,
+    133842056303,
+    133842056197,
+    133842056148,
+    133842056121,
+    133842056115,
+    133842056072,
+    133842056033,
+    133842056031,
+    133842056011,
+    133842055996,
+    133842055927,
+    133842055925,
+    133842055904,
+    133842055861,
+    133842055859,
+    133842055856,
+    133842055840,
+    133842055838,
+    133842055835,
+    133842055630,
+    133842055617,
+    133842055552
+  ],
+  "issue_172_state_observed_at_utc": "2026-11-17T05:51:27Z",
+  "pr_state_observed_at_utc": "2026-11-17T05:51:27Z",
+  "pr_comments": 27,
+  "pr_review_comments": 0,
+  "pr_reviews": 0,
+  "issue_comments": 38,
+  "pr_labels": [],
+  "issue_labels": [],
+  "live_read_confirmations": {
+    "pr_state": "open_draft_unmerged",
+    "pr_head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "branch_ref": "refs/heads/integration/pr-reconciliation-20261113",
+    "branch_ref_matches_pr_head": true,
+    "issue_172_state": "open",
+    "pr_state_observed_at_utc": "2026-11-17T05:51:27Z",
+    "issue_state_observed_at_utc": "2026-11-17T05:51:27Z",
+    "pr_updated_at_utc": "2026-11-17T05:54:11Z",
+    "issue_172_updated_at_utc": "2026-11-17T05:54:16Z",
+    "body_patch_observed_at_utc": "2026-11-17T05:54:07.320Z",
+    "pr_body_snapshot_head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "issue_body_snapshot_head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "body_read_back_after_patch": true,
+    "pr_comments": 27,
+    "pr_review_comments": 0,
+    "pr_reviews": 0,
+    "issue_comments": 38,
+    "pr_labels": [],
+    "issue_labels": []
+  },
+  "branch_ref_observed_at_utc": "2026-11-17T05:51:27Z",
+  "terminal_exact_head_ci_observed_at_utc": "2026-11-17T05:51:27Z",
+  "ci_ids_and_statuses_reread_at_utc": "2026-11-17T05:51:27Z",
+  "same_sha_push_runs_observed": false,
+  "body_patch_observed_at_utc": "2026-11-17T05:54:07.320Z",
+  "body_snapshot_read_back_at_utc": "2026-11-17T05:54:16Z",
+  "pr_body_read_back_after_patch": true,
+  "issue_body_read_back_after_patch": true,
+  "branch_worktree_clean_at_e9a6_observation": false,
+  "workflow_run_ids_complete": true,
+  "workflow_run_id_order": "As supplied; workflow names were not included.",
+  "check_run_ids_complete": true,
+  "ci_statuses_observed_at_utc": "2026-11-17T05:51:27Z",
+  "body_snapshot_observation_note": "The live PR/ref/issue/CI state read is timestamped 05:51:27Z. Body patch was observed at 05:54:07.320Z; post-patch readback returned PR updated_at 05:54:11Z and issue updated_at 05:54:16Z."
+},
+  "current_follow_up": {
+  "status": "PR_e9a6_open_draft_unmerged_exact_head_green; newer_test_and_document_changes_uncommitted",
+  "published_pr_head": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "published_pr_tree": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
+  "published_pr_parent": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+  "published_exact_head_ci": {
+    "workflow_runs_total": 13,
+    "workflow_success": 13,
+    "check_runs_total": 24,
+    "check_success": 24,
+    "p2_run_id": 44024677223,
+    "debian_job_id": 133842055840,
+    "ubuntu_job_id": 133842055630,
+    "same_sha_push_runs_observed": false
+  },
+  "issue_172": {
+    "state": "open",
+    "dod_total": 12,
+    "dod_checked": 0,
+    "approval_fields_false": 9,
+    "product_support_approval": false
+  },
+  "current_local_candidate": "Post-e9a6 uncommitted test/document refresh; diff-check passed per root review, latest assertion process execution is unrun, and hosted CI has not run.",
+  "next": "After a fresh PR #171/ref/issue #172 read immediately before publication, commit and normal-fast-forward publish the reviewed current candidate. Then use the existing P2 non-root runner/guest workflow to execute the added process-test assertion and inspect exact-head CI. Local WSL/Linux execution is unavailable and is not a prepublication blocker; e9a6 green CI does not cover this uncommitted delta.",
+  "gates_unchanged": true,
+  "latest_github_api_reread_at_utc": "2026-11-17T05:51:27Z",
+  "body_patch_observed_at_utc": "2026-11-17T05:54:07.320Z",
+  "body_read_back_at_utc": "2026-11-17T05:54:16Z",
+  "pr_comments": 27,
+  "pr_review_comments": 0,
+  "pr_reviews": 0,
+  "issue_comments": 38,
+  "pr_labels": [],
+  "issue_labels": []
+},
+  "next": {
+  "priority": 1,
+  "action": "After a fresh PR #171/ref/issue #172 read immediately before publication, commit and normal-fast-forward publish the reviewed current candidate. Then use the existing P2 non-root runner/guest workflow to execute the added process-test assertion and inspect exact-head CI. Local WSL/Linux execution is unavailable and is not a prepublication blocker; e9a6 green CI does not cover this uncommitted delta.",
+  "required_evidence": [
+    "Freshly reread PR #171, its branch ref, and issue #172 immediately before publication; publish by normal fast-forward only if the state still matches.",
+    "Commit and publish the reviewed post-e9a6 documentation/test delta by normal fast-forward; do not treat it as already covered by e9a6 CI.",
+    "After publication, run the process test through the existing P2 non-root runner/guest workflow and inspect CI on the exact new head.",
+    "Issue #172 remains open at 0/12 with all nine approval fields false and product_support_approval:false; no merge, live-server mutation, or public release is authorized."
+  ],
+  "gates_unchanged": true
+},
+  "worktree_changes": {
+  "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "head_tree_sha": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
+  "uncommitted_files": [
+    "AGENTS.md",
+    "UPDATES.md",
+    "docs/AI_AGENT_START_HERE.md",
+    "docs/AI_AGENT_STATE.json",
+    "docs/BLUEPRINT.md",
+    "docs/P0_THREAT_TEST_CROSSWALK.md",
+    "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+    "docs/RESUME_HANDOFF_2026-11-12.md",
+    "docs/ROADMAP.md",
+    "scripts/test_backup_restore_site_lab_cli.py"
+  ],
+  "only_uncommitted_changes_are_test_and_handoff_refresh": true,
+  "published_pr_head_matches_worktree_head": true,
+  "local_candidate_pushed": false,
+  "hosted_ci_for_uncommitted_changes": "not_run",
+  "test_candidate": {
+    "file": "scripts/test_backup_restore_site_lab_cli.py",
+    "change": "Add inspect_empty_inventory assertions after traversal and symlink denials.",
+    "git_diff_check": "passed_after_current_worktree_diff_check_2026-11-17",
+    "python_syntax_compilation": "not_reverified_after_latest_additional_assertion",
+    "process_execution": "not_run; local WSL/Linux execution unavailable; use existing P2 non-root runner/guest workflow after publication"
+  },
+  "documentation_changes": [
+    "AGENTS.md",
+    "UPDATES.md",
+    "docs/AI_AGENT_START_HERE.md",
+    "docs/AI_AGENT_STATE.json",
+    "docs/BLUEPRINT.md",
+    "docs/P0_THREAT_TEST_CROSSWALK.md",
+    "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+    "docs/RESUME_HANDOFF_2026-11-12.md",
+    "docs/ROADMAP.md"
+  ],
+  "scope_limit": "These post-e9a6 local edits are outside published e9a6 and its exact-head CI. No merge, live-server mutation, or release is authorized."
+},
+  "current_worktree_candidate": {
+  "base_head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "pushed": false,
+  "hosted_ci": "not_run",
+  "changed_source_test": "scripts/test_backup_restore_site_lab_cli.py",
+  "scope": "Additional test-only assertion: call inspect_empty_inventory after the traversal and symlink denial cases.",
+  "local_validation": {
+    "git_diff_check": "passed_after_current_worktree_diff_check_2026-11-17",
+    "python_syntax_compilation": "not_reverified_after_latest_additional_assertion",
+    "process_execution": "not_run; local WSL/Linux execution unavailable; execute through existing P2 non-root runner/guest workflow after publication",
+    "json_parse": "passed_after_write"
+  },
+  "documentation_changes": [
+    "AGENTS.md",
+    "UPDATES.md",
+    "docs/AI_AGENT_START_HERE.md",
+    "docs/AI_AGENT_STATE.json",
+    "docs/BLUEPRINT.md",
+    "docs/P0_THREAT_TEST_CROSSWALK.md",
+    "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+    "docs/RESUME_HANDOFF_2026-11-12.md",
+    "docs/ROADMAP.md"
+  ],
+  "limitations": "These post-e9a6 worktree changes are uncommitted and unpublished, and have no hosted CI. The new inspect_empty_inventory assertion has not been process-executed. e9a6 CI does not cover them.",
+  "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "working_tree_changes_uncommitted": true,
+  "uncommitted_files": [
+    "AGENTS.md",
+    "UPDATES.md",
+    "docs/AI_AGENT_START_HERE.md",
+    "docs/AI_AGENT_STATE.json",
+    "docs/BLUEPRINT.md",
+    "docs/P0_THREAT_TEST_CROSSWALK.md",
+    "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+    "docs/RESUME_HANDOFF_2026-11-12.md",
+    "docs/ROADMAP.md",
+    "scripts/test_backup_restore_site_lab_cli.py"
   ]
+},
+  "tracker_dod_at_snapshot": {
+  "total": 12,
+  "checked": 0,
+  "unchecked": 12,
+  "approval_fields_false": 9,
+  "issue_state": "open",
+  "issue_updated_at_utc": "2026-11-17T05:54:16Z",
+  "observed_at_utc": "2026-11-17T05:51:27Z",
+  "product_support_approval": false,
+  "approval_field_identifiers_independently_verified": false,
+  "note": "Issue #172 was observed open with 0/12 DoD checked and all nine approval fields false at 05:51:27Z. The post-patch API read returned issue updated_at 05:54:16Z; this is the issue body update timestamp, not the earlier live-state observation time."
+},
+  "legacy_commit_status": {
+  "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "state": "pending",
+  "total_contexts": 0,
+  "statuses": [],
+  "observed_at_utc": "2026-11-17T05:51:27Z",
+  "note": "Legacy combined commit-status API read for exact SHA e9a6 was pending with zero contexts. This is separate from successful Actions/check-runs and does not establish branch-protection satisfaction."
+},
+  "latest_source_checkpoint": {
+  "sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "tree_sha": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
+  "parent": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+  "base_published_head": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+  "source_commits": [
+    {
+      "sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+      "scope": "test-only reciprocal restore-tenant denial regression and handoff/document refresh"
+    }
+  ],
+  "scope": "Test-only CLI regression and handoff/documentation refresh; no production behavior or acceptance-gate change.",
+  "local_tests": {
+    "latest_additional_assertion_process_execution": "not_run",
+    "git_diff_check": "passed_after_current_worktree_diff_check_2026-11-17",
+    "local_WSL_Linux_execution": "unavailable"
+  },
+  "published_parent_exact_head_ci": "34db parent exact-head CI was 16/16 Actions and 27/27 checks, including both P2 guests.",
+  "pushed": true,
+  "hosted_ci": "Exact published e9a6 head passed 13/13 PR-event Actions and 24/24 checks, including P2 #44024677223. This does not cover the later uncommitted worktree candidate.",
+  "next": "After a fresh PR #171/ref/issue #172 read immediately before publication, commit and normal-fast-forward publish the reviewed current candidate. Then use the existing P2 non-root runner/guest workflow to execute the added process-test assertion and inspect exact-head CI. Local WSL/Linux execution is unavailable and is not a prepublication blocker; e9a6 green CI does not cover this uncommitted delta.",
+  "published_exact_head_ci": {
+    "head_sha": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+    "tree_sha": "12891d236860bf2479ac37a84ca4166dbc2bfb3a",
+    "workflow_runs_total": 13,
+    "workflow_success": 13,
+    "check_runs_total": 24,
+    "check_success": 24,
+    "p2_run_id": 44024677223,
+    "workflow_run_ids": [
+      44024677333,
+      44024677612,
+      44024677423,
+      44024677218,
+      44024677516,
+      44024677436,
+      44024677426,
+      44024677326,
+      44024677430,
+      44024677372,
+      44024677455,
+      44024677422,
+      44024677223
+    ],
+    "check_run_ids": [
+      133842056699,
+      133842056631,
+      133842056303,
+      133842056197,
+      133842056148,
+      133842056121,
+      133842056115,
+      133842056072,
+      133842056033,
+      133842056031,
+      133842056011,
+      133842055996,
+      133842055927,
+      133842055925,
+      133842055904,
+      133842055861,
+      133842055859,
+      133842055856,
+      133842055840,
+      133842055838,
+      133842055835,
+      133842055630,
+      133842055617,
+      133842055552
+    ],
+    "scope_note": "Exact PR head e9a6; no same-SHA push runs observed."
+  }
+},
+  "candidate_workflow_trigger_audit": {
+  "base_published_head": "e9a6c700022e4d2834074980e9e82bac40a1b4d6",
+  "uncommitted_candidate_file": "scripts/test_backup_restore_site_lab_cli.py",
+  "workflow_path_audit": "not_recorded",
+  "hosted_ci": "not_run",
+  "note": "The previous 7f workflow-trigger forecast is preserved under previous_candidate_workflow_trigger_audit_before_e9a6. No workflow forecast or exact-head result is asserted for this post-e9a6 uncommitted assertion."
+},
+  "candidate_handoff_files": [
+  "AGENTS.md",
+  "UPDATES.md",
+  "docs/AI_AGENT_START_HERE.md",
+  "docs/AI_AGENT_STATE.json",
+  "docs/BLUEPRINT.md",
+  "docs/P0_THREAT_TEST_CROSSWALK.md",
+  "docs/P2_ACCEPTANCE_TRACEABILITY.md",
+  "docs/RESUME_HANDOFF_2026-11-12.md",
+  "docs/ROADMAP.md"
+],
+  "previous_snapshot_summary_34db": {
+  "scope": "Top-level summary values before the e9a6 refresh; full 34db current objects are retained under previous_* historical keys.",
+  "values": {
+    "source_head_before_handoff_commit": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
+    "source_tree_sha": "17f0d52f1ba1cf955766bb1d68c4e7710630eb9c",
+    "pr_state_at_snapshot": "open_draft_unmerged",
+    "published_pr_head_at_snapshot": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+    "local_checkpoint_parent_at_snapshot": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
+    "local_candidate_head": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+    "local_latest_test_commit": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
+    "local_candidate_tree_sha": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
+    "local_snapshot_head": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+    "local_snapshot_tree": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
+    "current_worktree_changes": "The checkout HEAD is published PR head 34db, but the current worktree has uncommitted edits to six handoff documents, this state JSON, and scripts/test_backup_restore_site_lab_cli.py. These edits are not part of 34db and have no hosted CI; the new CLI test has not been process-executed.",
+    "snapshot_scope_note": "Static snapshot reread through GitHub API at 2026-11-17T05:13:45Z: PR/ref/issue state, run/check IDs, and terminal statuses were reread; the exact-head CI was first observed terminal at 04:52:17Z. PR #171 remains open/draft/unmerged at 34db; all 16 Actions and 27 checks succeeded. Issue #172 remains open at 0/12, nine approval fields false, product support false. The 7f source is published in 34db; newer test/document edits are uncommitted and outside that CI.",
+    "published_pr_tree_at_snapshot": "9ab2235545474d666c0bba9ee97bc2aa48c1b45f",
+    "local_snapshot_note": "Published PR head 34db passed 16/16 Actions and 27/27 checks, including both P2 guests. The uncommitted test/document refresh on top of 34db is outside that CI; its tenant-binding CLI process test has not run and hosted CI has not run.",
+    "snapshot_timestamp_utc": "2026-11-17T05:13:45Z",
+    "snapshot_read_at_utc": "2026-11-17T05:13:45Z",
+    "pr_state_observed_at_utc": "2026-11-17T05:13:45Z",
+    "issue_state_observed_at_utc": "2026-11-17T05:13:45Z",
+    "ci_snapshot_timestamp_utc": "2026-11-17T05:13:45Z",
+    "remote_pr_head": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+    "current_handoff_commit_parent": "7f5bbc360055484e9584e4dd16fcca8ad2da946e",
+    "issue_body_updated_at_utc": "2026-11-17T04:53:18Z",
+    "pr_body_updated_at_utc": "2026-11-17T04:52:58Z",
+    "pr_body_snapshot_head_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+    "issue_body_snapshot_head_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+    "body_snapshots_stale": false,
+    "candidate_handoff_files": [
+      "AGENTS.md",
+      "UPDATES.md",
+      "docs/AI_AGENT_START_HERE.md",
+      "docs/AI_AGENT_STATE.json",
+      "docs/P0_THREAT_TEST_CROSSWALK.md",
+      "docs/ROADMAP.md",
+      "docs/RESUME_HANDOFF_2026-11-12.md"
+    ],
+    "local_handoff_refresh_status": "The seven-file handoff refresh is published in 34db and its exact-head CI passed; a newer test/document refresh is uncommitted and unpushed, and has no hosted CI.",
+    "local_candidate_hosted_ci": "not_run_for_current_uncommitted_worktree_candidate; published 34db exact-head CI does not cover edits made after 34db",
+    "current_handoff_commit_sha": "34db65c97131d16a1cda3fe5e5a7a8ddee04a5ee",
+    "local_source_candidate_status": "Current candidate means the uncommitted worktree delta and is not pushed or covered by hosted CI. The last committed 7f5bbc source checkpoint is separately recorded as published in PR head 34db.",
+    "local_candidate_committed_at_utc": "2026-11-17T15:29:41+11:00",
+    "local_candidate_commit_time_utc": "2026-11-17T04:29:41Z",
+    "local_source_candidate_pushed": false,
+    "source_commits_inventory_scope": "Historical source inventory first recorded on 5703066; 2f is a test-only P4 bool-schema regression plus 14 handoff-doc updates, with no product-behavior or acceptance-policy change."
+  }
+}
 }
