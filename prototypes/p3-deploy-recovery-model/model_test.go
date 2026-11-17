@@ -314,6 +314,35 @@ func TestUnknownRouteRemainsUncertain(t *testing.T) {
 	}
 }
 
+func TestUnrecognizedRouteRemainsUncertainAfterSerializedRestart(t *testing.T) {
+	m := readyForSwitch(t)
+	if err := m.ApplySwitch(); err != nil {
+		t.Fatal(err)
+	}
+
+	const observedRoute = "unrecognized-release"
+	routeBefore := m.ActualRoute
+	restarted := restartModel(t, m)
+	if restarted.State != StateSwitching || restarted.Outcome != "" || restarted.ActualRoute != routeBefore || restarted.ObservedRoute != restarted.PriorDigest {
+		t.Fatalf("switch state after restart = state %q outcome %q actual=%q observed=%q", restarted.State, restarted.Outcome, restarted.ActualRoute, restarted.ObservedRoute)
+	}
+
+	restarted.Recover(observedRoute)
+	if restarted.State != StateUncertain || restarted.Outcome != "uncertain" || restarted.ActualRoute != routeBefore || restarted.ObservedRoute != observedRoute {
+		t.Fatalf("unknown route recovery after switch restart = state %q outcome %q actual=%q observed=%q", restarted.State, restarted.Outcome, restarted.ActualRoute, restarted.ObservedRoute)
+	}
+
+	uncertainRestart := restartModel(t, restarted)
+	if uncertainRestart.State != StateUncertain || uncertainRestart.Outcome != "uncertain" || uncertainRestart.ActualRoute != routeBefore || uncertainRestart.ObservedRoute != observedRoute {
+		t.Fatalf("uncertain state after restart = state %q outcome %q actual=%q observed=%q", uncertainRestart.State, uncertainRestart.Outcome, uncertainRestart.ActualRoute, uncertainRestart.ObservedRoute)
+	}
+
+	uncertainRestart.Recover(observedRoute)
+	if uncertainRestart.State != StateUncertain || uncertainRestart.Outcome != "uncertain" || uncertainRestart.ActualRoute != routeBefore || uncertainRestart.ObservedRoute != observedRoute {
+		t.Fatalf("repeated unknown route recovery = state %q outcome %q actual=%q observed=%q", uncertainRestart.State, uncertainRestart.Outcome, uncertainRestart.ActualRoute, uncertainRestart.ObservedRoute)
+	}
+}
+
 func TestRollbackIsSuccessOnlyAfterPriorRouteObserved(t *testing.T) {
 	m := readyForSwitch(t)
 	if err := m.ApplySwitch(); err != nil {

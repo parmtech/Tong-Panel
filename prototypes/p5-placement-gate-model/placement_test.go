@@ -28,6 +28,7 @@ func TestCanPlaceRequiresConcreteFreshHealthyExactEnvironment(t *testing.T) {
 		{name: "empty node environment", job: job, node: Node{ID: "node-1", Healthy: true, InventoryFresh: true}, now: now},
 		{name: "whitespace-only node environment", job: job, node: Node{ID: "node-1", Environment: " \t", Healthy: true, InventoryFresh: true}, now: now},
 		{name: "cross environment", job: job, node: Node{ID: "node-1", Environment: "production", Healthy: true, InventoryFresh: true}, now: now},
+		{name: "whitespace-padded environment mismatch", job: job, node: Node{ID: "node-1", Environment: "staging ", Healthy: true, InventoryFresh: true}, now: now},
 		{name: "unhealthy", job: job, node: Node{ID: "node-1", Environment: "staging", InventoryFresh: true}, now: now},
 		{name: "stale inventory", job: job, node: Node{ID: "node-1", Environment: "staging", Healthy: true}, now: now},
 		{name: "unknown time", job: job, node: node},
@@ -67,6 +68,28 @@ func TestCanPlaceUsesHalfOpenMaintenanceWindow(t *testing.T) {
 				t.Fatalf("CanPlace at %s = %t, want %t", tt.now, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestCanPlaceRequiresFreshInventoryAfterMaintenance(t *testing.T) {
+	start := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+	job := Job{ID: "job-1", Environment: "production"}
+	node := Node{
+		ID:             "node-1",
+		Environment:    "production",
+		Healthy:        true,
+		InventoryFresh: false,
+		Maintenance:    []MaintenanceWindow{{StartsAt: start, EndsAt: end}},
+	}
+
+	if CanPlace(job, node, end) {
+		t.Fatal("node with stale inventory remained eligible after maintenance ended")
+	}
+
+	node.InventoryFresh = true
+	if !CanPlace(job, node, end) {
+		t.Fatal("node with refreshed inventory should be eligible after maintenance ended")
 	}
 }
 
